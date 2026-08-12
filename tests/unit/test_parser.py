@@ -1,0 +1,97 @@
+from decimal import Decimal
+
+import pytest
+
+from app.domain.parsing.parser import parse_basket_lines, split_message_to_lines
+
+
+def test_split_message_lines() -> None:
+    # 1. Comma separated with decimal protection (12,5 should not split)
+    msg1 = "500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30"
+    lines1 = split_message_to_lines(msg1)
+    assert len(lines1) == 3
+    assert "500 dona g'isht" in lines1[0]
+    assert "10 qop cement m400" in lines1[1]
+    assert "3 quti plitka 30x30" in lines1[2]
+
+    # Decimal comma protection
+    msg2 = "Gipsokarton 12,5mm 40 list, 1,5 kub shag'al"
+    lines2 = split_message_to_lines(msg2)
+    assert len(lines2) == 2
+    assert "12,5mm" in lines2[0] or "12.5mm" in lines2[0]
+    assert "1,5 kub" in lines2[1] or "1.5 kub" in lines2[1]
+
+    # Newlines and bullet points
+    msg3 = """
+    • цемент м400 - 20 қоп
+    • армaтура 12мм 500 кг
+    - 5 rulon ruberoid
+    1. 2t qum
+    2) 1.5 kub shag'al
+    """
+    lines3 = split_message_to_lines(msg3)
+    assert len(lines3) == 5
+
+
+@pytest.mark.parametrize(
+    ("raw_line", "expected_name", "expected_qty", "expected_unit"),
+    [
+        ("500 dona g'isht", "g'isht", Decimal("500"), "dona"),
+        ("10 qop cement m400", "cement m400", Decimal("10"), "qop"),
+        ("3 quti plitka 30x30", "plitka 30x30", Decimal("3"), "quti"),
+        ("цемент м400 - 20 қоп", "sement m400", Decimal("20"), "qop"),
+        ("армaтура 12мм 500 кг", "armatura 12mm", Decimal("500"), "kg"),
+        ("5 rulon ruberoid", "ruberoid", Decimal("5"), "rulon"),
+        ("Gipsokarton 12.5mm 40 list", "gipsokarton 12.5mm", Decimal("40"), "dona"),
+        ("kraska belaya 3 vedra 10l", "kraska belaya", Decimal("30"), "litr"),
+        ("2t qum", "qum", Decimal("2"), "tonna"),
+        ("1.5 kub shag'al", "shag'al", Decimal("1.5"), "m3"),
+        ("100 metr armatura 14mm", "armatura 14mm", Decimal("100"), "metr"),
+        ("25 kg plitka yelimi", "plitka yelimi", Decimal("25"), "kg"),
+        ("rotband 15 qop", "rotband", Decimal("15"), "qop"),
+    ],
+)
+def test_parse_single_line_fixtures(
+    raw_line: str,
+    expected_name: str,
+    expected_qty: Decimal,
+    expected_unit: str,
+) -> None:
+    parsed = parse_basket_lines(raw_line)
+    assert len(parsed) == 1
+    p = parsed[0]
+    assert p.qty == expected_qty
+    assert p.unit_code == expected_unit
+    assert expected_name in p.parsed_name
+
+
+def test_parse_full_basket_text() -> None:
+    basket_text = """
+    500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30
+    цемент м400 - 20 қоп
+    армaтура 12мм 500 кг
+    5 rulon ruberoid
+    Gipsokarton 12.5mm 40 list
+    kraska belaya 3 vedra 10l
+    2t qum, 1.5 kub shag'al
+    """
+    lines = parse_basket_lines(basket_text)
+    assert len(lines) == 10
+    assert all(line.qty > Decimal("0") for line in lines)
+    assert all(line.unit_code is not None for line in lines)
+
+
+def test_parse_range_quantity() -> None:
+    # Range: 10-15 qop cement -> takes upper bound (15) and flags needs_review
+    parsed = parse_basket_lines("10-15 qop sement m400")
+    assert len(parsed) == 1
+    assert parsed[0].qty == Decimal("15")
+    assert parsed[0].needs_review is True
+
+
+def test_parse_multiplier() -> None:
+    # 5 x 10 qop sement -> 50 qop
+    parsed = parse_basket_lines("5 x 10 qop sement m400")
+    assert len(parsed) == 1
+    assert parsed[0].qty == Decimal("50")
+    assert parsed[0].unit_code == "qop"

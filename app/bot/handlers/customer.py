@@ -1,0 +1,590 @@
+from decimal import Decimal
+from typing import Any
+
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.bot.keyboards.inline import (
+    get_basket_actions_keyboard,
+    get_quote_carousel_keyboard,
+)
+from app.bot.keyboards.reply import get_main_menu_keyboard
+from app.bot.states import BasketStates, OrderCheckoutStates
+from app.core.i18n import t
+from app.db.models.order import Order, OrderItem, OrderShopPart
+from app.db.models.user import User
+from app.db.repositories.catalog_repo import CatalogRepository
+from app.db.repositories.ops_repo import OpsRepository
+from app.db.repositories.order_repo import OrderRepository
+from app.db.repositories.shop_repo import ShopRepository
+from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
+from app.services.catalog_service import CatalogService
+from app.services.quote_service import QuoteService
+
+router = Router(name="customer")
+
+
+@router.message(F.text.in_(["🧾 Ro'yxat yuborish", "🧾 Рўйхат юбориш", "🧾 Отправить список"]))
+async def menu_send_list(message: Message, state: FSMContext, lang: str) -> None:
+    await state.set_state(BasketStates.waiting_for_basket_text)
+    await message.answer(t("prompt_send_basket", lang=lang))
+
+
+@router.message(BasketStates.waiting_for_basket_text)
+@router.message(F.text & ~F.text.startswith("/"))
+async def handle_basket_text(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not message.text or message.text.startswith(("🧾", "📦", "🔍", "🏪", "⚙️", "/")):
+        return
+
+    # 1. Immediate acknowledgement message according to SPEC §9
+    status_msg = await message.answer(t("parsing_in_progress", lang=lang))
+
+    # 2. Parse and match lines
+    catalog_repo = CatalogRepository(session)
+    ops_repo = OpsRepository(session)
+    catalog_service = CatalogService(catalog_repo, ops_repo)
+
+    parsed_results = await catalog_service.parse_and_match_basket(message.text)
+
+    # 3. Store in state for interactive confirmation
+    serialized_lines: list[dict[str, Any]] = []
+    for line, decision in parsed_results:
+        cand_data = []
+        if decision.candidates:
+            for c in decision.candidates:
+                cand_data.append(
+                    {
+                        "canonical_id": c.canonical_id,
+                        "name_uz": c.name_uz,
+                        "score": c.score,
+                    }
+                )
+
+        serialized_lines.append(
+            {
+                "line_no": line.line_no,
+                "raw_text": line.raw_text,
+                "parsed_name": line.parsed_name,
+                "qty": str(line.qty),
+                "unit_code": line.unit_code or "dona",
+                "status": decision.status,
+                "confidence": decision.confidence,
+                "canonical_id": decision.canonical_id,
+                "canonical_name": (
+                    decision.candidates[0].name_uz if decision.candidates else line.parsed_name
+                ),
+                "candidates": cand_data,
+            }
+        )
+
+    await state.update_data(basket_lines=serialized_lines)
+    await state.set_state(BasketStates.viewing_quotes)
+
+    # 4. Render parse table
+    table_text = _format_parse_table(serialized_lines, lang=lang)
+    await status_msg.edit_text(
+        table_text,
+        reply_markup=get_basket_actions_keyboard(lang=lang),
+    )
+
+
+@router.callback_query(F.data.startswith("pick_cand:"))
+async def callback_pick_candidate(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not callback.data:
+        return
+    parts = callback.data.split(":")
+    line_no = int(parts[1])
+    canonical_id = int(parts[2])
+
+    data = await state.get_data()
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+
+    for line in lines:
+        if line["line_no"] == line_no:
+            line["status"] = "auto_accept"
+            line["canonical_id"] = canonical_id
+            for c in line.get("candidates", []):
+                if c["canonical_id"] == canonical_id:
+                    line["canonical_name"] = c["name_uz"]
+                    break
+
+    await state.update_data(basket_lines=lines)
+
+    table_text = _format_parse_table(lines, lang=lang)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            table_text,
+            reply_markup=get_basket_actions_keyboard(lang=lang),
+        )
+
+
+@router.callback_query(F.data == "calculate_quotes")
+async def callback_calculate_quotes(
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    user: User,
+    lang: str,
+) -> None:
+    data = await state.get_data()
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    if not lines:
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("prompt_send_basket", lang=lang))
+        return
+
+    # Build basket items from accepted lines
+    basket_items: list[BasketItemQuery] = []
+    for line in lines:
+        if line.get("canonical_id"):
+            basket_items.append(
+                BasketItemQuery(
+                    line_no=line["line_no"],
+                    canonical_id=line["canonical_id"],
+                    name_uz=line.get("canonical_name", line["parsed_name"]),
+                    needed_qty=Decimal(line["qty"]),
+                    unit_code=line["unit_code"],
+                )
+            )
+
+    if not basket_items:
+        if isinstance(callback.message, Message):
+            await callback.message.answer("Hech qanday mahsulot tasdiqlanmagan.")
+        return
+
+    shop_repo = ShopRepository(session)
+    catalog_repo = CatalogRepository(session)
+    quote_service = QuoteService(shop_repo, catalog_repo)
+
+    result = await quote_service.optimize_basket(
+        basket_items=basket_items,
+        district_id=user.district_id,
+    )
+
+    if not result.deduplicated_variants:
+        if isinstance(callback.message, Message):
+            await callback.message.answer("Do'konlarda ushbu mahsulotlar topilmadi.")
+        return
+
+    # Cache variants in state
+    cached_variants = []
+    for v in result.deduplicated_variants:
+        cached_variants.append(_serialize_variant(v))
+
+    await state.update_data(quotes=cached_variants, current_quote_idx=0)
+
+    # Render first variant
+    variant_card_text = _format_quote_card(result.deduplicated_variants[0], lang=lang)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            variant_card_text,
+            reply_markup=get_quote_carousel_keyboard(
+                current_index=0,
+                total_variants=len(result.deduplicated_variants),
+                lang=lang,
+            ),
+        )
+
+
+@router.callback_query(F.data.startswith("nav_quote:"))
+async def callback_nav_quote(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not callback.data:
+        return
+    idx = int(callback.data.split(":")[1])
+
+    data = await state.get_data()
+    raw_quotes: list[dict[str, Any]] = data.get("quotes", [])
+    if not raw_quotes or idx >= len(raw_quotes):
+        return
+
+    await state.update_data(current_quote_idx=idx)
+    variant = _deserialize_variant(raw_quotes[idx])
+    variant_card_text = _format_quote_card(variant, lang=lang)
+
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            variant_card_text,
+            reply_markup=get_quote_carousel_keyboard(
+                current_index=idx,
+                total_variants=len(raw_quotes),
+                lang=lang,
+            ),
+        )
+
+
+@router.callback_query(F.data.startswith("select_quote:"))
+async def callback_select_quote(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    lang: str,
+) -> None:
+    if not callback.data:
+        return
+    idx = int(callback.data.split(":")[1])
+    await state.update_data(selected_quote_idx=idx)
+
+    data = await state.get_data()
+    contact_phone = data.get("contact_phone")
+
+    # Check if user has phone
+    if not contact_phone:
+        await state.set_state(OrderCheckoutStates.confirming_phone)
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("prompt_checkout_phone", lang=lang))
+    else:
+        await state.set_state(OrderCheckoutStates.entering_address)
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("prompt_checkout_address", lang=lang))
+
+
+@router.message(OrderCheckoutStates.confirming_phone)
+async def checkout_phone(message: Message, state: FSMContext, lang: str) -> None:
+    if message.text:
+        await state.update_data(contact_phone=message.text.strip())
+
+    await state.set_state(OrderCheckoutStates.entering_address)
+    await message.answer(t("prompt_checkout_address", lang=lang))
+
+
+@router.message(OrderCheckoutStates.entering_address)
+async def checkout_address(message: Message, state: FSMContext, lang: str) -> None:
+    if not message.text:
+        return
+    await state.update_data(delivery_address=message.text.strip())
+    await state.set_state(OrderCheckoutStates.entering_comment)
+    await message.answer(t("prompt_checkout_comment", lang=lang))
+
+
+@router.message(OrderCheckoutStates.entering_comment)
+async def checkout_comment(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    comment = message.text.strip() if message.text and message.text.lower() != "yo'q" else None
+    data = await state.get_data()
+
+    address = data.get("delivery_address", "Toshkent shahri")
+    phone = data.get("contact_phone", "+998900000000")
+    raw_quotes = data.get("quotes", [])
+    selected_idx = data.get("selected_quote_idx", 0)
+
+    if not raw_quotes:
+        await message.answer(t("error_generic", lang=lang))
+        return
+
+    variant = _deserialize_variant(raw_quotes[selected_idx])
+
+    # Ensure a Basket exists in DB
+    from app.db.models.order import Basket, Quote
+
+    basket = Basket(
+        user_id=user.id,
+        raw_text="Customer basket",
+        status="ordered",
+    )
+    session.add(basket)
+    await session.flush()
+
+    quote = Quote(
+        basket_id=basket.id,
+        strategy=variant.strategy_labels[0].value if variant.strategy_labels else "cheapest",
+        items_total=variant.items_total_uzs,
+        delivery_total=variant.delivery_total_uzs,
+        grand_total=variant.grand_total_uzs,
+        coverage_pct=Decimal(str(variant.coverage_pct)),
+        shop_count=len(variant.shop_groups),
+        eta_hours=variant.max_eta_hours,
+    )
+    session.add(quote)
+    await session.flush()
+
+    # Create Order in DB
+    order = Order(
+        quote_id=quote.id,
+        user_id=user.id,
+        status="new",
+        contact_phone=phone,
+        delivery_address=address,
+        grand_total_quoted=variant.grand_total_uzs,
+        comment=comment,
+    )
+    session.add(order)
+    await session.flush()
+
+    # Create OrderShopParts and OrderItems
+    for g in variant.shop_groups:
+        part = OrderShopPart(
+            order_id=order.id,
+            shop_id=g.shop_id,
+            subtotal=g.subtotal_uzs,
+            delivery_fee=g.delivery_fee_uzs,
+            status="new",
+            shop_response="pending",
+        )
+        session.add(part)
+        await session.flush()
+
+        for line in g.lines:
+            item = OrderItem(
+                order_shop_part_id=part.id,
+                canonical_id=line.canonical_id,
+                shop_product_id=line.offer_id,
+                qty=line.billed_qty,
+                unit_code=line.pack_unit,
+                unit_price_quoted=line.unit_price_uzs,
+                line_total=line.line_cost_uzs,
+            )
+            session.add(item)
+
+    await session.commit()
+    await state.clear()
+
+    is_shop_owner = user.role in ("shop_owner", "admin")
+    await message.answer(
+        t(
+            "order_created_success",
+            lang=lang,
+            order_id=order.id,
+            total=f"{order.grand_total_quoted:,.0f}",
+        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+    )
+
+
+@router.message(F.text.in_(["📦 Buyurtmalarim", "📦 Буюртмаларим", "📦 Мои заказы"]))
+async def menu_my_orders(message: Message, user: User, session: AsyncSession, lang: str) -> None:
+    order_repo = OrderRepository(session)
+    orders = await order_repo.get_customer_orders(user.id)
+
+    if not orders:
+        await message.answer("Sizda hali buyurtmalar mavjud emas.")
+        return
+
+    text_lines = ["📦 <b>Sizning buyurtmalaringiz:</b>\n"]
+    for o in orders[:5]:
+        text_lines.append(
+            f"• <b>#{o.id}</b> — {o.grand_total_quoted:,.0f} so'm ({o.status})\n"
+            f"  Manzil: {o.delivery_address}"
+        )
+    await message.answer("\n\n".join(text_lines))
+
+
+# -----------------------------------------------------------------------------
+# Formatting Helpers
+# -----------------------------------------------------------------------------
+
+
+def _format_parse_table(lines: list[dict[str, Any]], lang: str) -> str:
+    count = len(lines)
+    header = t("basket_parsed_header", lang=lang, count=count)
+    body_lines = []
+
+    for item in lines:
+        num = item["line_no"]
+        qty = item["qty"]
+        unit = item["unit_code"]
+        st = item["status"]
+
+        if st == "auto_accept":
+            name = item.get("canonical_name", item["parsed_name"])
+            body_lines.append(f"{num}. ✅ <b>{name}</b> — {qty} {unit}")
+        elif st == "ask_user":
+            name = item["parsed_name"]
+            body_lines.append(f"{num}. ⚠️ <i>{name}</i> — {qty} {unit}  ← <i>turini tanlang</i>")
+        else:
+            raw = item["raw_text"]
+            body_lines.append(f"{num}. ❌ «{raw}» — <i>katalogda topilmadi</i>")
+
+    return header + "\n" + "\n".join(body_lines)
+
+
+def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
+    # Header badge
+    strat = (
+        variant.strategy_labels[0]
+        if variant.strategy_labels
+        else OptimizationStrategy.CHEAPEST_TOTAL
+    )
+    if strat == OptimizationStrategy.CHEAPEST_TOTAL:
+        header = t("quote_header_cheapest", lang=lang)
+    elif strat == OptimizationStrategy.SINGLE_SHOP:
+        header = t("quote_header_single_shop", lang=lang)
+    elif strat == OptimizationStrategy.FASTEST:
+        header = t("quote_header_fastest", lang=lang)
+    elif strat == OptimizationStrategy.PREMIUM:
+        header = t("quote_header_premium", lang=lang)
+    else:
+        header = t("quote_header_balanced", lang=lang)
+
+    shop_sections = []
+    for g in variant.shop_groups:
+        lines_str = "\n".join(
+            f"   • {line.product_name} × {line.billed_qty:g} {line.pack_unit} "
+            f"....... {line.line_cost_uzs:,.0f}"
+            for line in g.lines
+        )
+        fee_str = "bepul" if g.is_free_delivery else f"{g.delivery_fee_uzs:,.0f}"
+        dist_str = f" — {g.distance_km:.1f} km" if g.distance_km else ""
+        shop_sections.append(
+            f"🏪 <b>{g.shop_name}</b>{dist_str}\n"
+            f"{lines_str}\n"
+            f"   <i>Jami: {g.subtotal_uzs:,.0f} + dostavka {fee_str}</i>"
+        )
+
+    divider = "──────────────────────────────"
+    savings_str = (
+        t(
+            "quote_savings",
+            lang=lang,
+            amount=f"{variant.savings_vs_worst_uzs:,.0f}",
+            pct=f"{variant.savings_pct:.1f}",
+        )
+        if variant.savings_vs_worst_uzs > Decimal("0")
+        else ""
+    )
+    coverage_str = t(
+        "quote_coverage", lang=lang, covered=variant.covered_count, total=variant.total_count
+    )
+    eta_str = t("quote_delivery_eta", lang=lang, eta=variant.max_eta_hours)
+
+    summary = (
+        f"{divider}\n"
+        f"{t('quote_items_total', lang=lang)}      {variant.items_total_uzs:,.0f} so'm\n"
+        f"{t('quote_delivery_total', lang=lang)}   {variant.delivery_total_uzs:,.0f} so'm\n"
+        f"<b>{t('quote_grand_total', lang=lang)}   {variant.grand_total_uzs:,.0f} so'm</b>\n"
+        f"{savings_str}\n"
+        f"{coverage_str}\n"
+        f"{eta_str}"
+    )
+
+    return f"{header}\n\n" + "\n\n".join(shop_sections) + f"\n\n{summary}"
+
+
+def _serialize_variant(v: QuoteVariant) -> dict[str, Any]:
+    groups = []
+    for g in v.shop_groups:
+        lines = []
+        for line in g.lines:
+            lines.append(
+                {
+                    "line_no": line.line_no,
+                    "canonical_id": line.canonical_id,
+                    "product_name": line.product_name,
+                    "shop_id": line.shop_id,
+                    "shop_name": line.shop_name,
+                    "offer_id": line.offer_id,
+                    "needed_qty": str(line.needed_qty),
+                    "needed_unit": line.needed_unit,
+                    "pack_size": str(line.pack_size),
+                    "pack_unit": line.pack_unit,
+                    "packs_needed": line.packs_needed,
+                    "billed_qty": str(line.billed_qty),
+                    "overage_qty": str(line.overage_qty),
+                    "unit_price_uzs": str(line.unit_price_uzs),
+                    "line_cost_uzs": str(line.line_cost_uzs),
+                }
+            )
+        groups.append(
+            {
+                "shop_id": g.shop_id,
+                "shop_name": g.shop_name,
+                "district_name": g.district_name,
+                "distance_km": g.distance_km,
+                "lines": lines,
+                "subtotal_uzs": str(g.subtotal_uzs),
+                "delivery_fee_uzs": str(g.delivery_fee_uzs),
+                "is_free_delivery": g.is_free_delivery,
+                "eta_hours": g.eta_hours,
+                "trust_score": g.trust_score,
+            }
+        )
+
+    return {
+        "strategy_labels": [s.value for s in v.strategy_labels],
+        "shop_groups": groups,
+        "items_total_uzs": str(v.items_total_uzs),
+        "delivery_total_uzs": str(v.delivery_total_uzs),
+        "grand_total_uzs": str(v.grand_total_uzs),
+        "coverage_pct": v.coverage_pct,
+        "covered_count": v.covered_count,
+        "total_count": v.total_count,
+        "savings_vs_worst_uzs": str(v.savings_vs_worst_uzs),
+        "savings_pct": v.savings_pct,
+        "max_eta_hours": v.max_eta_hours,
+    }
+
+
+def _deserialize_variant(d: dict[str, Any]) -> QuoteVariant:
+    from app.domain.optimizer.models import LineAssignment, ShopQuoteGroup
+
+    groups = []
+    for g in d["shop_groups"]:
+        lines = []
+        for line in g["lines"]:
+            lines.append(
+                LineAssignment(
+                    line_no=line["line_no"],
+                    canonical_id=line["canonical_id"],
+                    product_name=line["product_name"],
+                    shop_id=line["shop_id"],
+                    shop_name=line["shop_name"],
+                    offer_id=line["offer_id"],
+                    needed_qty=Decimal(line["needed_qty"]),
+                    needed_unit=line["needed_unit"],
+                    pack_size=Decimal(line["pack_size"]),
+                    pack_unit=line["pack_unit"],
+                    packs_needed=line["packs_needed"],
+                    billed_qty=Decimal(line["billed_qty"]),
+                    overage_qty=Decimal(line["overage_qty"]),
+                    unit_price_uzs=Decimal(line["unit_price_uzs"]),
+                    line_cost_uzs=Decimal(line["line_cost_uzs"]),
+                )
+            )
+        groups.append(
+            ShopQuoteGroup(
+                shop_id=g["shop_id"],
+                shop_name=g["shop_name"],
+                district_name=g["district_name"],
+                distance_km=g["distance_km"],
+                lines=tuple(lines),
+                subtotal_uzs=Decimal(g["subtotal_uzs"]),
+                delivery_fee_uzs=Decimal(g["delivery_fee_uzs"]),
+                is_free_delivery=g["is_free_delivery"],
+                eta_hours=g["eta_hours"],
+                trust_score=g["trust_score"],
+            )
+        )
+
+    return QuoteVariant(
+        strategy_labels=tuple(OptimizationStrategy(s) for s in d["strategy_labels"]),
+        shop_groups=tuple(groups),
+        items_total_uzs=Decimal(d["items_total_uzs"]),
+        delivery_total_uzs=Decimal(d["delivery_total_uzs"]),
+        grand_total_uzs=Decimal(d["grand_total_uzs"]),
+        coverage_pct=d["coverage_pct"],
+        covered_count=d["covered_count"],
+        total_count=d["total_count"],
+        missing_lines=(),
+        savings_vs_worst_uzs=Decimal(d["savings_vs_worst_uzs"]),
+        savings_pct=d["savings_pct"],
+        max_eta_hours=d["max_eta_hours"],
+    )
