@@ -82,12 +82,22 @@ scrape_configs:
 
 ## Deploy notification
 
-`scripts/notify_deploy.py` runs as the last step of the web service's
-`preDeployCommand` (after migrations). It DMs every `admin_tg_ids` entry via the bot.
-This fires **before** the new version receives traffic (Railway's preDeployCommand is
-pre-cutover, not post-start) — a deploy that fails health checks after this still
-sends the notification. A failed Telegram send never fails the deploy (errors are
-logged and swallowed).
+Fires from the web service's own startup (`app/main.py`'s lifespan, right after
+`setWebhook`), gated on `register_webhook` so it only fires in real deployments,
+not local dev. DMs every `admin_tg_ids` entry via the bot.
+
+This was originally wired into Railway's `preDeployCommand` (pre-cutover, before
+the new version receives traffic), matching `scripts/notify_deploy.py`'s
+docstring intent — but that execution context turned out to have unreliable
+outbound networking for the Telegram API call in practice (silent no-op, no
+error in logs, despite the identical call working reliably from app startup).
+Moved to startup instead: it now fires **after** traffic cutover, and on every
+container start (health-check restarts, scale events) rather than strictly once
+per genuine new deploy — a real tradeoff, accepted for reliability. A failed
+Telegram send never blocks startup (errors are logged and swallowed).
+
+`scripts/notify_deploy.py` still exists for ad-hoc manual notification but is no
+longer wired into the deploy pipeline.
 
 ## Rollback
 

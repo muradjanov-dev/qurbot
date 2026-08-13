@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
-    "preDeployCommand": ["alembic upgrade head && python -m scripts.notify_deploy"],
+    "preDeployCommand": ["alembic upgrade head"],
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",

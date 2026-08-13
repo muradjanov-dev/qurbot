@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,7 @@ from fastapi import FastAPI
 from app.api.routers import health, metrics, webhook
 from app.bot.dispatcher import create_bot, dispatcher
 from app.core.config import settings
+from app.core.deploy_notify import notify_admins_of_deploy
 from app.core.logging import configure_logging, configure_sentry, get_logger
 from app.web.routers import router as admin_router
 
@@ -35,13 +37,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             # /health and a synthetic POST to the webhook route still work without this.
             logger.warning("webhook_set_failed", error=str(exc))
 
+        # Gated on register_webhook (a proxy for "this is a real deployment, not
+        # local dev"). Fires on every container start in that environment -- not
+        # just genuine new deploys -- since Railway's preDeployCommand phase has
+        # unreliable outbound networking for this call in practice, while this
+        # startup path is proven reliable (same context as setWebhook above).
+        release_label = os.environ.get("RAILWAY_DEPLOYMENT_ID", "local")
+        await notify_admins_of_deploy(bot, release_label)
+
     yield
 
-    if settings.register_webhook:
-        try:
-            await bot.delete_webhook()
-        except TelegramAPIError as exc:
-            logger.warning("webhook_delete_failed", error=str(exc))
+    # Deliberately does NOT call bot.delete_webhook() here. Railway's deploys are
+    # rolling: the new container sets the webhook and starts serving before the
+    # old one shuts down, so an unconditional delete-on-shutdown here would race
+    # and delete the *new* container's registration moments after it was set --
+    # which is exactly what was happening (webhook silently going empty after
+    # every deploy). Startup already re-registers idempotently every boot, so
+    # there's nothing for shutdown to clean up.
     await bot.session.close()
     logger.info("shutdown_complete")
 
