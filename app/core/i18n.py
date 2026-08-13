@@ -172,14 +172,14 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "🗑 Очистить",
     },
     "btn_calculate_quotes": {
-        "uz_latn": "🔎 Narxlarni hisoblash",
-        "uz_cyrl": "🔎 Нархларни ҳисоблаш",
-        "ru": "🔎 Рассчитать цены",
+        "uz_latn": "🔎 Buyurtma qilish",
+        "uz_cyrl": "🔎 Буюртма қилиш",
+        "ru": "🔎 Оформить заказ",
     },
     "btn_select_quote": {
-        "uz_latn": "✅ Buni tanlash",
-        "uz_cyrl": "✅ Буни танлаш",
-        "ru": "✅ Выбрать этот вариант",
+        "uz_latn": "✅ Buyurtmani tasdiqlash",
+        "uz_cyrl": "✅ Буюртмани тасдиқлаш",
+        "ru": "✅ Подтвердить заказ",
     },
     "btn_get_pdf": {
         "uz_latn": "📄 PDF olish",
