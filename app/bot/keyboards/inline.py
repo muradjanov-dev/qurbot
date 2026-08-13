@@ -37,7 +37,8 @@ def get_basket_actions_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     builder.button(text=t("btn_edit_basket", lang=lang), callback_data="edit_basket")
     builder.button(text=t("btn_add_item", lang=lang), callback_data="add_item")
     builder.button(text=t("btn_clear_basket", lang=lang), callback_data="clear_basket")
-    builder.adjust(1, 3)
+    builder.button(text=t("btn_back", lang=lang), callback_data="back_to_menu")
+    builder.adjust(1, 3, 1)
     return builder.as_markup()
 
 

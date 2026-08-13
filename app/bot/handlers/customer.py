@@ -140,6 +140,36 @@ async def callback_pick_candidate(
         )
 
 
+@router.callback_query(F.data == "back_to_menu")
+async def callback_back_to_menu(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    lang: str,
+) -> None:
+    await state.clear()
+    is_shop_owner = user.role in ("shop_owner", "admin")
+    if isinstance(callback.message, Message):
+        await callback.message.answer(
+            t("action_cancelled", lang=lang),
+            reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "clear_basket")
+async def callback_clear_basket(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    await state.update_data(basket_lines=[])
+    await state.set_state(BasketStates.waiting_for_basket_text)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(t("prompt_send_basket", lang=lang))
+    await callback.answer()
+
+
 @router.callback_query(F.data == "calculate_quotes")
 async def callback_calculate_quotes(
     callback: CallbackQuery,
