@@ -2,7 +2,7 @@ import math
 from typing import Any
 
 from app.domain.matching.models import CandidateMatch, MatchDecision
-from app.domain.matching.trigram import trigram_similarity
+from app.domain.matching.trigram import best_match_similarity
 from app.domain.models import NormalizedQuery
 
 
@@ -93,7 +93,7 @@ def score_and_rank_candidates(
     # Stage 2: Multi-factor scoring
     scored_candidates: list[CandidateMatch] = []
     for cand in candidates:
-        trigram_sim = trigram_similarity(query.text_norm, cand.search_doc or cand.name_uz)
+        trigram_sim = best_match_similarity(query.text_norm, cand.name_uz, cand.search_doc)
         attr_score = compute_attribute_match(query, cand.attributes)
         brand_score = compute_brand_match(query, cand.brand)
         pop_score = compute_popularity_score(cand.popularity_hits)

@@ -111,6 +111,36 @@ def test_score_ask_user_when_ambiguous() -> None:
     assert len(decision.candidates) >= 2
 
 
+def test_score_short_query_against_bloated_multiscript_search_doc() -> None:
+    # Real seed data concatenates several scripts/aliases into one long search_doc
+    # (see scripts/seed.py), which used to dilute whole-string trigram similarity
+    # for short single-word queries even when the word is an exact token match.
+    query = NormalizedQuery(
+        raw="sement",
+        text_norm="sement",
+        tokens=["sement"],
+    )
+    candidates = [
+        CandidateMatch(
+            canonical_id=1,
+            slug="qizilqum-sement-m400-50kg",
+            name_uz="Qizilqum Sement M400 (50 kg)",
+            brand="Qizilqumsement",
+            attributes={"grade": "M400"},
+            search_doc=(
+                "qizilqum sement m400 (50 kg) қизилқум "
+                "цемент м400 (50 кг) "
+                "цемент кызылкум "
+                "м400 (50 кг) qizilqumsement qizilqum-sement-m400-50kg"
+            ),
+        )
+    ]
+
+    decision = score_and_rank_candidates(query, candidates)
+    assert decision.status in ("auto_accept", "ask_user")
+    assert decision.canonical_id == 1
+
+
 def test_score_unresolved_when_low() -> None:
     query = NormalizedQuery(
         raw="kosmik kema",
