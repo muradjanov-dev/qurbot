@@ -1,7 +1,9 @@
 from collections.abc import Sequence
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import Basket, BasketLine, Quote
@@ -74,3 +76,19 @@ class BasketRepository(BaseRepository[Basket]):
 
     async def get_quote(self, quote_id: int) -> Quote | None:
         return await self.session.get(Quote, quote_id)
+
+    # ─── Background Job Queries (§10) ──────────────────────────────
+
+    async def list_stale_awaiting_confirmation(self, cutoff: datetime) -> Sequence[Basket]:
+        stmt = select(Basket).where(
+            Basket.status == "awaiting_confirmation",
+            Basket.updated_at < cutoff,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def bulk_mark_abandoned(self, ids: Sequence[int]) -> None:
+        if not ids:
+            return
+        stmt = update(Basket).where(Basket.id.in_(ids)).values(status="abandoned")
+        await self.session.execute(stmt)

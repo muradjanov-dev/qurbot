@@ -42,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["python", "-m", "app.workers.main"]
+    command: ["arq", "app.workers.main.WorkerSettings"]
     env_file: .env
     depends_on:
       postgres:

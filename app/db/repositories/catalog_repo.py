@@ -1,7 +1,8 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
@@ -89,8 +90,6 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         source: str = "llm",
     ) -> ProductAlias | None:
         """Self-learning feedback loop: write back alias for future fast lookups."""
-        from decimal import Decimal
-
         # Check if alias already exists
         stmt = select(ProductAlias).where(
             ProductAlias.canonical_id == canonical_id,
@@ -112,3 +111,74 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         self.session.add(alias)
         await self.session.flush()
         return alias
+
+    # ─── Admin Panel Queries (§11) ─────────────────────────────────
+
+    async def list_canonical_products(self, limit: int = 200) -> Sequence[CanonicalProduct]:
+        stmt = (
+            select(CanonicalProduct)
+            .where(CanonicalProduct.is_active.is_(True))
+            .order_by(CanonicalProduct.name_uz)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def create_canonical_product(
+        self,
+        slug: str,
+        name_uz: str,
+        name_uz_cyrl: str,
+        name_ru: str,
+        category_id: int,
+        base_unit_code: str,
+    ) -> CanonicalProduct:
+        product = CanonicalProduct(
+            slug=slug,
+            name_uz=name_uz,
+            name_uz_cyrl=name_uz_cyrl,
+            name_ru=name_ru,
+            category_id=category_id,
+            base_unit_code=base_unit_code,
+            search_doc=f"{name_uz} {name_uz_cyrl} {name_ru}".lower(),
+        )
+        self.session.add(product)
+        await self.session.flush()
+        return product
+
+    async def create_approved_alias(
+        self,
+        canonical_id: int,
+        alias_norm: str,
+        alias_raw: str,
+        source: str = "admin",
+    ) -> ProductAlias:
+        alias = ProductAlias(
+            canonical_id=canonical_id,
+            alias_norm=alias_norm,
+            alias_raw=alias_raw,
+            source=source,
+            confidence=Decimal("1.00"),
+            is_approved=True,
+        )
+        self.session.add(alias)
+        await self.session.flush()
+        return alias
+
+    async def list_unapproved_aliases(self, limit: int = 100) -> Sequence[ProductAlias]:
+        stmt = (
+            select(ProductAlias)
+            .where(ProductAlias.is_approved.is_(False))
+            .order_by(ProductAlias.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def approve_alias(self, alias_id: int) -> None:
+        stmt = update(ProductAlias).where(ProductAlias.id == alias_id).values(is_approved=True)
+        await self.session.execute(stmt)
+
+    async def reject_alias(self, alias_id: int) -> None:
+        stmt = delete(ProductAlias).where(ProductAlias.id == alias_id)
+        await self.session.execute(stmt)

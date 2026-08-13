@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Topilmagan so'rovlar — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Topilmagan so'rovlar</h1>
+{% if not queries %}
+<p class="empty">Hozircha topilmagan so'rovlar yo'q.</p>
+{% else %}
+<table>
+  <thead>
+    <tr><th>So'rov</th><th>Normallashtirilgan</th><th>Soni</th><th>Amallar</th></tr>
+  </thead>
+  <tbody>
+    {% for q in queries %}
+    <tr>
+      <td>{{ q.raw_text }}</td>
+      <td>{{ q.normalized }}</td>
+      <td>{{ q.occurrences }}</td>
+      <td>
+        <form class="inline" method="post" action="/admin/unmatched/{{ q.id }}/create-alias">
+          <select name="canonical_id" required>
+            <option value="" disabled selected>SKU tanlang</option>
+            {% for p in products %}
+            <option value="{{ p.id }}">{{ p.name_uz }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="approve">Alias yaratish</button>
+        </form>
+        <form class="inline" method="post" action="/admin/unmatched/{{ q.id }}/mark-junk">
+          <button type="submit" class="neutral">Axlat deb belgilash</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Alias tasdiqlash — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Tasdiqlanmagan aliaslar</h1>
+{% if not aliases %}
+<p class="empty">Tasdiqlanishi kerak bo'lgan aliaslar yo'q.</p>
+{% else %}
+<table>
+  <thead>
+    <tr><th>Alias</th><th>Mahsulot</th><th>Manba</th><th>Ishonch</th><th>Amallar</th></tr>
+  </thead>
+  <tbody>
+    {% for a in aliases %}
+    <tr>
+      <td>{{ a.alias_raw }}</td>
+      <td>{{ a.canonical_product.name_uz }}</td>
+      <td>{{ a.source }}</td>
+      <td>{{ a.confidence }}</td>
+      <td>
+        <form class="inline" method="post" action="/admin/aliases/{{ a.id }}/approve">
+          <button type="submit" class="approve">Tasdiqlash</button>
+        </form>
+        <form class="inline" method="post" action="/admin/aliases/{{ a.id }}/reject">
+          <button type="submit" class="reject">Rad etish</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

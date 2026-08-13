@@ -1,7 +1,9 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import Order, OrderItem, OrderShopPart
@@ -63,8 +65,6 @@ class OrderRepository(BaseRepository[Order]):
         return order
 
     async def get_customer_orders(self, user_id: int, limit: int = 10) -> list[Order]:
-        from sqlalchemy import select
-
         stmt = (
             select(Order)
             .where(Order.user_id == user_id)
@@ -86,3 +86,8 @@ class OrderRepository(BaseRepository[Order]):
         part.responded_at = datetime.now(UTC)
         await self.session.flush()
         return part
+
+    async def list_recent_orders(self, limit: int = 50) -> Sequence[Order]:
+        stmt = select(Order).order_by(Order.created_at.desc()).limit(limit)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

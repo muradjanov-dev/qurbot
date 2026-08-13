@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Metrikalar — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Kunlik metrikalar</h1>
+{% if not rows %}
+<p class="empty">Hali metrika hisoblanmagan (rollup_metrics kunlik 04:00da ishlaydi).</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Sana</th><th>GMV</th><th>Buyurtmalar</th><th>Savatlar</th>
+      <th>Moslik %</th><th>Avto-moslik %</th><th>O'rtacha qator</th>
+      <th>Taklif→Buyurtma %</th><th>Narx yangiligi %</th><th>LLM xarajat</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.date }}</td>
+      <td>{{ r.gmv }}</td>
+      <td>{{ r.order_count }}</td>
+      <td>{{ r.basket_count }}</td>
+      <td>{{ r.match_rate }}</td>
+      <td>{{ r.auto_match_rate }}</td>
+      <td>{{ r.avg_lines_per_basket }}</td>
+      <td>{{ r.quote_to_order_rate }}</td>
+      <td>{{ r.price_freshness_pct }}</td>
+      <td>${{ r.llm_cost_usd }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

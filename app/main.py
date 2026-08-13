@@ -4,10 +4,11 @@ from contextlib import asynccontextmanager
 from aiogram.exceptions import TelegramAPIError
 from fastapi import FastAPI
 
-from app.api.routers import health, webhook
+from app.api.routers import health, metrics, webhook
 from app.bot.dispatcher import create_bot, dispatcher
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
+from app.web.routers import router as admin_router
 
 logger = get_logger(__name__)
 
@@ -48,6 +49,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="QurBot", lifespan=lifespan)
     app.include_router(health.router)
     app.include_router(webhook.router)
+    app.include_router(metrics.router)
+    app.include_router(admin_router)
     return app
 
 

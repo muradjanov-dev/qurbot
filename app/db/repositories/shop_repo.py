@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.order import OrderShopPart
 from app.db.models.shop import (
     District,
     ImportBatch,
@@ -346,3 +347,111 @@ class ShopRepository(BaseRepository[Shop]):
         self.session.add(rule)
         await self.session.flush()
         return rule
+
+    # ─── Background Job Queries (§10) ──────────────────────────────
+
+    async def count_stale_offers(self) -> int:
+        stmt = select(func.count()).where(
+            ShopProduct.is_active.is_(True),
+            ShopProduct.staleness_state == "stale",
+        )
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
+
+    async def list_active_offers_updated_before(self, cutoff: datetime) -> Sequence[ShopProduct]:
+        stmt = select(ShopProduct).where(
+            ShopProduct.is_active.is_(True),
+            ShopProduct.updated_at < cutoff,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def bulk_set_staleness(self, ids: Sequence[int], staleness_state: str) -> None:
+        if not ids:
+            return
+        stmt = (
+            update(ShopProduct)
+            .where(ShopProduct.id.in_(ids))
+            .values(staleness_state=staleness_state)
+        )
+        await self.session.execute(stmt)
+
+    async def list_shops_with_aging_offers(self) -> Sequence[Shop]:
+        stmt = (
+            select(Shop)
+            .join(ShopProduct, ShopProduct.shop_id == Shop.id)
+            .where(
+                ShopProduct.staleness_state == "aging",
+                ShopProduct.is_active.is_(True),
+                Shop.owner_tg_id.is_not(None),
+            )
+            .distinct()
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def compute_freshness_ratios(self) -> dict[int, Decimal]:
+        """Fraction of each shop's active offers currently 'fresh', for trust scoring."""
+        stmt = (
+            select(
+                ShopProduct.shop_id,
+                func.sum(case((ShopProduct.staleness_state == "fresh", 1), else_=0)),
+                func.count(),
+            )
+            .where(ShopProduct.is_active.is_(True))
+            .group_by(ShopProduct.shop_id)
+        )
+        result = await self.session.execute(stmt)
+        return {
+            shop_id: Decimal(fresh_count) / Decimal(total)
+            for shop_id, fresh_count, total in result.all()
+            if total
+        }
+
+    async def compute_accept_rates(self, since: datetime) -> dict[int, Decimal]:
+        """Accepted / (accepted+rejected+partial) per shop over a trailing window."""
+        responded = ("accepted", "rejected", "partial")
+        stmt = (
+            select(
+                OrderShopPart.shop_id,
+                func.sum(case((OrderShopPart.shop_response == "accepted", 1), else_=0)),
+                func.sum(case((OrderShopPart.shop_response.in_(responded), 1), else_=0)),
+            )
+            .where(OrderShopPart.created_at >= since)
+            .group_by(OrderShopPart.shop_id)
+        )
+        result = await self.session.execute(stmt)
+        return {
+            shop_id: Decimal(accepted) / Decimal(total)
+            for shop_id, accepted, total in result.all()
+            if total
+        }
+
+    async def update_trust_score(self, shop_id: int, trust_score: Decimal) -> None:
+        stmt = update(Shop).where(Shop.id == shop_id).values(trust_score=trust_score)
+        await self.session.execute(stmt)
+
+    # ─── Admin Panel Queries (§11) ─────────────────────────────────
+
+    async def verify_shop(self, shop_id: int) -> None:
+        stmt = update(Shop).where(Shop.id == shop_id).values(verified_at=datetime.now(UTC))
+        await self.session.execute(stmt)
+
+    async def set_shop_active(self, shop_id: int, is_active: bool) -> None:
+        stmt = update(Shop).where(Shop.id == shop_id).values(is_active=is_active)
+        await self.session.execute(stmt)
+
+    async def list_offers_by_staleness(
+        self, staleness_state: str | None = None, limit: int = 100
+    ) -> Sequence[ShopProduct]:
+        stmt = select(ShopProduct).order_by(ShopProduct.updated_at.asc()).limit(limit)
+        if staleness_state:
+            stmt = stmt.where(ShopProduct.staleness_state == staleness_state)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def bulk_deactivate_offers(self, ids: Sequence[int]) -> None:
+        if not ids:
+            return
+        stmt = update(ShopProduct).where(ShopProduct.id.in_(ids)).values(is_active=False)
+        await self.session.execute(stmt)

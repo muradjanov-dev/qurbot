@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Buyurtmalar — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Buyurtmalar</h1>
+{% if not orders %}
+<p class="empty">Buyurtmalar topilmadi.</p>
+{% else %}
+<table>
+  <thead>
+    <tr><th>#</th><th>Mijoz</th><th>Holat</th><th>Summasi</th><th>Sana</th></tr>
+  </thead>
+  <tbody>
+    {% for o in orders %}
+    <tr>
+      <td>{{ o.id }}</td>
+      <td>{{ o.contact_phone }}</td>
+      <td>{{ o.status }}</td>
+      <td>{{ o.grand_total_final or o.grand_total_quoted }}</td>
+      <td>{{ o.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

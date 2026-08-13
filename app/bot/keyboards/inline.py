@@ -149,6 +149,13 @@ def get_unmatched_row_keyboard(
     return builder.as_markup()
 
 
+def get_price_nudge_keyboard() -> InlineKeyboardMarkup:
+    """Build the 'Yangilash' button for the daily aging-price nudge (§10 nudge_shops)."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔄 Yangilash", callback_data="products_page:1")
+    return builder.as_markup()
+
+
 def get_product_list_keyboard(
     page: int,
     total_pages: int,

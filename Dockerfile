@@ -19,6 +19,9 @@ COPY --from=builder /install /usr/local
 
 WORKDIR /app
 COPY app ./app
+COPY scripts ./scripts
+COPY migrations ./migrations
+COPY alembic.ini ./alembic.ini
 
 USER qurbot
 

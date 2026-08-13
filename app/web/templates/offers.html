@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Takliflar — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Takliflar</h1>
+<p>
+  Filtr:
+  <a href="/admin/offers">Barchasi</a> ·
+  <a href="/admin/offers?state=fresh">Yangi</a> ·
+  <a href="/admin/offers?state=aging">Eskirmoqda</a> ·
+  <a href="/admin/offers?state=stale">Eskirgan</a>
+</p>
+{% if not offers %}
+<p class="empty">Takliflar topilmadi.</p>
+{% else %}
+<form method="post" action="/admin/offers/bulk-deactivate">
+  <table>
+    <thead>
+      <tr><th></th><th>Mahsulot</th><th>Do'kon</th><th>Narx</th><th>Holat</th><th>Yangilangan</th></tr>
+    </thead>
+    <tbody>
+      {% for o in offers %}
+      <tr>
+        <td><input type="checkbox" name="offer_ids" value="{{ o.id }}"></td>
+        <td>{{ o.raw_name }}</td>
+        <td>{{ o.shop.name }}</td>
+        <td>{{ o.price_per_pack }} {{ o.currency }}</td>
+        <td><span class="badge {{ o.staleness_state }}">{{ o.staleness_state }}</span></td>
+        <td>{{ o.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p><button type="submit" class="deactivate">Belgilanganlarni o'chirish</button></p>
+</form>
+{% endif %}
+{% endblock %}

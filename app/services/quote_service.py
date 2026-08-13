@@ -1,5 +1,6 @@
 import logging
 
+from app.core.metrics import quote_latency_seconds
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer import (
@@ -113,6 +114,7 @@ class QuoteService:
         )
 
         result = optimizer.solve()
+        quote_latency_seconds.observe(result.solve_duration_ms / 1000)
         logger.info(
             "Basket optimization completed in %.2f ms (evaluated %d offers across %d shops)",
             result.solve_duration_ms,

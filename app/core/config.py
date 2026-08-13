@@ -38,6 +38,20 @@ class Settings(BaseSettings):
     llm_enabled: bool = True
     llm_prompt_version: str = "v1"
 
+    # Background Jobs (arq) — thresholds & weights (§10)
+    price_staleness_aging_days: int = 5
+    price_staleness_stale_days: int = 7
+    trust_score_freshness_weight: float = 0.5
+    trust_score_accept_rate_weight: float = 0.3
+    trust_score_rating_weight: float = 0.2
+    trust_score_window_days: int = 30
+    basket_abandon_hours: int = 24
+
+    # Admin Web (§11)
+    admin_basic_auth_user: str = "admin"
+    admin_basic_auth_password: str = "placeholder_admin_password"
+    admin_llm_cost_window_days: int = 30
+
     @property
     def webhook_path(self) -> str:
         return f"/webhook/{self.webhook_secret}"

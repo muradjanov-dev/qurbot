@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Do'konlar — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Do'konlar</h1>
+{% if not shops %}
+<p class="empty">Do'konlar topilmadi.</p>
+{% else %}
+<table>
+  <thead>
+    <tr><th>Nomi</th><th>Telefon</th><th>Reyting</th><th>Ishonch</th><th>Holat</th><th>Amallar</th></tr>
+  </thead>
+  <tbody>
+    {% for s in shops %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td>{{ s.phone }}</td>
+      <td>{{ s.rating }}</td>
+      <td>{{ s.trust_score }}</td>
+      <td>
+        {% if s.is_active %}Faol{% else %}Faol emas{% endif %}
+        {% if s.verified_at %}· Tasdiqlangan{% endif %}
+      </td>
+      <td>
+        {% if not s.verified_at %}
+        <form class="inline" method="post" action="/admin/shops/{{ s.id }}/verify">
+          <button type="submit" class="approve">Tasdiqlash</button>
+        </form>
+        {% endif %}
+        {% if s.is_active %}
+        <form class="inline" method="post" action="/admin/shops/{{ s.id }}/deactivate">
+          <button type="submit" class="deactivate">O'chirish</button>
+        </form>
+        {% else %}
+        <form class="inline" method="post" action="/admin/shops/{{ s.id }}/activate">
+          <button type="submit" class="approve">Yoqish</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

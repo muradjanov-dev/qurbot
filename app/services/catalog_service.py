@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import settings
+from app.core.metrics import match_method_total
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.matching.models import CandidateMatch, MatchDecision, MatchStatus
@@ -58,6 +59,7 @@ class CatalogService:
                     method="alias",
                     needs_review=False,
                 )
+                match_method_total.labels(method="alias").inc()
                 return parsed_line, decision
 
         # Stage 2: Candidate search + Multi-factor Re-ranking
@@ -158,6 +160,7 @@ class CatalogService:
                 user_id=user_id,
             )
 
+        match_method_total.labels(method=decision.method).inc()
         return parsed_line, decision
 
     async def parse_and_match_basket(

@@ -23,6 +23,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.metrics import llm_cost_usd_total
 from app.db.models.ops import LLMCall
 from app.db.repositories.ops_repo import OpsRepository
 from app.llm.cache import compute_llm_input_hash
@@ -337,6 +338,7 @@ class LLMClient:
                 cache_hit=cache_hit,
                 raw_response=raw_response,
             )
+            llm_cost_usd_total.inc(float(cost_usd))
         except Exception:
             logger.exception("Failed to record LLM call in DB")
 

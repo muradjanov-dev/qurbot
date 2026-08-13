@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}LLM xarajat — QurBot Admin{% endblock %}
+{% block content %}
+<h1>LLM xarajati (oxirgi {{ window_days }} kun)</h1>
+{% if not cost_by_purpose %}
+<p class="empty">Bu davrda LLM chaqiruvlari bo'lmagan.</p>
+{% else %}
+<table>
+  <thead><tr><th>Maqsad</th><th>Xarajat (USD)</th></tr></thead>
+  <tbody>
+    {% for purpose, cost in cost_by_purpose.items() %}
+    <tr><td>{{ purpose }}</td><td>${{ cost }}</td></tr>
+    {% endfor %}
+    <tr><th>Jami</th><th>${{ total_cost }}</th></tr>
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

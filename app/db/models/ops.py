@@ -1,9 +1,11 @@
+from datetime import date as date_
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    Date,
     ForeignKey,
     Integer,
     Numeric,
@@ -76,3 +78,32 @@ class Event(Base, TimestampMixin):
     props: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
 
     user: Mapped[User | None] = relationship("User", lazy="selectin")
+
+
+class DailyMetrics(Base, TimestampMixin):
+    __tablename__ = "daily_metrics"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    date: Mapped[date_] = mapped_column(Date, unique=True, nullable=False, index=True)
+    gmv: Mapped[Decimal] = mapped_column(Numeric(16, 2), default=Decimal("0.00"), nullable=False)
+    order_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    basket_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    match_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0.00"), nullable=False
+    )
+    auto_match_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0.00"), nullable=False
+    )
+    avg_lines_per_basket: Mapped[Decimal] = mapped_column(
+        Numeric(6, 2), default=Decimal("0.00"), nullable=False
+    )
+    quote_to_order_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0.00"), nullable=False
+    )
+    price_freshness_pct: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0.00"), nullable=False
+    )
+    llm_cost_usd: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6), default=Decimal("0.000000"), nullable=False
+    )
+    strategy_mix: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
