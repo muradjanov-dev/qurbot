@@ -124,6 +124,35 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📋 <b>Рўйхатингиз ({count} та):</b>\n",
         "ru": "📋 <b>Ваш список ({count} шт.):</b>\n",
     },
+    "choose_candidate_prompt": {
+        "uz_latn": "❓ <i>«{name}»</i> uchun aniq turini tanlang:",
+        "uz_cyrl": "❓ <i>«{name}»</i> учун аниқ турини танланг:",
+        "ru": "❓ Уточните, что вы имели в виду под <i>«{name}»</i>:",
+    },
+    "candidate_selected": {
+        "uz_latn": "✅ Tanlandi: <b>{name}</b>",
+        "uz_cyrl": "✅ Танланди: <b>{name}</b>",
+        "ru": "✅ Выбрано: <b>{name}</b>",
+    },
+    "prompt_add_item": {
+        "uz_latn": "Ro'yxatga qo'shmoqchi bo'lgan mahsulot(lar)ni yozing:",
+        "uz_cyrl": "Рўйхатга қўшмоқчи бўлган маҳсулот(лар)ни ёзинг:",
+        "ru": "Напишите товар(ы), которые хотите добавить в список:",
+    },
+    "prompt_edit_basket": {
+        "uz_latn": (
+            "Joriy ro'yxatingiz:\n{current_list}\n\n"
+            "To'g'irlangan to'liq ro'yxatni qayta yuboring — u eskisining o'rnini bosadi:"
+        ),
+        "uz_cyrl": (
+            "Жорий рўйхатингиз:\n{current_list}\n\n"
+            "Тўғирланган тўлиқ рўйхатни қайта юборинг — у эскисининг ўрнини босади:"
+        ),
+        "ru": (
+            "Ваш текущий список:\n{current_list}\n\n"
+            "Отправьте исправленный полный список — он заменит старый:"
+        ),
+    },
     "btn_edit_basket": {
         "uz_latn": "✏️ Tahrirlash",
         "uz_cyrl": "✏️ Таҳрирлаш",

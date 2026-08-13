@@ -1,9 +1,10 @@
 from decimal import Decimal
 from typing import Any
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.inline import (
@@ -42,7 +43,36 @@ async def handle_basket_text(
 ) -> None:
     if not message.text or message.text.startswith(("🧾", "📦", "🔍", "🏪", "⚙️", "/")):
         return
+    await _process_basket_input(message, state, session, lang, message.text, existing_lines=None)
 
+
+@router.message(BasketStates.adding_item)
+async def handle_add_item_text(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not message.text:
+        return
+    data = await state.get_data()
+    existing_lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    await _process_basket_input(
+        message, state, session, lang, message.text, existing_lines=existing_lines
+    )
+
+
+async def _process_basket_input(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+    raw_text: str,
+    existing_lines: list[dict[str, Any]] | None,
+) -> None:
+    """Parse+match `raw_text` and render the basket table, optionally merging
+    onto `existing_lines` (used when the user is adding items to an existing
+    basket rather than starting a fresh one)."""
     # 1. Immediate acknowledgement message according to SPEC §9
     status_msg = await message.answer(t("parsing_in_progress", lang=lang))
 
@@ -51,7 +81,7 @@ async def handle_basket_text(
     ops_repo = OpsRepository(session)
     catalog_service = CatalogService(catalog_repo, ops_repo)
 
-    parsed_results = await catalog_service.parse_and_match_basket(message.text)
+    parsed_results = await catalog_service.parse_and_match_basket(raw_text)
 
     if not parsed_results or all(line.needs_review for line, _ in parsed_results):
         # The parser found no explicit "qty + unit" pattern on any line -- the
@@ -62,11 +92,14 @@ async def handle_basket_text(
         # the parse table below, even if that product isn't in the catalog --
         # Stage 4 already handles that per-line.
         await status_msg.edit_text(t("basket_not_understood", lang=lang))
+        if existing_lines:
+            await state.set_state(BasketStates.viewing_quotes)
         return
 
-    # 3. Store in state for interactive confirmation
-    serialized_lines: list[dict[str, Any]] = []
-    for line, decision in parsed_results:
+    # 3. Serialize new lines, continuing line numbering after any existing ones
+    start_no = max((item["line_no"] for item in existing_lines), default=0) if existing_lines else 0
+    new_lines: list[dict[str, Any]] = []
+    for offset, (line, decision) in enumerate(parsed_results, start=1):
         cand_data = []
         if decision.candidates:
             for c in decision.candidates:
@@ -78,9 +111,9 @@ async def handle_basket_text(
                     }
                 )
 
-        serialized_lines.append(
+        new_lines.append(
             {
-                "line_no": line.line_no,
+                "line_no": start_no + offset,
                 "raw_text": line.raw_text,
                 "parsed_name": line.parsed_name,
                 "qty": str(line.qty),
@@ -95,21 +128,53 @@ async def handle_basket_text(
             }
         )
 
-    await state.update_data(basket_lines=serialized_lines)
+    serialized_lines = (existing_lines or []) + new_lines
+
     await state.set_state(BasketStates.viewing_quotes)
 
-    # 4. Render parse table
+    # 4. Render parse table -- edit the existing table message when merging
+    # (add_item), otherwise this status message becomes the table.
     table_text = _format_parse_table(serialized_lines, lang=lang)
-    await status_msg.edit_text(
-        table_text,
-        reply_markup=get_basket_actions_keyboard(lang=lang),
+    data = await state.get_data()
+    table_chat_id = data.get("table_chat_id")
+    table_message_id = data.get("table_message_id")
+
+    if existing_lines and table_chat_id and table_message_id:
+        await message.bot.edit_message_text(  # type: ignore[union-attr]
+            table_text,
+            chat_id=table_chat_id,
+            message_id=table_message_id,
+            reply_markup=get_basket_actions_keyboard(lang=lang),
+        )
+        await status_msg.delete()
+    else:
+        await status_msg.edit_text(
+            table_text,
+            reply_markup=get_basket_actions_keyboard(lang=lang),
+        )
+        table_chat_id = status_msg.chat.id
+        table_message_id = status_msg.message_id
+
+    await state.update_data(
+        basket_lines=serialized_lines,
+        table_chat_id=table_chat_id,
+        table_message_id=table_message_id,
     )
+
+    # 5. For every newly-ambiguous line, ask which specific product was meant
+    for item in new_lines:
+        if item["status"] == "ask_user" and item["candidates"]:
+            await message.answer(
+                t("choose_candidate_prompt", lang=lang, name=item["parsed_name"]),
+                reply_markup=_build_candidate_picker_keyboard(item["line_no"], item["candidates"]),
+            )
 
 
 @router.callback_query(F.data.startswith("pick_cand:"))
 async def callback_pick_candidate(
     callback: CallbackQuery,
     state: FSMContext,
+    bot: Bot,
     lang: str,
 ) -> None:
     if not callback.data:
@@ -121,6 +186,7 @@ async def callback_pick_candidate(
     data = await state.get_data()
     lines: list[dict[str, Any]] = data.get("basket_lines", [])
 
+    chosen_name = ""
     for line in lines:
         if line["line_no"] == line_no:
             line["status"] = "auto_accept"
@@ -128,16 +194,28 @@ async def callback_pick_candidate(
             for c in line.get("candidates", []):
                 if c["canonical_id"] == canonical_id:
                     line["canonical_name"] = c["name_uz"]
+                    chosen_name = c["name_uz"]
                     break
 
     await state.update_data(basket_lines=lines)
 
-    table_text = _format_parse_table(lines, lang=lang)
+    # Confirm on the picker message itself (drop its buttons)...
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(
+        await callback.message.edit_text(t("candidate_selected", lang=lang, name=chosen_name))
+
+    # ...and refresh the main basket table separately, since a message can
+    # only carry one ambiguous-line picker but a basket can have several.
+    table_chat_id = data.get("table_chat_id")
+    table_message_id = data.get("table_message_id")
+    if table_chat_id and table_message_id:
+        table_text = _format_parse_table(lines, lang=lang)
+        await bot.edit_message_text(
             table_text,
+            chat_id=table_chat_id,
+            message_id=table_message_id,
             reply_markup=get_basket_actions_keyboard(lang=lang),
         )
+    await callback.answer()
 
 
 @router.callback_query(F.data == "back_to_menu")
@@ -167,6 +245,34 @@ async def callback_clear_basket(
     await state.set_state(BasketStates.waiting_for_basket_text)
     if isinstance(callback.message, Message):
         await callback.message.edit_text(t("prompt_send_basket", lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "edit_basket")
+async def callback_edit_basket(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    data = await state.get_data()
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    current_list = "\n".join(f"- {item['raw_text']}" for item in lines) or "-"
+
+    await state.set_state(BasketStates.waiting_for_basket_text)
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("prompt_edit_basket", lang=lang, current_list=current_list))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "add_item")
+async def callback_add_item(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    await state.set_state(BasketStates.adding_item)
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("prompt_add_item", lang=lang))
     await callback.answer()
 
 
@@ -432,6 +538,19 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 # -----------------------------------------------------------------------------
 # Formatting Helpers
 # -----------------------------------------------------------------------------
+
+
+def _build_candidate_picker_keyboard(
+    line_no: int, candidates: list[dict[str, Any]]
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for cand in candidates[:3]:
+        builder.button(
+            text=str(cand["name_uz"]),
+            callback_data=f"pick_cand:{line_no}:{cand['canonical_id']}",
+        )
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def _format_parse_table(lines: list[dict[str, Any]], lang: str) -> str:

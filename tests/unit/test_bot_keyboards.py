@@ -39,8 +39,9 @@ def test_district_keyboard() -> None:
 
 def test_basket_actions_keyboard() -> None:
     kb = get_basket_actions_keyboard(lang="uz_latn")
-    assert len(kb.inline_keyboard) == 2
+    assert len(kb.inline_keyboard) == 3
     assert kb.inline_keyboard[0][0].callback_data == "calculate_quotes"
+    assert kb.inline_keyboard[2][0].callback_data == "back_to_menu"
 
 
 def test_candidate_picker_keyboard() -> None:
