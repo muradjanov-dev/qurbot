@@ -109,17 +109,35 @@ def line_cost(
     """
     req_u = get_unit_def(required_unit, custom_units)
     offer_u = get_unit_def(offer.pack_unit, custom_units)
+    pack_base_size = offer.pack_size * offer_u.factor_to_base
 
     if req_u.dimension != offer_u.dimension:
-        raise IncompatibleUnitsError(
-            from_unit=required_unit,
-            to_unit=offer.pack_unit,
-            from_dim=req_u.dimension,
-            to_dim=offer_u.dimension,
+        if req_u.dimension != "count":
+            # A genuine physical-dimension mismatch (e.g. asking for m2 of a
+            # mass-priced item) -- can't be bridged without a real conversion
+            # factor, so this is a matching/parsing error, not a pricing one.
+            raise IncompatibleUnitsError(
+                from_unit=required_unit,
+                to_unit=offer.pack_unit,
+                from_dim=req_u.dimension,
+                to_dim=offer_u.dimension,
+            )
+        # "qop"/"dona"/"quti"/"rulon" etc. are generic package counters with
+        # no fixed physical size of their own -- "10 qop sement" means 10 bags
+        # of however the offer sells cement, not 10 of some universal "qop"
+        # convertible to kg. Treat the requested count as a direct pack count.
+        packs_needed = max(1, math.ceil(required_qty))
+        billed_qty = Decimal(str(packs_needed)) * pack_base_size
+        overage_qty = Decimal("0")
+        cost = Decimal(str(packs_needed)) * offer.price_per_pack
+        return LineCost(
+            packs_needed=packs_needed,
+            billed_qty=billed_qty,
+            overage_qty=overage_qty,
+            cost=cost,
         )
 
     req_base_qty = required_qty * req_u.factor_to_base
-    pack_base_size = offer.pack_size * offer_u.factor_to_base
 
     # Compute number of packs needed (ceiling of req_qty / pack_size)
     packs_ratio = float(req_base_qty / pack_base_size)

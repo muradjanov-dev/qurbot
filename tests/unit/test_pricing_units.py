@@ -136,6 +136,34 @@ def test_line_cost_exact_count_bricks() -> None:
     assert cost_info.cost == Decimal("675000")
 
 
+def test_line_cost_generic_pack_unit_against_mass_priced_offer() -> None:
+    # Customer asks for "10 qop" cement (a generic pack counter, not a real
+    # mass unit); shop prices in 50 kg bags. "qop" should map directly to
+    # "10 bags of whatever this offer sells", not fail as a dimension
+    # mismatch (qop=count vs kg=mass) or get converted through weight.
+    offer = OfferPricing(
+        shop_product_id=2,
+        shop_id=10,
+        canonical_id=101,
+        raw_name="Qizilqum Sement M400 (50 kg)",
+        pack_size=Decimal("50"),
+        pack_unit="kg",
+        price_per_pack=Decimal("52000"),
+        price_per_base_unit=Decimal("1040.0000"),
+    )
+
+    cost_info = line_cost(
+        required_qty=Decimal("10"),
+        required_unit="qop",
+        offer=offer,
+    )
+
+    assert cost_info.packs_needed == 10
+    assert cost_info.billed_qty == Decimal("500")
+    assert cost_info.overage_qty == Decimal("0")
+    assert cost_info.cost == Decimal("520000")
+
+
 def test_reject_cross_dimension_comparison() -> None:
     offer = OfferPricing(
         shop_product_id=4,
