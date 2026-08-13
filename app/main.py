@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramAPIError
 from fastapi import FastAPI
 
 from app.api.routers import health, metrics, webhook
-from app.bot.dispatcher import create_bot, dispatcher
+from app.bot.dispatcher import create_bot, dispatcher, setup_bot_commands
 from app.core.config import settings
 from app.core.deploy_notify import notify_admins_of_deploy
 from app.core.logging import configure_logging, configure_sentry, get_logger
@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     bot = create_bot()
     app.state.bot = bot
     app.state.dispatcher = dispatcher
+    await setup_bot_commands(bot)
 
     if settings.register_webhook:
         try:

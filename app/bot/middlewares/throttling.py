@@ -5,7 +5,9 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message, TelegramObject
+from aiogram.types import CallbackQuery, TelegramObject
+
+from app.bot.middlewares._unwrap import unwrap_event
 
 logger = logging.getLogger("bot.throttle")
 
@@ -26,8 +28,8 @@ class ThrottleMiddleware(BaseMiddleware):
         self.user_timestamps: dict[int, list[float]] = defaultdict(list)
         self.quote_timestamps: dict[int, list[float]] = defaultdict(list)
 
-    def _is_quote_request(self, event: TelegramObject) -> bool:
-        return isinstance(event, CallbackQuery) and event.data == QUOTE_CALLBACK_DATA
+    def _is_quote_request(self, inner: TelegramObject | None) -> bool:
+        return isinstance(inner, CallbackQuery) and inner.data == QUOTE_CALLBACK_DATA
 
     def _within_limit(self, history_map: dict[int, list[float]], user_id: int, limit: int) -> bool:
         now = time.time()
@@ -45,14 +47,13 @@ class ThrottleMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        user_id: int | None = None
-        if isinstance(event, Message | CallbackQuery) and event.from_user:
-            user_id = event.from_user.id
+        inner = unwrap_event(event)
+        user_id: int | None = inner.from_user.id if inner and inner.from_user else None
 
         if user_id is None:
             return await handler(event, data)
 
-        if self._is_quote_request(event) and not self._within_limit(
+        if self._is_quote_request(inner) and not self._within_limit(
             self.quote_timestamps, user_id, self.quote_limit_per_minute
         ):
             logger.warning(

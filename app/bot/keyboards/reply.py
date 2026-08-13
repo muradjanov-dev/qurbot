@@ -16,7 +16,7 @@ def get_main_menu_keyboard(
         builder.button(text=t("menu_shop_portal", lang=lang))
     builder.button(text=t("menu_settings", lang=lang))
     builder.adjust(2, 2, 1)
-    return builder.as_markup(resize_keyboard=True)
+    return builder.as_markup(resize_keyboard=True, is_persistent=True)
 
 
 def get_phone_request_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:

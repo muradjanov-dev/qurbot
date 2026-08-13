@@ -6,6 +6,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.middlewares._unwrap import unwrap_event
 from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 
@@ -21,9 +22,8 @@ class UserContextMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        from_user = None
-        if isinstance(event, Message | CallbackQuery):
-            from_user = event.from_user
+        inner = unwrap_event(event)
+        from_user = inner.from_user if inner else None
 
         if not from_user:
             return await handler(event, data)
@@ -50,10 +50,10 @@ class UserContextMiddleware(BaseMiddleware):
 
         if user.is_blocked:
             logger.warning("Blocked user %d attempted interaction", from_user.id)
-            if isinstance(event, Message):
-                await event.answer("Sizning profilingiz bloklangan.")
-            elif isinstance(event, CallbackQuery):
-                await event.answer("Sizning profilingiz bloklangan.", show_alert=True)
+            if isinstance(inner, Message):
+                await inner.answer("Sizning profilingiz bloklangan.")
+            elif isinstance(inner, CallbackQuery):
+                await inner.answer("Sizning profilingiz bloklangan.", show_alert=True)
             return None
 
         data["user"] = user

@@ -5,6 +5,7 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
+from app.bot.middlewares._unwrap import unwrap_event
 from app.core.i18n import t
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,9 @@ class ErrorMiddleware(BaseMiddleware):
             lang = data.get("lang", "uz_latn")
             msg_text = t("error_generic", lang=lang)
 
-            if isinstance(event, Message):
-                await event.answer(msg_text)
-            elif isinstance(event, CallbackQuery) and event.message:
-                await event.answer(msg_text, show_alert=True)
+            inner = unwrap_event(event)
+            if isinstance(inner, Message):
+                await inner.answer(msg_text)
+            elif isinstance(inner, CallbackQuery) and inner.message:
+                await inner.answer(msg_text, show_alert=True)
             return None

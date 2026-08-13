@@ -15,6 +15,9 @@ router = Router(name="common")
 
 
 @router.message(CommandStart())
+@router.message(Command("menu"))
+@router.message(F.text.in_(["📋 Ro'yxat yuborish", "📋 Рўйхат юбориш", "📋 Отправить список"]))
+@router.message(F.text.in_(["🏠 Asosiy menyu", "🏠 Асосий меню", "🏠 Главное меню"]))
 async def cmd_start(
     message: Message,
     state: FSMContext,

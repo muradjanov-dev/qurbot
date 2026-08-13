@@ -1,7 +1,10 @@
+from contextlib import suppress
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
 
 from app.bot.handlers import admin_router, common_router, customer_router, shop_router
 from app.bot.middlewares import (
@@ -21,6 +24,20 @@ def create_bot() -> Bot:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+
+
+async def setup_bot_commands(bot: Bot) -> None:
+    """Register native Telegram bot menu commands."""
+    commands = [
+        BotCommand(command="start", description="Boshlash / Menyu"),
+        BotCommand(command="menu", description="Asosiy menyu tugmalarini chiqarish"),
+        BotCommand(command="orders", description="Mening buyurtmalarim"),
+        BotCommand(command="cancel", description="Amalni bekor qilish"),
+        BotCommand(command="shop_products", description="Do'kon mahsulotlari (Do'kon egalari)"),
+        BotCommand(command="delivery_rules", description="Yetkazish qoidalarini sozlash"),
+    ]
+    with suppress(Exception):
+        await bot.set_my_commands(commands)
 
 
 def create_dispatcher() -> Dispatcher:
