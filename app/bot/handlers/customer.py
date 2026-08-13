@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Any
 
 from aiogram import Bot, F, Router
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
@@ -11,11 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.inline import (
     get_basket_actions_keyboard,
+    get_order_confirm_keyboard,
     get_quote_carousel_keyboard,
 )
 from app.bot.keyboards.reply import get_main_menu_keyboard
 from app.bot.states import BasketStates, OrderCheckoutStates
+from app.core.config import settings
 from app.core.i18n import t
+from app.core.logging import get_logger
 from app.db.models.order import Order, OrderItem, OrderShopPart
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
@@ -25,6 +28,8 @@ from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.services.catalog_service import CatalogService
 from app.services.quote_service import QuoteService
+
+logger = get_logger(__name__)
 
 router = Router(name="customer")
 
@@ -451,11 +456,10 @@ async def checkout_address(message: Message, state: FSMContext, lang: str) -> No
 async def checkout_comment(
     message: Message,
     state: FSMContext,
-    user: User,
-    session: AsyncSession,
     lang: str,
 ) -> None:
     comment = message.text.strip() if message.text and message.text.lower() != "yo'q" else None
+    await state.update_data(order_comment=comment)
     data = await state.get_data()
 
     address = data.get("delivery_address", "Toshkent shahri")
@@ -465,6 +469,48 @@ async def checkout_comment(
 
     if not raw_quotes:
         await message.answer(t("error_generic", lang=lang))
+        return
+
+    variant = _deserialize_variant(raw_quotes[selected_idx])
+
+    await state.set_state(OrderCheckoutStates.confirming_order)
+
+    summary = t(
+        "order_confirm_prompt",
+        lang=lang,
+        phone=phone,
+        address=address,
+        comment=comment or t("comment_none", lang=lang),
+    )
+    quote_card = _format_quote_card(variant, lang=lang)
+    question = t("order_confirm_question", lang=lang)
+    await message.answer(
+        f"{summary}\n{quote_card}\n\n{question}",
+        reply_markup=get_order_confirm_keyboard(lang=lang),
+    )
+
+
+@router.callback_query(F.data == "confirm_order")
+async def callback_confirm_order(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    bot: Bot,
+    lang: str,
+) -> None:
+    data = await state.get_data()
+
+    address = data.get("delivery_address", "Toshkent shahri")
+    phone = data.get("contact_phone", "+998900000000")
+    comment = data.get("order_comment")
+    raw_quotes = data.get("quotes", [])
+    selected_idx = data.get("selected_quote_idx", 0)
+
+    if not raw_quotes:
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("error_generic", lang=lang))
+        await callback.answer()
         return
 
     variant = _deserialize_variant(raw_quotes[selected_idx])
@@ -507,6 +553,7 @@ async def checkout_comment(
     await session.flush()
 
     # Create OrderShopParts and OrderItems
+    shop_parts: list[tuple[OrderShopPart, Any]] = []
     for g in variant.shop_groups:
         part = OrderShopPart(
             order_id=order.id,
@@ -518,6 +565,7 @@ async def checkout_comment(
         )
         session.add(part)
         await session.flush()
+        shop_parts.append((part, g))
 
         for line in g.lines:
             item = OrderItem(
@@ -535,15 +583,22 @@ async def checkout_comment(
     await state.clear()
 
     is_shop_owner = user.role in ("shop_owner", "admin")
-    await message.answer(
-        t(
-            "order_created_success",
-            lang=lang,
-            order_id=order.id,
-            total=f"{order.grand_total_quoted:,.0f}",
-        ),
-        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
-    )
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            t(
+                "order_created_success",
+                lang=lang,
+                order_id=order.id,
+                total=f"{order.grand_total_quoted:,.0f}",
+            ),
+        )
+        await callback.message.answer(
+            t("welcome_done", lang=lang),
+            reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        )
+    await callback.answer()
+
+    await _notify_shops_and_admins_of_order(bot, session, order, shop_parts, user, phone, address)
 
 
 @router.message(F.text.in_(["📦 Buyurtmalarim", "📦 Буюртмаларим", "📦 Мои заказы"]))
@@ -567,6 +622,59 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 # -----------------------------------------------------------------------------
 # Formatting Helpers
 # -----------------------------------------------------------------------------
+
+
+async def _notify_shops_and_admins_of_order(
+    bot: Bot,
+    session: AsyncSession,
+    order: Order,
+    shop_parts: list[tuple[OrderShopPart, Any]],
+    user: User,
+    phone: str,
+    address: str,
+) -> None:
+    """Tell each shop owner their part of the order, and admins the whole thing.
+
+    Best-effort: a shop with no owner_tg_id on file, or a failed send, is
+    logged and skipped rather than blocking the rest -- the order itself is
+    already committed by the time this runs.
+    """
+    shop_repo = ShopRepository(session)
+    customer_name = user.full_name or str(user.tg_id)
+
+    for part, group in shop_parts:
+        shop = await shop_repo.get(part.shop_id)
+        if not shop or not shop.owner_tg_id:
+            continue
+        lines_str = "\n".join(
+            f"• {line.product_name} × {line.billed_qty:g} {line.pack_unit}" for line in group.lines
+        )
+        text = (
+            f"🆕 <b>Yangi buyurtma #{order.id}</b>\n\n"
+            f"{lines_str}\n\n"
+            f"Jami: <b>{part.subtotal:,.0f} so'm</b> + dostavka {part.delivery_fee:,.0f} so'm\n\n"
+            f"👤 Mijoz: {customer_name}\n"
+            f"📞 Tel: {phone}\n"
+            f"📍 Manzil: {address}"
+        )
+        try:
+            await bot.send_message(shop.owner_tg_id, text)
+        except TelegramAPIError as exc:
+            logger.warning("shop_order_notify_failed", shop_id=shop.id, error=str(exc))
+
+    admin_text = (
+        f"📦 <b>Yangi buyurtma #{order.id}</b>\n\n"
+        f"Mijoz: {customer_name}\n"
+        f"Tel: {phone}\n"
+        f"Manzil: {address}\n"
+        f"Jami: {order.grand_total_quoted:,.0f} so'm\n"
+        f"Do'konlar soni: {len(shop_parts)}"
+    )
+    for admin_id in settings.admin_tg_ids:
+        try:
+            await bot.send_message(admin_id, admin_text)
+        except TelegramAPIError as exc:
+            logger.warning("admin_order_notify_failed", admin_id=admin_id, error=str(exc))
 
 
 async def _safe_edit_text(

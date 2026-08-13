@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.customer import (
     callback_calculate_quotes,
+    callback_confirm_order,
     callback_select_quote,
     checkout_address,
     checkout_comment,
@@ -108,7 +109,8 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     await checkout_address(message=addr_msg, state=state, lang="uz_latn")
     addr_msg.answer.assert_called_once()
 
-    # 7. Simulate entering order comment
+    # 7. Simulate entering order comment -- this now shows a review/confirm
+    # screen instead of creating the order immediately.
     comment_msg = AsyncMock(spec=Message)
     comment_msg.text = "Ertaga 10:00 da yetkazib bering"
     comment_msg.answer = AsyncMock()
@@ -116,8 +118,25 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     await checkout_comment(
         message=comment_msg,
         state=state,
+        lang="uz_latn",
+    )
+    comment_msg.answer.assert_called_once()
+    confirm_prompt_text = comment_msg.answer.call_args[0][0]
+    assert "tekshiring" in confirm_prompt_text.lower()
+
+    # 8. Simulate tapping "Tasdiqlash" -- this is what actually creates the order
+    confirm_cb = AsyncMock(spec=CallbackQuery)
+    confirm_cb.data = "confirm_order"
+    confirm_cb.message = fake_status_msg
+    confirm_cb.answer = AsyncMock()
+    fake_bot = AsyncMock()
+
+    await callback_confirm_order(
+        callback=confirm_cb,
+        state=state,
         user=user,
         session=test_session,
+        bot=fake_bot,
         lang="uz_latn",
     )
 

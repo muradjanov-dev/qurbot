@@ -263,6 +263,41 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Дўкон учун қўшимча изоҳ ёки истак (ихтиёрий, 'йўқ' деб ёзишингиз мумкин):",
         "ru": "Комментарий к заказу (необязательно, можете написать 'нет'):",
     },
+    "order_confirm_prompt": {
+        "uz_latn": (
+            "📝 <b>Buyurtmangizni tekshiring:</b>\n\n"
+            "📞 Telefon: {phone}\n"
+            "📍 Manzil: {address}\n"
+            "💬 Izoh: {comment}\n"
+        ),
+        "uz_cyrl": (
+            "📝 <b>Буюртмангизни текширинг:</b>\n\n"
+            "📞 Телефон: {phone}\n"
+            "📍 Манзил: {address}\n"
+            "💬 Изоҳ: {comment}\n"
+        ),
+        "ru": (
+            "📝 <b>Проверьте ваш заказ:</b>\n\n"
+            "📞 Телефон: {phone}\n"
+            "📍 Адрес: {address}\n"
+            "💬 Комментарий: {comment}\n"
+        ),
+    },
+    "order_confirm_question": {
+        "uz_latn": "Barchasi to'g'rimi? Buyurtmani tasdiqlaysizmi?",
+        "uz_cyrl": "Барчаси тўғрими? Буюртмани тасдиқлайсизми?",
+        "ru": "Всё верно? Подтвердить заказ?",
+    },
+    "comment_none": {
+        "uz_latn": "yo'q",
+        "uz_cyrl": "йўқ",
+        "ru": "нет",
+    },
+    "btn_confirm_order": {
+        "uz_latn": "✅ Tasdiqlash",
+        "uz_cyrl": "✅ Тасдиқлаш",
+        "ru": "✅ Подтвердить",
+    },
     "order_created_success": {
         "uz_latn": (
             "🎉 <b>Buyurtmangiz qabul qilindi!</b>\n\n"

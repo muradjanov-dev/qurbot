@@ -42,6 +42,15 @@ def get_basket_actions_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def get_order_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Build confirm/cancel buttons for the final order review screen."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_confirm_order", lang=lang), callback_data="confirm_order")
+    builder.button(text=t("btn_back", lang=lang), callback_data="back_to_menu")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_candidate_picker_keyboard(
     line_no: int,
     candidates: Sequence[CandidateMatch],
