@@ -102,6 +102,23 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "⏳ Рўйхат таҳлил қилинмоқда…",
         "ru": "⏳ Список анализируется…",
     },
+    "basket_not_understood": {
+        "uz_latn": (
+            "Kechirasiz, tushunmadim 🙂 QurBot qurilish mollari narxini hisoblaydi. "
+            "Ro'yxatni shunday yozing: miqdor + birlik + nom, vergul yoki yangi qatordan "
+            "ajratib. Masalan:\n10 qop sement, 500 dona g'isht, 3 quti plitka 30x30"
+        ),
+        "uz_cyrl": (
+            "Кечирасиз, тушунмадим 🙂 QurBot қурилиш моллари нархини ҳисоблайди. "
+            "Рўйхатни шундай ёзинг: миқдор + бирлик + ном, вергул ёки янги қатордан "
+            "ажратиб. Масалан:\n10 қоп цемент, 500 дона ғишт, 3 қути плитка 30х30"
+        ),
+        "ru": (
+            "Извините, не понял 🙂 QurBot считает цены на стройматериалы. Напишите "
+            "список так: количество + единица + название, через запятую или с новой "
+            "строки. Например:\n10 мешков цемент, 500 шт кирпич, 3 коробки плитка 30х30"
+        ),
+    },
     "basket_parsed_header": {
         "uz_latn": "📋 <b>Ro'yxatingiz ({count} ta):</b>\n",
         "uz_cyrl": "📋 <b>Рўйхатингиз ({count} та):</b>\n",

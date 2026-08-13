@@ -127,3 +127,34 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     assert created_order.comment == "Ertaga 10:00 da yetkazib bering"
     assert created_order.grand_total_quoted > Decimal("0")
     assert len(created_order.shop_parts) >= 1
+
+
+@pytest.mark.asyncio
+async def test_basket_text_with_no_product_list_gets_usage_guidance(
+    test_session: AsyncSession,
+) -> None:
+    """A greeting/question with no qty+unit pattern should guide the user, not
+    show a confusing parse table full of fabricated qty=1 lines (SPEC §9)."""
+    await seed_database(test_session)
+
+    storage = MemoryStorage()
+    key = StorageKey(bot_id=1, chat_id=124, user_id=555555555)
+    state = FSMContext(storage=storage, key=key)
+
+    fake_status_msg = AsyncMock(spec=Message)
+    fake_status_msg.edit_text = AsyncMock()
+    fake_msg = AsyncMock(spec=Message)
+    fake_msg.text = "Salom, bot qanday ishlaydi?"
+    fake_msg.answer = AsyncMock(return_value=fake_status_msg)
+
+    await handle_basket_text(
+        message=fake_msg,
+        state=state,
+        session=test_session,
+        lang="uz_latn",
+    )
+
+    fake_status_msg.edit_text.assert_called_once()
+    guidance_text = fake_status_msg.edit_text.call_args[0][0]
+    assert "tushunmadim" in guidance_text.lower()
+    assert "qop sement" in guidance_text.lower()

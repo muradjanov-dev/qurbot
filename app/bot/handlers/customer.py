@@ -53,6 +53,17 @@ async def handle_basket_text(
 
     parsed_results = await catalog_service.parse_and_match_basket(message.text)
 
+    if not parsed_results or all(line.needs_review for line, _ in parsed_results):
+        # The parser found no explicit "qty + unit" pattern on any line -- the
+        # parser still fabricates a qty=1 pseudo-line for plain text (greetings,
+        # questions), so `not parsed_results` alone doesn't catch that; checking
+        # `needs_review` (set when qty/unit weren't explicitly found) does. A
+        # message with at least one real "10 dona X"-shaped line still reaches
+        # the parse table below, even if that product isn't in the catalog --
+        # Stage 4 already handles that per-line.
+        await status_msg.edit_text(t("basket_not_understood", lang=lang))
+        return
+
     # 3. Store in state for interactive confirmation
     serialized_lines: list[dict[str, Any]] = []
     for line, decision in parsed_results:
