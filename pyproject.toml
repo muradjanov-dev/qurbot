@@ -20,6 +20,7 @@ dependencies = [
     "python-multipart==0.0.32",
     "prometheus-client==0.26.0",
     "sentry-sdk==2.67.1",
+    "reportlab==4.2.5",
 ]
 
 [project.optional-dependencies]

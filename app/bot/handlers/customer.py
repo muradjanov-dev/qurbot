@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 from typing import Any
 
@@ -5,7 +6,7 @@ from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +28,7 @@ from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.services.catalog_service import CatalogService
+from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
 
 logger = get_logger(__name__)
@@ -406,6 +408,32 @@ async def callback_nav_quote(
             ),
         )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("pdf_quote:"))
+async def callback_pdf_quote(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not callback.data:
+        return
+    idx = int(callback.data.split(":")[1])
+
+    data = await state.get_data()
+    raw_quotes: list[dict[str, Any]] = data.get("quotes", [])
+    if not raw_quotes or idx >= len(raw_quotes):
+        await callback.answer()
+        return
+
+    await callback.answer(t("pdf_generating", lang=lang))
+    variant = _deserialize_variant(raw_quotes[idx])
+    pdf_bytes = await asyncio.to_thread(generate_quote_pdf, variant)
+
+    if isinstance(callback.message, Message):
+        await callback.message.answer_document(
+            BufferedInputFile(pdf_bytes, filename=f"qurbot_taklif_{idx + 1}.pdf"),
+        )
 
 
 @router.callback_query(F.data.startswith("select_quote:"))

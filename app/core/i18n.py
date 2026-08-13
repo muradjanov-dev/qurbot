@@ -186,6 +186,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📄 PDF олиш",
         "ru": "📄 Скачать PDF",
     },
+    "pdf_generating": {
+        "uz_latn": "📄 PDF tayyorlanmoqda...",
+        "uz_cyrl": "📄 PDF тайёрланмоқда...",
+        "ru": "📄 Готовим PDF...",
+    },
     "btn_recalculate": {
         "uz_latn": "🔄 Qayta hisoblash",
         "uz_cyrl": "🔄 Қайта ҳисоблаш",
