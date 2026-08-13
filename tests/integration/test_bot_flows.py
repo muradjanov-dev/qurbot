@@ -1,4 +1,5 @@
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -46,6 +47,8 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     fake_status_msg.edit_text = AsyncMock()
     fake_status_msg.delete = AsyncMock()
     fake_status_msg.answer = AsyncMock()
+    fake_status_msg.chat = SimpleNamespace(id=123)
+    fake_status_msg.message_id = 1
     fake_msg = AsyncMock(spec=Message)
     fake_msg.text = "500 kg cement m400, 500 dona g'isht"
     fake_msg.answer = AsyncMock(return_value=fake_status_msg)
@@ -71,6 +74,7 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     fake_callback = AsyncMock(spec=CallbackQuery)
     fake_callback.data = "calculate_quotes"
     fake_callback.message = fake_status_msg
+    fake_callback.answer = AsyncMock()
 
     await callback_calculate_quotes(
         callback=fake_callback,

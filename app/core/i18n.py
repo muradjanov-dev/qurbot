@@ -104,19 +104,22 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "basket_not_understood": {
         "uz_latn": (
-            "Kechirasiz, tushunmadim 🙂 QurBot qurilish mollari narxini hisoblaydi. "
-            "Ro'yxatni shunday yozing: miqdor + birlik + nom, vergul yoki yangi qatordan "
-            "ajratib. Masalan:\n10 qop sement, 500 dona g'isht, 3 quti plitka 30x30"
+            "Kechirasiz, tushunmadim 🙂\n"
+            "QurBot qurilish mollari narxini hisoblaydi. Har bir mahsulotni "
+            "yangi qatordan, <b>miqdor + birlik + nom</b> tartibida yozing. Masalan:\n\n"
+            "10 qop sement\n500 dona g'isht\n3 quti plitka 30x30"
         ),
         "uz_cyrl": (
-            "Кечирасиз, тушунмадим 🙂 QurBot қурилиш моллари нархини ҳисоблайди. "
-            "Рўйхатни шундай ёзинг: миқдор + бирлик + ном, вергул ёки янги қатордан "
-            "ажратиб. Масалан:\n10 қоп цемент, 500 дона ғишт, 3 қути плитка 30х30"
+            "Кечирасиз, тушунмадим 🙂\n"
+            "QurBot қурилиш моллари нархини ҳисоблайди. Ҳар бир маҳсулотни "
+            "янги қатордан, <b>миқдор + бирлик + ном</b> тартибида ёзинг. Масалан:\n\n"
+            "10 қоп цемент\n500 дона ғишт\n3 қути плитка 30х30"
         ),
         "ru": (
-            "Извините, не понял 🙂 QurBot считает цены на стройматериалы. Напишите "
-            "список так: количество + единица + название, через запятую или с новой "
-            "строки. Например:\n10 мешков цемент, 500 шт кирпич, 3 коробки плитка 30х30"
+            "Извините, не понял 🙂\n"
+            "QurBot считает цены на стройматериалы. Пишите каждый товар с новой "
+            "строки в формате <b>количество + единица + название</b>. Например:\n\n"
+            "10 мешков цемент\n500 шт кирпич\n3 коробки плитка 30х30"
         ),
     },
     "basket_parsed_header": {

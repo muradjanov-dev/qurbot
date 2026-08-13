@@ -2,6 +2,8 @@ from decimal import Decimal
 from typing import Any
 
 from aiogram import Bot, F, Router
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -33,8 +35,10 @@ async def menu_send_list(message: Message, state: FSMContext, lang: str) -> None
     await message.answer(t("prompt_send_basket", lang=lang))
 
 
-@router.message(BasketStates.waiting_for_basket_text)
-@router.message(F.text & ~F.text.startswith("/"))
+@router.message(
+    StateFilter(None, BasketStates.waiting_for_basket_text, BasketStates.viewing_quotes),
+    F.text & ~F.text.startswith("/"),
+)
 async def handle_basket_text(
     message: Message,
     state: FSMContext,
@@ -127,6 +131,27 @@ async def _process_basket_input(
                 "candidates": cand_data,
             }
         )
+
+    # 3b. Attach a reference price to each candidate so ambiguous-line pickers
+    # let the user tell products apart by price, not just name.
+    ask_user_canonical_ids = {
+        cand["canonical_id"]
+        for item in new_lines
+        if item["status"] == "ask_user"
+        for cand in item["candidates"]
+    }
+    if ask_user_canonical_ids:
+        shop_repo = ShopRepository(session)
+        offers = await shop_repo.get_active_offers_for_canonicals(list(ask_user_canonical_ids))
+        min_price_by_canonical: dict[int, Decimal] = {}
+        for offer in offers:
+            if offer.canonical_id is not None and offer.canonical_id not in min_price_by_canonical:
+                min_price_by_canonical[offer.canonical_id] = offer.price_per_pack
+        for item in new_lines:
+            if item["status"] == "ask_user":
+                for cand in item["candidates"]:
+                    price = min_price_by_canonical.get(cand["canonical_id"])
+                    cand["min_price"] = f"{price:,.0f}" if price is not None else None
 
     serialized_lines = (existing_lines or []) + new_lines
 
@@ -334,7 +359,8 @@ async def callback_calculate_quotes(
     # Render first variant
     variant_card_text = _format_quote_card(result.deduplicated_variants[0], lang=lang)
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(
+        await _safe_edit_text(
+            callback.message,
             variant_card_text,
             reply_markup=get_quote_carousel_keyboard(
                 current_index=0,
@@ -342,6 +368,7 @@ async def callback_calculate_quotes(
                 lang=lang,
             ),
         )
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("nav_quote:"))
@@ -364,7 +391,8 @@ async def callback_nav_quote(
     variant_card_text = _format_quote_card(variant, lang=lang)
 
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(
+        await _safe_edit_text(
+            callback.message,
             variant_card_text,
             reply_markup=get_quote_carousel_keyboard(
                 current_index=idx,
@@ -372,6 +400,7 @@ async def callback_nav_quote(
                 lang=lang,
             ),
         )
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("select_quote:"))
@@ -540,13 +569,35 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 # -----------------------------------------------------------------------------
 
 
+async def _safe_edit_text(
+    message: Message,
+    text: str,
+    reply_markup: InlineKeyboardMarkup | None = None,
+) -> None:
+    """edit_text, ignoring Telegram's "message is not modified" error.
+
+    Recalculating/navigating to a quote that renders identically to what's
+    already on screen (e.g. a single-shop-only variant, or re-running the
+    same deterministic optimization) is a no-op from Telegram's point of
+    view and it rejects the edit outright -- that's not a real failure.
+    """
+    try:
+        await message.edit_text(text, reply_markup=reply_markup)
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e).lower():
+            raise
+
+
 def _build_candidate_picker_keyboard(
     line_no: int, candidates: list[dict[str, Any]]
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for cand in candidates[:3]:
+        label = str(cand["name_uz"])
+        if cand.get("min_price"):
+            label = f"{label} — {cand['min_price']} so'm"
         builder.button(
-            text=str(cand["name_uz"]),
+            text=label,
             callback_data=f"pick_cand:{line_no}:{cand['canonical_id']}",
         )
     builder.adjust(1)
