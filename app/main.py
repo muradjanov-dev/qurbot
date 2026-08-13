@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from app.api.routers import health, metrics, webhook
 from app.bot.dispatcher import create_bot, dispatcher
 from app.core.config import settings
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging, configure_sentry, get_logger
 from app.web.routers import router as admin_router
 
 logger = get_logger(__name__)
@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(settings.log_level)
+    configure_sentry(settings.sentry_dsn, settings.app_env)
 
     bot = create_bot()
     app.state.bot = bot

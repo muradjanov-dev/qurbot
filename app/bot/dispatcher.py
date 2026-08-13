@@ -34,7 +34,12 @@ def create_dispatcher() -> Dispatcher:
     # Outer middlewares
     dp.update.outer_middleware(ErrorMiddleware())
     dp.update.outer_middleware(LoggingMiddleware())
-    dp.update.outer_middleware(ThrottleMiddleware())
+    dp.update.outer_middleware(
+        ThrottleMiddleware(
+            limit_per_minute=settings.throttle_limit_per_minute,
+            quote_limit_per_minute=settings.throttle_quote_limit_per_minute,
+        )
+    )
     dp.update.outer_middleware(DbSessionMiddleware())
     dp.update.outer_middleware(UserContextMiddleware())
     dp.update.outer_middleware(I18nMiddleware())

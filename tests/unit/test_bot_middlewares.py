@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.types import Chat, Message
+from aiogram.types import CallbackQuery, Chat, Message
 from aiogram.types import User as TgUser
 
 from app.bot.middlewares import (
@@ -55,6 +55,39 @@ async def test_throttle_middleware_rate_limits() -> None:
     # Call 3: throttled (silently dropped -> returns None)
     res3 = await middleware(handler, event, data)
     assert res3 is None
+
+
+@pytest.mark.asyncio
+async def test_throttle_middleware_quote_bucket_is_independent_and_stricter() -> None:
+    middleware = ThrottleMiddleware(limit_per_minute=20, quote_limit_per_minute=1)
+    handler = AsyncMock(return_value="ok")
+    user = TgUser(id=200, is_bot=False, first_name="Test")
+    quote_event = CallbackQuery(
+        id="1",
+        from_user=user,
+        chat_instance="x",
+        data="calculate_quotes",
+        message=Message(
+            message_id=1,
+            date=1234567890,  # type: ignore[arg-type]
+            chat=Chat(id=200, type="private"),
+        ),
+    )
+    other_event = Message(
+        message_id=2,
+        date=1234567890,  # type: ignore[arg-type]
+        chat=Chat(id=200, type="private"),
+        from_user=user,
+        text="hi",
+    )
+    data: dict = {}
+
+    # First quote request passes, second is throttled by the stricter bucket.
+    assert await middleware(handler, quote_event, data) == "ok"
+    assert await middleware(handler, quote_event, data) is None
+
+    # A different action for the same user is unaffected -- separate bucket.
+    assert await middleware(handler, other_event, data) == "ok"
 
 
 @pytest.mark.asyncio

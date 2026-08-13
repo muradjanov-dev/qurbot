@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     admin_basic_auth_password: str = "placeholder_admin_password"
     admin_llm_cost_window_days: int = 30
 
+    # Rate limiting (§9, Phase 9 hardening)
+    throttle_limit_per_minute: int = 20
+    throttle_quote_limit_per_minute: int = 3
+
+    # Observability (Phase 9 hardening)
+    sentry_dsn: str | None = None
+
     @property
     def webhook_path(self) -> str:
         return f"/webhook/{self.webhook_secret}"

@@ -1,7 +1,15 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 import structlog
+
+
+def configure_sentry(dsn: str | None, environment: str) -> None:
+    """No-op unless a DSN is configured -- Sentry needs the operator's own project."""
+    if not dsn:
+        return
+    sentry_sdk.init(dsn=dsn, environment=environment, send_default_pii=False)
 
 
 def configure_logging(log_level: str) -> None:

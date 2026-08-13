@@ -145,14 +145,19 @@ class ShopProduct(Base, TimestampMixin):
         UniqueConstraint(
             "shop_id", "canonical_id", "pack_size", "pack_unit_code", name="uq_shop_products_offer"
         ),
-        Index("ix_shop_products_canonical_base_price", "canonical_id", "price_per_base_unit"),
         Index("ix_shop_products_updated_at", "updated_at"),
+        # Covers the hot quote query (get_active_offers_for_canonicals): filters on
+        # canonical_id IN (...) + is_active + staleness_state + stock_status, ordered
+        # by (canonical_id, price_per_base_unit) -- the partial predicate matches the
+        # WHERE clause and the trailing column satisfies the ORDER BY without a
+        # separate sort step (Phase 9 hardening, SPEC §15).
         Index(
             "ix_shop_products_active_fresh",
             "canonical_id",
-            "is_active",
-            "staleness_state",
-            postgresql_where=text("is_active IS TRUE AND staleness_state <> 'stale'"),
+            "price_per_base_unit",
+            postgresql_where=text(
+                "is_active IS TRUE AND staleness_state <> 'stale' AND stock_status <> 'out'"
+            ),
         ),
     )
 
