@@ -116,7 +116,7 @@ async def menu_shop_portal(
         await message.answer(t("not_shop_owner", lang=lang))
         return
 
-    await _show_shop_panel(message, user, session, state, lang)
+    await _show_shop_panel(message=message, user=user, session=session, state=state, lang=lang)
 
 
 async def _show_shop_panel(
@@ -171,7 +171,9 @@ async def cb_pick_shop(
 
     await state.update_data({ACTIVE_SHOP_KEY: shop_id})
     await callback.message.delete()
-    await _show_shop_panel(callback.message, user, session, state, lang)
+    await _show_shop_panel(
+        message=callback.message, user=user, session=session, state=state, lang=lang
+    )
     await callback.answer()
 
 
@@ -958,33 +960,51 @@ async def cb_shop_upload(callback: CallbackQuery, user: User, lang: str) -> None
 
 @router.callback_query(F.data == "shp:products")
 async def cb_shop_products(
-    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
 ) -> None:
     """Reuses the paginated /shop_products listing rather than a second one."""
     if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    await cmd_shop_products(callback.message, user, session, lang)
+    await cmd_shop_products(
+        message=callback.message, user=user, session=session, state=state, lang=lang
+    )
     await callback.answer()
 
 
 @router.callback_query(F.data == "shp:delivery")
 async def cb_shop_delivery(
-    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    await cmd_delivery_rules(callback.message, user, session, lang)
+    await cmd_delivery_rules(
+        message=callback.message, user=user, session=session, state=state, lang=lang
+    )
     await callback.answer()
 
 
 @router.callback_query(F.data == "shp:orders")
 async def cb_shop_orders(
-    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    await cmd_shop_orders(callback.message, user, session, lang)
+    await cmd_shop_orders(
+        message=callback.message, user=user, session=session, state=state, lang=lang
+    )
     await callback.answer()

@@ -261,7 +261,9 @@ async def cb_add_product(
     if not isinstance(callback.message, Message):
         await callback.answer()
         return
-    await menu_add_product(callback.message, state, user, session, lang)
+    await menu_add_product(
+        message=callback.message, state=state, user=user, session=session, lang=lang
+    )
     await callback.answer()
 
 

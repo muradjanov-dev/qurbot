@@ -11,6 +11,7 @@ class BasketStates(StatesGroup):
     waiting_for_basket_text = State()
     editing_line = State()
     adding_item = State()
+    entering_qty_for_product = State()
     viewing_quotes = State()
 
 

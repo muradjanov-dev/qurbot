@@ -117,13 +117,21 @@ def get_product_picker_keyboard(
 
 
 def get_product_detail_keyboard(
-    category_id: int | None, lang: str = "uz_latn"
+    category_id: int | None,
+    lang: str = "uz_latn",
+    canonical_id: int | None = None,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    if canonical_id is not None:
+        builder.button(
+            text=t("btn_add_to_basket", lang=lang),
+            callback_data=f"price_add:{canonical_id}",
+        )
     if category_id is not None:
         builder.button(text=t("btn_back", lang=lang), callback_data=f"price_cat:{category_id}")
     else:
         builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
+    builder.adjust(1)
     return builder.as_markup()
 
 

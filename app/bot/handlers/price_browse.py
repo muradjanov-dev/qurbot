@@ -8,22 +8,29 @@ creates or touches a basket.
 from __future__ import annotations
 
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
+from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc
+from app.bot.formatters.common import esc, format_qty
+from app.bot.handlers.customer import _format_parse_table
 from app.bot.keyboards.inline import (
+    get_basket_actions_keyboard,
     get_price_category_keyboard,
     get_product_detail_keyboard,
     get_product_picker_keyboard,
 )
+from app.bot.states import BasketStates
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
+from app.domain.parsing.parser import is_qty_orderable
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +145,9 @@ async def callback_product_detail(
         body = t("product_card_no_offers", lang=lang, name=esc(product.name_uz))
 
     photo = await shop_repo.get_photo_for_canonical(canonical_id)
-    keyboard = get_product_detail_keyboard(product.category_id, lang=lang)
+    keyboard = get_product_detail_keyboard(
+        product.category_id, lang=lang, canonical_id=canonical_id
+    )
 
     if photo is not None:
         file_id, blob = photo
@@ -193,3 +202,114 @@ async def _cheapest_by_canonical(
         if offer.canonical_id is not None and offer.canonical_id not in cheapest:
             cheapest[offer.canonical_id] = offer.price_per_pack
     return cheapest
+
+
+PENDING_PRODUCT_KEY = "pending_canonical_id"
+
+
+@router.callback_query(F.data.startswith("price_add:"))
+async def callback_add_to_basket(
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Start adding a browsed product to the basket by asking for a quantity."""
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    canonical_id = int(callback.data.split(":")[1])
+
+    product = await CatalogRepository(session).get(canonical_id)
+    if product is None:
+        await callback.answer()
+        return
+
+    await state.update_data({PENDING_PRODUCT_KEY: canonical_id})
+    await state.set_state(BasketStates.entering_qty_for_product)
+    await callback.message.answer(
+        t(
+            "price_ask_qty",
+            lang=lang,
+            name=esc(product.name_uz),
+            unit=esc(product.base_unit_code),
+        )
+    )
+    await callback.answer()
+
+
+@router.message(BasketStates.entering_qty_for_product, F.text)
+async def handle_product_qty(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Append the browsed product to the basket, then show the basket itself.
+
+    Reuses the same basket_lines shape the text parser produces, so the line
+    flows through the existing review table and quote path untouched.
+    """
+    if not message.text:
+        return
+
+    raw = message.text.strip().replace(",", ".")
+    try:
+        qty = Decimal(raw)
+    except InvalidOperation:
+        await message.answer(t("price_qty_not_a_number", lang=lang))
+        return
+
+    if not is_qty_orderable(qty, max_qty=Decimal(settings.basket_max_qty)):
+        await message.answer(t("qty_out_of_range", lang=lang))
+        return
+
+    data = await state.get_data()
+    canonical_id = data.get(PENDING_PRODUCT_KEY)
+    if canonical_id is None:
+        await state.set_state(BasketStates.viewing_quotes)
+        return
+
+    product = await CatalogRepository(session).get(int(canonical_id))
+    if product is None:
+        await state.set_state(BasketStates.viewing_quotes)
+        return
+
+    existing: list[dict[str, Any]] = data.get("basket_lines", [])
+    line_no = max((item["line_no"] for item in existing), default=0) + 1
+    existing.append(
+        {
+            "line_no": line_no,
+            "raw_text": f"{format_qty(qty)} {product.base_unit_code} {product.name_uz}",
+            "parsed_name": product.name_uz,
+            "qty": str(qty),
+            "unit_code": product.base_unit_code,
+            "status": "auto_accept",
+            "method": "catalog_pick",
+            "confidence": 1.0,
+            "canonical_id": product.id,
+            "canonical_name": product.name_uz,
+            "candidates": [],
+        }
+    )
+
+    await message.answer(
+        t(
+            "price_added_to_basket",
+            lang=lang,
+            name=esc(product.name_uz),
+            qty=format_qty(qty),
+            unit=esc(product.base_unit_code),
+        )
+    )
+
+    table = await message.answer(
+        _format_parse_table(existing, lang=lang),
+        reply_markup=get_basket_actions_keyboard(lang=lang),
+    )
+    await state.set_state(BasketStates.viewing_quotes)
+    await state.update_data(
+        basket_lines=existing,
+        table_chat_id=table.chat.id,
+        table_message_id=table.message_id,
+    )

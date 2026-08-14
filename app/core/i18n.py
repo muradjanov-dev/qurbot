@@ -201,6 +201,34 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "миқдор 1 дан 1 000 000 гача бўлиши керак",
         "ru": "количество должно быть от 1 до 1 000 000",
     },
+    "btn_add_to_basket": {
+        "uz_latn": "🛒 Savatga qo'shish",
+        "uz_cyrl": "🛒 Саватга қўшиш",
+        "ru": "🛒 Добавить в корзину",
+    },
+    "price_ask_qty": {
+        "uz_latn": (
+            "<b>{name}</b>\n\n" "Nechta kerak? Faqat sonni yozing ({unit}):\n" "<i>Masalan: 10</i>"
+        ),
+        "uz_cyrl": (
+            "<b>{name}</b>\n\n" "Нечта керак? Фақат сонни ёзинг ({unit}):\n" "<i>Масалан: 10</i>"
+        ),
+        "ru": (
+            "<b>{name}</b>\n\n"
+            "Сколько нужно? Напишите только число ({unit}):\n"
+            "<i>Например: 10</i>"
+        ),
+    },
+    "price_qty_not_a_number": {
+        "uz_latn": "Faqat son yozing. Masalan: 10",
+        "uz_cyrl": "Фақат сон ёзинг. Масалан: 10",
+        "ru": "Напишите только число. Например: 10",
+    },
+    "price_added_to_basket": {
+        "uz_latn": "✅ <b>{name}</b> savatga qo'shildi ({qty} {unit}).",
+        "uz_cyrl": "✅ <b>{name}</b> саватга қўшилди ({qty} {unit}).",
+        "ru": "✅ <b>{name}</b> добавлен в корзину ({qty} {unit}).",
+    },
     "basket_parsed_header": {
         "uz_latn": "📋 <b>Ro'yxatingiz ({count} ta):</b>\n",
         "uz_cyrl": "📋 <b>Рўйхатингиз ({count} та):</b>\n",

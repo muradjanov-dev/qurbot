@@ -719,13 +719,39 @@ async def _notify_shops_and_admins_of_order(
         except TelegramAPIError as exc:
             logger.warning("shop_order_notify_failed", shop_id=shop.id, error=str(exc))
 
+    # Admins get the whole order, not just its total: they are the ones who
+    # call the customer and chase the shops, so they need the same line-level
+    # detail each shop owner sees, across every shop at once.
+    admin_sections: list[str] = []
+    items_total = Decimal("0")
+    delivery_total = Decimal("0")
+    for part, group in shop_parts:
+        items_total += part.subtotal
+        delivery_total += part.delivery_fee
+        lines_str = "\n".join(
+            f"   • {esc(line.product_name)} × {format_qty(line.billed_qty)} "
+            f"{esc(line.pack_unit)} — {line.line_cost_uzs:,.0f} so'm"
+            for line in group.lines
+        )
+        admin_sections.append(
+            f"🏪 <b>{esc(group.shop_name)}</b>\n"
+            f"{lines_str}\n"
+            f"   <i>Jami: {part.subtotal:,.0f} + dostavka {part.delivery_fee:,.0f} so'm</i>"
+        )
+
+    comment_line = f"💬 Izoh: {esc(order.comment)}\n" if order.comment else ""
     admin_text = (
         f"📦 <b>Yangi buyurtma #{order.id}</b>\n\n"
-        f"Mijoz: {customer_name}\n"
-        f"Tel: {phone}\n"
-        f"Manzil: {address}\n"
-        f"Jami: {order.grand_total_quoted:,.0f} so'm\n"
-        f"Do'konlar soni: {len(shop_parts)}"
+        f"👤 Mijoz: {esc(customer_name)}\n"
+        f"📞 Tel: {esc(phone)}\n"
+        f"📍 Manzil: {esc(address)}\n"
+        f"{comment_line}"
+        f"\n" + "\n\n".join(admin_sections) + "\n\n"
+        f"──────────────────────────\n"
+        f"Mahsulotlar: {items_total:,.0f} so'm\n"
+        f"Dostavka: {delivery_total:,.0f} so'm\n"
+        f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>\n"
+        f"🏪 Do'konlar: {len(shop_parts)} ta"
     )
     for admin_id in settings.admin_tg_ids:
         try:
