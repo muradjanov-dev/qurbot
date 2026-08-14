@@ -35,6 +35,11 @@ logger = get_logger(__name__)
 
 router = Router(name="customer")
 
+# Reply-keyboard buttons reach the bot as ordinary text messages, so the
+# free-text basket handler has to be able to tell them apart from a real
+# product list. Keyed on the leading emoji, which every menu label carries.
+_MENU_BUTTON_PREFIXES = ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠")
+
 
 @router.message(F.text.in_(["🧾 Ro'yxat yuborish", "🧾 Рўйхат юбориш", "🧾 Отправить список"]))
 async def menu_send_list(message: Message, state: FSMContext, lang: str) -> None:
@@ -42,9 +47,24 @@ async def menu_send_list(message: Message, state: FSMContext, lang: str) -> None
     await message.answer(t("prompt_send_basket", lang=lang))
 
 
+def _not_a_menu_button(message: Message) -> bool:
+    """True when this text is free-form input rather than a menu tap.
+
+    This MUST be a filter, not an early return inside the handler: a handler
+    whose filters pass is considered to have handled the update, so returning
+    early still stops propagation and the button's real handler -- which lives
+    in a router registered later -- never runs.
+    """
+    text = message.text
+    if not text:
+        return False
+    return not text.startswith(_MENU_BUTTON_PREFIXES)
+
+
 @router.message(
     StateFilter(None, BasketStates.waiting_for_basket_text, BasketStates.viewing_quotes),
     F.text & ~F.text.startswith("/"),
+    _not_a_menu_button,
 )
 async def handle_basket_text(
     message: Message,
@@ -52,11 +72,7 @@ async def handle_basket_text(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    # Menu buttons arrive as plain text too, so they must be excluded here or
-    # this catch-all swallows them instead of their own handlers running.
-    if not message.text or message.text.startswith(
-        ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠", "/")
-    ):
+    if not message.text:
         return
     await _process_basket_input(message, state, session, lang, message.text, existing_lines=None)
 

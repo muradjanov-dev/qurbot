@@ -9,6 +9,43 @@ from app.db.models.shop import District
 from app.domain.matching.models import CandidateMatch
 
 
+def get_admin_panel_keyboard(
+    lang: str = "uz_latn", is_super_admin: bool = False
+) -> InlineKeyboardMarkup:
+    """Build the in-bot admin panel menu.
+
+    The admin-management entry is only rendered for super admins, so a
+    promoted admin cannot hand out further admin rights.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("adm_btn_stats", lang=lang), callback_data="adm:stats")
+    builder.button(text=t("adm_btn_shops", lang=lang), callback_data="adm:shops")
+    builder.button(text=t("adm_btn_products", lang=lang), callback_data="adm:products")
+    builder.button(text=t("adm_btn_users", lang=lang), callback_data="adm:users")
+    builder.button(text=t("adm_btn_unmatched", lang=lang), callback_data="adm:unmatched")
+    builder.button(text=t("adm_btn_add_shop", lang=lang), callback_data="adm:add_shop")
+    builder.adjust(2, 2, 2)
+    if is_super_admin:
+        builder.row(
+            InlineKeyboardButton(text=t("adm_btn_admins", lang=lang), callback_data="adm:admins")
+        )
+    return builder.as_markup()
+
+
+def get_admin_back_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_back", lang=lang), callback_data="adm:home")
+    return builder.as_markup()
+
+
+def get_admin_admins_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("adm_btn_add_admin", lang=lang), callback_data="adm:add_admin")
+    builder.button(text=t("btn_back", lang=lang), callback_data="adm:home")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_price_category_keyboard(
     categories: Sequence[Category],
     lang: str = "uz_latn",

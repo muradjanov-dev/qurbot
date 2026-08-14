@@ -228,14 +228,21 @@ class LLMClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        # NOTE (deviates from SPEC §6 "Temperature 0, max_tokens 300"): the
+        # configured model rejects both of those parameters outright --
+        # "'max_tokens' is not supported with this model, use
+        # 'max_completion_tokens'" and "'temperature' does not support 0 with
+        # this model. Only the default (1) value is supported." Sending them
+        # returned HTTP 400 on every single call, so Stage 3 silently never
+        # worked in production. Temperature is therefore omitted (model default)
+        # and the cap uses the parameter the model actually accepts.
         payload = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.0,
-            "max_tokens": 400,
+            "max_completion_tokens": settings.llm_max_completion_tokens,
             "response_format": {"type": "json_object"},
         }
 

@@ -205,3 +205,38 @@ def test_round_currency() -> None:
     assert round_currency(Decimal("1520000.49")) == Decimal("1520000")
     assert round_currency(Decimal("1520000.50")) == Decimal("1520001")
     assert round_currency(Decimal("1520000.75")) == Decimal("1520001")
+
+
+def test_unit_price_count_request_against_physical_pack() -> None:
+    # Customer asks "100 dona taxta"; shop prices taxta by weight. One requested
+    # "dona" is one pack, so the per-unit price is the pack price -- this used to
+    # raise IncompatibleUnitsError and crash the entire quote (production bug).
+    price = unit_price(
+        price_per_pack=Decimal("46190"),
+        pack_size=Decimal("25"),
+        pack_unit="kg",
+        base_unit="dona",
+    )
+    assert price == Decimal("46190.0000")
+
+
+def test_line_cost_count_request_against_physical_pack() -> None:
+    offer = OfferPricing(
+        shop_product_id=9,
+        shop_id=3,
+        canonical_id=77,
+        raw_name="Taxta 25x100x6000",
+        pack_size=Decimal("25"),
+        pack_unit="kg",
+        price_per_pack=Decimal("46190"),
+        price_per_base_unit=Decimal("1847.6000"),
+    )
+
+    cost_info = line_cost(
+        required_qty=Decimal("100"),
+        required_unit="dona",
+        offer=offer,
+    )
+
+    assert cost_info.packs_needed == 100
+    assert cost_info.cost == Decimal("4619000")

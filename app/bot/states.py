@@ -40,6 +40,12 @@ class ShopListingStates(StatesGroup):
     reviewing = State()
 
 
+class AdminPanelStates(StatesGroup):
+    """Admin panel actions that need a follow-up answer."""
+
+    entering_admin_id = State()
+
+
 class AdminShopStates(StatesGroup):
     """Admin-only wizard for onboarding a shop and its owners."""
 

@@ -85,12 +85,19 @@ def unit_price(
     base_u = get_unit_def(base_unit, custom_units)
 
     if pack_u.dimension != base_u.dimension:
-        raise IncompatibleUnitsError(
-            from_unit=pack_unit,
-            to_unit=base_unit,
-            from_dim=pack_u.dimension,
-            to_dim=base_u.dimension,
-        )
+        if base_u.dimension != "count":
+            raise IncompatibleUnitsError(
+                from_unit=pack_unit,
+                to_unit=base_unit,
+                from_dim=pack_u.dimension,
+                to_dim=base_u.dimension,
+            )
+        # The customer asked in generic packages ("100 dona taxta") while the
+        # shop prices by weight/area/length. One such package IS one pack, so
+        # the price per requested unit is just the pack price -- mirrors the
+        # same case in line_cost(). Without this, any basket line whose unit
+        # dimension differs from the offer's crashed the whole quote.
+        return price_per_pack.quantize(Decimal("0.0001"))
 
     pack_size_in_base = pack_size * pack_u.factor_to_base
     price = price_per_pack / pack_size_in_base

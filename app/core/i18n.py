@@ -535,6 +535,129 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "🛠 Админ панел",
         "ru": "🛠 Админ-панель",
     },
+    "adm_btn_stats": {
+        "uz_latn": "📊 Statistika",
+        "uz_cyrl": "📊 Статистика",
+        "ru": "📊 Статистика",
+    },
+    "adm_btn_shops": {
+        "uz_latn": "🏪 Do'konlar",
+        "uz_cyrl": "🏪 Дўконлар",
+        "ru": "🏪 Магазины",
+    },
+    "adm_btn_products": {
+        "uz_latn": "📦 Mahsulotlar",
+        "uz_cyrl": "📦 Маҳсулотлар",
+        "ru": "📦 Товары",
+    },
+    "adm_btn_users": {
+        "uz_latn": "👥 Foydalanuvchilar",
+        "uz_cyrl": "👥 Фойдаланувчилар",
+        "ru": "👥 Пользователи",
+    },
+    "adm_btn_unmatched": {
+        "uz_latn": "🔍 Topilmagan",
+        "uz_cyrl": "🔍 Топилмаган",
+        "ru": "🔍 Ненайденные",
+    },
+    "adm_btn_add_shop": {
+        "uz_latn": "➕ Do'kon qo'shish",
+        "uz_cyrl": "➕ Дўкон қўшиш",
+        "ru": "➕ Добавить магазин",
+    },
+    "adm_btn_admins": {
+        "uz_latn": "👑 Adminlar",
+        "uz_cyrl": "👑 Админлар",
+        "ru": "👑 Администраторы",
+    },
+    "adm_btn_add_admin": {
+        "uz_latn": "➕ Admin qo'shish",
+        "uz_cyrl": "➕ Админ қўшиш",
+        "ru": "➕ Добавить админа",
+    },
+    "adm_stats_body": {
+        "uz_latn": (
+            "📊 <b>Statistika</b>\n\n"
+            "👥 Foydalanuvchilar: <b>{users}</b>\n"
+            "🏪 Do'konlar: <b>{shops}</b>\n"
+            "📦 Katalog SKU: <b>{skus}</b>\n"
+            "🏷 Do'kon takliflari: <b>{offers}</b>\n"
+            "🧾 Buyurtmalar: <b>{orders}</b>\n"
+            "💰 Umumiy savdo: <b>{gmv} so'm</b>\n"
+            "🔍 Topilmagan so'rovlar: <b>{unmatched}</b>"
+        ),
+        "uz_cyrl": (
+            "📊 <b>Статистика</b>\n\n"
+            "👥 Фойдаланувчилар: <b>{users}</b>\n"
+            "🏪 Дўконлар: <b>{shops}</b>\n"
+            "📦 Каталог SKU: <b>{skus}</b>\n"
+            "🏷 Дўкон таклифлари: <b>{offers}</b>\n"
+            "🧾 Буюртмалар: <b>{orders}</b>\n"
+            "💰 Умумий савдо: <b>{gmv} сўм</b>\n"
+            "🔍 Топилмаган сўровлар: <b>{unmatched}</b>"
+        ),
+        "ru": (
+            "📊 <b>Статистика</b>\n\n"
+            "👥 Пользователей: <b>{users}</b>\n"
+            "🏪 Магазинов: <b>{shops}</b>\n"
+            "📦 SKU в каталоге: <b>{skus}</b>\n"
+            "🏷 Предложений: <b>{offers}</b>\n"
+            "🧾 Заказов: <b>{orders}</b>\n"
+            "💰 Оборот: <b>{gmv} сум</b>\n"
+            "🔍 Ненайденных запросов: <b>{unmatched}</b>"
+        ),
+    },
+    "adm_users_header": {
+        "uz_latn": (
+            "👥 <b>Foydalanuvchilar ({total} ta)</b>\n{by_role}\n\n" "Oxirgi ro'yxatdan o'tganlar:"
+        ),
+        "uz_cyrl": (
+            "👥 <b>Фойдаланувчилар ({total} та)</b>\n{by_role}\n\n" "Охирги рўйхатдан ўтганлар:"
+        ),
+        "ru": "👥 <b>Пользователи ({total})</b>\n{by_role}\n\nПоследние зарегистрированные:",
+    },
+    "adm_products_header": {
+        "uz_latn": "📦 <b>Katalog mahsulotlari ({count} ta ko'rsatildi):</b>\n",
+        "uz_cyrl": "📦 <b>Каталог маҳсулотлари ({count} та кўрсатилди):</b>\n",
+        "ru": "📦 <b>Товары каталога (показано {count}):</b>\n",
+    },
+    "adm_admins_header": {
+        "uz_latn": "👑 <b>Adminlar:</b>\n",
+        "uz_cyrl": "👑 <b>Админлар:</b>\n",
+        "ru": "👑 <b>Администраторы:</b>\n",
+    },
+    "adm_ask_admin_id": {
+        "uz_latn": (
+            "👑 Yangi adminning Telegram ID raqamini yozing (faqat raqam).\n"
+            "<i>Bekor qilish uchun /cancel.</i>"
+        ),
+        "uz_cyrl": (
+            "👑 Янги админнинг Telegram ID рақамини ёзинг (фақат рақам).\n"
+            "<i>Бекор қилиш учун /cancel.</i>"
+        ),
+        "ru": (
+            "👑 Напишите Telegram ID нового админа (только цифры).\n" "<i>Для отмены /cancel.</i>"
+        ),
+    },
+    "adm_admin_added": {
+        "uz_latn": "✅ <code>{tg_id}</code> admin qilib tayinlandi.",
+        "uz_cyrl": "✅ <code>{tg_id}</code> админ қилиб тайинланди.",
+        "ru": "✅ <code>{tg_id}</code> назначен администратором.",
+    },
+    "adm_admin_not_found": {
+        "uz_latn": (
+            "❌ Bu ID bilan foydalanuvchi topilmadi. " "U avval botga /start yuborishi kerak."
+        ),
+        "uz_cyrl": (
+            "❌ Бу ID билан фойдаланувчи топилмади. " "У аввал ботга /start юбориши керак."
+        ),
+        "ru": ("❌ Пользователь с таким ID не найден. " "Сначала он должен отправить боту /start."),
+    },
+    "adm_super_admin_only": {
+        "uz_latn": "Bu amal faqat bosh admin uchun.",
+        "uz_cyrl": "Бу амал фақат бош админ учун.",
+        "ru": "Это действие только для главного администратора.",
+    },
     "admin_panel_title": {
         "uz_latn": (
             "🛠 <b>Admin panel</b>\n\n"

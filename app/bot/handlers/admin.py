@@ -5,22 +5,32 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.keyboards.inline import get_district_keyboard
-from app.bot.states import AdminShopStates
+from app.bot.keyboards.inline import (
+    get_admin_admins_keyboard,
+    get_admin_back_keyboard,
+    get_admin_panel_keyboard,
+    get_district_keyboard,
+)
+from app.bot.states import AdminPanelStates, AdminShopStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.ops import UnmatchedQuery
 from app.db.models.order import Order
-from app.db.models.shop import Shop
+from app.db.models.shop import Shop, ShopProduct
 from app.db.models.user import User
 from app.db.repositories.shop_repo import ShopRepository
+from app.db.repositories.user_repo import UserRepository
 
 router = Router(name="admin")
 
 
 def is_admin(user: User) -> bool:
     return user.tg_id in settings.admin_tg_ids or user.role == "admin"
+
+
+def is_super_admin(user: User) -> bool:
+    return user.tg_id in settings.super_admin_tg_ids
 
 
 @router.message(Command("admin"))
@@ -85,7 +95,241 @@ async def menu_admin_panel(message: Message, user: User, lang: str) -> None:
     if not is_admin(user):
         await message.answer(t("admin_only", lang=lang))
         return
-    await message.answer(t("admin_panel_title", lang=lang))
+    await message.answer(
+        t("admin_panel_title", lang=lang),
+        reply_markup=get_admin_panel_keyboard(lang=lang, is_super_admin=is_super_admin(user)),
+    )
+
+
+@router.callback_query(F.data == "adm:home")
+async def cb_admin_home(callback: CallbackQuery, user: User, lang: str) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.edit_text(
+        t("admin_panel_title", lang=lang),
+        reply_markup=get_admin_panel_keyboard(lang=lang, is_super_admin=is_super_admin(user)),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:stats")
+async def cb_admin_stats(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    users = await session.scalar(select(func.count(User.id)))
+    shops = await session.scalar(select(func.count(Shop.id)).where(Shop.is_active.is_(True)))
+    skus = await session.scalar(select(func.count(CanonicalProduct.id)))
+    offers = await session.scalar(
+        select(func.count(ShopProduct.id)).where(ShopProduct.is_active.is_(True))
+    )
+    orders = await session.scalar(select(func.count(Order.id)))
+    gmv = await session.scalar(select(func.coalesce(func.sum(Order.grand_total_quoted), 0)))
+    unmatched = await session.scalar(select(func.count(UnmatchedQuery.id)))
+
+    await callback.message.edit_text(
+        t(
+            "adm_stats_body",
+            lang=lang,
+            users=users or 0,
+            shops=shops or 0,
+            skus=skus or 0,
+            offers=offers or 0,
+            orders=orders or 0,
+            gmv=f"{gmv or 0:,.0f}",
+            unmatched=unmatched or 0,
+        ),
+        reply_markup=get_admin_back_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:shops")
+async def cb_admin_shops(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    shop_repo = ShopRepository(session)
+    shops = await shop_repo.list_active_shops()
+    if not shops:
+        await callback.message.edit_text(
+            t("admin_shops_empty", lang=lang), reply_markup=get_admin_back_keyboard(lang=lang)
+        )
+        await callback.answer()
+        return
+
+    lines = [t("admin_shops_header", lang=lang, count=len(shops))]
+    for shop in shops[:25]:
+        owners = await shop_repo.list_shop_owners(shop.id)
+        owner_ids = ", ".join(str(o.tg_id) for o in owners) or "—"
+        lines.append(f"• <b>{shop.name}</b> (ID: {shop.id})\n  Egalari: {owner_ids}")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:products")
+async def cb_admin_products(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    stmt = (
+        select(
+            CanonicalProduct.name_uz,
+            func.min(ShopProduct.price_per_pack),
+            func.count(ShopProduct.id),
+        )
+        .outerjoin(
+            ShopProduct,
+            (ShopProduct.canonical_id == CanonicalProduct.id) & (ShopProduct.is_active.is_(True)),
+        )
+        .where(CanonicalProduct.is_active.is_(True))
+        .group_by(CanonicalProduct.id, CanonicalProduct.name_uz)
+        .order_by(CanonicalProduct.name_uz)
+        .limit(25)
+    )
+    rows = (await session.execute(stmt)).all()
+
+    lines = [t("adm_products_header", lang=lang, count=len(rows))]
+    for name, min_price, offer_count in rows:
+        price_str = f"{min_price:,.0f} so'm" if min_price is not None else "—"
+        lines.append(f"• {name} — {price_str} ({offer_count} taklif)")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:users")
+async def cb_admin_users(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    user_repo = UserRepository(session)
+    total = await session.scalar(select(func.count(User.id))) or 0
+    by_role = await user_repo.count_by_role()
+    recent = await user_repo.list_recent_users(limit=15)
+
+    role_str = " · ".join(f"{role}: {count}" for role, count in sorted(by_role.items()))
+    lines = [t("adm_users_header", lang=lang, total=total, by_role=role_str)]
+    for u in recent:
+        name = u.full_name or u.username or "—"
+        lines.append(f"• {name} (<code>{u.tg_id}</code>) — {u.role}")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:unmatched")
+async def cb_admin_unmatched(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    stmt = select(UnmatchedQuery).order_by(UnmatchedQuery.occurrences.desc()).limit(15)
+    queries = list((await session.execute(stmt)).scalars().all())
+    if not queries:
+        text = "🔍 Topilmagan so'rovlar mavjud emas."
+    else:
+        lines = ["🔍 <b>Eng ko'p topilmagan so'rovlar:</b>\n"]
+        for q in queries:
+            lines.append(f"• «{q.raw_text}» — {q.occurrences}x ({q.status})")
+        text = "\n".join(lines)
+    await callback.message.edit_text(text, reply_markup=get_admin_back_keyboard(lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:add_shop")
+async def cb_admin_add_shop(
+    callback: CallbackQuery, user: User, state: FSMContext, lang: str
+) -> None:
+    if not is_admin(user) or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(AdminShopStates.entering_name)
+    await callback.message.answer(t("admin_shop_ask_name", lang=lang))
+    await callback.answer()
+
+
+# ── Admin management (super admins only) ──────────────────────────────
+
+
+@router.callback_query(F.data == "adm:admins")
+async def cb_admin_admins(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not isinstance(callback.message, Message):
+        return
+    if not is_super_admin(user):
+        await callback.answer(t("adm_super_admin_only", lang=lang), show_alert=True)
+        return
+
+    user_repo = UserRepository(session)
+    admins = await user_repo.list_admins()
+    lines = [t("adm_admins_header", lang=lang)]
+    for tg_id in settings.super_admin_tg_ids:
+        lines.append(f"• <code>{tg_id}</code> — bosh admin")
+    for adm in admins:
+        if adm.tg_id in settings.super_admin_tg_ids:
+            continue
+        name = adm.full_name or adm.username or "—"
+        lines.append(f"• {name} (<code>{adm.tg_id}</code>)")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=get_admin_admins_keyboard(lang=lang)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:add_admin")
+async def cb_admin_add_admin(
+    callback: CallbackQuery, user: User, state: FSMContext, lang: str
+) -> None:
+    if not isinstance(callback.message, Message):
+        return
+    if not is_super_admin(user):
+        await callback.answer(t("adm_super_admin_only", lang=lang), show_alert=True)
+        return
+    await state.set_state(AdminPanelStates.entering_admin_id)
+    await callback.message.answer(t("adm_ask_admin_id", lang=lang))
+    await callback.answer()
+
+
+@router.message(AdminPanelStates.entering_admin_id, F.text)
+async def admin_add_admin_id(
+    message: Message, user: User, state: FSMContext, session: AsyncSession, lang: str
+) -> None:
+    if not message.text or not is_super_admin(user):
+        return
+    raw = message.text.strip()
+    if not raw.isdigit():
+        await message.answer(t("admin_owner_invalid", lang=lang))
+        return
+
+    user_repo = UserRepository(session)
+    promoted = await user_repo.set_role(int(raw), "admin")
+    if promoted is None:
+        await message.answer(t("adm_admin_not_found", lang=lang))
+        return
+    await session.commit()
+    await state.clear()
+    await message.answer(t("adm_admin_added", lang=lang, tg_id=raw))
 
 
 @router.message(Command("add_shop"))

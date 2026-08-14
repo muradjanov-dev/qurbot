@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     webhook_base_url: str = "http://localhost:8000"
     register_webhook: bool = True
     admin_tg_ids: list[int] = [917456291]
+    # Super admins may grant/revoke admin rights. Kept separate from
+    # admin_tg_ids so a promoted admin cannot promote further admins.
+    super_admin_tg_ids: list[int] = [917456291]
 
     # Database
     database_url: str = "postgresql+asyncpg://qurbot:qurbot@localhost:5432/qurbot"
@@ -43,8 +46,12 @@ class Settings(BaseSettings):
     openai_api_key: str = "placeholder_openai_key"
     openai_base_url: str | None = None
     llm_model: str = "gpt-5.6-luna"
-    llm_timeout_seconds: float = 8.0
+    llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
+    # Reasoning models spend part of this budget on hidden reasoning tokens
+    # before emitting any answer, so a 300-token cap can be consumed entirely
+    # by reasoning and return an empty completion.
+    llm_max_completion_tokens: int = 2000
     llm_daily_token_budget: int = 100000
     llm_enabled: bool = True
     llm_prompt_version: str = "v1"

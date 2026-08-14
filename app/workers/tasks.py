@@ -67,18 +67,26 @@ async def _nudge_shops_impl(session: AsyncSession, bot: Bot) -> tuple[int, int]:
     keyboard = get_price_nudge_keyboard()
     sent = 0
     for shop in shops:
-        if not shop.owner_tg_id:
+        # Every account that manages the shop needs the nudge, not just the one
+        # in the legacy owner_tg_id column -- shops onboarded through /add_shop
+        # leave that column NULL and record their owners in shop_owners, so
+        # reading only the column would silently skip them entirely.
+        recipients = {o.tg_id for o in await shop_repo.list_shop_owners(shop.id)}
+        if shop.owner_tg_id:
+            recipients.add(shop.owner_tg_id)
+        if not recipients:
             continue
-        try:
-            await bot.send_message(
-                shop.owner_tg_id,
-                f"⚠️ «{shop.name}» do'koningizdagi ba'zi narxlar eskirmoqda. "
-                "Iltimos, narxlarni yangilang.",
-                reply_markup=keyboard,
-            )
-            sent += 1
-        except TelegramAPIError as exc:
-            logger.warning("nudge_send_failed", shop_id=shop.id, error=str(exc))
+        for tg_id in sorted(recipients):
+            try:
+                await bot.send_message(
+                    tg_id,
+                    f"⚠️ «{shop.name}» do'koningizdagi ba'zi narxlar eskirmoqda. "
+                    "Iltimos, narxlarni yangilang.",
+                    reply_markup=keyboard,
+                )
+                sent += 1
+            except TelegramAPIError as exc:
+                logger.warning("nudge_send_failed", shop_id=shop.id, tg_id=tg_id, error=str(exc))
     return len(shops), sent
 
 
