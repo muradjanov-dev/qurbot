@@ -8,6 +8,12 @@ os.environ.setdefault("BOT_TOKEN", "123456:TEST-TOKEN")
 os.environ.setdefault("WEBHOOK_SECRET", "test-secret")
 os.environ.setdefault("REGISTER_WEBHOOK", "false")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+# The dispatcher is a module-level singleton, so its FSM storage is created
+# once and reused by every test. A RedisStorage pool binds to whichever event
+# loop touches it first, and pytest-asyncio gives each test a fresh loop, so
+# the second test to feed an update through it died with "Event loop is
+# closed". Tests have no Redis to talk to anyway.
+os.environ.setdefault("FSM_USE_REDIS", "false")
 
 import app.db.models  # noqa: F401
 from app.db.base import Base
