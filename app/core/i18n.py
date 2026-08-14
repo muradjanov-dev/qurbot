@@ -326,9 +326,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "📦 Найдено: {covered}/{total} товаров",
     },
     "quote_delivery_eta": {
-        "uz_latn": "🚚 Yetkazish: {eta} soat ichida",
-        "uz_cyrl": "🚚 Етказиш: {eta} соат ичида",
-        "ru": "🚚 Доставка: в течение {eta} ч.",
+        "uz_latn": "🚚 Yetkazish: {eta_min}-{eta_max} soat ichida",
+        "uz_cyrl": "🚚 Етказиш: {eta_min}-{eta_max} соат ичида",
+        "ru": "🚚 Доставка: в течение {eta_min}-{eta_max} ч.",
     },
     "prompt_checkout_address": {
         "uz_latn": "Iltimos, aniq yetkazib berish manzilini (ko'cha, uy/mo'ljal) yozing:",

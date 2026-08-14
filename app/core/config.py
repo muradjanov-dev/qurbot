@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # of being priced.
     basket_max_qty: int = 1_000_000
 
+    # What customers are told to expect for delivery. This is the promise the
+    # business makes, deliberately separate from the per-shop eta_hours the
+    # optimizer uses to rank offers.
+    delivery_eta_min_hours: int = 24
+    delivery_eta_max_hours: int = 48
+
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82
     match_margin_threshold: float = 0.12

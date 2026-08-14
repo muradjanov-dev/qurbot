@@ -60,3 +60,18 @@ def test_generate_quote_pdf_produces_valid_pdf_bytes() -> None:
 
     assert pdf_bytes.startswith(b"%PDF-")
     assert len(pdf_bytes) > 500
+
+
+def test_quantities_render_without_trailing_zeros() -> None:
+    """Decimal(14,4) columns carry trailing zeros; ':g' keeps them, so the card
+    used to read "10.00000000 kg". format_qty is what trims them."""
+    from decimal import Decimal as D
+
+    from app.bot.formatters.common import format_qty
+
+    assert format_qty(D("10.00000000")) == "10"
+    assert format_qty(D("3.0000")) == "3"
+    assert format_qty(D("0.5000")) == "0.5"
+    assert format_qty(D("1.2500")) == "1.25"
+    # ':g' would render this as "1e+3", which reads as broken to a customer.
+    assert format_qty(D("1E+3")) == "1000"

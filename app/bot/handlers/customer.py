@@ -10,7 +10,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc
+from app.bot.formatters.common import esc, format_qty
 from app.bot.keyboards.inline import (
     get_basket_actions_keyboard,
     get_order_confirm_keyboard,
@@ -703,7 +703,7 @@ async def _notify_shops_and_admins_of_order(
         if not shop or not shop.owner_tg_id:
             continue
         lines_str = "\n".join(
-            f"• {esc(line.product_name)} × {line.billed_qty:g} {esc(line.pack_unit)}"
+            f"• {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)}"
             for line in group.lines
         )
         text = (
@@ -819,7 +819,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     shop_sections = []
     for g in variant.shop_groups:
         lines_str = "\n".join(
-            f"   • {line.product_name} × {line.billed_qty:g} {line.pack_unit} "
+            f"   • {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)} "
             f"....... {line.line_cost_uzs:,.0f}"
             for line in g.lines
         )
@@ -845,7 +845,12 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     coverage_str = t(
         "quote_coverage", lang=lang, covered=variant.covered_count, total=variant.total_count
     )
-    eta_str = t("quote_delivery_eta", lang=lang, eta=variant.max_eta_hours)
+    eta_str = t(
+        "quote_delivery_eta",
+        lang=lang,
+        eta_min=settings.delivery_eta_min_hours,
+        eta_max=settings.delivery_eta_max_hours,
+    )
 
     summary = (
         f"{divider}\n"

@@ -24,6 +24,7 @@ from reportlab.platypus import (  # type: ignore[import-untyped]
     TableStyle,
 )
 
+from app.bot.formatters.common import format_qty
 from app.domain.optimizer.models import QuoteVariant
 
 
@@ -73,7 +74,7 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
             rows.append(
                 [
                     line.product_name,
-                    f"{line.billed_qty:g} {line.pack_unit}",
+                    f"{format_qty(line.billed_qty)} {line.pack_unit}",
                     _fmt_uzs(line.line_cost_uzs),
                 ]
             )
