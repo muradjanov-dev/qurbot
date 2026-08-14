@@ -15,6 +15,7 @@ from aiogram.exceptions import TelegramAPIError
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import esc
 from app.bot.keyboards.inline import (
     get_price_category_keyboard,
     get_product_detail_keyboard,
@@ -126,15 +127,15 @@ async def callback_product_detail(
         body = t(
             "product_card",
             lang=lang,
-            name=product.name_uz,
-            brand=product.brand or "—",
+            name=esc(product.name_uz),
+            brand=esc(product.brand or "—"),
             min_price=f"{min(prices):,.0f}",
             max_price=f"{max(prices):,.0f}",
             shops=len(offers),
             unit=product.base_unit_code,
         )
     else:
-        body = t("product_card_no_offers", lang=lang, name=product.name_uz)
+        body = t("product_card_no_offers", lang=lang, name=esc(product.name_uz))
 
     photo = await shop_repo.get_photo_for_canonical(canonical_id)
     keyboard = get_product_detail_keyboard(product.category_id, lang=lang)

@@ -10,6 +10,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import esc
 from app.bot.keyboards.inline import (
     get_basket_actions_keyboard,
     get_order_confirm_keyboard,
@@ -701,7 +702,8 @@ async def _notify_shops_and_admins_of_order(
         if not shop or not shop.owner_tg_id:
             continue
         lines_str = "\n".join(
-            f"• {line.product_name} × {line.billed_qty:g} {line.pack_unit}" for line in group.lines
+            f"• {esc(line.product_name)} × {line.billed_qty:g} {esc(line.pack_unit)}"
+            for line in group.lines
         )
         text = (
             f"🆕 <b>Yangi buyurtma #{order.id}</b>\n\n"
@@ -709,7 +711,7 @@ async def _notify_shops_and_admins_of_order(
             f"Jami: <b>{part.subtotal:,.0f} so'm</b> + dostavka {part.delivery_fee:,.0f} so'm\n\n"
             f"👤 Mijoz: {customer_name}\n"
             f"📞 Tel: {phone}\n"
-            f"📍 Manzil: {address}"
+            f"📍 Manzil: {esc(address)}"
         )
         try:
             await bot.send_message(shop.owner_tg_id, text)
@@ -779,13 +781,15 @@ def _format_parse_table(lines: list[dict[str, Any]], lang: str) -> str:
 
         if st == "auto_accept":
             name = item.get("canonical_name", item["parsed_name"])
-            body_lines.append(f"{num}. ✅ <b>{name}</b> — {qty} {unit}")
+            body_lines.append(f"{num}. ✅ <b>{esc(name)}</b> — {esc(qty)} {esc(unit)}")
         elif st == "ask_user":
             name = item["parsed_name"]
-            body_lines.append(f"{num}. ⚠️ <i>{name}</i> — {qty} {unit}  ← <i>turini tanlang</i>")
+            body_lines.append(
+                f"{num}. ⚠️ <i>{esc(name)}</i> — {esc(qty)} {esc(unit)}" "  ← <i>turini tanlang</i>"
+            )
         else:
             raw = item["raw_text"]
-            body_lines.append(f"{num}. ❌ «{raw}» — <i>katalogda topilmadi</i>")
+            body_lines.append(f"{num}. ❌ «{esc(raw)}» — <i>katalogda topilmadi</i>")
 
     return header + "\n" + "\n".join(body_lines)
 

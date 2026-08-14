@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import esc
 from app.bot.keyboards.inline import (
     get_admin_admins_keyboard,
     get_admin_back_keyboard,
@@ -80,7 +81,7 @@ async def cmd_unmatched_queries(
 
     text_lines = ["🔍 <b>So'nggi topilmagan so'rovlar:</b>\n"]
     for q in queries:
-        text_lines.append(f"• «{q.raw_text}» (norm: {q.normalized}) — {q.status}")
+        text_lines.append(f"• «{esc(q.raw_text)}» (norm: {esc(q.normalized)}) — {esc(q.status)}")
 
     await message.answer("\n".join(text_lines))
 
@@ -204,7 +205,7 @@ async def cb_admin_products(
     lines = [t("adm_products_header", lang=lang, count=len(rows))]
     for name, min_price, offer_count in rows:
         price_str = f"{min_price:,.0f} so'm" if min_price is not None else "—"
-        lines.append(f"• {name} — {price_str} ({offer_count} taklif)")
+        lines.append(f"• {esc(name)} — {price_str} ({offer_count} taklif)")
     await callback.message.edit_text(
         "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
     )
@@ -228,7 +229,7 @@ async def cb_admin_users(
     lines = [t("adm_users_header", lang=lang, total=total, by_role=role_str)]
     for u in recent:
         name = u.full_name or u.username or "—"
-        lines.append(f"• {name} (<code>{u.tg_id}</code>) — {u.role}")
+        lines.append(f"• {esc(name)} (<code>{u.tg_id}</code>) — {esc(u.role)}")
     await callback.message.edit_text(
         "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
     )
@@ -250,7 +251,7 @@ async def cb_admin_unmatched(
     else:
         lines = ["🔍 <b>Eng ko'p topilmagan so'rovlar:</b>\n"]
         for q in queries:
-            lines.append(f"• «{q.raw_text}» — {q.occurrences}x ({q.status})")
+            lines.append(f"• «{esc(q.raw_text)}» — {q.occurrences}x ({esc(q.status)})")
         text = "\n".join(lines)
     await callback.message.edit_text(text, reply_markup=get_admin_back_keyboard(lang=lang))
     await callback.answer()
@@ -290,7 +291,7 @@ async def cb_admin_admins(
         if adm.tg_id in settings.super_admin_tg_ids:
             continue
         name = adm.full_name or adm.username or "—"
-        lines.append(f"• {name} (<code>{adm.tg_id}</code>)")
+        lines.append(f"• {esc(name)} (<code>{adm.tg_id}</code>)")
     await callback.message.edit_text(
         "\n".join(lines), reply_markup=get_admin_admins_keyboard(lang=lang)
     )

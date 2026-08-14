@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, ContentType, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import esc
 from app.bot.keyboards.inline import (
     get_import_batch_keyboard,
     get_product_list_keyboard,
@@ -18,7 +19,7 @@ from app.bot.keyboards.inline import (
 from app.bot.states import ShopOwnerStates
 from app.core.i18n import t
 from app.db.models.order import OrderShopPart
-from app.db.models.shop import Shop, ShopProduct
+from app.db.models.shop import ImportRow, Shop, ShopProduct
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -66,6 +67,36 @@ async def _get_user_shop(
                 if shop.id == int(active_id):
                     return shop
     return None
+
+
+async def _owns_shop(user: User, session: AsyncSession, shop_id: int) -> bool:
+    """Whether this account manages the given shop.
+
+    Callback payloads carry ids chosen by the client, so every handler acting
+    on a shop-scoped object has to re-check ownership here -- without it
+    anyone could accept another shop's orders or apply its price import just
+    by sending the callback data by hand.
+    """
+    if user.tg_id is None:
+        return False
+    shops = await ShopRepository(session).list_shops_for_owner(user.tg_id)
+    return any(shop.id == shop_id for shop in shops)
+
+
+async def _batch_belongs_to_user(user: User, session: AsyncSession, batch_id: int) -> bool:
+    """Ownership check for an import batch addressed by callback data."""
+    batch = await ShopRepository(session).get_import_batch(batch_id)
+    if batch is None:
+        return False
+    return await _owns_shop(user, session, batch.shop_id)
+
+
+async def _row_belongs_to_user(user: User, session: AsyncSession, row_id: int) -> bool:
+    """Ownership check for an import row addressed by callback data."""
+    row = await session.get(ImportRow, row_id)
+    if row is None:
+        return False
+    return await _batch_belongs_to_user(user, session, row.batch_id)
 
 
 # ---------------------------------------------------------------------------
@@ -215,7 +246,9 @@ async def cmd_shop_orders(
 @router.callback_query(F.data.startswith("shop_order:"))
 async def callback_shop_order_decision(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
+    lang: str,
 ) -> None:
     if not callback.data:
         return
@@ -227,6 +260,10 @@ async def callback_shop_order_decision(
     if not order_part:
         if isinstance(callback.message, Message):
             await callback.message.answer("Buyurtma topilmadi.")
+        return
+
+    if not await _owns_shop(user, session, order_part.shop_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
         return
 
     if action == "accept":
@@ -442,12 +479,17 @@ async def handle_document_upload(
 @router.callback_query(F.data.startswith("import_confirm:"))
 async def callback_confirm_batch(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
     lang: str,
 ) -> None:
     if not callback.data:
         return
     batch_id = int(callback.data.split(":")[1])
+
+    if not await _batch_belongs_to_user(user, session, batch_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
 
     shop_repo = ShopRepository(session)
     catalog_repo = CatalogRepository(session)
@@ -464,12 +506,17 @@ async def callback_confirm_batch(
 @router.callback_query(F.data.startswith("import_cancel:"))
 async def callback_cancel_batch(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
     lang: str,
 ) -> None:
     if not callback.data:
         return
     batch_id = int(callback.data.split(":")[1])
+
+    if not await _batch_belongs_to_user(user, session, batch_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
 
     shop_repo = ShopRepository(session)
     catalog_repo = CatalogRepository(session)
@@ -486,6 +533,7 @@ async def callback_cancel_batch(
 @router.callback_query(F.data.startswith("import_review:"))
 async def callback_review_batch(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
     lang: str,
 ) -> None:
@@ -493,6 +541,10 @@ async def callback_review_batch(
     if not callback.data:
         return
     batch_id = int(callback.data.split(":")[1])
+
+    if not await _batch_belongs_to_user(user, session, batch_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
 
     shop_repo = ShopRepository(session)
     unmatched = await shop_repo.get_unmatched_import_rows(batch_id)
@@ -522,7 +574,7 @@ async def callback_review_batch(
 
     text = (
         f"⚠️ <b>Moslashtirilmagan qator #{row.row_no}:</b>\n\n"
-        f"«{raw_name}»\n\n"
+        f"«{esc(raw_name)}»\n\n"
         f"Quyidagilardan birini tanlang ({len(unmatched)} ta qoldi):"
     )
 
@@ -536,6 +588,7 @@ async def callback_review_batch(
 @router.callback_query(F.data.startswith("import_resolve:"))
 async def callback_resolve_import_row(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
     lang: str,
 ) -> None:
@@ -545,6 +598,10 @@ async def callback_resolve_import_row(
     parts = callback.data.split(":")
     row_id = int(parts[1])
     canonical_id = int(parts[2])
+
+    if not await _row_belongs_to_user(user, session, row_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
 
     shop_repo = ShopRepository(session)
     catalog_repo = CatalogRepository(session)
@@ -615,6 +672,7 @@ async def callback_resolve_import_row(
 @router.callback_query(F.data.startswith("import_skip:"))
 async def callback_skip_import_row(
     callback: CallbackQuery,
+    user: User,
     session: AsyncSession,
     lang: str,
 ) -> None:
@@ -622,6 +680,10 @@ async def callback_skip_import_row(
     if not callback.data:
         return
     row_id = int(callback.data.split(":")[1])
+
+    if not await _row_belongs_to_user(user, session, row_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
 
     shop_repo = ShopRepository(session)
     catalog_repo = CatalogRepository(session)
@@ -762,7 +824,7 @@ def _format_product_list(
                 }.get(p.staleness_state, "⚪")
                 unit_str = p.pack_unit_code or "dona"
                 lines.append(
-                    f"{staleness_badge} <b>{p.raw_name}</b>\n"
+                    f"{staleness_badge} <b>{esc(p.raw_name)}</b>\n"
                     f"   💰 {p.price_per_pack:,.0f} so'm / {p.pack_size:g} {unit_str}\n"
                     f"   📦 {p.stock_status}"
                 )
