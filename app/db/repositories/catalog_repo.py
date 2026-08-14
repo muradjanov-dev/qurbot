@@ -2,9 +2,10 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
 from app.db.repositories.base import BaseRepository
 
@@ -108,6 +109,35 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
 
         token_filters = [CanonicalProduct.search_doc.ilike(f"%{token}%") for token in tokens]
         stmt = select(CanonicalProduct).where(*base_filters, or_(*token_filters)).limit(limit)
+        result = await self.session.execute(stmt)
+        rows = list(result.scalars().all())
+        if rows:
+            return rows
+
+        # Substring matching finds nothing for a misspelling that shares no
+        # whole token with the catalog ("paner" vs "fanera", "smnt" vs
+        # "sement"). SPEC §6 Stage 2 specifies pg_trgm similarity for exactly
+        # this; falling back to it here keeps those queries inside the pipeline
+        # instead of reaching Stage 4 with an empty candidate list -- which also
+        # meant Stage 3 (LLM) was skipped entirely, since it requires candidates.
+        return await self._search_by_trigram_similarity(query, limit, category_ids)
+
+    async def _search_by_trigram_similarity(
+        self,
+        query: str,
+        limit: int,
+        category_ids: Sequence[int] | None = None,
+    ) -> Sequence[CanonicalProduct]:
+        """Fuzzy candidate lookup via pg_trgm. No-op on non-PostgreSQL."""
+        if self.session.bind is None or self.session.bind.dialect.name != "postgresql":
+            return []
+
+        sim = func.similarity(CanonicalProduct.search_doc, query)
+        filters = [CanonicalProduct.is_active.is_(True), sim > settings.match_trigram_threshold]
+        if category_ids:
+            filters.append(CanonicalProduct.category_id.in_(list(category_ids)))
+
+        stmt = select(CanonicalProduct).where(*filters).order_by(sim.desc()).limit(limit)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
