@@ -5,11 +5,25 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.i18n import t
 from app.db.models.catalog import Category
-from app.db.models.shop import District
+from app.db.models.shop import District, Shop
 from app.domain.matching.models import CandidateMatch
 
 
-def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_shop_picker_keyboard(
+    shops: Sequence["Shop"], lang: str = "uz_latn"
+) -> InlineKeyboardMarkup:
+    """Branch picker for owners who run more than one shop."""
+    builder = InlineKeyboardBuilder()
+    for shop in shops:
+        district = shop.district.name_ru if lang == "ru" else shop.district.name_uz
+        builder.button(text=f"{shop.name} — {district}", callback_data=f"shp:pick:{shop.id}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_shop_panel_inline_keyboard(
+    lang: str = "uz_latn", show_switch: bool = False
+) -> InlineKeyboardMarkup:
     """Actions for the shop-owner panel, as buttons instead of typed commands."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("shp_btn_quick_price", lang=lang), callback_data="shp:quick_price")
@@ -19,6 +33,12 @@ def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarku
     builder.button(text=t("shp_btn_delivery", lang=lang), callback_data="shp:delivery")
     builder.button(text=t("shp_btn_orders", lang=lang), callback_data="shp:orders")
     builder.adjust(2, 2, 2)
+    if show_switch:
+        builder.row(
+            InlineKeyboardButton(
+                text=t("shp_btn_switch_shop", lang=lang), callback_data="shp:switch"
+            )
+        )
     return builder.as_markup()
 
 

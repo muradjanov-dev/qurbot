@@ -21,6 +21,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.listing import render_draft_review, render_saved_confirmation
+from app.bot.handlers.shop import _get_user_shop as _get_active_shop
 from app.bot.keyboards.listing import (
     get_category_keyboard,
     get_photo_step_keyboard,
@@ -38,7 +39,6 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.listing_repo import ListingRepository, draft_to_domain
 from app.db.repositories.ops_repo import OpsRepository
-from app.db.repositories.shop_repo import ShopRepository
 from app.domain.listing import ListingStep, build_listing_card
 from app.services.listing_service import ListingService
 
@@ -72,11 +72,13 @@ def _services(session: AsyncSession) -> tuple[ListingRepository, ListingService]
     return listing_repo, ListingService(session, listing_repo, catalog_repo, ops_repo)
 
 
-async def _get_shop(user: User, session: AsyncSession) -> Shop | None:
-    shop_repo = ShopRepository(session)
-    if user.tg_id is None:
-        return None
-    return await shop_repo.get_shop_by_owner_tg_id(user.tg_id)
+async def _get_shop(user: User, session: AsyncSession, state: FSMContext) -> Shop | None:
+    """Whichever branch the owner selected in the shop panel.
+
+    Shares _get_user_shop so a multi-branch owner uploads into the shop they
+    picked, rather than into whichever row happened to be returned first.
+    """
+    return await _get_active_shop(user, session, state)
 
 
 async def _load_draft(
@@ -275,7 +277,7 @@ async def menu_add_product(
         await message.answer(t("not_shop_owner", lang=lang))
         return
 
-    shop = await _get_shop(user, session)
+    shop = await _get_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -329,7 +331,7 @@ async def callback_start_new(
         await callback.answer()
         return
     listing_repo = ListingRepository(session)
-    shop = await _get_shop(user, session)
+    shop = await _get_shop(user, session, state)
     if shop is None or user.tg_id is None:
         await callback.answer()
         return

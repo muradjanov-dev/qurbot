@@ -30,24 +30,17 @@ async def cmd_start(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    """Handle /start: if user has no language/district, start onboarding flow."""
-    await state.clear()
+    """Handle /start: always offer the language picker first.
 
-    if not user.lang or user.district_id is None:
-        await state.set_state(RegistrationStates.waiting_for_language)
-        await message.answer(
-            t("choose_language", lang="uz_latn"),
-            reply_markup=get_language_keyboard(),
-        )
-    else:
-        is_shop_owner = user.role in ("shop_owner", "admin")
-        is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
-        await message.answer(
-            t("welcome_done", lang=lang),
-            reply_markup=get_main_menu_keyboard(
-                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-            ),
-        )
+    Returning users are not walked through the rest of onboarding again --
+    callback_set_lang sends them straight to the menu once district is known.
+    """
+    await state.clear()
+    await state.set_state(RegistrationStates.waiting_for_language)
+    await message.answer(
+        t("choose_language", lang=lang or "uz_latn"),
+        reply_markup=get_language_keyboard(),
+    )
 
 
 @router.callback_query(F.data.startswith("set_lang:"), RegistrationStates.waiting_for_language)
@@ -63,15 +56,34 @@ async def callback_set_lang(
     user.lang = new_lang
     await session.flush()
 
+    if not isinstance(callback.message, Message):
+        return
+
+    if user.district_id is not None:
+        # Already onboarded -- /start just changed the language, so go straight
+        # to the menu instead of re-asking district and phone.
+        await state.clear()
+        is_shop_owner = user.role in ("shop_owner", "admin")
+        is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+        await callback.message.edit_text(t("language_changed", lang=new_lang))
+        await callback.message.answer(
+            t("welcome_done", lang=new_lang),
+            reply_markup=get_main_menu_keyboard(
+                lang=new_lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+            ),
+        )
+        await callback.answer()
+        return
+
     shop_repo = ShopRepository(session)
     districts = await shop_repo.list_districts()
 
     await state.set_state(RegistrationStates.waiting_for_district)
-    if isinstance(callback.message, Message):
-        await callback.message.edit_text(
-            t("choose_district", lang=new_lang),
-            reply_markup=get_district_keyboard(districts, lang=new_lang),
-        )
+    await callback.message.edit_text(
+        t("choose_district", lang=new_lang),
+        reply_markup=get_district_keyboard(districts, lang=new_lang),
+    )
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("set_district:"), RegistrationStates.waiting_for_district)

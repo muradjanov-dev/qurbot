@@ -12,6 +12,7 @@ from app.bot.keyboards.inline import (
     get_product_list_keyboard,
     get_shop_order_decision_keyboard,
     get_shop_panel_inline_keyboard,
+    get_shop_picker_keyboard,
     get_unmatched_row_keyboard,
 )
 from app.bot.states import ShopOwnerStates
@@ -33,10 +34,38 @@ router = Router(name="shop")
 # ---------------------------------------------------------------------------
 
 
-async def _get_user_shop(user: User, session: AsyncSession) -> Shop | None:
-    stmt = select(Shop).where(Shop.owner_tg_id == user.tg_id)
-    res = await session.execute(stmt)
-    return res.scalars().first()
+ACTIVE_SHOP_KEY = "active_shop_id"
+
+
+async def _get_user_shop(
+    user: User, session: AsyncSession, state: FSMContext | None = None
+) -> Shop | None:
+    """Resolve which shop the owner is currently acting for.
+
+    An owner may run several branches, so the panel records a choice in
+    ACTIVE_SHOP_KEY and every shop action reads it back here. The stored id is
+    re-checked against the owner's shops on each call so a stale or forged
+    selection cannot act on someone else's shop. With exactly one shop the
+    choice is implicit and no prompt is shown.
+    """
+    if user.tg_id is None:
+        return None
+
+    shop_repo = ShopRepository(session)
+    shops = await shop_repo.list_shops_for_owner(user.tg_id)
+    if not shops:
+        return None
+    if len(shops) == 1:
+        return shops[0]
+
+    if state is not None:
+        data = await state.get_data()
+        active_id = data.get(ACTIVE_SHOP_KEY)
+        if active_id is not None:
+            for shop in shops:
+                if shop.id == int(active_id):
+                    return shop
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -49,18 +78,90 @@ async def menu_shop_portal(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
         await message.answer(t("not_shop_owner", lang=lang))
         return
 
-    shop = await _get_user_shop(user, session)
-    shop_name = shop.name if shop else "Do'koningiz"
+    await _show_shop_panel(message, user, session, state, lang)
+
+
+async def _show_shop_panel(
+    message: Message,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    """Render the panel, asking which branch first when the owner runs several."""
+    if user.tg_id is None:
+        return
+    shop_repo = ShopRepository(session)
+    shops = await shop_repo.list_shops_for_owner(user.tg_id)
+    if not shops:
+        await message.answer(t("no_shop_found", lang=lang))
+        return
+
+    shop = await _get_user_shop(user, session, state)
+    if shop is None:
+        await message.answer(
+            t("shp_choose_shop", lang=lang),
+            reply_markup=get_shop_picker_keyboard(shops, lang=lang),
+        )
+        return
+
     await message.answer(
-        t("shop_panel_title", lang=lang, shop_name=shop_name),
-        reply_markup=get_shop_panel_inline_keyboard(lang=lang),
+        t("shop_panel_title", lang=lang, shop_name=shop.name),
+        reply_markup=get_shop_panel_inline_keyboard(lang=lang, show_switch=len(shops) > 1),
     )
+
+
+@router.callback_query(F.data.startswith("shp:pick:"))
+async def cb_pick_shop(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message) or user.tg_id is None:
+        await callback.answer()
+        return
+    shop_id = int(callback.data.split(":")[2])
+
+    # Re-check ownership: the id arrives from the client, so it is untrusted.
+    shop_repo = ShopRepository(session)
+    shops = await shop_repo.list_shops_for_owner(user.tg_id)
+    if not any(s.id == shop_id for s in shops):
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
+        return
+
+    await state.update_data({ACTIVE_SHOP_KEY: shop_id})
+    await callback.message.delete()
+    await _show_shop_panel(callback.message, user, session, state, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:switch")
+async def cb_switch_shop(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message) or user.tg_id is None:
+        await callback.answer()
+        return
+    shop_repo = ShopRepository(session)
+    shops = await shop_repo.list_shops_for_owner(user.tg_id)
+    await callback.message.answer(
+        t("shp_choose_shop", lang=lang),
+        reply_markup=get_shop_picker_keyboard(shops, lang=lang),
+    )
+    await callback.answer()
 
 
 # ---------------------------------------------------------------------------
@@ -73,12 +174,13 @@ async def cmd_shop_orders(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
         return
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -168,6 +270,7 @@ async def handle_quick_price_update(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
@@ -202,7 +305,7 @@ async def handle_quick_price_update(
         return
 
     # Find or create shop product
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -258,6 +361,7 @@ async def handle_document_upload(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     """Handle Excel/CSV document uploads from shop owners."""
@@ -271,7 +375,7 @@ async def handle_document_upload(
     if not lower_name.endswith((".xlsx", ".xls", ".csv")):
         return
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -581,12 +685,13 @@ async def cmd_shop_products(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
         return
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -610,13 +715,14 @@ async def callback_products_page(
     callback: CallbackQuery,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if not callback.data:
         return
     page = int(callback.data.split(":")[1])
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         return
 
@@ -673,12 +779,13 @@ async def cmd_delivery_rules(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
         return
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -716,6 +823,7 @@ async def handle_delivery_rule_update(
     message: Message,
     user: User,
     session: AsyncSession,
+    state: FSMContext,
     lang: str,
 ) -> None:
     if user.role not in ("shop_owner", "admin"):
@@ -732,7 +840,7 @@ async def handle_delivery_rule_update(
     free_above = Decimal(free_above_str) if free_above_str else None
     min_order = Decimal(min_order_str) if min_order_str else Decimal("0")
 
-    shop = await _get_user_shop(user, session)
+    shop = await _get_user_shop(user, session, state)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return

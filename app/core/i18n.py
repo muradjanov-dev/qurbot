@@ -803,6 +803,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📦 Буюртмалар",
         "ru": "📦 Заказы",
     },
+    "shp_choose_shop": {
+        "uz_latn": "🏪 Qaysi do'kon bilan ishlaymiz?",
+        "uz_cyrl": "🏪 Қайси дўкон билан ишлаймиз?",
+        "ru": "🏪 С каким магазином работаем?",
+    },
+    "shp_btn_switch_shop": {
+        "uz_latn": "🔄 Do'konni almashtirish",
+        "uz_cyrl": "🔄 Дўконни алмаштириш",
+        "ru": "🔄 Сменить магазин",
+    },
     "shp_quick_price_prompt": {
         "uz_latn": (
             "✏️ <b>Tez narx yangilash</b>\n\n"

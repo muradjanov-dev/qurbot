@@ -57,6 +57,29 @@ class ShopRepository(BaseRepository[Shop]):
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def list_shops_for_owner(self, owner_tg_id: int) -> Sequence[Shop]:
+        """Every shop this account manages, newest last.
+
+        One person commonly runs several branches, so this is the plural form
+        of get_shop_by_owner_tg_id and honours both the shop_owners table and
+        the legacy Shop.owner_tg_id column.
+        """
+        stmt = (
+            select(Shop)
+            .outerjoin(ShopOwner, ShopOwner.shop_id == Shop.id)
+            .where(
+                Shop.is_active.is_(True),
+                or_(
+                    Shop.owner_tg_id == owner_tg_id,
+                    and_(ShopOwner.tg_id == owner_tg_id, ShopOwner.is_active.is_(True)),
+                ),
+            )
+            .order_by(Shop.id)
+            .distinct()
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def list_shop_owners(self, shop_id: int) -> Sequence[ShopOwner]:
         stmt = (
             select(ShopOwner)

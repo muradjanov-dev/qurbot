@@ -183,3 +183,40 @@ async def test_shop_owner_lookup_supports_multiple_owners(test_session: AsyncSes
     test_session.add(legacy)
     await test_session.flush()
     assert (await repo.get_shop_by_owner_tg_id(333)).id == legacy.id
+
+
+@pytest.mark.asyncio
+async def test_list_shops_for_owner_returns_every_branch(test_session: AsyncSession) -> None:
+    """One person running several branches must see all of them, once each.
+
+    The query outer-joins shop_owners, so a shop reachable through both that
+    table and the legacy owner_tg_id column would otherwise appear twice.
+    """
+    from app.db.models import District
+    from app.db.repositories import ShopRepository
+
+    district = District(region="Toshkent", name_uz="Yunusobod", name_ru="Юнусабад")
+    test_session.add(district)
+    await test_session.flush()
+
+    repo = ShopRepository(test_session)
+    branches = []
+    for i in range(3):
+        shop = await repo.create_shop(
+            name=f"Filial {i}",
+            phone="+998900000000",
+            district_id=district.id,
+            address=f"Manzil {i}",
+        )
+        await repo.add_shop_owner(shop.id, tg_id=555)
+        branches.append(shop)
+
+    # Same account also recorded the old way on one of them.
+    branches[0].owner_tg_id = 555
+    await test_session.flush()
+
+    found = await repo.list_shops_for_owner(555)
+    assert [s.id for s in found] == [s.id for s in branches]
+
+    # A different account sees none of them.
+    assert await repo.list_shops_for_owner(999) == []
