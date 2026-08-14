@@ -973,9 +973,18 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
     },
     "listing_step_pack_size": {
-        "uz_latn": "Bitta qadoqda nechta <b>{unit}</b> bor? Faqat raqam yozing.",
-        "uz_cyrl": "Битта қадоқда нечта <b>{unit}</b> бор? Фақат рақам ёзинг.",
-        "ru": "Сколько <b>{unit}</b> в одной упаковке? Напишите только число.",
+        "uz_latn": (
+            "Bitta qadoq (qop/quti/rulon) ichida necha <b>{unit}</b> bor?\n"
+            "<i>Masalan: 50 kg lik sement qop uchun — 50</i>"
+        ),
+        "uz_cyrl": (
+            "Битта қадоқ (қоп/қути/рулон) ичида неча <b>{unit}</b> бор?\n"
+            "<i>Масалан: 50 кг лик цемент қоп учун — 50</i>"
+        ),
+        "ru": (
+            "Сколько <b>{unit}</b> в одной упаковке (мешок/коробка/рулон)?\n"
+            "<i>Например: для мешка цемента 50 кг — 50</i>"
+        ),
     },
     "listing_step_price": {
         "uz_latn": "4/7 — Bitta <b>{pack}</b> narxi qancha (so'm)? Faqat raqam yozing.",

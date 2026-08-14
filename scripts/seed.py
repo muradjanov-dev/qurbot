@@ -130,7 +130,7 @@ CATEGORIES_DATA = [
         "name_uz": "G'isht va bloklar",
         "name_ru": "Кирпич и блоки",
         "sort_order": 2,
-        "icon": "🏢",
+        "icon": "🧱",
     },
     {
         "slug": "metall-va-armatura",
@@ -158,14 +158,14 @@ CATEGORIES_DATA = [
         "name_uz": "Plitka va kafel",
         "name_ru": "Плитка и кафель",
         "sort_order": 6,
-        "icon": "🔲",
+        "icon": "🏺",
     },
     {
         "slug": "santexnika",
         "name_uz": "Santexnika va quvurlar",
         "name_ru": "Сантехника и трубы",
         "sort_order": 7,
-        "icon": "🚿",
+        "icon": "🚰",
     },
     {
         "slug": "elektr",
@@ -196,11 +196,67 @@ CATEGORIES_DATA = [
         "icon": "🏠",
     },
     {
+        "slug": "eshik-va-derazalar",
+        "name_uz": "Eshik va derazalar",
+        "name_ru": "Двери и окна",
+        "sort_order": 12,
+        "icon": "🚪",
+    },
+    {
+        "slug": "quruq-aralashmalar",
+        "name_uz": "Quruq aralashmalar",
+        "name_ru": "Сухие смеси",
+        "sort_order": 13,
+        "icon": "🪣",
+    },
+    {
+        "slug": "gidroizolyatsiya",
+        "name_uz": "Gidroizolyatsiya",
+        "name_ru": "Гидроизоляция",
+        "sort_order": 14,
+        "icon": "💧",
+    },
+    {
+        "slug": "pol-materiallari",
+        "name_uz": "Pol materiallari",
+        "name_ru": "Напольные покрытия",
+        "sort_order": 15,
+        "icon": "🪨",
+    },
+    {
+        "slug": "fasad-materiallari",
+        "name_uz": "Fasad materiallari",
+        "name_ru": "Фасадные материалы",
+        "sort_order": 16,
+        "icon": "🏢",
+    },
+    {
+        "slug": "mahkamlash-materiallari",
+        "name_uz": "Mahkamlash materiallari",
+        "name_ru": "Крепёж",
+        "sort_order": 17,
+        "icon": "🔩",
+    },
+    {
+        "slug": "isitish-va-ventilyatsiya",
+        "name_uz": "Isitish va ventilyatsiya",
+        "name_ru": "Отопление и вентиляция",
+        "sort_order": 18,
+        "icon": "🔥",
+    },
+    {
         "slug": "asboblar",
         "name_uz": "Qurilish asboblari",
-        "name_ru": "Инструменты",
-        "sort_order": 12,
-        "icon": "🔨",
+        "name_ru": "Строительные инструменты",
+        "sort_order": 19,
+        "icon": "🧰",
+    },
+    {
+        "slug": "sarf-materiallari",
+        "name_uz": "Sarf materiallari",
+        "name_ru": "Расходные материалы",
+        "sort_order": 20,
+        "icon": "🧪",
     },
 ]
 
@@ -2308,7 +2364,15 @@ async def seed_database(session: AsyncSession) -> None:
                 icon=c["icon"],
             )
             session.add(cat)
-            await session.flush()
+        else:
+            # Upsert rather than insert-only: renaming a category or changing
+            # its icon/order has to reach databases that were seeded earlier,
+            # otherwise the live catalogue keeps the original values forever.
+            cat.name_uz = c["name_uz"]
+            cat.name_ru = c["name_ru"]
+            cat.sort_order = c["sort_order"]
+            cat.icon = c["icon"]
+        await session.flush()
         category_map[c["slug"]] = cat
 
     # 3. Districts

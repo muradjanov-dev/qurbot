@@ -40,6 +40,7 @@ from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.listing_repo import ListingRepository, draft_to_domain
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.listing import ListingStep, build_listing_card
+from app.domain.pricing.units import STANDARD_UNITS
 from app.services.listing_service import ListingService
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,16 @@ async def _get_shop(user: User, session: AsyncSession, state: FSMContext) -> Sho
     picked, rather than into whichever row happened to be returned first.
     """
     return await _get_active_shop(user, session, state)
+
+
+def _is_count_unit(unit_code: str) -> bool:
+    """Whether this unit is a package counter rather than a measure.
+
+    "qop", "dona", "quti" and the like have no size of their own, so asking how
+    many of them fit in one pack is meaningless.
+    """
+    unit_def = STANDARD_UNITS.get(unit_code.strip().lower())
+    return unit_def is not None and unit_def.dimension == "count"
 
 
 async def _load_draft(
@@ -480,8 +491,20 @@ async def callback_pick_unit(
 
     listing_repo = ListingRepository(session)
     await listing_repo.update_draft(draft, pack_unit_code=unit_code)
-    await session.commit()
 
+    if _is_count_unit(unit_code):
+        # "How many qop are in one pack?" has no sensible answer -- one bag is
+        # one bag. Count units are their own pack, so fill in 1 and move on
+        # rather than asking a circular question.
+        await listing_repo.update_draft(draft, pack_size=Decimal("1"))
+        await listing_repo.mark_step_visited(draft, ListingStep.UNIT)
+        await session.commit()
+        await _advance(callback.message, state, session, draft, lang)
+        await session.commit()
+        await callback.answer()
+        return
+
+    await session.commit()
     await state.set_state(ShopListingStates.entering_pack_size)
     await callback.message.answer(t("listing_step_pack_size", lang=lang, unit=unit_code))
     await callback.answer()
