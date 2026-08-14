@@ -128,11 +128,19 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         limit: int,
         category_ids: Sequence[int] | None = None,
     ) -> Sequence[CanonicalProduct]:
-        """Fuzzy candidate lookup via pg_trgm. No-op on non-PostgreSQL."""
+        """Fuzzy candidate lookup via pg_trgm. No-op on non-PostgreSQL.
+
+        Uses word_similarity rather than similarity: search_doc concatenates
+        every name variant and alias into one long string, so whole-string
+        similarity against a single misspelled word is ~0.03 -- far below any
+        usable threshold. word_similarity scores the query against the closest
+        word inside the doc instead, which puts "paner" at 0.33 on Fanera and
+        "smnt" at 0.40 on Sement.
+        """
         if self.session.bind is None or self.session.bind.dialect.name != "postgresql":
             return []
 
-        sim = func.similarity(CanonicalProduct.search_doc, query)
+        sim = func.word_similarity(query, CanonicalProduct.search_doc)
         filters = [CanonicalProduct.is_active.is_(True), sim > settings.match_trigram_threshold]
         if category_ids:
             filters.append(CanonicalProduct.category_id.in_(list(category_ids)))

@@ -41,10 +41,12 @@ class Settings(BaseSettings):
     match_auto_accept_threshold: float = 0.82
     match_margin_threshold: float = 0.12
     match_ask_user_threshold: float = 0.55
-    # pg_trgm similarity floor for the fuzzy fallback search. Low on purpose:
-    # this only decides which rows become candidates, and the scorer re-ranks
-    # them afterwards -- too high and misspellings find nothing at all.
-    match_trigram_threshold: float = 0.1
+    # pg_trgm word_similarity floor for the fuzzy fallback search. Measured
+    # against real misspellings: "paner"->Fanera scores 0.33 and
+    # "smnt"->Sement 0.40, while unrelated products sit at ~0.2, so 0.3
+    # separates them. This only decides which rows become candidates; the
+    # scorer and then the LLM still re-rank whatever comes back.
+    match_trigram_threshold: float = 0.3
 
     # LLM Settings (§6 & §7)
     openai_api_key: str = "placeholder_openai_key"
