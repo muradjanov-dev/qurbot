@@ -5,22 +5,28 @@ from app.core.i18n import t
 
 
 def get_main_menu_keyboard(
-    lang: str = "uz_latn", is_shop_owner: bool = False
+    lang: str = "uz_latn", is_shop_owner: bool = False, is_admin: bool = False
 ) -> ReplyKeyboardMarkup:
     """Build main menu reply keyboard.
 
     "Ro'yxat yuborish" gets its own full-width row because it is the primary
-    action -- everything else in the menu exists to support it.
+    action -- everything else in the menu exists to support it. The shop and
+    admin entries are only rendered for accounts that hold those roles.
     """
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("menu_send_list", lang=lang))
     builder.button(text=t("menu_price_check", lang=lang))
     builder.button(text=t("menu_cabinet", lang=lang))
+
+    extra_rows = []
     if is_shop_owner:
         builder.button(text=t("menu_shop_portal", lang=lang))
-        builder.adjust(1, 2, 1)
-    else:
-        builder.adjust(1, 2)
+        extra_rows.append(1)
+    if is_admin:
+        builder.button(text=t("menu_admin_panel", lang=lang))
+        extra_rows.append(1)
+
+    builder.adjust(1, 2, *extra_rows)
     return builder.as_markup(resize_keyboard=True, is_persistent=True)
 
 

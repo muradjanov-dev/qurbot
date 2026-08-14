@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import case, func, select, update
+from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import OrderShopPart
@@ -14,6 +14,7 @@ from app.db.models.shop import (
     PriceHistory,
     Shop,
     ShopDeliveryRule,
+    ShopOwner,
     ShopProduct,
 )
 from app.db.repositories.base import BaseRepository
@@ -37,9 +38,79 @@ class ShopRepository(BaseRepository[Shop]):
         return result.scalars().all()
 
     async def get_shop_by_owner_tg_id(self, owner_tg_id: int) -> Shop | None:
-        stmt = select(Shop).where(Shop.owner_tg_id == owner_tg_id)
+        """Find the shop this Telegram account manages.
+
+        Checks the shop_owners join table as well as the legacy single
+        Shop.owner_tg_id column, so shops created before multi-owner support
+        (and anything seeded) keep resolving.
+        """
+        stmt = (
+            select(Shop)
+            .outerjoin(ShopOwner, ShopOwner.shop_id == Shop.id)
+            .where(
+                or_(
+                    Shop.owner_tg_id == owner_tg_id,
+                    and_(ShopOwner.tg_id == owner_tg_id, ShopOwner.is_active.is_(True)),
+                )
+            )
+        )
         result = await self.session.execute(stmt)
         return result.scalars().first()
+
+    async def list_shop_owners(self, shop_id: int) -> Sequence[ShopOwner]:
+        stmt = (
+            select(ShopOwner)
+            .where(ShopOwner.shop_id == shop_id, ShopOwner.is_active.is_(True))
+            .order_by(ShopOwner.id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def add_shop_owner(
+        self, shop_id: int, tg_id: int, full_name: str | None = None
+    ) -> ShopOwner:
+        stmt = select(ShopOwner).where(ShopOwner.shop_id == shop_id, ShopOwner.tg_id == tg_id)
+        result = await self.session.execute(stmt)
+        existing = result.scalars().first()
+        if existing is not None:
+            existing.is_active = True
+            if full_name:
+                existing.full_name = full_name
+            await self.session.flush()
+            return existing
+
+        owner = ShopOwner(shop_id=shop_id, tg_id=tg_id, full_name=full_name, is_active=True)
+        self.session.add(owner)
+        await self.session.flush()
+        return owner
+
+    async def remove_shop_owner(self, shop_id: int, tg_id: int) -> bool:
+        stmt = select(ShopOwner).where(ShopOwner.shop_id == shop_id, ShopOwner.tg_id == tg_id)
+        result = await self.session.execute(stmt)
+        owner = result.scalars().first()
+        if owner is None:
+            return False
+        owner.is_active = False
+        await self.session.flush()
+        return True
+
+    async def create_shop(
+        self,
+        name: str,
+        phone: str,
+        district_id: int,
+        address: str,
+    ) -> Shop:
+        shop = Shop(
+            name=name,
+            phone=phone,
+            district_id=district_id,
+            address=address,
+            is_active=True,
+        )
+        self.session.add(shop)
+        await self.session.flush()
+        return shop
 
     async def get_delivery_rule_for_district(
         self, shop_id: int, district_id: int | None

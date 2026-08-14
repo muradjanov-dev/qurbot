@@ -128,3 +128,58 @@ async def test_ops_repository(test_session: AsyncSession) -> None:
     evt = await ops_repo.log_event("quote_generated", props={"strategy": "fastest"})
     assert evt.id is not None
     assert evt.name == "quote_generated"
+
+
+@pytest.mark.asyncio
+async def test_shop_owner_lookup_supports_multiple_owners(test_session: AsyncSession) -> None:
+    """A shop run by two people must resolve for both of them.
+
+    Also covers the legacy path: a shop whose only owner is recorded in the old
+    single Shop.owner_tg_id column still has to be found.
+    """
+    from app.db.models import District, Shop
+    from app.db.repositories import ShopRepository
+
+    district = District(region="Toshkent", name_uz="Chilonzor", name_ru="Чиланзар")
+    test_session.add(district)
+    await test_session.flush()
+
+    repo = ShopRepository(test_session)
+    shop = await repo.create_shop(
+        name="Qurilish Bozori",
+        phone="+998901234567",
+        district_id=district.id,
+        address="Chilonzor 9",
+    )
+
+    await repo.add_shop_owner(shop.id, tg_id=111, full_name="Birinchi ega")
+    await repo.add_shop_owner(shop.id, tg_id=222, full_name="Ikkinchi ega")
+    await test_session.flush()
+
+    assert (await repo.get_shop_by_owner_tg_id(111)).id == shop.id
+    assert (await repo.get_shop_by_owner_tg_id(222)).id == shop.id
+    assert await repo.get_shop_by_owner_tg_id(999) is None
+
+    owners = await repo.list_shop_owners(shop.id)
+    assert {o.tg_id for o in owners} == {111, 222}
+
+    # Re-adding an existing owner updates rather than duplicating.
+    await repo.add_shop_owner(shop.id, tg_id=111, full_name="Yangilangan")
+    assert len(await repo.list_shop_owners(shop.id)) == 2
+
+    # Removing deactivates, so the lookup stops resolving for that account.
+    assert await repo.remove_shop_owner(shop.id, tg_id=222) is True
+    assert await repo.get_shop_by_owner_tg_id(222) is None
+    assert (await repo.get_shop_by_owner_tg_id(111)).id == shop.id
+
+    # Legacy single-column owner still resolves.
+    legacy = Shop(
+        name="Eski Do'kon",
+        phone="+998900000000",
+        district_id=district.id,
+        address="Yunusobod 1",
+        owner_tg_id=333,
+    )
+    test_session.add(legacy)
+    await test_session.flush()
+    assert (await repo.get_shop_by_owner_tg_id(333)).id == legacy.id

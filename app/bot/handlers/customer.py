@@ -55,7 +55,7 @@ async def handle_basket_text(
     # Menu buttons arrive as plain text too, so they must be excluded here or
     # this catch-all swallows them instead of their own handlers running.
     if not message.text or message.text.startswith(
-        ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "/")
+        ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠", "/")
     ):
         return
     await _process_basket_input(message, state, session, lang, message.text, existing_lines=None)
@@ -263,10 +263,13 @@ async def callback_back_to_menu(
 ) -> None:
     await state.clear()
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     if isinstance(callback.message, Message):
         await callback.message.answer(
             t("action_cancelled", lang=lang),
-            reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+            reply_markup=get_main_menu_keyboard(
+                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+            ),
         )
     await callback.answer()
 
@@ -615,6 +618,7 @@ async def callback_confirm_order(
     await state.clear()
 
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
             t(
@@ -626,7 +630,9 @@ async def callback_confirm_order(
         )
         await callback.message.answer(
             t("welcome_done", lang=lang),
-            reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+            reply_markup=get_main_menu_keyboard(
+                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+            ),
         )
     await callback.answer()
 

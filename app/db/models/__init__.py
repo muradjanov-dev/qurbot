@@ -16,6 +16,7 @@ from app.db.models.shop import (
     ProductPhotoBlob,
     Shop,
     ShopDeliveryRule,
+    ShopOwner,
     ShopProduct,
     ShopProductDraft,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "District",
     "Shop",
     "ShopDeliveryRule",
+    "ShopOwner",
     "ShopProduct",
     "ShopProductDraft",
     "ProductPhotoBlob",

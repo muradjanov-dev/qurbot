@@ -40,6 +40,16 @@ class ShopListingStates(StatesGroup):
     reviewing = State()
 
 
+class AdminShopStates(StatesGroup):
+    """Admin-only wizard for onboarding a shop and its owners."""
+
+    entering_name = State()
+    entering_phone = State()
+    choosing_district = State()
+    entering_address = State()
+    entering_owner_id = State()
+
+
 class ShopOwnerStates(StatesGroup):
     waiting_for_quick_price = State()
     waiting_for_excel_upload = State()

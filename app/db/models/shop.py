@@ -73,6 +73,33 @@ class Shop(Base, TimestampMixin):
     products: Mapped[list["ShopProduct"]] = relationship(
         "ShopProduct", back_populates="shop", cascade="all, delete-orphan", lazy="selectin"
     )
+    owners: Mapped[list["ShopOwner"]] = relationship(
+        "ShopOwner", back_populates="shop", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class ShopOwner(Base, TimestampMixin):
+    """A Telegram account authorised to manage a shop.
+
+    Shops routinely have more than one person running them, which the single
+    Shop.owner_tg_id column cannot express. That column is left in place and
+    still honoured on lookup so existing shops and seed data keep working;
+    this table is what admins add people to.
+    """
+
+    __tablename__ = "shop_owners"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    shop_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("shops.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    tg_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    shop: Mapped["Shop"] = relationship("Shop", back_populates="owners", lazy="selectin")
+
+    __table_args__ = (UniqueConstraint("shop_id", "tg_id", name="uq_shop_owners_shop_tg"),)
 
 
 class ShopDeliveryRule(Base, TimestampMixin):

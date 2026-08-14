@@ -529,6 +529,122 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Сизга бириктирилган дўкон топилмади.",
         "ru": "Магазин, привязанный к вам, не найден.",
     },
+    # ── Admin panel (in-bot, admins only) ─────────────────────────────────
+    "menu_admin_panel": {
+        "uz_latn": "🛠 Admin panel",
+        "uz_cyrl": "🛠 Админ панел",
+        "ru": "🛠 Админ-панель",
+    },
+    "admin_panel_title": {
+        "uz_latn": (
+            "🛠 <b>Admin panel</b>\n\n"
+            "• <b>Do'kon qo'shish:</b> /add_shop\n"
+            "• <b>Do'konlar ro'yxati:</b> /shops\n"
+            "• <b>Statistika:</b> /admin\n"
+            "• <b>Topilmagan so'rovlar:</b> /unmatched"
+        ),
+        "uz_cyrl": (
+            "🛠 <b>Админ панел</b>\n\n"
+            "• <b>Дўкон қўшиш:</b> /add_shop\n"
+            "• <b>Дўконлар рўйхати:</b> /shops\n"
+            "• <b>Статистика:</b> /admin\n"
+            "• <b>Топилмаган сўровлар:</b> /unmatched"
+        ),
+        "ru": (
+            "🛠 <b>Админ-панель</b>\n\n"
+            "• <b>Добавить магазин:</b> /add_shop\n"
+            "• <b>Список магазинов:</b> /shops\n"
+            "• <b>Статистика:</b> /admin\n"
+            "• <b>Ненайденные запросы:</b> /unmatched"
+        ),
+    },
+    "admin_only": {
+        "uz_latn": "Bu bo'lim faqat adminlar uchun.",
+        "uz_cyrl": "Бу бўлим фақат админлар учун.",
+        "ru": "Этот раздел только для администраторов.",
+    },
+    "admin_shop_ask_name": {
+        "uz_latn": "🏪 Yangi do'kon qo'shamiz.\n\nDo'kon nomini yozing:",
+        "uz_cyrl": "🏪 Янги дўкон қўшамиз.\n\nДўкон номини ёзинг:",
+        "ru": "🏪 Добавляем новый магазин.\n\nНапишите название магазина:",
+    },
+    "admin_shop_ask_phone": {
+        "uz_latn": "📞 Do'kon telefon raqamini yozing:",
+        "uz_cyrl": "📞 Дўкон телефон рақамини ёзинг:",
+        "ru": "📞 Напишите телефон магазина:",
+    },
+    "admin_shop_ask_district": {
+        "uz_latn": "📍 Do'kon tumanini tanlang:",
+        "uz_cyrl": "📍 Дўкон туманини танланг:",
+        "ru": "📍 Выберите район магазина:",
+    },
+    "admin_shop_ask_address": {
+        "uz_latn": "🏠 Do'kon manzilini yozing:",
+        "uz_cyrl": "🏠 Дўкон манзилини ёзинг:",
+        "ru": "🏠 Напишите адрес магазина:",
+    },
+    "admin_shop_created": {
+        "uz_latn": (
+            "✅ <b>{name}</b> qo'shildi (ID: {shop_id}).\n\n"
+            "Endi egalarining Telegram ID raqamlarini qo'shing."
+        ),
+        "uz_cyrl": (
+            "✅ <b>{name}</b> қўшилди (ID: {shop_id}).\n\n"
+            "Энди эгаларининг Telegram ID рақамларини қўшинг."
+        ),
+        "ru": (
+            "✅ <b>{name}</b> добавлен (ID: {shop_id}).\n\n"
+            "Теперь добавьте Telegram ID владельцев."
+        ),
+    },
+    "admin_shop_ask_owner": {
+        "uz_latn": (
+            "👤 Egasining Telegram ID raqamini yozing (faqat raqam).\n"
+            "<i>ID ni bilish uchun @userinfobot dan foydalaning.</i>"
+        ),
+        "uz_cyrl": (
+            "👤 Эгасининг Telegram ID рақамини ёзинг (фақат рақам).\n"
+            "<i>ID ни билиш учун @userinfobot дан фойдаланинг.</i>"
+        ),
+        "ru": (
+            "👤 Напишите Telegram ID владельца (только цифры).\n"
+            "<i>Узнать ID можно через @userinfobot.</i>"
+        ),
+    },
+    "admin_owner_added": {
+        "uz_latn": (
+            "✅ Ega qo'shildi: <code>{tg_id}</code>\n\n"
+            "Yana ega qo'shasizmi? ID yozing yoki /done bosing."
+        ),
+        "uz_cyrl": (
+            "✅ Эга қўшилди: <code>{tg_id}</code>\n\n"
+            "Яна эга қўшасизми? ID ёзинг ёки /done босинг."
+        ),
+        "ru": (
+            "✅ Владелец добавлен: <code>{tg_id}</code>\n\n"
+            "Добавить ещё? Напишите ID или нажмите /done."
+        ),
+    },
+    "admin_owner_invalid": {
+        "uz_latn": "❌ Telegram ID faqat raqamlardan iborat bo'lishi kerak. Qaytadan yozing:",
+        "uz_cyrl": "❌ Telegram ID фақат рақамлардан иборат бўлиши керак. Қайтадан ёзинг:",
+        "ru": "❌ Telegram ID должен состоять только из цифр. Напишите ещё раз:",
+    },
+    "admin_shop_done": {
+        "uz_latn": "✅ <b>{name}</b> to'liq sozlandi. Egalari: {count} ta.",
+        "uz_cyrl": "✅ <b>{name}</b> тўлиқ созланди. Эгалари: {count} та.",
+        "ru": "✅ <b>{name}</b> полностью настроен. Владельцев: {count}.",
+    },
+    "admin_shops_header": {
+        "uz_latn": "🏪 <b>Do'konlar ({count} ta):</b>\n",
+        "uz_cyrl": "🏪 <b>Дўконлар ({count} та):</b>\n",
+        "ru": "🏪 <b>Магазины ({count}):</b>\n",
+    },
+    "admin_shops_empty": {
+        "uz_latn": "Hozircha do'konlar yo'q. /add_shop orqali qo'shing.",
+        "uz_cyrl": "Ҳозирча дўконлар йўқ. /add_shop орқали қўшинг.",
+        "ru": "Магазинов пока нет. Добавьте через /add_shop.",
+    },
     "not_shop_owner": {
         "uz_latn": "Siz do'kon egasi sifatida ro'yxatdan o'tmagansiz.",
         "uz_cyrl": "Сиз дўкон эгаси сифатида рўйхатдан ўтмагансиз.",

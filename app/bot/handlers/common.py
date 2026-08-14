@@ -11,6 +11,7 @@ from app.bot.keyboards.reply import (
     get_phone_request_keyboard,
 )
 from app.bot.states import RegistrationStates
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.user import User
 from app.db.repositories.shop_repo import ShopRepository
@@ -40,9 +41,12 @@ async def cmd_start(
         )
     else:
         is_shop_owner = user.role in ("shop_owner", "admin")
+        is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
         await message.answer(
             t("welcome_done", lang=lang),
-            reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+            reply_markup=get_main_menu_keyboard(
+                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+            ),
         )
 
 
@@ -105,9 +109,12 @@ async def msg_contact(
 
     await state.clear()
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        reply_markup=get_main_menu_keyboard(
+            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+        ),
     )
 
 
@@ -122,9 +129,12 @@ async def msg_skip_phone(
 ) -> None:
     await state.clear()
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        reply_markup=get_main_menu_keyboard(
+            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+        ),
     )
 
 
@@ -133,9 +143,12 @@ async def msg_skip_phone(
 async def cmd_cancel(message: Message, state: FSMContext, user: User, lang: str) -> None:
     await state.clear()
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     await message.answer(
         t("action_cancelled", lang=lang),
-        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        reply_markup=get_main_menu_keyboard(
+            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+        ),
     )
 
 
@@ -151,9 +164,12 @@ async def menu_cabinet(message: Message, lang: str) -> None:
 async def menu_back_to_main(message: Message, user: User, state: FSMContext, lang: str) -> None:
     await state.clear()
     is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+        reply_markup=get_main_menu_keyboard(
+            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+        ),
     )
 
 
