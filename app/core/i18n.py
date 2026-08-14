@@ -44,17 +44,23 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": (
             "Xush kelibsiz! Endi siz qurilish materiallari ro'yxatini erkin matn "
             "shaklida yuborishingiz mumkin. Masalan:\n\n"
-            "<i>500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30</i>"
+            "«<b>500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30</b>»\n\n"
+            "Qurilish mollaringizni ro'yxatini yuboring va biz Sizga ularni "
+            "topib, jamlab, yetkazib beramiz."
         ),
         "uz_cyrl": (
             "Хуш келибсиз! Энди сиз қурилиш материаллари рўйхатини эркин матн "
             "шаклида юборишингиз мумкин. Масалан:\n\n"
-            "<i>500 дона ғишт, 10 қоп цемент м400, 3 қути плитка 30х30</i>"
+            "«<b>500 дона ғишт, 10 қоп цемент м400, 3 қути плитка 30х30</b>»\n\n"
+            "Қурилиш молларингизни рўйхатини юборинг ва биз Сизга уларни "
+            "топиб, жамлаб, етказиб берамиз."
         ),
         "ru": (
             "Добро пожаловать! Теперь вы можете отправить список стройматериалов "
             "простым текстом. Например:\n\n"
-            "<i>500 шт кирпич, 10 мешков цемент м400, 3 коробки плитка 30х30</i>"
+            "«<b>500 шт кирпич, 10 мешков цемент м400, 3 коробки плитка 30х30</b>»\n\n"
+            "Отправьте список стройматериалов, а мы найдём их, "
+            "соберём и доставим вам."
         ),
     },
     # Main Menu
