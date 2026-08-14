@@ -1,10 +1,11 @@
 from collections.abc import Sequence
+from decimal import Decimal
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.i18n import t
-from app.db.models.catalog import Category
+from app.db.models.catalog import CanonicalProduct, Category
 from app.db.models.shop import District, Shop
 from app.domain.matching.models import CandidateMatch
 
@@ -96,6 +97,33 @@ def get_price_category_keyboard(
         builder.row(
             InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root")
         )
+    return builder.as_markup()
+
+
+def get_product_picker_keyboard(
+    products: Sequence[tuple["CanonicalProduct", "Decimal"]],
+    lang: str = "uz_latn",
+) -> InlineKeyboardMarkup:
+    """Product list where each row is tappable and shows its cheapest price."""
+    builder = InlineKeyboardBuilder()
+    for product, price in products:
+        builder.button(
+            text=f"{product.name_uz} — {price:,.0f} so'm",
+            callback_data=f"price_prod:{product.id}",
+        )
+    builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_product_detail_keyboard(
+    category_id: int | None, lang: str = "uz_latn"
+) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    if category_id is not None:
+        builder.button(text=t("btn_back", lang=lang), callback_data=f"price_cat:{category_id}")
+    else:
+        builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
     return builder.as_markup()
 
 

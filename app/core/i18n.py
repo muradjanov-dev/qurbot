@@ -89,9 +89,37 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "⬅️ Главное меню",
     },
     "menu_price_check": {
-        "uz_latn": "🔍 Mahsulot narxi",
-        "uz_cyrl": "🔍 Маҳсулот нархи",
-        "ru": "🔍 Цены на товары",
+        "uz_latn": "🛒 Mahsulotlar va narxlar",
+        "uz_cyrl": "🛒 Маҳсулотлар ва нархлар",
+        "ru": "🛒 Товары и цены",
+    },
+    "product_card": {
+        "uz_latn": (
+            "<b>{name}</b>\n\n"
+            "🏷 Brend: {brand}\n"
+            "💰 Narx: <b>{min_price} — {max_price} so'm</b>\n"
+            "🏪 Do'konlarda: {shops} ta taklif\n"
+            "📏 O'lchov: {unit}"
+        ),
+        "uz_cyrl": (
+            "<b>{name}</b>\n\n"
+            "🏷 Бренд: {brand}\n"
+            "💰 Нарх: <b>{min_price} — {max_price} сўм</b>\n"
+            "🏪 Дўконларда: {shops} та таклиф\n"
+            "📏 Ўлчов: {unit}"
+        ),
+        "ru": (
+            "<b>{name}</b>\n\n"
+            "🏷 Бренд: {brand}\n"
+            "💰 Цена: <b>{min_price} — {max_price} сум</b>\n"
+            "🏪 В магазинах: {shops} предложений\n"
+            "📏 Единица: {unit}"
+        ),
+    },
+    "product_card_no_offers": {
+        "uz_latn": "<b>{name}</b>\n\nHozircha do'konlarda mavjud emas.",
+        "uz_cyrl": "<b>{name}</b>\n\nҲозирча дўконларда мавжуд эмас.",
+        "ru": "<b>{name}</b>\n\nПока нет в наличии в магазинах.",
     },
     "price_browse_choose_category": {
         "uz_latn": "🔍 <b>Mahsulot narxlari</b>\n\nKategoriyani tanlang:",
@@ -104,9 +132,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "В этой категории пока нет цен.",
     },
     "price_browse_header": {
-        "uz_latn": "💰 <b>{category}</b> — narxlar:\n",
-        "uz_cyrl": "💰 <b>{category}</b> — нархлар:\n",
-        "ru": "💰 <b>{category}</b> — цены:\n",
+        "uz_latn": "💰 <b>{category}</b>\n\nBatafsil ko'rish uchun mahsulotni tanlang:",
+        "uz_cyrl": "💰 <b>{category}</b>\n\nБатафсил кўриш учун маҳсулотни танланг:",
+        "ru": "💰 <b>{category}</b>\n\nВыберите товар, чтобы посмотреть подробнее:",
     },
     "price_browse_hint": {
         "uz_latn": "\n<i>Narxlar — do'konlardagi eng arzon taklif.</i>",

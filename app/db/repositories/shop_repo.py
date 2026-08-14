@@ -12,6 +12,7 @@ from app.db.models.shop import (
     ImportBatch,
     ImportRow,
     PriceHistory,
+    ProductPhotoBlob,
     Shop,
     ShopDeliveryRule,
     ShopOwner,
@@ -79,6 +80,42 @@ class ShopRepository(BaseRepository[Shop]):
         )
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def get_photo_for_canonical(self, canonical_id: int) -> tuple[str, bytes | None] | None:
+        """A photo to show customers for this product, if any owner uploaded one.
+
+        Returns (file_id, blob_bytes). The file_id is tried first because
+        re-sending it costs no upload; the bytes are the fallback for when a
+        file_id has expired, which happens whenever the bot token is rotated.
+        """
+        stmt = (
+            select(ShopProduct)
+            .where(
+                ShopProduct.canonical_id == canonical_id,
+                ShopProduct.is_active.is_(True),
+                ShopProduct.moderation_status == "approved",
+            )
+            .order_by(ShopProduct.id)
+        )
+        result = await self.session.execute(stmt)
+        for product in result.scalars().all():
+            photos = product.photos or []
+            if not photos:
+                continue
+            first = sorted(photos, key=lambda ph: ph.get("pos", 0))[0]
+            file_id = str(first.get("file_id", ""))
+            unique_id = first.get("file_unique_id")
+            if not file_id:
+                continue
+            blob_bytes: bytes | None = None
+            if unique_id:
+                blob_stmt = select(ProductPhotoBlob).where(
+                    ProductPhotoBlob.file_unique_id == str(unique_id)
+                )
+                blob = (await self.session.execute(blob_stmt)).scalars().first()
+                blob_bytes = blob.data if blob else None
+            return file_id, blob_bytes
+        return None
 
     async def list_shop_owners(self, shop_id: int) -> Sequence[ShopOwner]:
         stmt = (

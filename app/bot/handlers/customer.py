@@ -38,7 +38,7 @@ router = Router(name="customer")
 # Reply-keyboard buttons reach the bot as ordinary text messages, so the
 # free-text basket handler has to be able to tell them apart from a real
 # product list. Keyed on the leading emoji, which every menu label carries.
-_MENU_BUTTON_PREFIXES = ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠")
+_MENU_BUTTON_PREFIXES = ("🧾", "📦", "🔍", "🛒", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠")
 
 
 @router.message(F.text.in_(["🧾 Ro'yxat yuborish", "🧾 Рўйхат юбориш", "🧾 Отправить список"]))
