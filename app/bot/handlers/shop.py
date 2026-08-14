@@ -12,6 +12,7 @@ from app.bot.keyboards.inline import (
     get_shop_order_decision_keyboard,
     get_unmatched_row_keyboard,
 )
+from app.bot.keyboards.reply import get_shop_panel_keyboard
 from app.bot.states import ShopOwnerStates
 from app.core.i18n import t
 from app.db.models.order import OrderShopPart
@@ -64,7 +65,7 @@ async def menu_shop_portal(
         "• <b>Yetkazish sozlamalari:</b> /delivery_rules\n"
         "• <b>Yangi buyurtmalar:</b> /shop_orders"
     )
-    await message.answer(panel_text)
+    await message.answer(panel_text, reply_markup=get_shop_panel_keyboard(lang=lang))
 
 
 # ---------------------------------------------------------------------------

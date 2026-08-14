@@ -22,6 +22,17 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+    # FSM state lives in Redis so an in-progress wizard survives a restart or a
+    # second web replica (SPEC §2). Set false only for local dev without Redis --
+    # durable draft data is persisted to Postgres regardless, so this controls
+    # convenience, not data safety.
+    fsm_use_redis: bool = True
+
+    # Shop product listings (photo upload wizard)
+    listing_max_photos: int = 3
+    listing_max_photo_bytes: int = 5 * 1024 * 1024
+    listing_max_name_len: int = 255
+    listing_max_description_len: int = 2000
 
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82

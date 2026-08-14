@@ -52,7 +52,11 @@ async def handle_basket_text(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if not message.text or message.text.startswith(("🧾", "📦", "🔍", "🏪", "⚙️", "/")):
+    # Menu buttons arrive as plain text too, so they must be excluded here or
+    # this catch-all swallows them instead of their own handlers running.
+    if not message.text or message.text.startswith(
+        ("🧾", "📦", "🔍", "🏪", "⚙️", "👤", "⬅️", "➕", "/")
+    ):
         return
     await _process_basket_input(message, state, session, lang, message.text, existing_lines=None)
 

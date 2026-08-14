@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     Text,
@@ -132,6 +133,32 @@ class ShopProduct(Base, TimestampMixin):
         String(32), default="fresh", nullable=False
     )  # fresh|aging|stale
 
+    # ── Listing fields (owner-supplied via the upload wizard) ──────────────
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Telegram photo handles: [{"file_id", "file_unique_id", "pos"}]. Kept as a
+    # JSON column rather than a child relationship on purpose -- every other
+    # ShopProduct relationship is lazy="selectin", so a related table would add
+    # a SELECT to the hot quote path (get_active_offers_for_canonicals) and
+    # break the "<= 3 statements per basket" budget in SPEC §13. The durable
+    # copy of the bytes lives in product_photo_blobs, keyed by file_unique_id.
+    photos: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    # NULL means "unknown / not tracked", which is what every imported and
+    # seeded offer stays at. Deliberately NOT consulted by the optimizer yet:
+    # quoting against finite stock changes the cost model and needs its own
+    # tests, so this captures the data without altering existing quotes.
+    stock_qty: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    # What the owner said the product was, before matching. Advisory only --
+    # the authoritative category is canonical_product.category_id.
+    proposed_category_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("categories.id"), nullable=True
+    )
+    # Gates whether owner-supplied media/description is shown to customers.
+    # Never gates quoting: the price is real even when the photo is unreviewed,
+    # so a pending listing still competes normally.
+    moderation_status: Mapped[str] = mapped_column(
+        String(32), default="approved", nullable=False
+    )  # pending|approved|rejected
+
     shop: Mapped[Shop] = relationship("Shop", back_populates="products", lazy="selectin")
     canonical_product: Mapped[CanonicalProduct | None] = relationship(
         "CanonicalProduct", lazy="selectin"
@@ -224,4 +251,84 @@ class ImportRow(Base, TimestampMixin):
     batch: Mapped[ImportBatch] = relationship("ImportBatch", back_populates="rows", lazy="selectin")
     matched_canonical: Mapped[CanonicalProduct | None] = relationship(
         "CanonicalProduct", lazy="selectin"
+    )
+
+
+class ShopProductDraft(Base, TimestampMixin):
+    """A listing the owner is still filling in, written after every wizard step.
+
+    The wizard keeps nothing important in FSM state: each answer lands here
+    first, so a restart, a Redis eviction or a dropped session costs the owner
+    at most the question they were on. `visited_steps` records which optional
+    questions have already been asked, which is what lets the draft be resumed
+    without re-asking things the owner deliberately skipped.
+    """
+
+    __tablename__ = "shop_product_drafts"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    shop_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("shops.id"), nullable=False, index=True
+    )
+    owner_tg_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(32), default="draft", nullable=False, index=True
+    )  # draft|applied|discarded
+
+    category_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("categories.id"), nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pack_size: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    pack_unit_code: Mapped[str | None] = mapped_column(
+        String(32), ForeignKey("units.code"), nullable=True
+    )
+    price_per_pack: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    stock_qty: Mapped[Decimal | None] = mapped_column(Numeric(14, 4), nullable=True)
+    photos: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list, nullable=False)
+    visited_steps: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+
+    matched_canonical_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("canonical_products.id"), nullable=True
+    )
+    match_confidence: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
+    applied_shop_product_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("shop_products.id"), nullable=True
+    )
+
+    shop: Mapped[Shop] = relationship("Shop", lazy="selectin")
+    category: Mapped[Any | None] = relationship("Category", lazy="selectin")
+
+    __table_args__ = (Index("ix_shop_product_drafts_owner_status", "owner_tg_id", "status"),)
+
+
+class ProductPhotoBlob(Base):
+    """The durable copy of an uploaded photo.
+
+    Telegram `file_id` values are convenient but bot-scoped: rotating the bot
+    token invalidates every one of them, and they are not fetchable from the
+    admin panel without a round trip. The bytes are therefore stored here on
+    receipt so an uploaded photo is never dependent on Telegram still serving
+    it. Intentionally has no relationship back to ShopProduct -- nothing in the
+    quote path should ever be able to load image bytes by accident.
+    """
+
+    __tablename__ = "product_photo_blobs"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    file_unique_id: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, index=True
+    )
+    file_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    shop_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("shops.id"), nullable=True, index=True
+    )
+    mime_type: Mapped[str] = mapped_column(String(64), default="image/jpeg", nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )

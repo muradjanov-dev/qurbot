@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from app.core.config import settings
 from app.core.metrics import match_method_total
 from app.db.repositories.catalog_repo import CatalogRepository
@@ -28,8 +30,15 @@ class CatalogService:
         self,
         parsed_line: ParsedLine,
         user_id: int | None = None,
+        category_ids: Sequence[int] | None = None,
     ) -> tuple[ParsedLine, MatchDecision]:
-        """Execute Stage 0 -> Stage 1 -> Stage 2 -> Stage 3 (LLM) -> Stage 4 matching cascade."""
+        """Execute Stage 0 -> Stage 1 -> Stage 2 -> Stage 3 (LLM) -> Stage 4 matching cascade.
+
+        `category_ids` restricts Stage 2 candidates. It is supplied when the
+        caller already knows the category (the shop upload wizard asks for it
+        up front), which keeps unrelated products from consuming the candidate
+        limit before scoring runs.
+        """
         # Stage 0: Normalize text and extract feature bag
         query = normalize_query(parsed_line.parsed_name)
 
@@ -64,8 +73,15 @@ class CatalogService:
 
         # Stage 2: Candidate search + Multi-factor Re-ranking
         raw_candidates = await self.catalog_repo.search_canonical_products(
-            query.text_norm, limit=20
+            query.text_norm, limit=20, category_ids=category_ids
         )
+        if not raw_candidates and category_ids:
+            # The owner may have filed the product under the wrong category.
+            # Retrying unscoped keeps a mis-categorised listing matchable
+            # instead of dropping it into the unmatched queue.
+            raw_candidates = await self.catalog_repo.search_canonical_products(
+                query.text_norm, limit=20
+            )
         candidate_matches: list[CandidateMatch] = [
             CandidateMatch(
                 canonical_id=c.id,

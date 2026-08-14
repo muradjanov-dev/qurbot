@@ -5,7 +5,11 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.inline import get_district_keyboard, get_language_keyboard
-from app.bot.keyboards.reply import get_main_menu_keyboard, get_phone_request_keyboard
+from app.bot.keyboards.reply import (
+    get_cabinet_keyboard,
+    get_main_menu_keyboard,
+    get_phone_request_keyboard,
+)
 from app.bot.states import RegistrationStates
 from app.core.i18n import t
 from app.db.models.user import User
@@ -131,6 +135,24 @@ async def cmd_cancel(message: Message, state: FSMContext, user: User, lang: str)
     is_shop_owner = user.role in ("shop_owner", "admin")
     await message.answer(
         t("action_cancelled", lang=lang),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
+    )
+
+
+@router.message(F.text.in_(["👤 Kabinet", "👤 Кабинет"]))
+async def menu_cabinet(message: Message, lang: str) -> None:
+    await message.answer(
+        t("cabinet_title", lang=lang),
+        reply_markup=get_cabinet_keyboard(lang=lang),
+    )
+
+
+@router.message(F.text.in_(["⬅️ Asosiy menyu", "⬅️ Асосий меню", "⬅️ Главное меню"]))
+async def menu_back_to_main(message: Message, user: User, state: FSMContext, lang: str) -> None:
+    await state.clear()
+    is_shop_owner = user.role in ("shop_owner", "admin")
+    await message.answer(
+        t("welcome_done", lang=lang),
         reply_markup=get_main_menu_keyboard(lang=lang, is_shop_owner=is_shop_owner),
     )
 

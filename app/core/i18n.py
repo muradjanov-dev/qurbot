@@ -68,10 +68,45 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📦 Буюртмаларим",
         "ru": "📦 Мои заказы",
     },
+    "menu_cabinet": {
+        "uz_latn": "👤 Kabinet",
+        "uz_cyrl": "👤 Кабинет",
+        "ru": "👤 Кабинет",
+    },
+    "cabinet_title": {
+        "uz_latn": "👤 <b>Kabinet</b>\n\nQuyidagilardan birini tanlang:",
+        "uz_cyrl": "👤 <b>Кабинет</b>\n\nҚуйидагилардан бирини танланг:",
+        "ru": "👤 <b>Кабинет</b>\n\nВыберите один из пунктов:",
+    },
+    "btn_main_menu": {
+        "uz_latn": "⬅️ Asosiy menyu",
+        "uz_cyrl": "⬅️ Асосий меню",
+        "ru": "⬅️ Главное меню",
+    },
     "menu_price_check": {
         "uz_latn": "🔍 Mahsulot narxi",
         "uz_cyrl": "🔍 Маҳсулот нархи",
         "ru": "🔍 Цены на товары",
+    },
+    "price_browse_choose_category": {
+        "uz_latn": "🔍 <b>Mahsulot narxlari</b>\n\nKategoriyani tanlang:",
+        "uz_cyrl": "🔍 <b>Маҳсулот нархлари</b>\n\nКатегорияни танланг:",
+        "ru": "🔍 <b>Цены на товары</b>\n\nВыберите категорию:",
+    },
+    "price_browse_empty": {
+        "uz_latn": "Bu kategoriyada hozircha narxlar mavjud emas.",
+        "uz_cyrl": "Бу категорияда ҳозирча нархлар мавжуд эмас.",
+        "ru": "В этой категории пока нет цен.",
+    },
+    "price_browse_header": {
+        "uz_latn": "💰 <b>{category}</b> — narxlar:\n",
+        "uz_cyrl": "💰 <b>{category}</b> — нархлар:\n",
+        "ru": "💰 <b>{category}</b> — цены:\n",
+    },
+    "price_browse_hint": {
+        "uz_latn": "\n<i>Narxlar — do'konlardagi eng arzon taklif.</i>",
+        "uz_cyrl": "\n<i>Нархлар — дўконлардаги энг арзон таклиф.</i>",
+        "ru": "\n<i>Цены — самое дешёвое предложение среди магазинов.</i>",
     },
     "menu_shop_portal": {
         "uz_latn": "🏪 Do'kon paneli",
@@ -498,6 +533,311 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "Siz do'kon egasi sifatida ro'yxatdan o'tmagansiz.",
         "uz_cyrl": "Сиз дўкон эгаси сифатида рўйхатдан ўтмагансиз.",
         "ru": "Вы не зарегистрированы как владелец магазина.",
+    },
+    # ── Product listing wizard ────────────────────────────────────────────
+    "menu_add_product": {
+        "uz_latn": "➕ Yangi mahsulot",
+        "uz_cyrl": "➕ Янги маҳсулот",
+        "ru": "➕ Новый товар",
+    },
+    "listing_intro": {
+        "uz_latn": (
+            "Yangi mahsulot qo'shamiz. Har bir javobingiz darhol saqlanadi — "
+            "istalgan payt to'xtab, keyin davom ettirsangiz bo'ladi."
+        ),
+        "uz_cyrl": (
+            "Янги маҳсулот қўшамиз. Ҳар бир жавобингиз дарҳол сақланади — "
+            "исталган пайт тўхтаб, кейин давом эттирсангиз бўлади."
+        ),
+        "ru": (
+            "Добавляем новый товар. Каждый ваш ответ сохраняется сразу — "
+            "можете прерваться в любой момент и продолжить позже."
+        ),
+    },
+    "listing_resume_found": {
+        "uz_latn": "Sizda tugallanmagan mahsulot bor: <b>{name}</b>\nDavom ettiramizmi?",
+        "uz_cyrl": "Сизда тугалланмаган маҳсулот бор: <b>{name}</b>\nДавом эттирамизми?",
+        "ru": "У вас есть незавершённый товар: <b>{name}</b>\nПродолжим?",
+    },
+    "listing_resumed": {
+        "uz_latn": "Davom ettiramiz. Saqlangan ma'lumotlaringiz joyida.",
+        "uz_cyrl": "Давом эттирамиз. Сақланган маълумотларингиз жойида.",
+        "ru": "Продолжаем. Все сохранённые данные на месте.",
+    },
+    "listing_step_category": {
+        "uz_latn": "1/7 — Mahsulot kategoriyasini tanlang:",
+        "uz_cyrl": "1/7 — Маҳсулот категориясини танланг:",
+        "ru": "1/7 — Выберите категорию товара:",
+    },
+    "listing_step_subcategory": {
+        "uz_latn": "Aniqroq turini tanlang:",
+        "uz_cyrl": "Аниқроқ турини танланг:",
+        "ru": "Выберите подкатегорию:",
+    },
+    "listing_step_name": {
+        "uz_latn": ("2/7 — Mahsulot nomini yozing.\n" "<i>Masalan: Sement M400 50kg qop</i>"),
+        "uz_cyrl": ("2/7 — Маҳсулот номини ёзинг.\n" "<i>Масалан: Sement M400 50kg қоп</i>"),
+        "ru": ("2/7 — Напишите название товара.\n" "<i>Например: Цемент М400 мешок 50кг</i>"),
+    },
+    "listing_step_unit": {
+        "uz_latn": (
+            "3/7 — Qadoq o'lchovini tanlang.\n"
+            "<i>Bu narxni solishtirish uchun kerak: 50 kg li qop 52 000 so'm — "
+            "bu 1 kg uchun 1 040 so'm degani.</i>"
+        ),
+        "uz_cyrl": (
+            "3/7 — Қадоқ ўлчовини танланг.\n"
+            "<i>Бу нархни солиштириш учун керак: 50 кг ли қоп 52 000 сўм — "
+            "бу 1 кг учун 1 040 сўм дегани.</i>"
+        ),
+        "ru": (
+            "3/7 — Выберите единицу фасовки.\n"
+            "<i>Это нужно для сравнения цен: мешок 50 кг за 52 000 сум — "
+            "это 1 040 сум за 1 кг.</i>"
+        ),
+    },
+    "listing_step_pack_size": {
+        "uz_latn": "Bitta qadoqda nechta <b>{unit}</b> bor? Faqat raqam yozing.",
+        "uz_cyrl": "Битта қадоқда нечта <b>{unit}</b> бор? Фақат рақам ёзинг.",
+        "ru": "Сколько <b>{unit}</b> в одной упаковке? Напишите только число.",
+    },
+    "listing_step_price": {
+        "uz_latn": "4/7 — Bitta <b>{pack}</b> narxi qancha (so'm)? Faqat raqam yozing.",
+        "uz_cyrl": "4/7 — Битта <b>{pack}</b> нархи қанча (сўм)? Фақат рақам ёзинг.",
+        "ru": "4/7 — Цена за <b>{pack}</b> (сум)? Напишите только число.",
+    },
+    "listing_step_qty": {
+        "uz_latn": "5/7 — Omborda nechta bor? Bilmasangiz — o'tkazib yuboring.",
+        "uz_cyrl": "5/7 — Омборда нечта бор? Билмасангиз — ўтказиб юборинг.",
+        "ru": "5/7 — Сколько есть на складе? Не знаете — пропустите.",
+    },
+    "listing_step_description": {
+        "uz_latn": "6/7 — Qisqacha tavsif yozing (ixtiyoriy).",
+        "uz_cyrl": "6/7 — Қисқача тавсиф ёзинг (ихтиёрий).",
+        "ru": "6/7 — Напишите краткое описание (необязательно).",
+    },
+    "listing_step_photo": {
+        "uz_latn": (
+            "7/7 — {n}-rasmni yuboring ({hint}).\n" "Jami {max} tagacha rasm qo'shishingiz mumkin."
+        ),
+        "uz_cyrl": (
+            "7/7 — {n}-расмни юборинг ({hint}).\n" "Жами {max} тагача расм қўшишингиз мумкин."
+        ),
+        "ru": ("7/7 — Отправьте фото №{n} ({hint}).\n" "Всего можно добавить до {max} фото."),
+    },
+    "listing_photo_hint_1": {
+        "uz_latn": "old tomondan",
+        "uz_cyrl": "олд томондан",
+        "ru": "спереди",
+    },
+    "listing_photo_hint_2": {
+        "uz_latn": "yon tomondan",
+        "uz_cyrl": "ён томондан",
+        "ru": "сбоку",
+    },
+    "listing_photo_hint_3": {
+        "uz_latn": "yorliq yoki marka ko'rinadigan qilib",
+        "uz_cyrl": "ёрлиқ ёки марка кўринадиган қилиб",
+        "ru": "чтобы была видна этикетка или марка",
+    },
+    "listing_photo_saved": {
+        "uz_latn": "✅ {n}-rasm saqlandi.",
+        "uz_cyrl": "✅ {n}-расм сақланди.",
+        "ru": "✅ Фото №{n} сохранено.",
+    },
+    "listing_photo_limit_reached": {
+        "uz_latn": "Rasmlar to'liq ({max} ta). Saqlashga o'tamiz.",
+        "uz_cyrl": "Расмлар тўлиқ ({max} та). Сақлашга ўтамиз.",
+        "ru": "Фото загружены полностью ({max}). Переходим к сохранению.",
+    },
+    "listing_photo_duplicate": {
+        "uz_latn": "Bu rasm allaqachon qo'shilgan. Boshqa rakursdan yuboring.",
+        "uz_cyrl": "Бу расм аллақачон қўшилган. Бошқа ракурсдан юборинг.",
+        "ru": "Это фото уже добавлено. Отправьте другой ракурс.",
+    },
+    "listing_photo_too_big": {
+        "uz_latn": "Rasm juda katta. Kichikroq rasm yuboring.",
+        "uz_cyrl": "Расм жуда катта. Кичикроқ расм юборинг.",
+        "ru": "Фото слишком большое. Отправьте файл поменьше.",
+    },
+    "listing_review_title": {
+        "uz_latn": "📦 <b>Tekshirib chiqing</b>",
+        "uz_cyrl": "📦 <b>Текшириб чиқинг</b>",
+        "ru": "📦 <b>Проверьте данные</b>",
+    },
+    "listing_matched_as": {
+        "uz_latn": "🔗 Katalogda: <b>{name}</b>",
+        "uz_cyrl": "🔗 Каталогда: <b>{name}</b>",
+        "ru": "🔗 В каталоге: <b>{name}</b>",
+    },
+    "listing_not_matched": {
+        "uz_latn": (
+            "⚠️ Bu mahsulot katalogimizda topilmadi. Saqlaymiz va administrator "
+            "tez orada katalogga qo'shadi — shundan keyin xaridorlarga ko'rina boshlaydi."
+        ),
+        "uz_cyrl": (
+            "⚠️ Бу маҳсулот каталогимизда топилмади. Сақлаймиз ва администратор "
+            "тез орада каталогга қўшади — шундан кейин харидорларга кўрина бошлайди."
+        ),
+        "ru": (
+            "⚠️ Этот товар не найден в нашем каталоге. Мы сохраним его, и администратор "
+            "скоро добавит в каталог — после этого он появится у покупателей."
+        ),
+    },
+    "listing_saved": {
+        "uz_latn": "✅ <b>{name}</b> saqlandi.",
+        "uz_cyrl": "✅ <b>{name}</b> сақланди.",
+        "ru": "✅ <b>{name}</b> сохранён.",
+    },
+    "listing_saved_pending_media": {
+        "uz_latn": "Rasmlar administrator tekshiruvidan so'ng xaridorlarga ko'rsatiladi.",
+        "uz_cyrl": "Расмлар администратор текширувидан сўнг харидорларга кўрсатилади.",
+        "ru": "Фото будут показаны покупателям после проверки администратором.",
+    },
+    "listing_cancelled": {
+        "uz_latn": "Bekor qilindi. Kiritilgan ma'lumotlar saqlanib qoldi.",
+        "uz_cyrl": "Бекор қилинди. Киритилган маълумотлар сақланиб қолди.",
+        "ru": "Отменено. Введённые данные сохранены.",
+    },
+    "listing_discarded": {
+        "uz_latn": "Qoralama o'chirildi.",
+        "uz_cyrl": "Қоралама ўчирилди.",
+        "ru": "Черновик удалён.",
+    },
+    "listing_err_number": {
+        "uz_latn": "Faqat raqam yuboring. Masalan: 52000",
+        "uz_cyrl": "Фақат рақам юборинг. Масалан: 52000",
+        "ru": "Отправьте только число. Например: 52000",
+    },
+    "listing_err_positive": {
+        "uz_latn": "Qiymat noldan katta bo'lishi kerak.",
+        "uz_cyrl": "Қиймат нолдан катта бўлиши керак.",
+        "ru": "Значение должно быть больше нуля.",
+    },
+    "listing_err_negative_qty": {
+        "uz_latn": "Miqdor manfiy bo'lishi mumkin emas.",
+        "uz_cyrl": "Миқдор манфий бўлиши мумкин эмас.",
+        "ru": "Количество не может быть отрицательным.",
+    },
+    "listing_err_name_empty": {
+        "uz_latn": "Mahsulot nomini yozing.",
+        "uz_cyrl": "Маҳсулот номини ёзинг.",
+        "ru": "Напишите название товара.",
+    },
+    "listing_err_name_too_long": {
+        "uz_latn": "Nom juda uzun. Qisqartiring.",
+        "uz_cyrl": "Ном жуда узун. Қисқартиринг.",
+        "ru": "Название слишком длинное. Сократите.",
+    },
+    "listing_err_description_too_long": {
+        "uz_latn": "Tavsif juda uzun. Qisqartiring.",
+        "uz_cyrl": "Тавсиф жуда узун. Қисқартиринг.",
+        "ru": "Описание слишком длинное. Сократите.",
+    },
+    "listing_err_unit": {
+        "uz_latn": "O'lchov birligi noto'g'ri. Ro'yxatdan tanlang.",
+        "uz_cyrl": "Ўлчов бирлиги нотўғри. Рўйхатдан танланг.",
+        "ru": "Неверная единица измерения. Выберите из списка.",
+    },
+    "listing_err_incompatible_unit": {
+        "uz_latn": ("Bu o'lchov tanlangan mahsulotga to'g'ri kelmaydi. Boshqa o'lchov tanlang."),
+        "uz_cyrl": ("Бу ўлчов танланган маҳсулотга тўғри келмайди. Бошқа ўлчов танланг."),
+        "ru": "Эта единица не подходит к выбранному товару. Выберите другую.",
+    },
+    "listing_err_photo_failed": {
+        "uz_latn": "Rasmni saqlab bo'lmadi. Yana bir marta yuboring.",
+        "uz_cyrl": "Расмни сақлаб бўлмади. Яна бир марта юборинг.",
+        "ru": "Не удалось сохранить фото. Отправьте ещё раз.",
+    },
+    "listing_err_incomplete": {
+        "uz_latn": "Ma'lumotlar to'liq emas — davom ettiramiz.",
+        "uz_cyrl": "Маълумотлар тўлиқ эмас — давом эттирамиз.",
+        "ru": "Данные неполные — продолжим заполнение.",
+    },
+    "listing_label_price": {
+        "uz_latn": "Narx",
+        "uz_cyrl": "Нарх",
+        "ru": "Цена",
+    },
+    "listing_label_unit_price": {
+        "uz_latn": "1 {unit} uchun",
+        "uz_cyrl": "1 {unit} учун",
+        "ru": "за 1 {unit}",
+    },
+    "listing_label_stock": {
+        "uz_latn": "Omborda",
+        "uz_cyrl": "Омборда",
+        "ru": "На складе",
+    },
+    "listing_label_photos": {
+        "uz_latn": "Rasmlar",
+        "uz_cyrl": "Расмлар",
+        "ru": "Фото",
+    },
+    "listing_stock_in_stock": {
+        "uz_latn": "✅ Mavjud",
+        "uz_cyrl": "✅ Мавжуд",
+        "ru": "✅ В наличии",
+    },
+    "listing_stock_low": {
+        "uz_latn": "⚠️ Kam qoldi",
+        "uz_cyrl": "⚠️ Кам қолди",
+        "ru": "⚠️ Мало осталось",
+    },
+    "listing_stock_on_order": {
+        "uz_latn": "🕒 Buyurtma asosida",
+        "uz_cyrl": "🕒 Буюртма асосида",
+        "ru": "🕒 Под заказ",
+    },
+    "listing_stock_out": {
+        "uz_latn": "❌ Tugagan",
+        "uz_cyrl": "❌ Тугаган",
+        "ru": "❌ Нет в наличии",
+    },
+    "btn_listing_save": {
+        "uz_latn": "✅ Saqlash",
+        "uz_cyrl": "✅ Сақлаш",
+        "ru": "✅ Сохранить",
+    },
+    "btn_listing_edit": {
+        "uz_latn": "✏️ Tahrirlash",
+        "uz_cyrl": "✏️ Таҳрирлаш",
+        "ru": "✏️ Редактировать",
+    },
+    "btn_listing_add_photo": {
+        "uz_latn": "📷 Yana rasm",
+        "uz_cyrl": "📷 Яна расм",
+        "ru": "📷 Ещё фото",
+    },
+    "btn_listing_photos_done": {
+        "uz_latn": "✅ Rasmlar tayyor",
+        "uz_cyrl": "✅ Расмлар тайёр",
+        "ru": "✅ Фото готовы",
+    },
+    "btn_listing_resume": {
+        "uz_latn": "▶️ Davom ettirish",
+        "uz_cyrl": "▶️ Давом эттириш",
+        "ru": "▶️ Продолжить",
+    },
+    "btn_listing_start_new": {
+        "uz_latn": "🆕 Yangisini boshlash",
+        "uz_cyrl": "🆕 Янгисини бошлаш",
+        "ru": "🆕 Начать новый",
+    },
+    "btn_listing_another": {
+        "uz_latn": "➕ Yana mahsulot",
+        "uz_cyrl": "➕ Яна маҳсулот",
+        "ru": "➕ Ещё товар",
+    },
+    "btn_view_photos": {
+        "uz_latn": "📷 Rasmlarni ko'rish",
+        "uz_cyrl": "📷 Расмларни кўриш",
+        "ru": "📷 Посмотреть фото",
+    },
+    "photos_unavailable": {
+        "uz_latn": "Bu variant uchun rasm yo'q.",
+        "uz_cyrl": "Бу вариант учун расм йўқ.",
+        "ru": "Для этого варианта нет фото.",
     },
 }
 

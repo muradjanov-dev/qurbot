@@ -34,6 +34,29 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    async def list_child_categories(self, parent_id: int) -> Sequence[Category]:
+        stmt = select(Category).where(Category.parent_id == parent_id).order_by(Category.sort_order)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_category_subtree_ids(self, category_id: int) -> list[int]:
+        """Ids of a category and everything under it.
+
+        The tree is capped at depth 3 (SPEC §4.1), so this walks level by level
+        instead of using a recursive CTE -- at most two extra round trips, and
+        it works identically on SQLite in tests.
+        """
+        collected = [category_id]
+        frontier = [category_id]
+        for _ in range(2):
+            if not frontier:
+                break
+            stmt = select(Category.id).where(Category.parent_id.in_(frontier))
+            result = await self.session.execute(stmt)
+            frontier = [row for row in result.scalars().all()]
+            collected.extend(frontier)
+        return collected
+
     async def get_canonical_by_slug(self, slug: str) -> CanonicalProduct | None:
         stmt = select(CanonicalProduct).where(CanonicalProduct.slug == slug)
         result = await self.session.execute(stmt)
@@ -60,24 +83,31 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         await self.session.execute(stmt)
 
     async def search_canonical_products(
-        self, query: str, limit: int = 20
+        self,
+        query: str,
+        limit: int = 20,
+        category_ids: Sequence[int] | None = None,
     ) -> Sequence[CanonicalProduct]:
-        """Fetch candidates for Stage 2 re-ranking using multi-token matching."""
+        """Fetch candidates for Stage 2 re-ranking using multi-token matching.
+
+        `category_ids` narrows the pool before the LIMIT is applied. That matters:
+        the token filter is unranked, so without narrowing, a common token can
+        fill the whole limit with rows from unrelated categories and push the
+        real match out of the candidate set entirely. When the shop owner has
+        already told us the category, using it is a straight precision win.
+        """
+        base_filters = [CanonicalProduct.is_active.is_(True)]
+        if category_ids:
+            base_filters.append(CanonicalProduct.category_id.in_(list(category_ids)))
+
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
-            stmt = select(CanonicalProduct).where(CanonicalProduct.is_active.is_(True)).limit(limit)
+            stmt = select(CanonicalProduct).where(*base_filters).limit(limit)
             result = await self.session.execute(stmt)
             return result.scalars().all()
 
         token_filters = [CanonicalProduct.search_doc.ilike(f"%{token}%") for token in tokens]
-        stmt = (
-            select(CanonicalProduct)
-            .where(
-                CanonicalProduct.is_active.is_(True),
-                or_(*token_filters),
-            )
-            .limit(limit)
-        )
+        stmt = select(CanonicalProduct).where(*base_filters, or_(*token_filters)).limit(limit)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 

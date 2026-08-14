@@ -13,9 +13,11 @@ from app.db.models.shop import (
     ImportBatch,
     ImportRow,
     PriceHistory,
+    ProductPhotoBlob,
     Shop,
     ShopDeliveryRule,
     ShopProduct,
+    ShopProductDraft,
 )
 from app.db.models.user import User
 
@@ -30,6 +32,8 @@ __all__ = [
     "Shop",
     "ShopDeliveryRule",
     "ShopProduct",
+    "ShopProductDraft",
+    "ProductPhotoBlob",
     "PriceHistory",
     "ImportBatch",
     "ImportRow",

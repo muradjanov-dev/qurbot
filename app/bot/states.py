@@ -21,6 +21,25 @@ class OrderCheckoutStates(StatesGroup):
     confirming_order = State()
 
 
+class ShopListingStates(StatesGroup):
+    """Product upload wizard.
+
+    These states only decide which question the bot is currently asking -- the
+    answers themselves live in shop_product_drafts, so losing the state loses
+    at most one question, never the listing.
+    """
+
+    choosing_category = State()
+    entering_name = State()
+    choosing_unit = State()
+    entering_pack_size = State()
+    entering_price = State()
+    entering_qty = State()
+    entering_description = State()
+    uploading_photos = State()
+    reviewing = State()
+
+
 class ShopOwnerStates(StatesGroup):
     waiting_for_quick_price = State()
     waiting_for_excel_upload = State()

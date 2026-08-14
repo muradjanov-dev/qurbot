@@ -4,8 +4,29 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.i18n import t
+from app.db.models.catalog import Category
 from app.db.models.shop import District
 from app.domain.matching.models import CandidateMatch
+
+
+def get_price_category_keyboard(
+    categories: Sequence[Category],
+    lang: str = "uz_latn",
+    parent_id: int | None = None,
+) -> InlineKeyboardMarkup:
+    """Build the category picker for the read-only price browser."""
+    builder = InlineKeyboardBuilder()
+    for cat in categories:
+        label = cat.name_ru if lang == "ru" else cat.name_uz
+        icon = f"{cat.icon} " if cat.icon else ""
+        builder.button(text=f"{icon}{label}", callback_data=f"price_cat:{cat.id}")
+    builder.adjust(2)
+
+    if parent_id is not None:
+        builder.row(
+            InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root")
+        )
+    return builder.as_markup()
 
 
 def get_language_keyboard() -> InlineKeyboardMarkup:
