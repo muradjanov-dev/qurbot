@@ -194,7 +194,15 @@ class CatalogService:
 
         # Check if structured parsing struggled
         if parsed_lines:
-            lines_with_qty = sum(1 for line in parsed_lines if line.qty > 0 and line.parsed_name)
+            # "Did the parser find structure?", not "is the quantity usable?".
+            # Keying this on qty > 0 meant a basket of refused quantities looked
+            # like a parse failure and went to the whole-message LLM, which
+            # re-read "-5 dona" as 5 -- silently turning a rejected line into a
+            # real order. needs_review is the flag the parser sets when it could
+            # not extract a quantity at all, which is the case this is for.
+            lines_with_qty = sum(
+                1 for line in parsed_lines if not line.needs_review and line.parsed_name
+            )
             qty_ratio = lines_with_qty / len(parsed_lines)
             if qty_ratio < 0.5 and settings.llm_enabled:
                 llm_parsed = await self.llm_client.parse_whole_message(raw_text)
