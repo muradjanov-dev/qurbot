@@ -2,6 +2,7 @@ import re
 from decimal import Decimal
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, ContentType, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +11,9 @@ from app.bot.keyboards.inline import (
     get_import_batch_keyboard,
     get_product_list_keyboard,
     get_shop_order_decision_keyboard,
+    get_shop_panel_inline_keyboard,
     get_unmatched_row_keyboard,
 )
-from app.bot.keyboards.reply import get_shop_panel_keyboard
 from app.bot.states import ShopOwnerStates
 from app.core.i18n import t
 from app.db.models.order import OrderShopPart
@@ -56,16 +57,10 @@ async def menu_shop_portal(
 
     shop = await _get_user_shop(user, session)
     shop_name = shop.name if shop else "Do'koningiz"
-    panel_text = (
-        f"{t('shop_panel_title', lang=lang, shop_name=shop_name)}\n\n"
-        "Quyidagi amallardan birini tanlang:\n"
-        "• <b>Tez narx yangilash:</b> <code>cement m400 52000</code> shaklida yozing\n"
-        "• <b>Narxlarni yuklash:</b> Excel/CSV faylni yuboring\n"
-        "• <b>Mahsulotlarim:</b> /shop_products\n"
-        "• <b>Yetkazish sozlamalari:</b> /delivery_rules\n"
-        "• <b>Yangi buyurtmalar:</b> /shop_orders"
+    await message.answer(
+        t("shop_panel_title", lang=lang, shop_name=shop_name),
+        reply_markup=get_shop_panel_inline_keyboard(lang=lang),
     )
-    await message.answer(panel_text, reply_markup=get_shop_panel_keyboard(lang=lang))
 
 
 # ---------------------------------------------------------------------------
@@ -154,8 +149,21 @@ QUICK_PRICE_REGEX = re.compile(
 )
 
 
+def _is_quick_price_from_owner(message: Message, user: User) -> bool:
+    """Quick-price shorthand, and only from someone allowed to use it.
+
+    The role check has to live in the filter rather than the handler body:
+    a handler whose filters pass counts as having handled the update, so
+    returning early would swallow an ordinary customer's message instead of
+    letting it fall through to the basket parser.
+    """
+    if user.role not in ("shop_owner", "admin"):
+        return False
+    return bool(message.text and QUICK_PRICE_REGEX.match(message.text.strip()))
+
+
 @router.message(ShopOwnerStates.waiting_for_quick_price)
-@router.message(lambda msg: bool(msg.text and QUICK_PRICE_REGEX.match(msg.text.strip())))
+@router.message(_is_quick_price_from_owner)
 async def handle_quick_price_update(
     message: Message,
     user: User,
@@ -750,3 +758,63 @@ async def handle_delivery_rule_update(
 
     dist_display = target_district.name_uz if target_district else district_name
     await message.answer(t("delivery_rule_updated", lang=lang, district=dist_display))
+
+
+# ---------------------------------------------------------------------------
+# Shop panel inline actions
+# ---------------------------------------------------------------------------
+
+
+@router.callback_query(F.data == "shp:quick_price")
+async def cb_shop_quick_price(
+    callback: CallbackQuery, user: User, state: FSMContext, lang: str
+) -> None:
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(ShopOwnerStates.waiting_for_quick_price)
+    await callback.message.answer(t("shp_quick_price_prompt", lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:upload")
+async def cb_shop_upload(callback: CallbackQuery, user: User, lang: str) -> None:
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.answer(t("shp_upload_prompt", lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:products")
+async def cb_shop_products(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    """Reuses the paginated /shop_products listing rather than a second one."""
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await cmd_shop_products(callback.message, user, session, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:delivery")
+async def cb_shop_delivery(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await cmd_delivery_rules(callback.message, user, session, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:orders")
+async def cb_shop_orders(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await cmd_shop_orders(callback.message, user, session, lang)
+    await callback.answer()

@@ -100,8 +100,11 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(common_router)
     dp.include_router(shop_listing_router)
     dp.include_router(price_browse_router)
-    dp.include_router(customer_router)
+    # shop_router precedes customer_router: the quick-price shorthand
+    # ("cement m400 52000") is ordinary text, so the basket catch-all would
+    # otherwise consume it and answer "I don't understand".
     dp.include_router(shop_router)
+    dp.include_router(customer_router)
     dp.include_router(admin_router)
 
     return dp

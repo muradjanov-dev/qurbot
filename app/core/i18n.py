@@ -68,6 +68,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📦 Буюртмаларим",
         "ru": "📦 Мои заказы",
     },
+    "language_changed": {
+        "uz_latn": "✅ Til o'zgartirildi.",
+        "uz_cyrl": "✅ Тил ўзгартирилди.",
+        "ru": "✅ Язык изменён.",
+    },
     "menu_cabinet": {
         "uz_latn": "👤 Kabinet",
         "uz_cyrl": "👤 Кабинет",
@@ -767,6 +772,61 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "Hozircha do'konlar yo'q. /add_shop orqali qo'shing.",
         "uz_cyrl": "Ҳозирча дўконлар йўқ. /add_shop орқали қўшинг.",
         "ru": "Магазинов пока нет. Добавьте через /add_shop.",
+    },
+    "shp_btn_quick_price": {
+        "uz_latn": "✏️ Tez narx yangilash",
+        "uz_cyrl": "✏️ Тез нарх янгилаш",
+        "ru": "✏️ Быстрое обновление цены",
+    },
+    "shp_btn_products": {
+        "uz_latn": "📋 Mahsulotlarim",
+        "uz_cyrl": "📋 Маҳсулотларим",
+        "ru": "📋 Мои товары",
+    },
+    "shp_btn_add_product": {
+        "uz_latn": "➕ Yangi mahsulot",
+        "uz_cyrl": "➕ Янги маҳсулот",
+        "ru": "➕ Новый товар",
+    },
+    "shp_btn_upload": {
+        "uz_latn": "📤 Excel yuklash",
+        "uz_cyrl": "📤 Excel юклаш",
+        "ru": "📤 Загрузить Excel",
+    },
+    "shp_btn_delivery": {
+        "uz_latn": "🚚 Yetkazish",
+        "uz_cyrl": "🚚 Етказиш",
+        "ru": "🚚 Доставка",
+    },
+    "shp_btn_orders": {
+        "uz_latn": "📦 Buyurtmalar",
+        "uz_cyrl": "📦 Буюртмалар",
+        "ru": "📦 Заказы",
+    },
+    "shp_quick_price_prompt": {
+        "uz_latn": (
+            "✏️ <b>Tez narx yangilash</b>\n\n"
+            "Mahsulot nomi va yangi narxni bitta qatorda yozing:\n"
+            "<code>cement m400 52000</code>\n\n"
+            "<i>Bekor qilish uchun /cancel</i>"
+        ),
+        "uz_cyrl": (
+            "✏️ <b>Тез нарх янгилаш</b>\n\n"
+            "Маҳсулот номи ва янги нархни битта қаторда ёзинг:\n"
+            "<code>cement m400 52000</code>\n\n"
+            "<i>Бекор қилиш учун /cancel</i>"
+        ),
+        "ru": (
+            "✏️ <b>Быстрое обновление цены</b>\n\n"
+            "Напишите название товара и новую цену одной строкой:\n"
+            "<code>cement m400 52000</code>\n\n"
+            "<i>Для отмены /cancel</i>"
+        ),
+    },
+    "shp_upload_prompt": {
+        "uz_latn": "📤 Narxlar ro'yxati bilan Excel yoki CSV faylni shu yerga yuboring.",
+        "uz_cyrl": "📤 Нархлар рўйхати билан Excel ёки CSV файлни шу ерга юборинг.",
+        "ru": "📤 Отправьте сюда файл Excel или CSV со списком цен.",
     },
     "not_shop_owner": {
         "uz_latn": "Siz do'kon egasi sifatida ro'yxatdan o'tmagansiz.",

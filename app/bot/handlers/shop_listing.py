@@ -247,6 +247,22 @@ def next_step_for(draft: ShopProductDraft) -> ListingStep:
 # ── entry points ──────────────────────────────────────────────────────────
 
 
+@router.callback_query(F.data == "shp:add_product")
+async def cb_add_product(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Inline-panel entry point into the same wizard as the reply button."""
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await menu_add_product(callback.message, state, user, session, lang)
+    await callback.answer()
+
+
 @router.message(F.text.in_(["➕ Yangi mahsulot", "➕ Янги маҳсулот", "➕ Новый товар"]))
 async def menu_add_product(
     message: Message,

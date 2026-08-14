@@ -174,9 +174,36 @@ async def menu_back_to_main(message: Message, user: User, state: FSMContext, lan
 
 
 @router.message(F.text.in_(["⚙️ Sozlamalar", "⚙️ Созламалар", "⚙️ Настройки"]))
-async def menu_settings(message: Message, state: FSMContext) -> None:
-    await state.set_state(RegistrationStates.waiting_for_language)
+async def menu_settings(message: Message, state: FSMContext, lang: str) -> None:
+    # No registration state here: an already-onboarded user changing language
+    # must not be walked back through district and phone.
+    await state.clear()
     await message.answer(
-        t("choose_language", lang="uz_latn"),
-        reply_markup=get_language_keyboard(),
+        t("choose_language", lang=lang),
+        reply_markup=get_language_keyboard(change_only=True),
     )
+
+
+@router.callback_query(F.data.startswith("chg_lang:"))
+async def callback_change_language(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+) -> None:
+    if not callback.data:
+        return
+    new_lang = callback.data.split(":")[1]
+    user.lang = new_lang
+    await session.flush()
+
+    is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(t("language_changed", lang=new_lang))
+        await callback.message.answer(
+            t("welcome_done", lang=new_lang),
+            reply_markup=get_main_menu_keyboard(
+                lang=new_lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+            ),
+        )
+    await callback.answer()

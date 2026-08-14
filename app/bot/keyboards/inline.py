@@ -9,6 +9,19 @@ from app.db.models.shop import District
 from app.domain.matching.models import CandidateMatch
 
 
+def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Actions for the shop-owner panel, as buttons instead of typed commands."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("shp_btn_quick_price", lang=lang), callback_data="shp:quick_price")
+    builder.button(text=t("shp_btn_products", lang=lang), callback_data="shp:products")
+    builder.button(text=t("shp_btn_add_product", lang=lang), callback_data="shp:add_product")
+    builder.button(text=t("shp_btn_upload", lang=lang), callback_data="shp:upload")
+    builder.button(text=t("shp_btn_delivery", lang=lang), callback_data="shp:delivery")
+    builder.button(text=t("shp_btn_orders", lang=lang), callback_data="shp:orders")
+    builder.adjust(2, 2, 2)
+    return builder.as_markup()
+
+
 def get_admin_panel_keyboard(
     lang: str = "uz_latn", is_super_admin: bool = False
 ) -> InlineKeyboardMarkup:
@@ -66,12 +79,18 @@ def get_price_category_keyboard(
     return builder.as_markup()
 
 
-def get_language_keyboard() -> InlineKeyboardMarkup:
-    """Build language selection keyboard."""
+def get_language_keyboard(change_only: bool = False) -> InlineKeyboardMarkup:
+    """Build language selection keyboard.
+
+    `change_only` switches the callback prefix so picking a language from
+    Settings only changes the language, instead of dropping the user back
+    into the district/phone onboarding steps they already completed.
+    """
+    prefix = "chg_lang" if change_only else "set_lang"
     builder = InlineKeyboardBuilder()
-    builder.button(text="🇺🇿 O'zbekcha", callback_data="set_lang:uz_latn")
-    builder.button(text="🇺🇿 Ўзбекча", callback_data="set_lang:uz_cyrl")
-    builder.button(text="🇷🇺 Русский", callback_data="set_lang:ru")
+    builder.button(text="🇺🇿 O'zbekcha (lotin)", callback_data=f"{prefix}:uz_latn")
+    builder.button(text="🇺🇿 Ўзбекча (кирилл)", callback_data=f"{prefix}:uz_cyrl")
+    builder.button(text="🇷🇺 Русский", callback_data=f"{prefix}:ru")
     builder.adjust(1)
     return builder.as_markup()
 
