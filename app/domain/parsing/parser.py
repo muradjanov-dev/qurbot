@@ -9,7 +9,10 @@ DECIMAL_COMMA_REGEX = re.compile(r"(\d+),(\d+)")
 
 # Line start bullets or numbering: "1.", "1)", "•", "-", "*"
 # (requires space + non-digit after number prefix)
-LINE_PREFIX_REGEX = re.compile(r"^\s*(?:[\d]+[\.\)](?=\s+[^\d])|[-•*])\s*")
+# A hyphen only counts as a bullet when whitespace follows it: "- 10 qop" is a
+# list item, but "-10 qop" is a negative quantity, and stripping the sign there
+# turned a customer's mistake into a real order for the positive amount.
+LINE_PREFIX_REGEX = re.compile(r"^\s*(?:[\d]+[\.\)](?=\s+[^\d])|[•*]|-(?=\s))\s*")
 
 # Known unit regex tokens
 UNIT_TOKENS = (
@@ -35,7 +38,7 @@ CONTAINER_VOL_REGEX = re.compile(
 
 # Regex 1: Qty (+ unit) at beginning: e.g. "500 dona g'isht", "10 qop sement", "2t qum"
 QTY_START_REGEX = re.compile(
-    rf"^\s*(\d+(?:\.\d+)?)\s*({UNIT_TOKENS})?\b\s*(?:ta\s+)?(?:\bta\b)?\s*[:-]?\s*(.*)$",
+    rf"^\s*(-?\d+(?:\.\d+)?)\s*({UNIT_TOKENS})?\b\s*(?:ta\s+)?(?:\bta\b)?\s*[:-]?\s*(.*)$",
     re.IGNORECASE,
 )
 

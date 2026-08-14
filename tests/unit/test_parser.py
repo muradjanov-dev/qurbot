@@ -120,3 +120,21 @@ def test_qty_within_bounds_rejects_absurd_quantities() -> None:
 def test_qty_bound_is_configurable() -> None:
     assert is_qty_orderable(Decimal("50"), max_qty=Decimal("100"))
     assert not is_qty_orderable(Decimal("150"), max_qty=Decimal("100"))
+
+
+def test_leading_dash_with_space_is_a_bullet_not_a_negative() -> None:
+    """List bullets are common ("- 10 qop sement") and must keep their meaning."""
+    lines = parse_basket_lines("- 10 qop sement\n- 500 dona gisht")
+    assert [line.qty for line in lines] == [Decimal("10"), Decimal("500")]
+
+
+def test_dash_attached_to_a_number_stays_negative() -> None:
+    """ "-5 dona" is a negative quantity, not a bullet.
+
+    It used to be silently read as 5, so a customer who typed -5 got an order
+    for 5 rather than an error.
+    """
+    lines = parse_basket_lines("-5 dona sement")
+    assert len(lines) == 1
+    assert lines[0].qty == Decimal("-5")
+    assert not is_qty_orderable(lines[0].qty)
