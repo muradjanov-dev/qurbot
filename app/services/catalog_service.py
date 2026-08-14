@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from decimal import Decimal
 
 from app.core.config import settings
 from app.core.metrics import match_method_total
@@ -10,7 +11,7 @@ from app.domain.matching.models import CandidateMatch, MatchDecision, MatchStatu
 from app.domain.matching.scorer import score_and_rank_candidates
 from app.domain.normalize.text import normalize_query
 from app.domain.parsing.models import ParsedLine
-from app.domain.parsing.parser import parse_basket_lines
+from app.domain.parsing.parser import is_qty_orderable, parse_basket_lines
 from app.llm.client import LLMClient
 from app.llm.models import DisambiguationCandidateInput
 
@@ -210,8 +211,27 @@ class CatalogService:
                         for idx, pl in enumerate(llm_parsed.lines)
                     ]
 
+        max_qty = Decimal(settings.basket_max_qty)
         results: list[tuple[ParsedLine, MatchDecision]] = []
         for line in parsed_lines:
+            if not is_qty_orderable(line.qty, max_qty=max_qty):
+                # Refused before matching: an unorderable quantity should not
+                # consume a catalog lookup or an LLM call, and must never reach
+                # the optimizer, where it would produce a meaningless total.
+                results.append(
+                    (
+                        line,
+                        MatchDecision(
+                            canonical_id=None,
+                            status="unresolved",
+                            confidence=0.0,
+                            candidates=[],
+                            method="invalid_qty",
+                            needs_review=True,
+                        ),
+                    )
+                )
+                continue
             res = await self.match_parsed_line(line, user_id=user_id)
             results.append(res)
         return results

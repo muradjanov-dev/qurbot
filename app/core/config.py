@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     listing_max_name_len: int = 255
     listing_max_description_len: int = 2000
 
+    # Basket quantity bounds. A negative quantity cannot be ordered, and a
+    # 12-digit one is a typo rather than an order, so both are refused instead
+    # of being priced.
+    basket_max_qty: int = 1_000_000
+
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82
     match_margin_threshold: float = 0.12

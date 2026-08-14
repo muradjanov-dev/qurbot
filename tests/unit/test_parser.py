@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.parsing.parser import parse_basket_lines, split_message_to_lines
+from app.domain.parsing.parser import is_qty_orderable, parse_basket_lines, split_message_to_lines
 
 
 def test_split_message_lines() -> None:
@@ -95,3 +95,28 @@ def test_parse_multiplier() -> None:
     assert len(parsed) == 1
     assert parsed[0].qty == Decimal("50")
     assert parsed[0].unit_code == "qop"
+
+
+def test_qty_within_bounds_accepts_ordinary_quantities() -> None:
+    assert is_qty_orderable(Decimal("1"))
+    assert is_qty_orderable(Decimal("500"))
+    assert is_qty_orderable(Decimal("0.5"))
+    assert is_qty_orderable(Decimal("1000000"))
+
+
+def test_qty_within_bounds_rejects_zero_and_negative() -> None:
+    """Nothing below 1 can be ordered, so these are input errors, not orders."""
+    assert not is_qty_orderable(Decimal("0"))
+    assert not is_qty_orderable(Decimal("-5"))
+    assert not is_qty_orderable(Decimal("-0.01"))
+
+
+def test_qty_within_bounds_rejects_absurd_quantities() -> None:
+    """A 12-digit quantity is a typo; pricing it produces a meaningless total."""
+    assert not is_qty_orderable(Decimal("1000001"))
+    assert not is_qty_orderable(Decimal("999999999999"))
+
+
+def test_qty_bound_is_configurable() -> None:
+    assert is_qty_orderable(Decimal("50"), max_qty=Decimal("100"))
+    assert not is_qty_orderable(Decimal("150"), max_qty=Decimal("100"))

@@ -185,6 +185,23 @@ def parse_single_line(line_no: int, raw_line: str) -> ParsedLine:
     )
 
 
+# A quantity must be orderable to be worth pricing. The ceiling is injected
+# rather than hard-coded so the caller supplies the configured limit; the
+# default keeps this module usable (and testable) on its own.
+DEFAULT_MAX_QTY = Decimal("1000000")
+
+
+def is_qty_orderable(qty: Decimal, max_qty: Decimal = DEFAULT_MAX_QTY) -> bool:
+    """Whether this quantity is something a customer could actually order.
+
+    Zero and negative quantities are input errors -- there is no such order --
+    and a quantity above the ceiling is a typo whose total would be
+    meaningless. Both are refused rather than silently clamped, so the
+    customer sees what was wrong instead of an unexpected number.
+    """
+    return Decimal("0") < qty <= max_qty
+
+
 def parse_basket_lines(raw_text: str) -> list[ParsedLine]:
     """Parse complete basket text into a sequence of ParsedLine objects."""
     split_lines = split_message_to_lines(raw_text)

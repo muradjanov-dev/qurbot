@@ -196,6 +196,11 @@ MESSAGES: dict[str, dict[str, str]] = {
             "10 мешков цемент\n500 шт кирпич\n3 коробки плитка 30х30"
         ),
     },
+    "qty_out_of_range": {
+        "uz_latn": "miqdor 1 dan 1 000 000 gacha bo'lishi kerak",
+        "uz_cyrl": "миқдор 1 дан 1 000 000 гача бўлиши керак",
+        "ru": "количество должно быть от 1 до 1 000 000",
+    },
     "basket_parsed_header": {
         "uz_latn": "📋 <b>Ro'yxatingiz ({count} ta):</b>\n",
         "uz_cyrl": "📋 <b>Рўйхатингиз ({count} та):</b>\n",

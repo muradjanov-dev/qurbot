@@ -81,3 +81,32 @@ def test_parse_table_balances_tags_for_adversarial_input() -> None:
     assert out.count("<b>") == out.count("</b>")
     assert out.count("<i>") == out.count("</i>")
     assert "<script>" not in out
+
+
+def test_parse_table_explains_a_refused_quantity() -> None:
+    """An unorderable quantity must say so, not read as 'not in catalog'."""
+    lines = [
+        {
+            "line_no": 1,
+            "qty": "-5",
+            "unit_code": "dona",
+            "status": "unresolved",
+            "method": "invalid_qty",
+            "raw_text": "-5 dona sement",
+            "parsed_name": "sement",
+            "canonical_name": "sement",
+        },
+        {
+            "line_no": 2,
+            "qty": "1",
+            "unit_code": "dona",
+            "status": "unresolved",
+            "method": "trgm",
+            "raw_text": "kosmik kema",
+            "parsed_name": "kosmik kema",
+            "canonical_name": "kosmik kema",
+        },
+    ]
+    out = _format_parse_table(lines, lang="uz_latn")
+    assert "1 000 000" in out
+    assert "katalogda topilmadi" in out

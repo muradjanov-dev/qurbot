@@ -151,6 +151,7 @@ async def _process_basket_input(
                 "qty": str(line.qty),
                 "unit_code": line.unit_code or "dona",
                 "status": decision.status,
+                "method": decision.method,
                 "confidence": decision.confidence,
                 "canonical_id": decision.canonical_id,
                 "canonical_name": (
@@ -787,6 +788,9 @@ def _format_parse_table(lines: list[dict[str, Any]], lang: str) -> str:
             body_lines.append(
                 f"{num}. ⚠️ <i>{esc(name)}</i> — {esc(qty)} {esc(unit)}" "  ← <i>turini tanlang</i>"
             )
+        elif item.get("method") == "invalid_qty":
+            raw = item["raw_text"]
+            body_lines.append(f"{num}. ❌ «{esc(raw)}» — <i>{t('qty_out_of_range', lang=lang)}</i>")
         else:
             raw = item["raw_text"]
             body_lines.append(f"{num}. ❌ «{esc(raw)}» — <i>katalogda topilmadi</i>")
