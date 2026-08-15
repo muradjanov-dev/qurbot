@@ -301,6 +301,11 @@ class ShopProductDraft(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(32), default="draft", nullable=False, index=True
     )  # draft|applied|discarded
+    # Telegram delivers an album as several separate updates that share this id,
+    # and only the first carries the caption. Storing it lets the later photos
+    # find the draft the first one created, which is why no timer-based album
+    # buffering is needed -- the grouping is durable rather than in-memory.
+    media_group_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     category_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("categories.id"), nullable=True

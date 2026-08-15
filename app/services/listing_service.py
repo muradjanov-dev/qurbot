@@ -72,12 +72,16 @@ class ListingService:
 
     # ── matching ──────────────────────────────────────────────────────────
 
-    async def match_draft(self, row: ShopProductDraft) -> DraftMatch:
+    async def match_draft(self, row: ShopProductDraft, *, log_unmatched: bool = True) -> DraftMatch:
         """Resolve the owner's product name against the catalog.
 
-        The category the owner already picked narrows the candidate pool before
-        the search LIMIT is applied, which is the cheapest accuracy win
-        available here -- the owner has told us the answer, so we use it.
+        A known category narrows the candidate pool before the search LIMIT is
+        applied, which is the cheapest accuracy win available here.
+
+        `log_unmatched` exists because this is called from read-only paths too
+        (offering pack suggestions, rendering a preview). Recording an unmatched
+        query from those would count the same product several times and skew the
+        admin queue's ordering, which is sorted by how often a term is asked for.
         """
         if not row.name.strip():
             return DraftMatch(None, None, row.pack_unit_code or "dona", 0.0)
@@ -97,13 +101,14 @@ class ListingService:
         decision = await self._match_with_category(parsed, category_ids)
 
         if decision.canonical_id is None:
-            # Unresolved listings are logged so the admin queue grows the
-            # catalog rather than the product silently vanishing (SPEC §6 st.4).
-            await self.ops_repo.record_unmatched_query(
-                raw_text=row.name,
-                normalized=normalize_query(row.name).text_norm,
-                user_id=None,
-            )
+            if log_unmatched:
+                # Unresolved listings are logged so the admin queue grows the
+                # catalog rather than the product silently vanishing (§6 st.4).
+                await self.ops_repo.record_unmatched_query(
+                    raw_text=row.name,
+                    normalized=normalize_query(row.name).text_norm,
+                    user_id=None,
+                )
             return DraftMatch(None, None, row.pack_unit_code or "dona", 0.0)
 
         canonical = await self.catalog_repo.get(decision.canonical_id)
@@ -277,6 +282,11 @@ class ListingService:
         # Owners always see their own media so they can tell it was received;
         # customers only after review.
         show_photos = viewer_is_owner or product.moderation_status == "approved"
+        # The customer buys from QurBot, not from a named vendor. Leaving the
+        # shop name off the card entirely -- rather than relying on each caller
+        # to remember not to render it -- means a future customer-facing surface
+        # cannot leak it by accident.
+        shop_name = product.shop.name if (viewer_is_owner and product.shop) else None
 
         return build_listing_card(
             title=title,
@@ -289,7 +299,7 @@ class ListingService:
             stock_qty=product.stock_qty,
             brand=canonical.brand if canonical else None,
             description=product.description,
-            shop_name=product.shop.name if product.shop else None,
+            shop_name=shop_name,
             photos=photos,
             max_photos=settings.listing_max_photos,
             attributes=attributes,

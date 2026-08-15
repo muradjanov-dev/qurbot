@@ -8,9 +8,11 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import esc, format_qty
+from app.bot.handlers.shop_listing import send_listing_photos
 from app.bot.keyboards.inline import (
     get_basket_actions_keyboard,
     get_order_confirm_keyboard,
@@ -22,6 +24,7 @@ from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
 from app.db.models.order import Order, OrderItem, OrderShopPart
+from app.db.models.shop import ShopProduct
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -399,8 +402,62 @@ async def callback_calculate_quotes(
                 current_index=0,
                 total_variants=len(result.deduplicated_variants),
                 lang=lang,
+                has_photos=await _variant_has_photos(session, result.deduplicated_variants[0]),
             ),
         )
+    await callback.answer()
+
+
+async def _variant_photos(session: AsyncSession, variant: QuoteVariant) -> list[dict[str, Any]]:
+    """Approved photos for the products in this variant, in basket order.
+
+    Only approved media is returned: an unreviewed photo is a shop's word about
+    what they are selling, and it does not reach a customer until someone has
+    looked at it.
+    """
+    offer_ids = [line.offer_id for group in variant.shop_groups for line in group.lines]
+    if not offer_ids:
+        return []
+    stmt = select(ShopProduct).where(
+        ShopProduct.id.in_(offer_ids),
+        ShopProduct.moderation_status == "approved",
+    )
+    result = await session.execute(stmt)
+    photos: list[dict[str, Any]] = []
+    for product in result.scalars().all():
+        photos.extend(product.photos or [])
+    # Telegram accepts at most 10 items in one album.
+    return photos[:10]
+
+
+async def _variant_has_photos(session: AsyncSession, variant: QuoteVariant) -> bool:
+    return bool(await _variant_photos(session, variant))
+
+
+@router.callback_query(F.data.startswith("quote_photos:"))
+async def callback_quote_photos(
+    callback: CallbackQuery,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    idx = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    raw_quotes: list[dict[str, Any]] = data.get("quotes", [])
+    if not raw_quotes or idx >= len(raw_quotes):
+        await callback.answer()
+        return
+
+    variant = _deserialize_variant(raw_quotes[idx])
+    photos = await _variant_photos(session, variant)
+    if not photos:
+        await callback.answer(t("photos_unavailable", lang=lang), show_alert=True)
+        return
+
+    await send_listing_photos(callback.message, photos, session)
     await callback.answer()
 
 
@@ -408,6 +465,7 @@ async def callback_calculate_quotes(
 async def callback_nav_quote(
     callback: CallbackQuery,
     state: FSMContext,
+    session: AsyncSession,
     lang: str,
 ) -> None:
     if not callback.data:
@@ -431,6 +489,7 @@ async def callback_nav_quote(
                 current_index=idx,
                 total_variants=len(raw_quotes),
                 lang=lang,
+                has_photos=await _variant_has_photos(session, variant),
             ),
         )
     await callback.answer()
@@ -763,8 +822,7 @@ async def _notify_shops_and_admins_of_order(
         f"──────────────────────────\n"
         f"Mahsulotlar: {items_total:,.0f} so'm\n"
         f"Dostavka: {delivery_total:,.0f} so'm\n"
-        f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>\n"
-        f"🏪 Do'konlar: {len(shop_parts)} ta"
+        f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>"
     )
     for admin_id in settings.admin_tg_ids:
         try:
@@ -855,20 +913,17 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     else:
         header = t("quote_header_balanced", lang=lang)
 
-    shop_sections = []
-    for g in variant.shop_groups:
-        lines_str = "\n".join(
-            f"   • {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)} "
-            f"....... {line.line_cost_uzs:,.0f}"
-            for line in g.lines
-        )
-        fee_str = "bepul" if g.is_free_delivery else f"{g.delivery_fee_uzs:,.0f}"
-        dist_str = f" — {g.distance_km:.1f} km" if g.distance_km else ""
-        shop_sections.append(
-            f"🏪 <b>{g.shop_name}</b>{dist_str}\n"
-            f"{lines_str}\n"
-            f"   <i>Jami: {g.subtotal_uzs:,.0f} + dostavka {fee_str}</i>"
-        )
+    # White-label: the customer buys from QurBot, not from a list of vendors.
+    # Every line is merged into one basket with no shop names, distances or
+    # per-shop subtotals -- the sourcing split stays internal, on the order
+    # parts and the shop notifications, where it is actually needed.
+    item_lines = [
+        f"• {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)} "
+        f"....... {line.line_cost_uzs:,.0f}"
+        for group in variant.shop_groups
+        for line in group.lines
+    ]
+    items_block = "\n".join(item_lines)
 
     divider = "──────────────────────────────"
     savings_str = (
@@ -901,7 +956,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
         f"{eta_str}"
     )
 
-    return f"{header}\n\n" + "\n\n".join(shop_sections) + f"\n\n{summary}"
+    return f"{header}\n\n{items_block}\n\n{summary}"
 
 
 def _serialize_variant(v: QuoteVariant) -> dict[str, Any]:

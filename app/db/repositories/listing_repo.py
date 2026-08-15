@@ -70,6 +70,30 @@ class ListingRepository:
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def get_draft_by_media_group(
+        self, owner_tg_id: int, media_group_id: str
+    ) -> ShopProductDraft | None:
+        """Find the draft an album's first photo created.
+
+        Album members arrive as independent updates; this is how the later ones
+        attach to the same listing without holding a timer in memory.
+        """
+        stmt = (
+            select(ShopProductDraft)
+            .where(
+                ShopProductDraft.owner_tg_id == owner_tg_id,
+                ShopProductDraft.media_group_id == media_group_id,
+                ShopProductDraft.status == "draft",
+            )
+            .order_by(ShopProductDraft.id.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_applied_product(self, shop_product_id: int) -> ShopProduct | None:
+        return await self.session.get(ShopProduct, shop_product_id)
+
     async def create_draft(self, shop_id: int, owner_tg_id: int) -> ShopProductDraft:
         draft = ShopProductDraft(
             shop_id=shop_id,

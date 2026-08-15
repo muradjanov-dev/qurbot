@@ -23,22 +23,22 @@ class OrderCheckoutStates(StatesGroup):
 
 
 class ShopListingStates(StatesGroup):
-    """Product upload wizard.
+    """Product upload.
 
-    These states only decide which question the bot is currently asking -- the
-    answers themselves live in shop_product_drafts, so losing the state loses
-    at most one question, never the listing.
+    The normal path is a single message -- photos plus a caption -- and none of
+    these states are entered at all. They exist only for the pieces the caption
+    did not supply, so the bot asks about exactly what is missing and nothing
+    else. The answers themselves live in shop_product_drafts, so losing the
+    state loses at most one question, never the listing.
     """
 
-    choosing_category = State()
+    quick_entry = State()
     entering_name = State()
-    choosing_unit = State()
+    choosing_pack = State()
     entering_pack_size = State()
     entering_price = State()
-    entering_qty = State()
-    entering_description = State()
-    uploading_photos = State()
-    reviewing = State()
+    confirming_price = State()
+    editing_saved = State()
 
 
 class AdminPanelStates(StatesGroup):

@@ -109,33 +109,32 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "🛒 Маҳсулотлар ва нархлар",
         "ru": "🛒 Товары и цены",
     },
+    # Customer-facing product view. The supplier count is deliberately absent:
+    # to the customer this is one catalogue, not a list of vendors bidding.
     "product_card": {
         "uz_latn": (
             "<b>{name}</b>\n\n"
             "🏷 Brend: {brand}\n"
             "💰 Narx: <b>{min_price} — {max_price} so'm</b>\n"
-            "🏪 Do'konlarda: {shops} ta taklif\n"
             "📏 O'lchov: {unit}"
         ),
         "uz_cyrl": (
             "<b>{name}</b>\n\n"
             "🏷 Бренд: {brand}\n"
             "💰 Нарх: <b>{min_price} — {max_price} сўм</b>\n"
-            "🏪 Дўконларда: {shops} та таклиф\n"
             "📏 Ўлчов: {unit}"
         ),
         "ru": (
             "<b>{name}</b>\n\n"
             "🏷 Бренд: {brand}\n"
             "💰 Цена: <b>{min_price} — {max_price} сум</b>\n"
-            "🏪 В магазинах: {shops} предложений\n"
             "📏 Единица: {unit}"
         ),
     },
     "product_card_no_offers": {
-        "uz_latn": "<b>{name}</b>\n\nHozircha do'konlarda mavjud emas.",
-        "uz_cyrl": "<b>{name}</b>\n\nҲозирча дўконларда мавжуд эмас.",
-        "ru": "<b>{name}</b>\n\nПока нет в наличии в магазинах.",
+        "uz_latn": "<b>{name}</b>\n\nHozircha mavjud emas.",
+        "uz_cyrl": "<b>{name}</b>\n\nҲозирча мавжуд эмас.",
+        "ru": "<b>{name}</b>\n\nПока нет в наличии.",
     },
     "price_browse_choose_category": {
         "uz_latn": "🔍 <b>Mahsulot narxlari</b>\n\nKategoriyani tanlang:",
@@ -153,9 +152,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "💰 <b>{category}</b>\n\nВыберите товар, чтобы посмотреть подробнее:",
     },
     "price_browse_hint": {
-        "uz_latn": "\n<i>Narxlar — do'konlardagi eng arzon taklif.</i>",
-        "uz_cyrl": "\n<i>Нархлар — дўконлардаги энг арзон таклиф.</i>",
-        "ru": "\n<i>Цены — самое дешёвое предложение среди магазинов.</i>",
+        "uz_latn": "\n<i>Narxlar — biz taklif qilayotgan eng arzon narx.</i>",
+        "uz_cyrl": "\n<i>Нархлар — биз таклиф қилаётган энг арзон нарх.</i>",
+        "ru": "\n<i>Цены — наше лучшее предложение.</i>",
     },
     "menu_shop_portal": {
         "uz_latn": "🏪 Do'kon paneli",
@@ -318,10 +317,12 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "💰 <b>ЭНГ ТЕЖАМЛИ ВАРИАНТ</b>",
         "ru": "💰 <b>САМЫЙ ВЫГОДНЫЙ ВАРИАНТ</b>",
     },
+    # Named for what the customer gets, not for how it is sourced: a single
+    # supplier means one delivery, and the supplier itself is never shown.
     "quote_header_single_shop": {
-        "uz_latn": "🏪 <b>BITTA DO'KONDAN</b>",
-        "uz_cyrl": "🏪 <b>БИТТА ДЎКОНДАН</b>",
-        "ru": "🏪 <b>ИЗ ОДНОГО МАГАЗИНА</b>",
+        "uz_latn": "📦 <b>BIR YETKAZIBDA</b>",
+        "uz_cyrl": "📦 <b>БИР ЕТКАЗИБДА</b>",
+        "ru": "📦 <b>ОДНОЙ ДОСТАВКОЙ</b>",
     },
     "quote_header_fastest": {
         "uz_latn": "⚡️ <b>ENG TEZ YETKAZIB BERISH</b>",
@@ -380,9 +381,9 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "prompt_checkout_comment": {
         "uz_latn": (
-            "Do'kon uchun qo'shimcha izoh yoki istak (ixtiyoriy, 'yo'q' deb yozishingiz mumkin):"
+            "Buyurtmaga qo'shimcha izoh yoki istak (ixtiyoriy, 'yo'q' deb yozishingiz mumkin):"
         ),
-        "uz_cyrl": "Дўкон учун қўшимча изоҳ ёки истак (ихтиёрий, 'йўқ' деб ёзишингиз мумкин):",
+        "uz_cyrl": "Буюртмага қўшимча изоҳ ёки истак (ихтиёрий, 'йўқ' деб ёзишингиз мумкин):",
         "ru": "Комментарий к заказу (необязательно, можете написать 'нет'):",
     },
     "order_confirm_prompt": {
@@ -425,19 +426,19 @@ MESSAGES: dict[str, dict[str, str]] = {
             "🎉 <b>Buyurtmangiz qabul qilindi!</b>\n\n"
             "Buyurtma raqami: <b>#{order_id}</b>\n"
             "Jami summa: <b>{total} so'm</b>\n\n"
-            "Do'konlar buyurtmani ko'rib chiqib, tez orada siz bilan bog'lanishadi."
+            "Buyurtmangiz tayyorlanmoqda, tez orada siz bilan bog'lanamiz."
         ),
         "uz_cyrl": (
             "🎉 <b>Буюртмангиз қабул қилинди!</b>\n\n"
             "Буюртма рақами: <b>#{order_id}</b>\n"
             "Жами сумма: <b>{total} сўм</b>\n\n"
-            "Дўконлар буюртмани кўриб чиқиб, тез орада сиз билан боғланишади."
+            "Буюртмангиз тайёрланмоқда, тез орада сиз билан боғланамиз."
         ),
         "ru": (
             "🎉 <b>Ваш заказ успешно оформлен!</b>\n\n"
             "Номер заказа: <b>#{order_id}</b>\n"
             "Сумма к оплате: <b>{total} сум</b>\n\n"
-            "Магазины получили заказ и скоро свяжутся с вами."
+            "Ваш заказ собирается, мы скоро свяжемся с вами."
         ),
     },
     # Shop Owner Flow
@@ -1026,6 +1027,87 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "➕ Yangi mahsulot",
         "uz_cyrl": "➕ Янги маҳсулот",
         "ru": "➕ Новый товар",
+    },
+    "listing_quick_prompt": {
+        "uz_latn": (
+            "📷 Mahsulot rasm(lar)ini yuboring va izohga bir qatorda yozing:\n"
+            "<b>nomi + qadoq + narx</b>\n\n"
+            "<i>Masalan:</i>\n"
+            "<code>Sement M400 50kg qop 52000 so'm</code>\n\n"
+            "Rasmsiz ham bo'ladi — shunchaki matn yuboring."
+        ),
+        "uz_cyrl": (
+            "📷 Маҳсулот расм(лар)ини юборинг ва изоҳга бир қаторда ёзинг:\n"
+            "<b>номи + қадоқ + нарх</b>\n\n"
+            "<i>Масалан:</i>\n"
+            "<code>Sement M400 50kg қоп 52000 сўм</code>\n\n"
+            "Расмсиз ҳам бўлади — шунчаки матн юборинг."
+        ),
+        "ru": (
+            "📷 Отправьте фото товара и в подписи одной строкой укажите:\n"
+            "<b>название + фасовка + цена</b>\n\n"
+            "<i>Например:</i>\n"
+            "<code>Цемент М400 50кг мешок 52000 сум</code>\n\n"
+            "Можно и без фото — просто отправьте текст."
+        ),
+    },
+    "listing_ask_name": {
+        "uz_latn": "Mahsulot nomini yozing:",
+        "uz_cyrl": "Маҳсулот номини ёзинг:",
+        "ru": "Напишите название товара:",
+    },
+    "listing_ask_price": {
+        "uz_latn": "<b>{name}</b> — narxi qancha? Faqat raqam yozing.",
+        "uz_cyrl": "<b>{name}</b> — нархи қанча? Фақат рақам ёзинг.",
+        "ru": "<b>{name}</b> — какая цена? Напишите только число.",
+    },
+    "listing_ask_pack": {
+        "uz_latn": "Qanday qadoqda sotasiz?",
+        "uz_cyrl": "Қандай қадоқда сотасиз?",
+        "ru": "В какой фасовке продаёте?",
+    },
+    "listing_ask_pack_custom": {
+        "uz_latn": "Qadoqni yozing. <i>Masalan: 25kg yoki 10 litr</i>",
+        "uz_cyrl": "Қадоқни ёзинг. <i>Масалан: 25kg ёки 10 литр</i>",
+        "ru": "Напишите фасовку. <i>Например: 25кг или 10 литр</i>",
+    },
+    "listing_confirm_price": {
+        "uz_latn": ("Narxni shunday tushundim: <b>{price} so'm</b> / {pack}\n" "To'g'rimi?"),
+        "uz_cyrl": ("Нархни шундай тушундим: <b>{price} сўм</b> / {pack}\n" "Тўғрими?"),
+        "ru": ("Я понял цену так: <b>{price} сум</b> / {pack}\n" "Верно?"),
+    },
+    "listing_price_hint_explicit": {
+        "uz_latn": (
+            "Keyingi safar narxni <code>so'm</code> deb belgilang — "
+            "shunda tasdiqlash so'ralmaydi."
+        ),
+        "uz_cyrl": (
+            "Кейинги сафар нархни <code>сўм</code> деб белгиланг — " "шунда тасдиқлаш сўралмайди."
+        ),
+        "ru": (
+            "В следующий раз пометьте цену словом <code>сум</code> — "
+            "тогда подтверждение не потребуется."
+        ),
+    },
+    "listing_photo_added": {
+        "uz_latn": "📷 Rasm qo'shildi ({n}/{max}).",
+        "uz_cyrl": "📷 Расм қўшилди ({n}/{max}).",
+        "ru": "📷 Фото добавлено ({n}/{max}).",
+    },
+    "btn_price_correct": {
+        "uz_latn": "✅ To'g'ri",
+        "uz_cyrl": "✅ Тўғри",
+        "ru": "✅ Верно",
+    },
+    "btn_price_fix": {
+        "uz_latn": "✏️ Narxni tuzatish",
+        "uz_cyrl": "✏️ Нархни тузатиш",
+        "ru": "✏️ Исправить цену",
+    },
+    "btn_pack_other": {
+        "uz_latn": "✏️ Boshqa",
+        "uz_cyrl": "✏️ Бошқа",
+        "ru": "✏️ Другая",
     },
     "listing_intro": {
         "uz_latn": (

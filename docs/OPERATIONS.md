@@ -58,8 +58,23 @@ Served from the same web service at `/admin`, behind HTTP Basic Auth
 values before deploying; the defaults are placeholders).
 
 Screens: `/admin/unmatched` (start here — highest-value queue), `/admin/aliases`,
-`/admin/shops`, `/admin/offers`, `/admin/orders`, `/admin/dashboard` (daily metrics),
-`/admin/llm-cost`.
+`/admin/shops`, `/admin/offers`, `/admin/listings` (photo review),
+`/admin/orders`, `/admin/dashboard` (daily metrics), `/admin/llm-cost`.
+
+### Photo review (`/admin/listings`)
+
+Shop owners upload products with photos through the bot. Approving or rejecting
+gates **only** whether customers see the owner's photos and description — the
+price of a pending listing is live and competing in quotes from the moment it is
+saved. Withholding a shop's prices because nobody has reviewed their photo yet
+would punish them for uploading one.
+
+Rejecting clears the photos and leaves the offer active, for the same reason: a
+bad photo is not a reason to pull a real price out of the market.
+
+Photos are served from `/admin/photo/{file_unique_id}`, reading our own stored
+bytes rather than proxying Telegram — a `file_id` is scoped to the bot that
+received it and cannot be rendered in an `<img>` tag at all.
 
 ## `/metrics` (Prometheus)
 

@@ -13,8 +13,9 @@ app/
   bot/          aiogram dispatcher, handlers, middlewares, keyboards, i18n strings
   core/         config, logging, i18n, exceptions, metrics
   db/           SQLAlchemy models + repositories (all DB access goes through these)
-  domain/       pure logic: parsing, matching, pricing, optimizer -- no I/O, no imports
-                of sqlalchemy/aiogram/httpx (enforced by tests/unit/test_domain_purity.py)
+  domain/       pure logic: parsing, matching, pricing, optimizer, listing -- no I/O,
+                no imports of sqlalchemy/aiogram/httpx (enforced by
+                tests/unit/test_domain_purity.py)
   llm/          Stage 3 disambiguation + whole-message parse fallback
   services/     orchestration layer: wires domain + repositories + llm
   web/          admin panel (FastAPI + Jinja2, HTTP Basic Auth)
@@ -23,6 +24,34 @@ migrations/     Alembic revisions
 scripts/        seed.py, load_test.py, backup.py, restore.py, notify_deploy.py
 tests/          unit/ (no DB), integration/ (sqlite in-memory via test_session fixture)
 ```
+
+## Shop product uploads
+
+A shop owner adds a product in one action: send photos with a caption like
+`Sement M400 50kg qop 52000 so'm`. Whatever the caption doesn't say is asked
+for, and nothing else.
+
+Two invariants hold this together:
+
+- **Nothing is lost.** Every answer is written to `shop_product_drafts` before
+  the next question is asked, and photo bytes are stored in
+  `product_photo_blobs` on receipt. A redeploy, a Redis eviction or a user who
+  walks away for two days costs at most the question in flight — the draft is
+  found again by owner id and resumes where it stopped. A Telegram `file_id` is
+  treated as a cache, never the store of record: it dies with the bot token.
+- **A price is never saved on a guess.** A caption marking the price
+  (`52000 so'm`, `narx 52000`, `= 52000`) is trusted. A bare trailing number is
+  shown back for one-tap confirmation first. Price feeds `price_per_base_unit`,
+  which decides every quote the shop appears in, so it does not get to be
+  implicit. See `app/domain/listing/quick_entry.py`.
+
+Customers never see which shop supplied a line — quote cards, the PDF and order
+summaries present one merged basket. Shop attribution stays on `order_shop_parts`
+and the shop notifications, where fulfilment actually needs it.
+
+Stock is respected when quoting: a shop that can't cover the requested quantity
+is not offered, and if nobody can, the shop holding the most is offered rather
+than showing the customer nothing (`BasketOptimizer._filter_by_stock`).
 
 ## Local setup
 

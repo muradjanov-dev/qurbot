@@ -1,35 +1,41 @@
-"""Shop product upload wizard.
+"""Shop product upload: one message in, a live offer out.
 
-Design rule for this module: **never hold an answer only in FSM state**. Every
-handler writes the owner's answer to shop_product_drafts before it asks the next
-question, and photo bytes are persisted on receipt. FSM state records only which
-question is open, and even that is recoverable -- `next_missing_step` derives the
-next question from the stored draft, so an owner whose session vanished mid-upload
-resumes exactly where they stopped with nothing re-typed.
+The intended interaction is a single action -- the owner sends photos with a
+caption like "Sement M400 50kg qop 52000 so'm" and the product is created. The
+handlers below exist mostly to cover what that caption did *not* say: they ask
+for exactly the missing piece and nothing more.
+
+Two rules shape the whole module:
+
+* **Nothing is held only in FSM state.** Every value is written to
+  shop_product_drafts as it arrives and photo bytes are persisted on receipt, so
+  a restart or a lost session costs at most the question in flight. When state
+  is gone the draft is still found by owner id, and the next question is derived
+  from the stored draft rather than remembered.
+* **A price is never saved on a guess.** A caption that marks the price
+  ("52000 so'm") is trusted; a bare trailing number is shown back for one-tap
+  confirmation first. A wrong price does not fail loudly -- it quietly wins or
+  loses every quote -- so it does not get to be implicit.
 """
 
 from __future__ import annotations
 
 import logging
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from aiogram import F, Router
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.listing import render_draft_review, render_saved_confirmation
-from app.bot.handlers.shop import _get_user_shop as _get_active_shop
+from app.bot.formatters.common import format_uzs
+from app.bot.formatters.listing import render_listing_card, render_saved_confirmation
 from app.bot.keyboards.listing import (
-    get_category_keyboard,
-    get_photo_step_keyboard,
-    get_resume_keyboard,
-    get_review_keyboard,
+    get_pack_keyboard,
+    get_price_confirm_keyboard,
     get_saved_keyboard,
-    get_skip_keyboard,
-    get_unit_keyboard,
 )
 from app.bot.states import ShopListingStates
 from app.core.config import settings
@@ -37,10 +43,14 @@ from app.core.i18n import t
 from app.db.models.shop import Shop, ShopProductDraft
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
-from app.db.repositories.listing_repo import ListingRepository, draft_to_domain
+from app.db.repositories.listing_repo import ListingRepository
 from app.db.repositories.ops_repo import OpsRepository
-from app.domain.listing import ListingStep, build_listing_card
-from app.domain.pricing.units import STANDARD_UNITS
+from app.db.repositories.shop_repo import ShopRepository
+from app.domain.listing import (
+    ParsedListingInput,
+    PhotoRef,
+    parse_listing_caption,
+)
 from app.services.listing_service import ListingService
 
 logger = logging.getLogger(__name__)
@@ -49,236 +59,212 @@ router = Router(name="shop_listing")
 
 DRAFT_ID_KEY = "listing_draft_id"
 
-_STEP_STATES: dict[ListingStep, State] = {
-    ListingStep.CATEGORY: ShopListingStates.choosing_category,
-    ListingStep.NAME: ShopListingStates.entering_name,
-    ListingStep.UNIT: ShopListingStates.choosing_unit,
-    ListingStep.PRICE: ShopListingStates.entering_price,
-    ListingStep.QTY: ShopListingStates.entering_qty,
-    ListingStep.DESCRIPTION: ShopListingStates.entering_description,
-    ListingStep.PHOTOS: ShopListingStates.uploading_photos,
-    ListingStep.REVIEW: ShopListingStates.reviewing,
-}
-
-_PHOTO_HINT_KEYS = ("listing_photo_hint_1", "listing_photo_hint_2", "listing_photo_hint_3")
+MENU_ADD_PRODUCT = ("➕ Yangi mahsulot", "➕ Янги маҳсулот", "➕ Новый товар")
 
 
-# ── helpers ───────────────────────────────────────────────────────────────
+# ── plumbing ──────────────────────────────────────────────────────────────
 
 
-def _services(session: AsyncSession) -> tuple[ListingRepository, ListingService]:
+def _service(session: AsyncSession) -> ListingService:
     listing_repo = ListingRepository(session)
     catalog_repo = CatalogRepository(session)
     ops_repo = OpsRepository(session)
-    return listing_repo, ListingService(session, listing_repo, catalog_repo, ops_repo)
+    return ListingService(session, listing_repo, catalog_repo, ops_repo)
 
 
-async def _get_shop(user: User, session: AsyncSession, state: FSMContext) -> Shop | None:
-    """Whichever branch the owner selected in the shop panel.
-
-    Shares _get_user_shop so a multi-branch owner uploads into the shop they
-    picked, rather than into whichever row happened to be returned first.
-    """
-    return await _get_active_shop(user, session, state)
+async def _shop_for(user: User, session: AsyncSession) -> Shop | None:
+    if user.tg_id is None:
+        return None
+    return await ShopRepository(session).get_shop_by_owner_tg_id(user.tg_id)
 
 
-def _is_count_unit(unit_code: str) -> bool:
-    """Whether this unit is a package counter rather than a measure.
-
-    "qop", "dona", "quti" and the like have no size of their own, so asking how
-    many of them fit in one pack is meaningless.
-    """
-    unit_def = STANDARD_UNITS.get(unit_code.strip().lower())
-    return unit_def is not None and unit_def.dimension == "count"
+def _is_shop_owner(user: User) -> bool:
+    return user.role in ("shop_owner", "admin")
 
 
-async def _load_draft(
+async def _current_draft(
     state: FSMContext, session: AsyncSession, user: User
 ) -> ShopProductDraft | None:
-    """Fetch the draft from state, falling back to the owner's open draft.
+    """The draft in play: from FSM if present, otherwise the owner's open one.
 
-    The fallback is what makes a lost FSM session harmless: if the state no
-    longer carries a draft id, the stored draft is still found by owner.
+    The fallback is what makes a lost session harmless -- the draft is keyed by
+    owner in the database, so it is found again with nothing re-typed.
     """
-    listing_repo = ListingRepository(session)
+    repo = ListingRepository(session)
     data = await state.get_data()
     draft_id = data.get(DRAFT_ID_KEY)
     if draft_id is not None:
-        draft = await listing_repo.get_draft(int(draft_id))
+        draft = await repo.get_draft(int(draft_id))
         if draft is not None and draft.status == "draft":
             return draft
     if user.tg_id is None:
         return None
-    return await listing_repo.get_open_draft(user.tg_id)
+    return await repo.get_open_draft(user.tg_id)
 
 
-def _parse_decimal(raw: str) -> Decimal | None:
-    """Accept the ways people actually type numbers: '52 000', '52.000', '1,5'."""
-    cleaned = raw.strip().replace(" ", "").replace(" ", "")
-    if not cleaned:
-        return None
-    if "," in cleaned and "." not in cleaned:
-        cleaned = cleaned.replace(",", ".")
-    else:
-        cleaned = cleaned.replace(",", "")
+def _parse_number(raw: str) -> Decimal | None:
+    parsed = parse_listing_caption(raw)
+    if parsed.price is not None:
+        return parsed.price
+    cleaned = raw.strip().replace(" ", "").replace(",", ".")
     try:
         return Decimal(cleaned)
-    except (InvalidOperation, ValueError):
-        return None
-
-
-async def _ask_step(
-    message: Message,
-    state: FSMContext,
-    session: AsyncSession,
-    draft: ShopProductDraft,
-    lang: str,
-    step: ListingStep,
-) -> None:
-    """Ask one question and move the FSM to the matching state."""
-    await state.set_state(_STEP_STATES[step])
-    await state.update_data({DRAFT_ID_KEY: draft.id})
-
-    catalog_repo = CatalogRepository(session)
-
-    match step:
-        case ListingStep.CATEGORY:
-            roots = await catalog_repo.list_root_categories()
-            await message.answer(
-                t("listing_step_category", lang=lang),
-                reply_markup=get_category_keyboard(roots, lang=lang),
-            )
-        case ListingStep.NAME:
-            await message.answer(t("listing_step_name", lang=lang))
-        case ListingStep.UNIT:
-            units = await catalog_repo.list_units()
-            suggested = await _suggested_unit(session, draft)
-            await message.answer(
-                t("listing_step_unit", lang=lang),
-                reply_markup=get_unit_keyboard(units, lang=lang, suggested=suggested),
-            )
-        case ListingStep.PRICE:
-            pack = _pack_text(draft)
-            await message.answer(t("listing_step_price", lang=lang, pack=pack))
-        case ListingStep.QTY:
-            await message.answer(
-                t("listing_step_qty", lang=lang), reply_markup=get_skip_keyboard(lang)
-            )
-        case ListingStep.DESCRIPTION:
-            await message.answer(
-                t("listing_step_description", lang=lang), reply_markup=get_skip_keyboard(lang)
-            )
-        case ListingStep.PHOTOS:
-            await _ask_photo(message, draft, lang)
-        case ListingStep.REVIEW:
-            await _show_review(message, session, draft, lang)
-
-
-async def _suggested_unit(session: AsyncSession, draft: ShopProductDraft) -> str | None:
-    """Pre-select the base unit of whatever the name already matches."""
-    if not draft.name.strip():
-        return None
-    _repo, service = _services(session)
-    try:
-        match = await service.match_draft(draft)
     except Exception:
-        logger.warning("listing_unit_suggestion_failed draft=%s", draft.id, exc_info=True)
         return None
-    return match.base_unit if match.canonical_id else None
 
 
 def _pack_text(draft: ShopProductDraft) -> str:
     size = draft.pack_size or Decimal("1")
-    unit = draft.pack_unit_code or "dona"
-    return f"{format(size.normalize(), 'f')} {unit}"
+    return f"{format(size.normalize(), 'f')} {draft.pack_unit_code or 'dona'}"
 
 
-async def _ask_photo(message: Message, draft: ShopProductDraft, lang: str) -> None:
-    count = len(draft.photos or [])
-    if count >= settings.listing_max_photos:
+# ── ingest ────────────────────────────────────────────────────────────────
+
+
+async def _apply_parsed(
+    session: AsyncSession, draft: ShopProductDraft, parsed: ParsedListingInput
+) -> None:
+    """Persist whatever the caption gave us, without overwriting known values."""
+    repo = ListingRepository(session)
+    fields: dict[str, Any] = {}
+    if parsed.name and not draft.name:
+        fields["name"] = parsed.name[: settings.listing_max_name_len]
+    if parsed.pack_size is not None and draft.pack_size is None:
+        fields["pack_size"] = parsed.pack_size
+    if parsed.pack_unit is not None and draft.pack_unit_code is None:
+        fields["pack_unit_code"] = parsed.pack_unit
+    if parsed.stock_qty is not None and draft.stock_qty is None:
+        fields["stock_qty"] = parsed.stock_qty
+    if parsed.price is not None and draft.price_per_pack is None:
+        fields["price_per_pack"] = parsed.price
+    if fields:
+        await repo.update_draft(draft, **fields)
+
+
+async def _continue(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    draft: ShopProductDraft,
+    lang: str,
+    *,
+    price_inferred: bool = False,
+) -> None:
+    """Ask for the one thing still missing, or save when nothing is."""
+    await state.update_data({DRAFT_ID_KEY: draft.id})
+
+    if not draft.name.strip():
+        await state.set_state(ShopListingStates.entering_name)
+        await message.answer(t("listing_ask_name", lang=lang))
+        return
+
+    if draft.pack_size is None or draft.pack_unit_code is None:
+        await state.set_state(ShopListingStates.choosing_pack)
+        suggestions = await _pack_suggestions(session, draft)
         await message.answer(
-            t("listing_photo_limit_reached", lang=lang, max=settings.listing_max_photos)
+            t("listing_ask_pack", lang=lang),
+            reply_markup=get_pack_keyboard(suggestions, lang=lang),
         )
         return
-    hint = t(_PHOTO_HINT_KEYS[min(count, len(_PHOTO_HINT_KEYS) - 1)], lang=lang)
-    await message.answer(
-        t(
-            "listing_step_photo",
-            lang=lang,
-            n=count + 1,
-            hint=hint,
-            max=settings.listing_max_photos,
-        ),
-        reply_markup=get_photo_step_keyboard(lang, has_photos=count > 0),
-    )
+
+    if draft.price_per_pack is None:
+        await state.set_state(ShopListingStates.entering_price)
+        await message.answer(t("listing_ask_price", lang=lang, name=draft.name))
+        return
+
+    if price_inferred:
+        await state.set_state(ShopListingStates.confirming_price)
+        await message.answer(
+            t(
+                "listing_confirm_price",
+                lang=lang,
+                price=format_uzs(draft.price_per_pack),
+                pack=_pack_text(draft),
+            ),
+            reply_markup=get_price_confirm_keyboard(lang),
+        )
+        return
+
+    await _save(message, state, session, draft, lang)
 
 
-async def _show_review(
-    message: Message, session: AsyncSession, draft: ShopProductDraft, lang: str
-) -> None:
-    _repo, service = _services(session)
-    match = await service.match_draft(draft)
-    domain_draft = draft_to_domain(draft)
+async def _pack_suggestions(
+    session: AsyncSession, draft: ShopProductDraft
+) -> list[tuple[Decimal, str]]:
+    """Offer the packs this product is actually sold in, most common first.
 
-    card = build_listing_card(
-        title=draft.name,
-        price_per_pack=draft.price_per_pack or Decimal("0"),
-        price_per_base_unit=service._price_per_base_unit(domain_draft, match.base_unit),
-        pack_size=draft.pack_size or Decimal("1"),
-        pack_unit=draft.pack_unit_code or "dona",
-        base_unit=match.base_unit,
-        stock_qty=draft.stock_qty,
-        description=draft.description,
-        photos=domain_draft.photos,
-        max_photos=settings.listing_max_photos,
-        show_photos=True,
-    )
-    text = render_draft_review(
-        domain_draft, lang=lang, card=card, matched_name=match.canonical_name
-    )
-    await message.answer(text, reply_markup=get_review_keyboard(lang))
+    Anchoring to real catalogue packs beats free text: it is one tap, and it
+    keeps pack sizes consistent across shops so the per-unit comparison is
+    like-for-like.
+    """
+    service = _service(session)
+    try:
+        match = await service.match_draft(draft, log_unmatched=False)
+    except Exception:
+        logger.warning("listing_pack_suggestion_failed draft=%s", draft.id, exc_info=True)
+        return []
+
+    suggestions: list[tuple[Decimal, str]] = []
+    if match.canonical_id is not None:
+        repo = ShopRepository(session)
+        for size, unit in await repo.common_packs_for_canonical(match.canonical_id, limit=3):
+            if (size, unit) not in suggestions:
+                suggestions.append((size, unit))
+    if not suggestions:
+        suggestions = [(Decimal("1"), match.base_unit)]
+    return suggestions
 
 
-async def _advance(
+async def _save(
     message: Message,
     state: FSMContext,
     session: AsyncSession,
     draft: ShopProductDraft,
     lang: str,
 ) -> None:
-    """Ask whatever the stored draft says is still missing."""
-    step = next_step_for(draft)
-    await _ask_step(message, state, session, draft, lang, step)
-
-
-def next_step_for(draft: ShopProductDraft) -> ListingStep:
-    from app.domain.listing import next_missing_step
-
-    return next_missing_step(draft_to_domain(draft))
-
-
-# ── entry points ──────────────────────────────────────────────────────────
-
-
-@router.callback_query(F.data == "shp:add_product")
-async def cb_add_product(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    """Inline-panel entry point into the same wizard as the reply button."""
-    if not isinstance(callback.message, Message):
-        await callback.answer()
+    service = _service(session)
+    draft_id = draft.id
+    try:
+        outcome = await service.apply_draft(draft)
+    except ValueError:
+        # Something required is still blank. Roll back, reload the draft by its
+        # own id (the rollback detached the instance) and ask for what is
+        # missing rather than storing a half-built offer that would misquote.
+        await session.rollback()
+        fresh = await ListingRepository(session).get_draft(draft_id)
+        if fresh is not None:
+            await _continue(message, state, session, fresh, lang)
         return
-    await menu_add_product(
-        message=callback.message, state=state, user=user, session=session, lang=lang
+
+    await session.commit()
+    await state.clear()
+
+    product = await ListingRepository(session).get_applied_product(outcome.shop_product_id)
+    if product is not None:
+        card = await service.build_card(product, viewer_is_owner=True)
+        await _send_card_with_photos(message, card, lang)
+
+    await message.answer(
+        render_saved_confirmation(outcome.display_name, lang, media_pending=outcome.media_pending),
+        reply_markup=get_saved_keyboard(lang),
     )
-    await callback.answer()
 
 
-@router.message(F.text.in_(["➕ Yangi mahsulot", "➕ Янги маҳсулот", "➕ Новый товар"]))
+async def _send_card_with_photos(message: Message, card: Any, lang: str) -> None:
+    text = render_listing_card(card, lang=lang, show_shop=False)
+    if card.primary_photo is not None:
+        try:
+            await message.answer_photo(card.primary_photo.file_id, caption=text)
+            return
+        except Exception:
+            logger.info("listing_card_photo_failed -- falling back to text")
+    await message.answer(text)
+
+
+# ── entry: the one-action path ────────────────────────────────────────────
+
+
+@router.message(F.text.in_(MENU_ADD_PRODUCT))
 async def menu_add_product(
     message: Message,
     state: FSMContext,
@@ -286,422 +272,154 @@ async def menu_add_product(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not _is_shop_owner(user):
         await message.answer(t("not_shop_owner", lang=lang))
         return
+    if await _shop_for(user, session) is None:
+        await message.answer(t("no_shop_found", lang=lang))
+        return
+    await state.set_state(ShopListingStates.quick_entry)
+    await message.answer(t("listing_quick_prompt", lang=lang))
 
-    shop = await _get_shop(user, session, state)
-    if not shop:
+
+@router.message(StateFilter(None, ShopListingStates), F.photo)
+async def handle_product_photo(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """A photo from a shop owner is a product listing.
+
+    Album members arrive as separate updates sharing media_group_id, and only
+    the first carries the caption. Looking the draft up by that id means the
+    later photos attach to the listing the first one started -- no in-memory
+    album buffer, and nothing lost if the photos straddle a restart.
+    """
+    if not _is_shop_owner(user) or not message.photo or user.tg_id is None:
+        return
+    shop = await _shop_for(user, session)
+    if shop is None:
+        return
+
+    repo = ListingRepository(session)
+    draft: ShopProductDraft | None = None
+    if message.media_group_id:
+        draft = await repo.get_draft_by_media_group(user.tg_id, message.media_group_id)
+    if draft is None:
+        # Any still-open draft is the product being worked on right now -- a
+        # photo sent while answering a question belongs to it. Saving marks the
+        # draft applied, so once a product is finished the next photo correctly
+        # starts a new one.
+        draft = await _current_draft(state, session, user)
+    if draft is None:
+        draft = await repo.create_draft(shop.id, user.tg_id)
+    if message.media_group_id and not draft.media_group_id:
+        await repo.update_draft(draft, media_group_id=message.media_group_id)
+
+    stored = await _store_photo(message, session, draft)
+    caption = message.caption or ""
+    if caption:
+        await _apply_parsed(session, draft, parse_listing_caption(caption))
+    await session.commit()
+
+    if not stored and not caption:
+        return
+
+    # Later album members only add a photo -- the first one drives the flow.
+    if message.media_group_id and not caption and draft.name:
+        return
+
+    parsed = parse_listing_caption(caption) if caption else None
+    await _continue(
+        message,
+        state,
+        session,
+        draft,
+        lang,
+        price_inferred=bool(parsed and parsed.needs_price_confirmation),
+    )
+    await session.commit()
+
+
+@router.message(ShopListingStates.quick_entry, F.text)
+async def handle_quick_text(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Text-only entry: same caption grammar, no photos."""
+    if not message.text or user.tg_id is None:
+        return
+    shop = await _shop_for(user, session)
+    if shop is None:
         await message.answer(t("no_shop_found", lang=lang))
         return
 
-    listing_repo = ListingRepository(session)
-    if user.tg_id is None:
-        return
-    existing = await listing_repo.get_open_draft(user.tg_id)
-    if existing is not None and (existing.name or existing.category_id):
-        await state.update_data({DRAFT_ID_KEY: existing.id})
-        await message.answer(
-            t("listing_resume_found", lang=lang, name=existing.name or "—"),
-            reply_markup=get_resume_keyboard(lang),
-        )
-        return
+    repo = ListingRepository(session)
+    draft = await _current_draft(state, session, user)
+    if draft is None or draft.name:
+        draft = await repo.create_draft(shop.id, user.tg_id)
 
-    draft = existing or await listing_repo.create_draft(shop.id, user.tg_id)
-    await session.commit()
-    await message.answer(t("listing_intro", lang=lang))
-    await _advance(message, state, session, draft, lang)
+    parsed = parse_listing_caption(message.text)
+    await _apply_parsed(session, draft, parsed)
     await session.commit()
 
-
-@router.callback_query(F.data == "lst_resume")
-async def callback_resume(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    await callback.message.answer(t("listing_resumed", lang=lang))
-    await _advance(callback.message, state, session, draft, lang)
-    await session.commit()
-    await callback.answer()
-
-
-@router.callback_query(F.data.in_({"lst_discard_new", "lst_new"}))
-async def callback_start_new(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    if not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    listing_repo = ListingRepository(session)
-    shop = await _get_shop(user, session, state)
-    if shop is None or user.tg_id is None:
-        await callback.answer()
-        return
-
-    if callback.data == "lst_discard_new":
-        old = await listing_repo.get_open_draft(user.tg_id)
-        if old is not None:
-            await listing_repo.discard_draft(old)
-
-    draft = await listing_repo.create_draft(shop.id, user.tg_id)
-    await session.commit()
-    await _advance(callback.message, state, session, draft, lang)
-    await session.commit()
-    await callback.answer()
-
-
-@router.callback_query(F.data == "lst_cancel")
-async def callback_cancel(
-    callback: CallbackQuery,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    """Leave the wizard without touching the stored draft.
-
-    Cancelling is not discarding: the answers stay in Postgres so the owner can
-    pick the listing back up later.
-    """
-    await state.clear()
-    if isinstance(callback.message, Message):
-        await callback.message.answer(t("listing_cancelled", lang=lang))
-    await callback.answer()
-
-
-# ── step: category ────────────────────────────────────────────────────────
-
-
-@router.callback_query(F.data.startswith("lst_cat:"), ShopListingStates.choosing_category)
-async def callback_pick_category(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    if not callback.data or not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    category_id = int(callback.data.split(":", 1)[1])
-
-    draft = await _load_draft(state, session, user)
-    if draft is None:
-        await callback.answer()
-        return
-
-    catalog_repo = CatalogRepository(session)
-    children = await catalog_repo.list_child_categories(category_id)
-    if children:
-        await callback.message.answer(
-            t("listing_step_subcategory", lang=lang),
-            reply_markup=get_category_keyboard(children, lang=lang, parent_id=category_id),
-        )
-        await callback.answer()
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, category_id=category_id)
-    await listing_repo.mark_step_visited(draft, ListingStep.CATEGORY)
-    await session.commit()
-
-    await _advance(callback.message, state, session, draft, lang)
-    await session.commit()
-    await callback.answer()
-
-
-@router.callback_query(F.data == "lst_cat_root", ShopListingStates.choosing_category)
-async def callback_category_root(
-    callback: CallbackQuery,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    if not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    catalog_repo = CatalogRepository(session)
-    roots = await catalog_repo.list_root_categories()
-    await callback.message.answer(
-        t("listing_step_category", lang=lang),
-        reply_markup=get_category_keyboard(roots, lang=lang),
+    await _continue(
+        message,
+        state,
+        session,
+        draft,
+        lang,
+        price_inferred=parsed.needs_price_confirmation,
     )
-    await callback.answer()
-
-
-# ── step: name ────────────────────────────────────────────────────────────
-
-
-@router.message(ShopListingStates.entering_name, F.text)
-async def step_name(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.text:
-        return
-    name = message.text.strip()
-    if not name:
-        await message.answer(t("listing_err_name_empty", lang=lang))
-        return
-    if len(name) > settings.listing_max_name_len:
-        await message.answer(t("listing_err_name_too_long", lang=lang))
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, name=name)
-    await listing_repo.mark_step_visited(draft, ListingStep.NAME)
-    await session.commit()
-
-    await _advance(message, state, session, draft, lang)
     await session.commit()
 
 
-# ── step: unit + pack size ────────────────────────────────────────────────
+async def _store_photo(message: Message, session: AsyncSession, draft: ShopProductDraft) -> bool:
+    """Persist the bytes first, then record the handle on the draft.
 
-
-@router.callback_query(F.data.startswith("lst_unit:"), ShopListingStates.choosing_unit)
-async def callback_pick_unit(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    if not callback.data or not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    unit_code = callback.data.split(":", 1)[1]
-
-    draft = await _load_draft(state, session, user)
-    if draft is None:
-        await callback.answer()
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, pack_unit_code=unit_code)
-
-    if _is_count_unit(unit_code):
-        # "How many qop are in one pack?" has no sensible answer -- one bag is
-        # one bag. Count units are their own pack, so fill in 1 and move on
-        # rather than asking a circular question.
-        await listing_repo.update_draft(draft, pack_size=Decimal("1"))
-        await listing_repo.mark_step_visited(draft, ListingStep.UNIT)
-        await session.commit()
-        await _advance(callback.message, state, session, draft, lang)
-        await session.commit()
-        await callback.answer()
-        return
-
-    await session.commit()
-    await state.set_state(ShopListingStates.entering_pack_size)
-    await callback.message.answer(t("listing_step_pack_size", lang=lang, unit=unit_code))
-    await callback.answer()
-
-
-@router.message(ShopListingStates.entering_pack_size, F.text)
-async def step_pack_size(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.text:
-        return
-    value = _parse_decimal(message.text)
-    if value is None:
-        await message.answer(t("listing_err_number", lang=lang))
-        return
-    if value <= 0:
-        await message.answer(t("listing_err_positive", lang=lang))
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, pack_size=value)
-    await listing_repo.mark_step_visited(draft, ListingStep.UNIT)
-    await session.commit()
-
-    await _advance(message, state, session, draft, lang)
-    await session.commit()
-
-
-# ── step: price ───────────────────────────────────────────────────────────
-
-
-@router.message(ShopListingStates.entering_price, F.text)
-async def step_price(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.text:
-        return
-    value = _parse_decimal(message.text)
-    if value is None:
-        await message.answer(t("listing_err_number", lang=lang))
-        return
-    if value <= 0:
-        await message.answer(t("listing_err_positive", lang=lang))
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, price_per_pack=value)
-    await listing_repo.mark_step_visited(draft, ListingStep.PRICE)
-    await session.commit()
-
-    await _advance(message, state, session, draft, lang)
-    await session.commit()
-
-
-# ── step: quantity ────────────────────────────────────────────────────────
-
-
-@router.message(ShopListingStates.entering_qty, F.text)
-async def step_qty(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.text:
-        return
-    value = _parse_decimal(message.text)
-    if value is None:
-        await message.answer(t("listing_err_number", lang=lang))
-        return
-    if value < 0:
-        await message.answer(t("listing_err_negative_qty", lang=lang))
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, stock_qty=value)
-    await listing_repo.mark_step_visited(draft, ListingStep.QTY)
-    await session.commit()
-
-    await _advance(message, state, session, draft, lang)
-    await session.commit()
-
-
-# ── step: description ─────────────────────────────────────────────────────
-
-
-@router.message(ShopListingStates.entering_description, F.text)
-async def step_description(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.text:
-        return
-    text = message.text.strip()
-    if len(text) > settings.listing_max_description_len:
-        await message.answer(t("listing_err_description_too_long", lang=lang))
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, description=text)
-    await listing_repo.mark_step_visited(draft, ListingStep.DESCRIPTION)
-    await session.commit()
-
-    await _advance(message, state, session, draft, lang)
-    await session.commit()
-
-
-# ── step: photos ──────────────────────────────────────────────────────────
-
-
-@router.message(ShopListingStates.uploading_photos, F.photo)
-async def step_photo(
-    message: Message,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    """Persist the photo bytes, then record the handle on the draft.
-
-    Bytes first, deliberately: a Telegram file_id is only valid for the bot that
-    received it, so treating it as the store of record would mean losing every
-    product photo the day the token is rotated.
+    The bytes are the store of record: a Telegram file_id only works for the bot
+    that received it, so relying on it alone would lose every product photo the
+    day the token is rotated.
     """
-    draft = await _load_draft(state, session, user)
-    if draft is None or not message.photo:
-        return
-
+    if not message.photo:
+        return False
     if len(draft.photos or []) >= settings.listing_max_photos:
-        await message.answer(
-            t("listing_photo_limit_reached", lang=lang, max=settings.listing_max_photos)
-        )
-        await _advance(message, state, session, draft, lang)
-        await session.commit()
-        return
+        return False
 
-    # message.photo is ordered smallest-first; the last entry is the best
-    # resolution Telegram kept for us.
-    photo_size = message.photo[-1]
-    if photo_size.file_size and photo_size.file_size > settings.listing_max_photo_bytes:
-        await message.answer(t("listing_photo_too_big", lang=lang))
-        return
+    size = message.photo[-1]
+    if size.file_size and size.file_size > settings.listing_max_photo_bytes:
+        return False
+    if any(p.get("file_unique_id") == size.file_unique_id for p in (draft.photos or [])):
+        return False
 
-    listing_repo = ListingRepository(session)
-    if any(p.get("file_unique_id") == photo_size.file_unique_id for p in (draft.photos or [])):
-        await message.answer(t("listing_photo_duplicate", lang=lang))
-        return
-
-    data = await _download_photo(message, photo_size.file_id)
+    data = await _download(message, size.file_id)
     if data is None:
-        await message.answer(t("listing_err_photo_failed", lang=lang))
-        return
+        return False
 
-    await listing_repo.store_photo_blob(
-        file_unique_id=photo_size.file_unique_id,
-        file_id=photo_size.file_id,
+    repo = ListingRepository(session)
+    await repo.store_photo_blob(
+        file_unique_id=size.file_unique_id,
+        file_id=size.file_id,
         data=data,
         shop_id=draft.shop_id,
-        width=photo_size.width,
-        height=photo_size.height,
+        width=size.width,
+        height=size.height,
     )
-    from app.domain.listing import PhotoRef
-
-    pos = len(draft.photos or [])
-    await listing_repo.append_photo(
+    await repo.append_photo(
         draft,
-        PhotoRef(file_id=photo_size.file_id, file_unique_id=photo_size.file_unique_id, pos=pos),
+        PhotoRef(
+            file_id=size.file_id, file_unique_id=size.file_unique_id, pos=len(draft.photos or [])
+        ),
     )
-    await listing_repo.mark_step_visited(draft, ListingStep.PHOTOS)
-    await session.commit()
-
-    await message.answer(t("listing_photo_saved", lang=lang, n=pos + 1))
-
-    if len(draft.photos or []) >= settings.listing_max_photos:
-        await _ask_step(message, state, session, draft, lang, ListingStep.REVIEW)
-    else:
-        await _ask_photo(message, draft, lang)
-    await session.commit()
+    return True
 
 
-async def _download_photo(message: Message, file_id: str) -> bytes | None:
+async def _download(message: Message, file_id: str) -> bytes | None:
     bot = message.bot
     if bot is None:
         return None
@@ -710,143 +428,168 @@ async def _download_photo(message: Message, file_id: str) -> bytes | None:
         if not file or not file.file_path:
             return None
         buffer = await bot.download_file(file.file_path)
-        if buffer is None:
-            return None
-        return buffer.read()
+        return buffer.read() if buffer is not None else None
     except Exception:
         logger.warning("listing_photo_download_failed file_id=%s", file_id, exc_info=True)
         return None
 
 
-@router.callback_query(F.data == "lst_photos_done", ShopListingStates.uploading_photos)
-async def callback_photos_done(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
+# ── follow-ups: only what the caption missed ──────────────────────────────
+
+
+@router.message(ShopListingStates.entering_name, F.text)
+async def step_name(
+    message: Message, state: FSMContext, user: User, session: AsyncSession, lang: str
 ) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not isinstance(callback.message, Message):
-        await callback.answer()
+    draft = await _current_draft(state, session, user)
+    if draft is None or not message.text:
         return
-    listing_repo = ListingRepository(session)
-    await listing_repo.mark_step_visited(draft, ListingStep.PHOTOS)
-    await session.commit()
-    await _ask_step(callback.message, state, session, draft, lang, ListingStep.REVIEW)
-    await session.commit()
-    await callback.answer()
-
-
-# ── skip (optional steps) ─────────────────────────────────────────────────
-
-
-@router.callback_query(
-    F.data == "lst_skip",
-    ShopListingStates.entering_qty,
-)
-@router.callback_query(
-    F.data == "lst_skip",
-    ShopListingStates.entering_description,
-)
-@router.callback_query(
-    F.data == "lst_skip",
-    ShopListingStates.uploading_photos,
-)
-async def callback_skip(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not isinstance(callback.message, Message):
-        await callback.answer()
+    parsed = parse_listing_caption(message.text)
+    name = (parsed.name or message.text).strip()[: settings.listing_max_name_len]
+    if not name:
+        await message.answer(t("listing_err_name_empty", lang=lang))
         return
-
-    current = await state.get_state()
-    step = {
-        ShopListingStates.entering_qty.state: ListingStep.QTY,
-        ShopListingStates.entering_description.state: ListingStep.DESCRIPTION,
-        ShopListingStates.uploading_photos.state: ListingStep.PHOTOS,
-    }.get(current or "")
-    if step is None:
-        await callback.answer()
-        return
-
-    listing_repo = ListingRepository(session)
-    await listing_repo.mark_step_visited(draft, step)
+    await ListingRepository(session).update_draft(draft, name=name)
+    await _apply_parsed(session, draft, parsed)
     await session.commit()
-
-    await _advance(callback.message, state, session, draft, lang)
-    await session.commit()
-    await callback.answer()
-
-
-# ── review + save ─────────────────────────────────────────────────────────
-
-
-@router.callback_query(F.data == "lst_restart", ShopListingStates.reviewing)
-async def callback_restart(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    """Re-ask from the top, keeping every stored answer as the starting point."""
-    draft = await _load_draft(state, session, user)
-    if draft is None or not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-    listing_repo = ListingRepository(session)
-    await listing_repo.update_draft(draft, visited_steps=[])
-    await session.commit()
-    await _advance(callback.message, state, session, draft, lang)
-    await session.commit()
-    await callback.answer()
-
-
-@router.callback_query(F.data == "lst_save", ShopListingStates.reviewing)
-async def callback_save(
-    callback: CallbackQuery,
-    state: FSMContext,
-    user: User,
-    session: AsyncSession,
-    lang: str,
-) -> None:
-    draft = await _load_draft(state, session, user)
-    if draft is None or not isinstance(callback.message, Message):
-        await callback.answer()
-        return
-
-    _repo, service = _services(session)
-    try:
-        outcome = await service.apply_draft(draft)
-    except ValueError:
-        # Something required is still blank -- ask for it rather than saving a
-        # half-built offer that would quote wrongly.
-        await session.rollback()
-        await callback.message.answer(t("listing_err_incomplete", lang=lang))
-        fresh = await _load_draft(state, session, user)
-        if fresh is not None:
-            await _advance(callback.message, state, session, fresh, lang)
-            await session.commit()
-        await callback.answer()
-        return
-
-    await session.commit()
-    await state.clear()
-
-    await callback.message.answer(
-        render_saved_confirmation(outcome.display_name, lang, media_pending=outcome.media_pending),
-        reply_markup=get_saved_keyboard(lang),
+    await _continue(
+        message, state, session, draft, lang, price_inferred=parsed.needs_price_confirmation
     )
+    await session.commit()
+
+
+@router.callback_query(F.data.startswith("lst_pack:"), ShopListingStates.choosing_pack)
+async def callback_pick_pack(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    draft = await _current_draft(state, session, user)
+    if draft is None:
+        await callback.answer()
+        return
+
+    _, size_raw, unit = callback.data.split(":", 2)
+    await ListingRepository(session).update_draft(
+        draft, pack_size=Decimal(size_raw), pack_unit_code=unit
+    )
+    await session.commit()
+    await _continue(callback.message, state, session, draft, lang)
+    await session.commit()
     await callback.answer()
 
 
-# ── customer-facing photo viewing ─────────────────────────────────────────
+@router.callback_query(F.data == "lst_pack_other", ShopListingStates.choosing_pack)
+async def callback_pack_other(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(ShopListingStates.entering_pack_size)
+    await callback.message.answer(t("listing_ask_pack_custom", lang=lang))
+    await callback.answer()
+
+
+@router.message(ShopListingStates.entering_pack_size, F.text)
+async def step_pack_custom(
+    message: Message, state: FSMContext, user: User, session: AsyncSession, lang: str
+) -> None:
+    draft = await _current_draft(state, session, user)
+    if draft is None or not message.text:
+        return
+    parsed = parse_listing_caption(message.text)
+    if parsed.pack_size is None or parsed.pack_unit is None:
+        await message.answer(t("listing_err_unit", lang=lang))
+        return
+    await ListingRepository(session).update_draft(
+        draft, pack_size=parsed.pack_size, pack_unit_code=parsed.pack_unit
+    )
+    await session.commit()
+    await _continue(message, state, session, draft, lang)
+    await session.commit()
+
+
+@router.message(ShopListingStates.entering_price, F.text)
+async def step_price(
+    message: Message, state: FSMContext, user: User, session: AsyncSession, lang: str
+) -> None:
+    draft = await _current_draft(state, session, user)
+    if draft is None or not message.text:
+        return
+    value = _parse_number(message.text)
+    if value is None:
+        await message.answer(t("listing_err_number", lang=lang))
+        return
+    if value <= 0:
+        await message.answer(t("listing_err_positive", lang=lang))
+        return
+    await ListingRepository(session).update_draft(draft, price_per_pack=value)
+    await session.commit()
+    # Typed in answer to a direct question, so it is not a guess: no confirm.
+    await _continue(message, state, session, draft, lang)
+    await session.commit()
+
+
+@router.callback_query(F.data == "lst_price_ok", ShopListingStates.confirming_price)
+async def callback_price_ok(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    draft = await _current_draft(state, session, user)
+    if draft is None or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.answer(t("listing_price_hint_explicit", lang=lang))
+    await _save(callback.message, state, session, draft, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "lst_price_fix", ShopListingStates.confirming_price)
+async def callback_price_fix(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    draft = await _current_draft(state, session, user)
+    if draft is None or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await ListingRepository(session).update_draft(draft, price_per_pack=None)
+    await session.commit()
+    await state.set_state(ShopListingStates.entering_price)
+    await callback.message.answer(t("listing_ask_price", lang=lang, name=draft.name))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "lst_new")
+async def callback_add_another(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(ShopListingStates.quick_entry)
+    await callback.message.answer(t("listing_quick_prompt", lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "lst_cancel")
+async def callback_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    """Leave the flow without discarding the draft -- the answers stay stored."""
+    await state.clear()
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("listing_cancelled", lang=lang))
+    await callback.answer()
+
+
+# ── customer-facing photo delivery ────────────────────────────────────────
 
 
 async def send_listing_photos(
@@ -857,25 +600,23 @@ async def send_listing_photos(
 ) -> bool:
     """Send product photos, preferring the Telegram handle and falling back to bytes.
 
-    The stored blob is what makes this reliable: if a file_id has gone stale the
-    photo is re-uploaded from our own copy instead of failing in front of a
-    customer.
+    The stored blob is what makes this dependable: a stale file_id is re-uploaded
+    from our own copy rather than failing in front of a customer.
     """
     if not photos:
         return False
-    listing_repo = ListingRepository(session)
+    repo = ListingRepository(session)
     sent = False
     for index, photo in enumerate(photos):
-        file_id = str(photo.get("file_id", ""))
         photo_caption = caption if index == 0 else None
         try:
-            await message.answer_photo(file_id, caption=photo_caption)
+            await message.answer_photo(str(photo.get("file_id", "")), caption=photo_caption)
             sent = True
             continue
         except Exception:
-            logger.info("listing_photo_file_id_stale file_id=%s -- using stored bytes", file_id)
+            logger.info("listing_photo_file_id_stale -- using stored bytes")
 
-        blob = await listing_repo.get_photo_blob(str(photo.get("file_unique_id", "")))
+        blob = await repo.get_photo_blob(str(photo.get("file_unique_id", "")))
         if blob is None:
             continue
         try:

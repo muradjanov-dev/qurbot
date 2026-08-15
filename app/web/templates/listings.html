@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Rasm tekshiruvi — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Rasm tekshiruvi</h1>
+<p>
+  Do'kon egalari yuklagan rasm va tavsiflar. Tasdiqlangunicha xaridorlarga
+  ko'rsatilmaydi — <strong>lekin narxlar allaqachon ishlayapti</strong>.
+</p>
+
+{% if not listings %}
+<p class="empty">Tekshirishni kutayotgan mahsulot yo'q.</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Rasmlar</th>
+      <th>Mahsulot</th>
+      <th>Do'kon</th>
+      <th>Narx</th>
+      <th>Amal</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in listings %}
+    <tr>
+      <td>
+        {% for photo in item.photos %}
+        <a href="/admin/photo/{{ photo.file_unique_id }}" target="_blank" rel="noopener">
+          <img src="/admin/photo/{{ photo.file_unique_id }}"
+               alt="Mahsulot rasmi {{ loop.index }}"
+               style="height:64px;width:64px;object-fit:cover;border-radius:4px;margin-right:4px;">
+        </a>
+        {% else %}
+        <span class="empty">—</span>
+        {% endfor %}
+      </td>
+      <td>
+        <strong>{{ item.raw_name }}</strong>
+        {% if item.description %}
+        <br><small>{{ item.description }}</small>
+        {% endif %}
+        {% if not item.canonical_id %}
+        <br><small style="color:#b00;">⚠️ Katalogga bog'lanmagan</small>
+        {% endif %}
+      </td>
+      <td>{{ item.shop.name if item.shop else '—' }}</td>
+      <td>
+        {{ '{:,.0f}'.format(item.price_per_pack).replace(',', ' ') }} so'm
+        <br><small>{{ item.pack_size }} {{ item.pack_unit_code }}</small>
+      </td>
+      <td style="white-space:nowrap;">
+        <form method="post" action="/admin/listings/{{ item.id }}/approve"
+              style="display:inline;">
+          <button type="submit">✅ Tasdiqlash</button>
+        </form>
+        <form method="post" action="/admin/listings/{{ item.id }}/reject"
+              style="display:inline;">
+          <button type="submit">❌ Rad etish</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

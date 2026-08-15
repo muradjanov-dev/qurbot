@@ -63,13 +63,12 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
     story.append(Paragraph(f"Yaratilgan sana: {generated_at}", meta_style))
     story.append(Spacer(1, 6 * mm))
 
-    for group in variant.shop_groups:
-        header = group.shop_name
-        if group.distance_km:
-            header += f" ({group.distance_km:.1f} km)"
-        story.append(Paragraph(header, shop_style))
+    # One merged table, no supplier attribution: the customer's quote comes from
+    # QurBot, and which shops the lines were sourced from is internal detail.
+    story.append(Paragraph("Mahsulotlar", shop_style))
 
-        rows = [["Mahsulot", "Miqdor", "Narx"]]
+    rows = [["Mahsulot", "Miqdor", "Narx"]]
+    for group in variant.shop_groups:
         for line in group.lines:
             rows.append(
                 [
@@ -78,31 +77,26 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
                     _fmt_uzs(line.line_cost_uzs),
                 ]
             )
-        delivery_str = "Bepul" if group.is_free_delivery else _fmt_uzs(group.delivery_fee_uzs)
-        rows.append(["", "Yetkazib berish", delivery_str])
-        rows.append(["", "Jami", _fmt_uzs(group.shop_total_uzs)])
 
-        table = Table(rows, colWidths=[90 * mm, 40 * mm, 40 * mm])
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2f4f4f")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTNAME", (0, -2), (-1, -1), "Helvetica-Bold"),
-                    ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#cccccc")),
-                    (
-                        "ROWBACKGROUNDS",
-                        (0, 1),
-                        (-1, -3),
-                        [colors.white, colors.HexColor("#f5f5f5")],
-                    ),
-                    ("LINEABOVE", (0, -2), (-1, -2), 0.8, colors.black),
-                ]
-            )
+    table = Table(rows, colWidths=[90 * mm, 40 * mm, 40 * mm])
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2f4f4f")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#cccccc")),
+                (
+                    "ROWBACKGROUNDS",
+                    (0, 1),
+                    (-1, -1),
+                    [colors.white, colors.HexColor("#f5f5f5")],
+                ),
+            ]
         )
-        story.append(table)
+    )
+    story.append(table)
 
     story.append(Spacer(1, 8 * mm))
 

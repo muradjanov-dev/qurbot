@@ -17,9 +17,13 @@ from app.domain.pricing.units import get_unit_def, unit_price
 
 
 class ListingStep(Enum):
-    """Ordered wizard steps. Declaration order is the order they are asked in."""
+    """Ordered steps. Declaration order is the order they are asked in.
 
-    CATEGORY = "category"
+    There is deliberately no category step: the category is derived from the
+    catalogue product the name matches, so asking the owner for it would be
+    making them re-enter something already known.
+    """
+
     NAME = "name"
     UNIT = "unit"
     PRICE = "price"
@@ -30,7 +34,6 @@ class ListingStep(Enum):
 
 
 class DraftErrorCode(Enum):
-    CATEGORY_MISSING = "category_missing"
     NAME_EMPTY = "name_empty"
     NAME_TOO_LONG = "name_too_long"
     DESCRIPTION_TOO_LONG = "description_too_long"
@@ -84,9 +87,6 @@ def validate_draft(
     """Return every problem with the draft, not just the first one."""
     errors: list[DraftErrorCode] = []
 
-    if draft.category_id is None:
-        errors.append(DraftErrorCode.CATEGORY_MISSING)
-
     if not draft.name.strip():
         errors.append(DraftErrorCode.NAME_EMPTY)
     elif len(draft.name) > max_name_len:
@@ -124,8 +124,6 @@ def validate_draft(
 
 def _step_has_value(draft: ListingDraft, step: ListingStep) -> bool:
     match step:
-        case ListingStep.CATEGORY:
-            return draft.category_id is not None
         case ListingStep.NAME:
             return bool(draft.name.strip())
         case ListingStep.UNIT:

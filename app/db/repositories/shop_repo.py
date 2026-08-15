@@ -586,3 +586,30 @@ class ShopRepository(BaseRepository[Shop]):
             return
         stmt = update(ShopProduct).where(ShopProduct.id.in_(ids)).values(is_active=False)
         await self.session.execute(stmt)
+
+    async def common_packs_for_canonical(
+        self, canonical_id: int, limit: int = 3
+    ) -> list[tuple[Decimal, str]]:
+        """The pack sizes this product is most often sold in, commonest first.
+
+        Used to offer a shop owner one-tap pack choices drawn from what the
+        market actually uses, which keeps pack sizes consistent between shops --
+        a prerequisite for the per-base-unit comparison to be like-for-like.
+        """
+        stmt = (
+            select(
+                ShopProduct.pack_size,
+                ShopProduct.pack_unit_code,
+                func.count().label("uses"),
+            )
+            .where(
+                ShopProduct.canonical_id == canonical_id,
+                ShopProduct.is_active.is_(True),
+                ShopProduct.pack_unit_code.is_not(None),
+            )
+            .group_by(ShopProduct.pack_size, ShopProduct.pack_unit_code)
+            .order_by(func.count().desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return [(row[0], row[1]) for row in result.all() if row[1]]

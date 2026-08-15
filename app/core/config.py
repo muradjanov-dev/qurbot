@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     webhook_secret: str = "placeholder_secret"
     webhook_base_url: str = "http://localhost:8000"
     register_webhook: bool = True
-    admin_tg_ids: list[int] = [917456291]
+    admin_tg_ids: list[int] = [917456291, 576437661, 3896397, 1630243859]
     # Super admins may grant/revoke admin rights. Kept separate from
     # admin_tg_ids so a promoted admin cannot promote further admins.
     super_admin_tg_ids: list[int] = [917456291]

@@ -203,6 +203,8 @@ def get_quote_carousel_keyboard(
     current_index: int,
     total_variants: int,
     lang: str = "uz_latn",
+    *,
+    has_photos: bool = False,
 ) -> InlineKeyboardMarkup:
     """Build carousel navigation keyboard for quotes: [◀] 1/4 [▶] + actions."""
     builder = InlineKeyboardBuilder()
@@ -237,6 +239,16 @@ def get_quote_carousel_keyboard(
             callback_data="calculate_quotes",
         ),
     )
+
+    # Photos are opt-in rather than inlined: sending them alongside the card
+    # would push the totals off screen, and only some products have any.
+    if has_photos:
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_view_photos", lang=lang),
+                callback_data=f"quote_photos:{current_index}",
+            )
+        )
     return builder.as_markup()
 
 

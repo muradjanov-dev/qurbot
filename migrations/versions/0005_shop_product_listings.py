@@ -97,10 +97,16 @@ def upgrade() -> None:
         sa.Column("match_confidence", sa.Numeric(3, 2), nullable=True),
         sa.Column("applied_shop_product_id", sa.BigInteger(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(["shop_id"], ["shops.id"]),
         sa.ForeignKeyConstraint(["category_id"], ["categories.id"]),
@@ -128,13 +134,18 @@ def upgrade() -> None:
         sa.Column("height", sa.Integer(), nullable=True),
         sa.Column("data", sa.LargeBinary(), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(["shop_id"], ["shops.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("file_unique_id", name="uq_product_photo_blobs_file_unique_id"),
     )
-    op.create_index("ix_product_photo_blobs_file_unique_id", "product_photo_blobs", ["file_unique_id"])
+    op.create_index(
+        "ix_product_photo_blobs_file_unique_id", "product_photo_blobs", ["file_unique_id"]
+    )
     op.create_index("ix_product_photo_blobs_shop_id", "product_photo_blobs", ["shop_id"])
 
 

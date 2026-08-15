@@ -15,14 +15,17 @@ from app.domain.listing.presentation import (
     pack_label,
     stock_display,
 )
+from app.domain.listing.quick_entry import ParsedListingInput, parse_listing_caption
 
 __all__ = [
     "DraftErrorCode",
     "ListingCard",
     "ListingDraft",
     "ListingStep",
+    "ParsedListingInput",
     "PhotoRef",
     "StockDisplay",
+    "parse_listing_caption",
     "build_listing_card",
     "draft_price_per_base_unit",
     "next_missing_step",

@@ -106,24 +106,24 @@ def test_unknown_unit_is_rejected() -> None:
     assert DraftErrorCode.UNKNOWN_UNIT in errors
 
 
-def test_missing_category_is_rejected() -> None:
-    errors = validate_draft(_complete_draft(category_id=None), **LIMITS)
-    assert DraftErrorCode.CATEGORY_MISSING in errors
+def test_missing_category_is_allowed() -> None:
+    """Category comes from the matched catalogue product, so it is never asked for."""
+    assert validate_draft(_complete_draft(category_id=None), **LIMITS) == []
 
 
 def test_errors_accumulate_rather_than_short_circuit() -> None:
     errors = validate_draft(
-        _complete_draft(name="", price_per_pack=Decimal("0"), category_id=None), **LIMITS
+        _complete_draft(name="", price_per_pack=Decimal("0"), pack_size=Decimal("0")), **LIMITS
     )
     assert DraftErrorCode.NAME_EMPTY in errors
     assert DraftErrorCode.PRICE_NOT_POSITIVE in errors
-    assert DraftErrorCode.CATEGORY_MISSING in errors
+    assert DraftErrorCode.PACK_SIZE_NOT_POSITIVE in errors
 
 
 # ── resume: next missing step ─────────────────────────────────────────────
 
 
-def test_empty_draft_starts_at_category() -> None:
+def test_empty_draft_starts_at_name() -> None:
     empty = ListingDraft(
         category_id=None,
         name="",
@@ -135,7 +135,7 @@ def test_empty_draft_starts_at_category() -> None:
         photos=(),
         visited_steps=frozenset(),
     )
-    assert next_missing_step(empty) is ListingStep.CATEGORY
+    assert next_missing_step(empty) is ListingStep.NAME
 
 
 def test_resume_skips_already_answered_steps() -> None:
@@ -148,7 +148,7 @@ def test_resume_skips_already_answered_steps() -> None:
         price_per_pack=None,
         stock_qty=None,
         photos=(),
-        visited_steps=frozenset({ListingStep.CATEGORY, ListingStep.NAME}),
+        visited_steps=frozenset({ListingStep.NAME}),
     )
     assert next_missing_step(draft) is ListingStep.UNIT
 
@@ -166,7 +166,6 @@ def test_optional_step_is_skipped_once_visited() -> None:
         photos=(),
         visited_steps=frozenset(
             {
-                ListingStep.CATEGORY,
                 ListingStep.NAME,
                 ListingStep.UNIT,
                 ListingStep.PRICE,
