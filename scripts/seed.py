@@ -2400,7 +2400,15 @@ async def seed_database(session: AsyncSession) -> None:
     canonical_objs: list[CanonicalProduct] = []
     alias_count = 0
 
-    seen_aliases: set[str] = set()
+    # Seeding must be re-runnable: the unique (canonical_id, alias_norm) index
+    # means a second run otherwise dies on the first alias it already wrote,
+    # which blocks using this to roll out catalog changes to a live database.
+    # Keyed on alias_norm alone, not (canonical_id, alias_norm): besides the
+    # composite constraint there is a unique index on alias_norm for approved
+    # rows, and seeded aliases are approved, so the norm is what must not
+    # repeat -- across products, not just within one.
+    existing_alias_rows = await session.execute(select(ProductAlias.alias_norm))
+    seen_aliases: set[str] = set(existing_alias_rows.scalars().all())
 
     for item in raw_catalog:
         slug, n_uz, n_cyrl, n_ru, brand, cat_slug, base_unit, attrs, tier, price, p_size, p_unit = (

@@ -50,3 +50,24 @@ async def test_seed_database(test_session: AsyncSession) -> None:
     # Verify Users
     user_count = (await test_session.execute(select(func.count(User.id)))).scalar()
     assert user_count is not None and user_count >= 5
+
+
+@pytest.mark.asyncio
+async def test_seeding_twice_is_idempotent(test_session: AsyncSession) -> None:
+    """Re-seeding is how catalog changes reach an existing database.
+
+    The second run used to abort on the unique (canonical_id, alias_norm)
+    index, so a category rename could not be rolled out to production at all.
+    """
+    from sqlalchemy import func, select
+
+    from app.db.models import Category, ProductAlias
+
+    await seed_database(test_session)
+    categories_first = await test_session.scalar(select(func.count(Category.id)))
+    aliases_first = await test_session.scalar(select(func.count(ProductAlias.id)))
+
+    # Must not raise, and must not duplicate rows.
+    await seed_database(test_session)
+    assert await test_session.scalar(select(func.count(Category.id))) == categories_first
+    assert await test_session.scalar(select(func.count(ProductAlias.id))) == aliases_first
