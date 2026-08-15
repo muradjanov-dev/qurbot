@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.ops import DailyMetrics, Event, LLMCall, UnmatchedQuery
+from app.db.models.ops import DailyMetrics, Event, LLMCall, PebbleAward, UnmatchedQuery
 from app.db.models.order import Basket, BasketLine, Order, Quote
 from app.db.models.shop import ShopProduct
 from app.db.repositories.base import BaseRepository
@@ -229,3 +229,43 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         )
         result = await self.session.execute(stmt)
         return {purpose: Decimal(str(cost)) for purpose, cost in result.all()}
+
+    # ─── Pebble rewards ────────────────────────────────────────────
+
+    async def award_pebbles(
+        self,
+        user_id: int,
+        amount: int,
+        source: str,
+        order_id: int | None = None,
+        note: str | None = None,
+    ) -> PebbleAward | None:
+        """Record a pebble grant, ignoring a repeat award for the same order.
+
+        Confirmation can be retried (a double tap, a redelivered update), and
+        the unique (order_id, source) constraint is what stops that minting
+        currency twice -- this checks first so the caller does not have to
+        handle the integrity error.
+        """
+        if amount <= 0:
+            return None
+        if order_id is not None:
+            stmt = select(PebbleAward).where(
+                PebbleAward.order_id == order_id, PebbleAward.source == source
+            )
+            existing = (await self.session.execute(stmt)).scalars().first()
+            if existing is not None:
+                return existing
+
+        award = PebbleAward(
+            user_id=user_id, amount=amount, source=source, order_id=order_id, note=note
+        )
+        self.session.add(award)
+        await self.session.flush()
+        return award
+
+    async def get_pebble_balance(self, user_id: int) -> int:
+        stmt = select(func.coalesce(func.sum(PebbleAward.amount), 0)).where(
+            PebbleAward.user_id == user_id
+        )
+        return int(await self.session.scalar(stmt) or 0)

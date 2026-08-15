@@ -11,6 +11,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -107,3 +108,34 @@ class DailyMetrics(Base, TimestampMixin):
         Numeric(10, 6), default=Decimal("0.000000"), nullable=False
     )
     strategy_mix: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+
+
+class PebbleAward(Base, TimestampMixin):
+    """One pebble grant, kept as a ledger rather than a running balance.
+
+    A ledger is what makes the promised future earning rules (referrals,
+    promotions, manual admin grants) additions rather than rewrites: each row
+    records why it was granted, and the balance is their sum, so it can never
+    drift from the events that produced it.
+    """
+
+    __tablename__ = "pebble_awards"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id"), nullable=False, index=True
+    )
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)  # order|bonus|admin
+    order_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("orders.id"), nullable=True, index=True
+    )
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    user: Mapped[User] = relationship("User", lazy="selectin")
+
+    __table_args__ = (
+        # One award per order: retrying a notification or a double tap on
+        # "confirm" must not mint pebbles twice.
+        UniqueConstraint("order_id", "source", name="uq_pebble_awards_order_source"),
+    )

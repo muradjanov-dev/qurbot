@@ -84,6 +84,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "👤 Кабинет",
         "ru": "👤 Кабинет",
     },
+    "pebbles_earned": {
+        "uz_latn": "🪨 Siz <b>{pebbles} toshcha</b> yutdingiz!",
+        "uz_cyrl": "🪨 Сиз <b>{pebbles} тошча</b> ютдингиз!",
+        "ru": "🪨 Вы получили <b>{pebbles} камешков</b>!",
+    },
+    "pebbles_balance": {
+        "uz_latn": "🪨 Toshchalaringiz: <b>{pebbles}</b>",
+        "uz_cyrl": "🪨 Тошчаларингиз: <b>{pebbles}</b>",
+        "ru": "🪨 Ваши камешки: <b>{pebbles}</b>",
+    },
     "cabinet_title": {
         "uz_latn": "👤 <b>Kabinet</b>\n\nQuyidagilardan birini tanlang:",
         "uz_cyrl": "👤 <b>Кабинет</b>\n\nҚуйидагилардан бирини танланг:",

@@ -14,6 +14,7 @@ from app.bot.states import RegistrationStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.user import User
+from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
 
 router = Router(name="common")
@@ -165,9 +166,12 @@ async def cmd_cancel(message: Message, state: FSMContext, user: User, lang: str)
 
 
 @router.message(F.text.in_(["👤 Kabinet", "👤 Кабинет"]))
-async def menu_cabinet(message: Message, lang: str) -> None:
+async def menu_cabinet(message: Message, user: User, session: AsyncSession, lang: str) -> None:
+    pebbles = await OpsRepository(session).get_pebble_balance(user.id)
+    body = t("cabinet_title", lang=lang)
+    balance = t("pebbles_balance", lang=lang, pebbles=pebbles)
     await message.answer(
-        t("cabinet_title", lang=lang),
+        f"{body}\n\n{balance}",
         reply_markup=get_cabinet_keyboard(lang=lang),
     )
 

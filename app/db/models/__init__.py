@@ -1,5 +1,5 @@
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
-from app.db.models.ops import Event, LLMCall, UnmatchedQuery
+from app.db.models.ops import Event, LLMCall, PebbleAward, UnmatchedQuery
 from app.db.models.order import (
     Basket,
     BasketLine,
@@ -51,5 +51,6 @@ __all__ = [
     # Ops & Metrics
     "UnmatchedQuery",
     "LLMCall",
+    "PebbleAward",
     "Event",
 ]

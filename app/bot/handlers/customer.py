@@ -28,6 +28,7 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
+from app.domain.rewards import pebbles_for_order
 from app.services.catalog_service import CatalogService
 from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
@@ -632,6 +633,16 @@ async def callback_confirm_order(
             )
             session.add(item)
 
+    # Loyalty award, before the commit so the order and its pebbles land
+    # together -- a customer must never see "order placed" without the pebbles
+    # it earned, nor pebbles for an order that failed to save.
+    ops_repo = OpsRepository(session)
+    pebbles = pebbles_for_order(order.grand_total_quoted, settings.pebble_rate_per_order)
+    if pebbles > 0:
+        await ops_repo.award_pebbles(
+            user_id=user.id, amount=pebbles, source="order", order_id=order.id
+        )
+
     await session.commit()
     await state.clear()
 
@@ -646,6 +657,8 @@ async def callback_confirm_order(
                 total=f"{order.grand_total_quoted:,.0f}",
             ),
         )
+        if pebbles > 0:
+            await callback.message.answer(t("pebbles_earned", lang=lang, pebbles=pebbles))
         await callback.message.answer(
             t("welcome_done", lang=lang),
             reply_markup=get_main_menu_keyboard(

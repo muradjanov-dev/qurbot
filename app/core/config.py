@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -47,6 +49,11 @@ class Settings(BaseSettings):
     # optimizer uses to rank offers.
     delivery_eta_min_hours: int = 24
     delivery_eta_max_hours: int = 48
+
+    # Loyalty: pebbles ("toshcha") granted per order, as a fraction of its
+    # total. Other earning rules are planned; they become extra ledger rows
+    # rather than a change here.
+    pebble_rate_per_order: Decimal = Decimal("0.001")
 
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82
