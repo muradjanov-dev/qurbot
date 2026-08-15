@@ -90,6 +90,7 @@ class QuoteService:
                     district_id=o.shop.district_id if o.shop else None,
                     lat=lat,
                     lon=lon,
+                    stock_qty=o.stock_qty,
                 )
             )
 

@@ -33,6 +33,11 @@ class ShopOffer:
     district_id: int | None = None
     lat: float | None = None
     lon: float | None = None
+    # How many packs the shop says it holds. None means the shop does not track
+    # stock, which is treated as available -- most offers arrive from Excel
+    # imports that carry no count, and reading "untracked" as "none" would empty
+    # the catalogue.
+    stock_qty: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
