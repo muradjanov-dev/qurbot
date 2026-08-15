@@ -71,3 +71,37 @@ async def test_import_batch_and_row_ownership(test_session: AsyncSession) -> Non
     # Ids that do not exist are refused rather than treated as permitted.
     assert await _batch_belongs_to_user(me, test_session, 999999) is False
     assert await _row_belongs_to_user(me, test_session, 999999) is False
+
+
+@pytest.mark.asyncio
+async def test_product_edit_is_scoped_to_the_owning_shop(test_session: AsyncSession) -> None:
+    """Product ids come from callback data, so editing must re-check ownership."""
+    from decimal import Decimal
+
+    from app.bot.handlers.shop import _load_editable_product
+    from app.db.models import ShopProduct
+
+    me, them, mine_id, theirs_id = await _setup_two_shops(test_session)
+
+    their_product = ShopProduct(
+        shop_id=theirs_id,
+        raw_name="Sement M400",
+        raw_unit="qop",
+        pack_size=Decimal("1"),
+        price_per_pack=Decimal("52000"),
+        price_per_base_unit=Decimal("52000"),
+    )
+    test_session.add(their_product)
+    await test_session.flush()
+
+    assert await _load_editable_product(them, test_session, their_product.id) is not None
+    assert await _load_editable_product(me, test_session, their_product.id) is None
+
+    # An admin moderates every shop, so they may edit it.
+    admin = User(tg_id=777, full_name="Admin", lang="uz_latn", role="admin")
+    test_session.add(admin)
+    await test_session.flush()
+    assert await _load_editable_product(admin, test_session, their_product.id) is not None
+
+    # A product id that does not exist is refused, not treated as permitted.
+    assert await _load_editable_product(them, test_session, 999999) is None

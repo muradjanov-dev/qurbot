@@ -217,7 +217,10 @@ class ListingService:
         return ApplyOutcome(
             shop_product_id=product.id,
             canonical_id=match.canonical_id,
-            display_name=match.canonical_name or row.name,
+            # The owner's own wording, never the catalog's. The canonical match
+            # is what makes the offer findable, but renaming their listing to
+            # it makes them doubt they saved the right product.
+            display_name=row.name,
             media_pending=has_media,
         )
 

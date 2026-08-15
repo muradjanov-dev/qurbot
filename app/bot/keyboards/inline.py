@@ -6,7 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct, Category
-from app.db.models.shop import District, Shop
+from app.db.models.shop import District, Shop, ShopProduct
 from app.domain.matching.models import CandidateMatch
 
 
@@ -249,6 +249,42 @@ def get_shop_order_decision_keyboard(order_part_id: int) -> InlineKeyboardMarkup
     return builder.as_markup()
 
 
+def get_product_edit_keyboard(
+    product_id: int, is_active: bool, lang: str = "uz_latn"
+) -> InlineKeyboardMarkup:
+    """Edit actions for a single shop product."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=t("prod_btn_edit_price", lang=lang), callback_data=f"prod:price:{product_id}"
+    )
+    builder.button(
+        text=t("prod_btn_edit_stock", lang=lang), callback_data=f"prod:stock:{product_id}"
+    )
+    if is_active:
+        builder.button(
+            text=t("prod_btn_deactivate", lang=lang), callback_data=f"prod:off:{product_id}"
+        )
+    else:
+        builder.button(
+            text=t("prod_btn_activate", lang=lang), callback_data=f"prod:on:{product_id}"
+        )
+    builder.button(text=t("btn_back", lang=lang), callback_data="products_page:1")
+    builder.adjust(2, 1, 1)
+    return builder.as_markup()
+
+
+def get_stock_status_keyboard(product_id: int, lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for code in ("in_stock", "low", "on_order", "out"):
+        builder.button(
+            text=t(f"prod_stock_{code}", lang=lang),
+            callback_data=f"prod:setstock:{product_id}:{code}",
+        )
+    builder.button(text=t("btn_back", lang=lang), callback_data=f"prod:view:{product_id}")
+    builder.adjust(2, 2, 1)
+    return builder.as_markup()
+
+
 def get_import_batch_keyboard(
     batch_id: int,
     auto_count: int,
@@ -303,9 +339,19 @@ def get_product_list_keyboard(
     page: int,
     total_pages: int,
     lang: str = "uz_latn",
+    products: Sequence["ShopProduct"] | None = None,
 ) -> InlineKeyboardMarkup:
-    """Build paginated product list navigation."""
+    """Paginated product list where each row opens that product for editing."""
     builder = InlineKeyboardBuilder()
+
+    for product in products or ():
+        builder.row(
+            InlineKeyboardButton(
+                text=f"{product.raw_name} — {product.price_per_pack:,.0f}",
+                callback_data=f"prod:view:{product.id}",
+            )
+        )
+
     nav_buttons: list[InlineKeyboardButton] = []
 
     if page > 1:

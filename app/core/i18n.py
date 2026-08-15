@@ -905,6 +905,107 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📤 Нархлар рўйхати билан Excel ёки CSV файлни шу ерга юборинг.",
         "ru": "📤 Отправьте сюда файл Excel или CSV со списком цен.",
     },
+    "prod_btn_edit_price": {
+        "uz_latn": "💰 Narxni o'zgartirish",
+        "uz_cyrl": "💰 Нархни ўзгартириш",
+        "ru": "💰 Изменить цену",
+    },
+    "prod_btn_edit_stock": {
+        "uz_latn": "📦 Mavjudligi",
+        "uz_cyrl": "📦 Мавжудлиги",
+        "ru": "📦 Наличие",
+    },
+    "prod_btn_deactivate": {
+        "uz_latn": "🚫 Sotuvdan olish",
+        "uz_cyrl": "🚫 Сотувдан олиш",
+        "ru": "🚫 Снять с продажи",
+    },
+    "prod_btn_activate": {
+        "uz_latn": "✅ Sotuvga qaytarish",
+        "uz_cyrl": "✅ Сотувга қайтариш",
+        "ru": "✅ Вернуть в продажу",
+    },
+    "prod_stock_in_stock": {
+        "uz_latn": "✅ Mavjud",
+        "uz_cyrl": "✅ Мавжуд",
+        "ru": "✅ В наличии",
+    },
+    "prod_stock_low": {
+        "uz_latn": "🟡 Kam qoldi",
+        "uz_cyrl": "🟡 Кам қолди",
+        "ru": "🟡 Мало",
+    },
+    "prod_stock_on_order": {
+        "uz_latn": "🔵 Buyurtma asosida",
+        "uz_cyrl": "🔵 Буюртма асосида",
+        "ru": "🔵 Под заказ",
+    },
+    "prod_stock_out": {
+        "uz_latn": "🔴 Tugagan",
+        "uz_cyrl": "🔴 Тугаган",
+        "ru": "🔴 Нет в наличии",
+    },
+    "prod_card": {
+        "uz_latn": (
+            "📦 <b>{name}</b>\n\n"
+            "💰 Narx: <b>{price} so'm</b> / {pack}\n"
+            "📊 Holat: {stock}\n"
+            "🔎 Sotuvda: {active}"
+        ),
+        "uz_cyrl": (
+            "📦 <b>{name}</b>\n\n"
+            "💰 Нарх: <b>{price} сўм</b> / {pack}\n"
+            "📊 Ҳолат: {stock}\n"
+            "🔎 Сотувда: {active}"
+        ),
+        "ru": (
+            "📦 <b>{name}</b>\n\n"
+            "💰 Цена: <b>{price} сум</b> / {pack}\n"
+            "📊 Статус: {stock}\n"
+            "🔎 В продаже: {active}"
+        ),
+    },
+    "prod_ask_price": {
+        "uz_latn": (
+            "💰 <b>{name}</b> uchun yangi narxni yozing (so'm, {pack} uchun).\n"
+            "<i>Bekor qilish uchun /cancel</i>"
+        ),
+        "uz_cyrl": (
+            "💰 <b>{name}</b> учун янги нархни ёзинг (сўм, {pack} учун).\n"
+            "<i>Бекор қилиш учун /cancel</i>"
+        ),
+        "ru": (
+            "💰 Напишите новую цену для <b>{name}</b> (сум, за {pack}).\n"
+            "<i>Для отмены /cancel</i>"
+        ),
+    },
+    "prod_price_updated": {
+        "uz_latn": "✅ Narx yangilandi: <b>{price} so'm</b>",
+        "uz_cyrl": "✅ Нарх янгиланди: <b>{price} сўм</b>",
+        "ru": "✅ Цена обновлена: <b>{price} сум</b>",
+    },
+    "prod_stock_updated": {
+        "uz_latn": "✅ Holat yangilandi.",
+        "uz_cyrl": "✅ Ҳолат янгиланди.",
+        "ru": "✅ Статус обновлён.",
+    },
+    "prod_deactivated": {
+        "uz_latn": "🚫 Mahsulot sotuvdan olindi.",
+        "uz_cyrl": "🚫 Маҳсулот сотувдан олинди.",
+        "ru": "🚫 Товар снят с продажи.",
+    },
+    "prod_activated": {
+        "uz_latn": "✅ Mahsulot sotuvga qaytarildi.",
+        "uz_cyrl": "✅ Маҳсулот сотувга қайтарилди.",
+        "ru": "✅ Товар возвращён в продажу.",
+    },
+    "prod_yes": {"uz_latn": "ha", "uz_cyrl": "ҳа", "ru": "да"},
+    "prod_no": {"uz_latn": "yo'q", "uz_cyrl": "йўқ", "ru": "нет"},
+    "prod_not_yours": {
+        "uz_latn": "Bu mahsulot sizning do'koningizga tegishli emas.",
+        "uz_cyrl": "Бу маҳсулот сизнинг дўконингизга тегишли эмас.",
+        "ru": "Этот товар не принадлежит вашему магазину.",
+    },
     "not_shop_owner": {
         "uz_latn": "Siz do'kon egasi sifatida ro'yxatdan o'tmagansiz.",
         "uz_cyrl": "Сиз дўкон эгаси сифатида рўйхатдан ўтмагансиз.",

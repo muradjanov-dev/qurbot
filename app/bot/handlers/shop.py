@@ -1,5 +1,5 @@
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -7,16 +7,19 @@ from aiogram.types import CallbackQuery, ContentType, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc
+from app.bot.formatters.common import esc, format_qty
 from app.bot.keyboards.inline import (
     get_import_batch_keyboard,
+    get_product_edit_keyboard,
     get_product_list_keyboard,
     get_shop_order_decision_keyboard,
     get_shop_panel_inline_keyboard,
     get_shop_picker_keyboard,
+    get_stock_status_keyboard,
     get_unmatched_row_keyboard,
 )
 from app.bot.states import ShopOwnerStates
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.order import OrderShopPart
 from app.db.models.shop import ImportRow, Shop, ShopProduct
@@ -770,7 +773,10 @@ async def cmd_shop_products(
     total_pages = max(1, (total + 9) // 10)
     text = _format_product_list(products, page=1, total_pages=total_pages, lang=lang)
     await message.answer(
-        text, reply_markup=get_product_list_keyboard(page=1, total_pages=total_pages, lang=lang)
+        text,
+        reply_markup=get_product_list_keyboard(
+            page=1, total_pages=total_pages, lang=lang, products=products
+        ),
     )
 
 
@@ -800,7 +806,9 @@ async def callback_products_page(
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
             text,
-            reply_markup=get_product_list_keyboard(page=page, total_pages=total_pages, lang=lang),
+            reply_markup=get_product_list_keyboard(
+                page=page, total_pages=total_pages, lang=lang, products=products
+            ),
         )
 
 
@@ -1008,3 +1016,189 @@ async def cb_shop_orders(
         message=callback.message, user=user, session=session, state=state, lang=lang
     )
     await callback.answer()
+
+
+# ---------------------------------------------------------------------------
+# Product CRUD (owner edits their own listings; admins may edit any)
+# ---------------------------------------------------------------------------
+
+
+async def _load_editable_product(
+    user: User, session: AsyncSession, product_id: int
+) -> ShopProduct | None:
+    """Fetch a product the caller is allowed to edit.
+
+    Product ids arrive in callback data, so ownership is re-checked here rather
+    than trusted; admins bypass the shop check because they moderate every shop.
+    """
+    product = await session.get(ShopProduct, product_id)
+    if product is None:
+        return None
+    if user.role == "admin" or user.tg_id in settings.admin_tg_ids:
+        return product
+    if await _owns_shop(user, session, product.shop_id):
+        return product
+    return None
+
+
+def _render_product_card(product: ShopProduct, lang: str) -> str:
+    unit = product.pack_unit_code or product.raw_unit
+    return t(
+        "prod_card",
+        lang=lang,
+        name=esc(product.raw_name),
+        price=f"{product.price_per_pack:,.0f}",
+        pack=f"{format_qty(product.pack_size)} {esc(unit)}",
+        stock=t(f"prod_stock_{product.stock_status}", lang=lang),
+        active=t("prod_yes" if product.is_active else "prod_no", lang=lang),
+    )
+
+
+@router.callback_query(F.data.startswith("prod:view:"))
+async def cb_product_view(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    product = await _load_editable_product(user, session, int(callback.data.split(":")[2]))
+    if product is None:
+        await callback.answer(t("prod_not_yours", lang=lang), show_alert=True)
+        return
+
+    await callback.message.answer(
+        _render_product_card(product, lang),
+        reply_markup=get_product_edit_keyboard(product.id, product.is_active, lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("prod:price:"))
+async def cb_product_edit_price(
+    callback: CallbackQuery, user: User, session: AsyncSession, state: FSMContext, lang: str
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    product = await _load_editable_product(user, session, int(callback.data.split(":")[2]))
+    if product is None:
+        await callback.answer(t("prod_not_yours", lang=lang), show_alert=True)
+        return
+
+    unit = product.pack_unit_code or product.raw_unit
+    await state.update_data({"editing_product_id": product.id})
+    await state.set_state(ShopOwnerStates.editing_product_price_value)
+    await callback.message.answer(
+        t(
+            "prod_ask_price",
+            lang=lang,
+            name=esc(product.raw_name),
+            pack=f"{format_qty(product.pack_size)} {esc(unit)}",
+        )
+    )
+    await callback.answer()
+
+
+@router.message(ShopOwnerStates.editing_product_price_value, F.text)
+async def handle_product_price_value(
+    message: Message, user: User, session: AsyncSession, state: FSMContext, lang: str
+) -> None:
+    if not message.text:
+        return
+    raw = message.text.strip().replace(" ", "").replace(",", ".")
+    try:
+        price = Decimal(raw)
+    except InvalidOperation:
+        await message.answer(t("listing_err_number", lang=lang))
+        return
+    if price <= 0:
+        await message.answer(t("listing_err_positive", lang=lang))
+        return
+
+    data = await state.get_data()
+    product = await _load_editable_product(user, session, int(data.get("editing_product_id", 0)))
+    if product is None:
+        await state.set_state(None)
+        return
+
+    shop_repo = ShopRepository(session)
+    await shop_repo.update_offer_price(
+        shop_product_id=product.id,
+        price_per_pack=price,
+        price_per_base_unit=(
+            price / product.pack_size if product.pack_size > Decimal("0") else price
+        ),
+        updated_by="admin" if user.role == "admin" else "shop",
+    )
+    await session.commit()
+    await state.set_state(None)
+
+    await message.answer(t("prod_price_updated", lang=lang, price=f"{price:,.0f}"))
+    await message.answer(
+        _render_product_card(product, lang),
+        reply_markup=get_product_edit_keyboard(product.id, product.is_active, lang=lang),
+    )
+
+
+@router.callback_query(F.data.startswith("prod:stock:"))
+async def cb_product_stock_menu(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    product = await _load_editable_product(user, session, int(callback.data.split(":")[2]))
+    if product is None:
+        await callback.answer(t("prod_not_yours", lang=lang), show_alert=True)
+        return
+    await callback.message.edit_reply_markup(
+        reply_markup=get_stock_status_keyboard(product.id, lang=lang)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("prod:setstock:"))
+async def cb_product_set_stock(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    _, _, product_id_raw, status = callback.data.split(":")
+    product = await _load_editable_product(user, session, int(product_id_raw))
+    if product is None:
+        await callback.answer(t("prod_not_yours", lang=lang), show_alert=True)
+        return
+
+    product.stock_status = status
+    await session.commit()
+    await callback.message.edit_text(
+        _render_product_card(product, lang),
+        reply_markup=get_product_edit_keyboard(product.id, product.is_active, lang=lang),
+    )
+    await callback.answer(t("prod_stock_updated", lang=lang))
+
+
+@router.callback_query(F.data.startswith("prod:off:"))
+@router.callback_query(F.data.startswith("prod:on:"))
+async def cb_product_toggle_active(
+    callback: CallbackQuery, user: User, session: AsyncSession, lang: str
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    action = callback.data.split(":")[1]
+    product = await _load_editable_product(user, session, int(callback.data.split(":")[2]))
+    if product is None:
+        await callback.answer(t("prod_not_yours", lang=lang), show_alert=True)
+        return
+
+    product.is_active = action == "on"
+    await session.commit()
+    await callback.message.edit_text(
+        _render_product_card(product, lang),
+        reply_markup=get_product_edit_keyboard(product.id, product.is_active, lang=lang),
+    )
+    await callback.answer(
+        t("prod_activated" if product.is_active else "prod_deactivated", lang=lang)
+    )

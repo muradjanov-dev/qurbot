@@ -63,3 +63,4 @@ class ShopOwnerStates(StatesGroup):
     editing_product_price = State()
     reviewing_import_batch = State()
     editing_delivery_rule = State()
+    editing_product_price_value = State()
