@@ -2,7 +2,19 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class RegistrationStates(StatesGroup):
+    """Signup: language, then a location pin. That is the whole thing.
+
+    District is derived from the pin instead of being asked, and the phone is
+    collected at checkout where it is actually needed -- every question moved
+    out of signup is a customer who finishes it.
+    """
+
     waiting_for_language = State()
+    waiting_for_location = State()
+    confirming_address = State()
+    editing_address_text = State()
+    # Kept for the customer who declines to share a location: they pick a
+    # district by hand instead, so refusing the pin is not a dead end.
     waiting_for_district = State()
     waiting_for_phone = State()
 
@@ -17,6 +29,9 @@ class BasketStates(StatesGroup):
 
 class OrderCheckoutStates(StatesGroup):
     confirming_phone = State()
+    choosing_address = State()
+    awaiting_new_location = State()
+    confirming_new_address = State()
     entering_address = State()
     entering_comment = State()
     confirming_order = State()

@@ -6,7 +6,13 @@ from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    BufferedInputFile,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardRemove,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,11 +20,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.formatters.common import esc, format_qty
 from app.bot.handlers.shop_listing import send_listing_photos
 from app.bot.keyboards.inline import (
+    get_address_confirm_keyboard,
+    get_address_picker_keyboard,
     get_basket_actions_keyboard,
     get_order_confirm_keyboard,
     get_quote_carousel_keyboard,
 )
-from app.bot.keyboards.reply import get_main_menu_keyboard
+from app.bot.keyboards.reply import get_location_request_keyboard, get_main_menu_keyboard
 from app.bot.states import BasketStates, OrderCheckoutStates
 from app.core.config import settings
 from app.core.i18n import t
@@ -26,12 +34,14 @@ from app.core.logging import get_logger
 from app.db.models.order import Order, OrderItem, OrderShopPart
 from app.db.models.shop import ShopProduct
 from app.db.models.user import User
+from app.db.repositories.address_repo import AddressRepository
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.domain.rewards import pebbles_for_order
+from app.services.address_service import AddressService, ResolvedLocation
 from app.services.catalog_service import CatalogService
 from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
@@ -43,7 +53,20 @@ router = Router(name="customer")
 # Reply-keyboard buttons reach the bot as ordinary text messages, so the
 # free-text basket handler has to be able to tell them apart from a real
 # product list. Keyed on the leading emoji, which every menu label carries.
-_MENU_BUTTON_PREFIXES = ("🧾", "📦", "🔍", "🛒", "🏪", "⚙️", "👤", "⬅️", "➕", "🛠")
+_MENU_BUTTON_PREFIXES = (
+    "🧾",
+    "📦",
+    "🔍",
+    "🛒",
+    "🏪",
+    "⚙️",
+    "👤",
+    "⬅️",
+    "➕",
+    "🛠",
+    "📍",
+    "🗺",
+)
 
 
 @router.message(F.text.in_(["🧾 Ro'yxat yuborish", "🧾 Рўйхат юбориш", "🧾 Отправить список"]))
@@ -526,6 +549,7 @@ async def callback_select_quote(
     callback: CallbackQuery,
     state: FSMContext,
     user: User,
+    session: AsyncSession,
     lang: str,
 ) -> None:
     if not callback.data:
@@ -541,28 +565,212 @@ async def callback_select_quote(
         await state.set_state(OrderCheckoutStates.confirming_phone)
         if isinstance(callback.message, Message):
             await callback.message.answer(t("prompt_checkout_phone", lang=lang))
-    else:
-        await state.set_state(OrderCheckoutStates.entering_address)
-        if isinstance(callback.message, Message):
-            await callback.message.answer(t("prompt_checkout_address", lang=lang))
+    elif isinstance(callback.message, Message):
+        await _ask_delivery_address(callback.message, state, user, session, lang)
 
 
 @router.message(OrderCheckoutStates.confirming_phone)
-async def checkout_phone(message: Message, state: FSMContext, lang: str) -> None:
+async def checkout_phone(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
     if message.text:
         await state.update_data(contact_phone=message.text.strip())
-
-    await state.set_state(OrderCheckoutStates.entering_address)
-    await message.answer(t("prompt_checkout_address", lang=lang))
+    await _ask_delivery_address(message, state, user, session, lang)
 
 
-@router.message(OrderCheckoutStates.entering_address)
-async def checkout_address(message: Message, state: FSMContext, lang: str) -> None:
-    if not message.text:
+async def _ask_delivery_address(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Offer the customer's saved places; only ask for a new one if there are none.
+
+    A returning customer picks where this order goes in one tap, which is the
+    point of storing several: the right address depends on which site they are
+    on today, not on where they signed up.
+    """
+    service = AddressService(session)
+    addresses = await service.list_for(user)
+    if addresses:
+        await state.set_state(OrderCheckoutStates.choosing_address)
+        await message.answer(
+            t("checkout_choose_address", lang=lang),
+            reply_markup=get_address_picker_keyboard(addresses, lang=lang),
+        )
         return
-    await state.update_data(delivery_address=message.text.strip())
+
+    await state.set_state(OrderCheckoutStates.awaiting_new_location)
+    await message.answer(
+        t("request_location", lang=lang),
+        reply_markup=get_location_request_keyboard(lang=lang),
+    )
+
+
+@router.callback_query(F.data.startswith("addr_pick:"), OrderCheckoutStates.choosing_address)
+async def callback_checkout_pick_address(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    address_id = int(callback.data.split(":")[1])
+    address = await AddressRepository(session).get(address_id)
+    if address is None or address.user_id != user.id:
+        await callback.answer()
+        return
+
+    await state.update_data(delivery_address=address.address_text)
+    await state.set_state(OrderCheckoutStates.entering_comment)
+    await callback.message.answer(t("prompt_checkout_comment", lang=lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "addr_new", OrderCheckoutStates.choosing_address)
+async def callback_checkout_new_address(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(OrderCheckoutStates.awaiting_new_location)
+    await callback.message.answer(
+        t("request_location", lang=lang),
+        reply_markup=get_location_request_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.message(F.location, OrderCheckoutStates.awaiting_new_location)
+async def checkout_location(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if message.location is None:
+        return
+    service = AddressService(session)
+    resolved = await service.resolve(
+        message.location.latitude, message.location.longitude, lang=lang
+    )
+    await state.update_data(
+        pending_lat=str(resolved.lat),
+        pending_lng=str(resolved.lng),
+        pending_district_id=resolved.district_id,
+    )
+    if resolved.outside_service_area:
+        await message.answer(t("address_outside_service_area", lang=lang))
+
+    if resolved.needs_manual_address:
+        await state.set_state(OrderCheckoutStates.entering_address)
+        await message.answer(
+            t("address_not_detected", lang=lang), reply_markup=ReplyKeyboardRemove()
+        )
+        return
+
+    await state.update_data(pending_address=resolved.address_text)
+    await state.set_state(OrderCheckoutStates.confirming_new_address)
+    await message.answer(
+        t("address_detected", lang=lang, address=esc(resolved.address_text)),
+        reply_markup=get_address_confirm_keyboard(lang=lang),
+    )
+
+
+@router.callback_query(F.data == "addr_ok", OrderCheckoutStates.confirming_new_address)
+async def callback_checkout_address_ok(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    data = await state.get_data()
+    await _store_checkout_address(
+        callback.message, state, user, session, lang, str(data.get("pending_address", ""))
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "addr_edit", OrderCheckoutStates.confirming_new_address)
+async def callback_checkout_address_edit(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await state.set_state(OrderCheckoutStates.entering_address)
+    await callback.message.answer(t("address_ask_text", lang=lang))
+    await callback.answer()
+
+
+async def _store_checkout_address(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+    address_text: str,
+) -> None:
+    """Save the address for reuse, then carry on to the comment step.
+
+    Saved even mid-checkout, so the next order starts from a picker instead of
+    asking for the same pin again.
+    """
+    text = address_text.strip()
+    if not text:
+        return
+    data = await state.get_data()
+    lat = data.get("pending_lat")
+    lng = data.get("pending_lng")
+    if lat is not None and lng is not None:
+        service = AddressService(session)
+        await service.save(
+            user,
+            ResolvedLocation(
+                lat=Decimal(str(lat)),
+                lng=Decimal(str(lng)),
+                address_text=text,
+                district_id=data.get("pending_district_id"),
+            ),
+            text,
+        )
+        await session.commit()
+
+    await state.update_data(delivery_address=text)
     await state.set_state(OrderCheckoutStates.entering_comment)
     await message.answer(t("prompt_checkout_comment", lang=lang))
+
+
+@router.message(OrderCheckoutStates.entering_address, F.text)
+async def checkout_address(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Typed address, used when the pin could not be named or was corrected."""
+    if not message.text:
+        return
+    await _store_checkout_address(message, state, user, session, lang, message.text)
 
 
 @router.message(OrderCheckoutStates.entering_comment)

@@ -53,6 +53,39 @@ Stock is respected when quoting: a shop that can't cover the requested quantity
 is not offered, and if nobody can, the shop holding the most is offered rather
 than showing the customer nothing (`BasketOptimizer._filter_by_stock`).
 
+## Launch catalogue scope
+
+Only the categories in `settings.enabled_category_slugs` are offered to
+customers, and only their products can be matched. Quoting something we cannot
+actually source is worse than saying we do not carry it, so the restriction
+applies to the matcher as well as to browsing.
+
+At launch that is: boards (fanera/MDF/DSP), fasteners, drywall + profiles, and
+timber. Widening the range is a config change -- set the list to `[]` to switch
+the full catalogue back on. No data is deleted by narrowing it.
+
+## Delivery addresses
+
+Customers save places as **map pins, not typed text**. A Tashkent street
+address often does not resolve to a findable location, so the pin is what the
+courier navigates to and the text is a label the customer confirmed on top of
+it.
+
+Signup is two steps -- language, then a location -- because the district is
+derived from the pin rather than asked for, and the phone is collected at
+checkout where it is actually used. Declining to share a location falls back to
+picking a district by hand, so it is never a dead end.
+
+Reverse geocoding uses Yandex when `YANDEX_GEOCODER_API_KEY` is set (much
+better Uzbek street coverage) and keyless Nominatim otherwise. Deliberately not
+the LLM: a language model does not know what stands at a coordinate and will
+produce a fluent, confident, wrong street. Whatever the geocoder returns is
+shown to the customer to confirm or correct before it is saved, and a geocoder
+outage degrades to "type your address" rather than blocking the order.
+
+Customers keep several addresses and pick one at checkout, which is the point:
+the right address depends on which site the delivery is going to today.
+
 ## Local setup
 
 Requires Docker (for Postgres + Redis) and Python 3.12.

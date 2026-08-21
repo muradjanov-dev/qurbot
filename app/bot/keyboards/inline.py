@@ -7,6 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct, Category
 from app.db.models.shop import District, Shop, ShopProduct
+from app.db.models.user import UserAddress
 from app.domain.matching.models import CandidateMatch
 
 
@@ -379,4 +380,48 @@ def get_product_list_keyboard(
         )
 
     builder.row(*nav_buttons)
+    return builder.as_markup()
+
+
+def get_address_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_address_confirm", lang=lang), callback_data="addr_ok")
+    builder.button(text=t("btn_address_edit", lang=lang), callback_data="addr_edit")
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_address_picker_keyboard(
+    addresses: Sequence["UserAddress"], lang: str = "uz_latn"
+) -> InlineKeyboardMarkup:
+    """Saved places to deliver to, plus a way to add another.
+
+    The label is trimmed hard: Telegram truncates long button text anyway, and
+    a customer recognises their own address from its first few words.
+    """
+    builder = InlineKeyboardBuilder()
+    for addr in addresses:
+        text = addr.label or addr.address_text
+        if len(text) > 40:
+            text = text[:37] + "..."
+        mark = "📍 " if addr.is_default else ""
+        builder.button(text=f"{mark}{text}", callback_data=f"addr_pick:{addr.id}")
+    builder.button(text=t("btn_new_address", lang=lang), callback_data="addr_new")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_admin_products_keyboard(
+    page: int, pages: int, lang: str = "uz_latn"
+) -> InlineKeyboardMarkup:
+    """Paging for the catalogue list, so an admin can reach every product."""
+    builder = InlineKeyboardBuilder()
+    nav: list[InlineKeyboardButton] = []
+    if page > 0:
+        nav.append(InlineKeyboardButton(text="◀️", callback_data=f"adm:products:{page - 1}"))
+    if page + 1 < pages:
+        nav.append(InlineKeyboardButton(text="▶️", callback_data=f"adm:products:{page + 1}"))
+    if nav:
+        builder.row(*nav)
+    builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="adm:home"))
     return builder.as_markup()

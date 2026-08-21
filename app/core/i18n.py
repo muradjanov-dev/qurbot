@@ -63,6 +63,113 @@ MESSAGES: dict[str, dict[str, str]] = {
             "соберём и доставим вам."
         ),
     },
+    # ── Location & saved addresses ────────────────────────────────────────
+    "request_location": {
+        "uz_latn": (
+            "📍 Yetkazib berish manzilingizni yuboring.\n\n"
+            "Pastdagi tugmani bosing — biz manzilni o'zimiz aniqlab, "
+            "sizga tasdiqlash uchun ko'rsatamiz."
+        ),
+        "uz_cyrl": (
+            "📍 Етказиб бериш манзилингизни юборинг.\n\n"
+            "Пастдаги тугмани босинг — биз манзилни ўзимиз аниқлаб, "
+            "сизга тасдиқлаш учун кўрсатамиз."
+        ),
+        "ru": (
+            "📍 Отправьте адрес доставки.\n\n"
+            "Нажмите кнопку ниже — мы определим адрес сами "
+            "и покажем вам на подтверждение."
+        ),
+    },
+    "btn_send_location": {
+        "uz_latn": "📍 Lokatsiyani yuborish",
+        "uz_cyrl": "📍 Локацияни юбориш",
+        "ru": "📍 Отправить локацию",
+    },
+    "btn_choose_district_instead": {
+        "uz_latn": "🗺 Tumanni qo'lda tanlash",
+        "uz_cyrl": "🗺 Туманни қўлда танлаш",
+        "ru": "🗺 Выбрать район вручную",
+    },
+    "address_detected": {
+        "uz_latn": (
+            "📍 Manzilingiz shundaymi?\n\n<b>{address}</b>\n\n"
+            "Agar noto'g'ri bo'lsa, tahrirlab yozing."
+        ),
+        "uz_cyrl": (
+            "📍 Манзилингиз шундайми?\n\n<b>{address}</b>\n\n"
+            "Агар нотўғри бўлса, таҳрирлаб ёзинг."
+        ),
+        "ru": ("📍 Ваш адрес такой?\n\n<b>{address}</b>\n\n" "Если неверно — отредактируйте."),
+    },
+    "address_not_detected": {
+        "uz_latn": (
+            "Lokatsiyani oldik, lekin manzil nomini aniqlay olmadik.\n"
+            "Manzilni o'zingiz yozib yuboring (ko'cha, uy, mo'ljal):"
+        ),
+        "uz_cyrl": (
+            "Локацияни олдик, лекин манзил номини аниқлай олмадик.\n"
+            "Манзилни ўзингиз ёзиб юборинг (кўча, уй, мўлжал):"
+        ),
+        "ru": (
+            "Локацию получили, но название адреса определить не удалось.\n"
+            "Напишите адрес сами (улица, дом, ориентир):"
+        ),
+    },
+    "address_ask_text": {
+        "uz_latn": "Manzilni yozing (ko'cha, uy, mo'ljal):",
+        "uz_cyrl": "Манзилни ёзинг (кўча, уй, мўлжал):",
+        "ru": "Напишите адрес (улица, дом, ориентир):",
+    },
+    "address_saved": {
+        "uz_latn": "✅ Manzil saqlandi:\n<b>{address}</b>",
+        "uz_cyrl": "✅ Манзил сақланди:\n<b>{address}</b>",
+        "ru": "✅ Адрес сохранён:\n<b>{address}</b>",
+    },
+    "address_outside_service_area": {
+        "uz_latn": (
+            "⚠️ Bu manzil hozircha bizning yetkazib berish hududimizdan tashqarida. "
+            "Buyurtma berishingiz mumkin, lekin yetkazish shartlari alohida kelishiladi."
+        ),
+        "uz_cyrl": (
+            "⚠️ Бу манзил ҳозирча бизнинг етказиб бериш ҳудудимиздан ташқарида. "
+            "Буюртма беришингиз мумкин, лекин етказиш шартлари алоҳида келишилади."
+        ),
+        "ru": (
+            "⚠️ Этот адрес пока вне нашей зоны доставки. "
+            "Заказ оформить можно, но условия доставки обсуждаются отдельно."
+        ),
+    },
+    "checkout_choose_address": {
+        "uz_latn": "📍 Qayerga yetkazib beramiz?",
+        "uz_cyrl": "📍 Қаерга етказиб берамиз?",
+        "ru": "📍 Куда доставляем?",
+    },
+    "btn_new_address": {
+        "uz_latn": "➕ Yangi manzil",
+        "uz_cyrl": "➕ Янги манзил",
+        "ru": "➕ Новый адрес",
+    },
+    "btn_address_confirm": {
+        "uz_latn": "✅ To'g'ri",
+        "uz_cyrl": "✅ Тўғри",
+        "ru": "✅ Верно",
+    },
+    "btn_address_edit": {
+        "uz_latn": "✏️ Tahrirlash",
+        "uz_cyrl": "✏️ Таҳрирлаш",
+        "ru": "✏️ Изменить",
+    },
+    "menu_my_addresses": {
+        "uz_latn": "📍 Manzillarim",
+        "uz_cyrl": "📍 Манзилларим",
+        "ru": "📍 Мои адреса",
+    },
+    "addresses_empty": {
+        "uz_latn": "Sizda saqlangan manzil yo'q.",
+        "uz_cyrl": "Сизда сақланган манзил йўқ.",
+        "ru": "У вас нет сохранённых адресов.",
+    },
     # Main Menu
     "menu_send_list": {
         "uz_latn": "🧾 Ro'yxat yuborish",

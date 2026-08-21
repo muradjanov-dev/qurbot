@@ -20,7 +20,7 @@ from app.db.models.shop import (
     ShopProduct,
     ShopProductDraft,
 )
-from app.db.models.user import User
+from app.db.models.user import User, UserAddress
 
 __all__ = [
     # Catalog
@@ -41,6 +41,7 @@ __all__ = [
     "ImportRow",
     # User
     "User",
+    "UserAddress",
     # Order & Basket
     "Basket",
     "BasketLine",

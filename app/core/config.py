@@ -55,6 +55,26 @@ class Settings(BaseSettings):
     # rather than a change here.
     pebble_rate_per_order: Decimal = Decimal("0.001")
 
+    # Catalogue scope. Only these categories are offered to customers and only
+    # their products can be matched -- quoting something we cannot actually
+    # source is worse than saying we do not carry it. Empty list = no
+    # restriction, which is how the full catalogue is switched back on.
+    enabled_category_slugs: list[str] = [
+        "plita-va-fanera",
+        "mahkamlash-materiallari",
+        "gipsokarton",
+        "yogoch",
+    ]
+
+    # Reverse geocoding for saved delivery addresses. Yandex is used when a key
+    # is present (much better Uzbek street coverage); without one it falls back
+    # to keyless Nominatim, which is coarser but works out of the box.
+    yandex_geocoder_api_key: str | None = None
+    geocoding_timeout_seconds: float = 6.0
+    # A pin further than this from every district centroid is treated as
+    # outside the service area rather than snapped to the nearest one.
+    district_match_max_km: float = 40.0
+
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82
     match_margin_threshold: float = 0.12
