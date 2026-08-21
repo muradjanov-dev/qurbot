@@ -10,6 +10,7 @@ from app.bot.keyboards.inline import (
     get_admin_admins_keyboard,
     get_admin_back_keyboard,
     get_admin_panel_keyboard,
+    get_admin_products_keyboard,
     get_district_keyboard,
 )
 from app.bot.states import AdminPanelStates, AdminShopStates
@@ -20,6 +21,7 @@ from app.db.models.ops import UnmatchedQuery
 from app.db.models.order import Order
 from app.db.models.shop import Shop, ShopProduct
 from app.db.models.user import User
+from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.repositories.user_repo import UserRepository
 
@@ -177,37 +179,45 @@ async def cb_admin_shops(
     await callback.answer()
 
 
+ADMIN_PRODUCTS_PAGE_SIZE = 20
+
+
 @router.callback_query(F.data == "adm:products")
+@router.callback_query(F.data.startswith("adm:products:"))
 async def cb_admin_products(
     callback: CallbackQuery, user: User, session: AsyncSession, lang: str
 ) -> None:
+    """The whole catalogue, a page at a time.
+
+    Shows every product regardless of the customer-facing category allowlist:
+    that setting decides what is offered, not what an operator may inspect.
+    """
     if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
 
-    stmt = (
-        select(
-            CanonicalProduct.name_uz,
-            func.min(ShopProduct.price_per_pack),
-            func.count(ShopProduct.id),
-        )
-        .outerjoin(
-            ShopProduct,
-            (ShopProduct.canonical_id == CanonicalProduct.id) & (ShopProduct.is_active.is_(True)),
-        )
-        .where(CanonicalProduct.is_active.is_(True))
-        .group_by(CanonicalProduct.id, CanonicalProduct.name_uz)
-        .order_by(CanonicalProduct.name_uz)
-        .limit(25)
-    )
-    rows = (await session.execute(stmt)).all()
+    page = 0
+    if callback.data and callback.data.count(":") == 2:
+        try:
+            page = max(0, int(callback.data.rsplit(":", 1)[1]))
+        except ValueError:
+            page = 0
 
-    lines = [t("adm_products_header", lang=lang, count=len(rows))]
-    for name, min_price, offer_count in rows:
+    repo = CatalogRepository(session)
+    rows, total = await repo.admin_list_products(
+        offset=page * ADMIN_PRODUCTS_PAGE_SIZE, limit=ADMIN_PRODUCTS_PAGE_SIZE
+    )
+    pages = max(1, (total + ADMIN_PRODUCTS_PAGE_SIZE - 1) // ADMIN_PRODUCTS_PAGE_SIZE)
+
+    lines = [t("adm_products_header", lang=lang, count=total)]
+    for product, offer_count, min_price in rows:
         price_str = f"{min_price:,.0f} so'm" if min_price is not None else "—"
-        lines.append(f"• {esc(name)} — {price_str} ({offer_count} taklif)")
+        lines.append(f"• {esc(product.name_uz)} — {price_str} ({offer_count} taklif)")
+    lines.append(f"\n{page + 1} / {pages}")
+
     await callback.message.edit_text(
-        "\n".join(lines), reply_markup=get_admin_back_keyboard(lang=lang)
+        "\n".join(lines),
+        reply_markup=get_admin_products_keyboard(page=page, pages=pages, lang=lang),
     )
     await callback.answer()
 

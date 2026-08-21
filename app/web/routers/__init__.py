@@ -1,7 +1,16 @@
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
-from app.web.routers import aliases, dashboard, listings, offers, orders, shops, unmatched
+from app.web.routers import (
+    aliases,
+    dashboard,
+    listings,
+    offers,
+    orders,
+    products,
+    shops,
+    unmatched,
+)
 
 router = APIRouter()
 
@@ -15,6 +24,7 @@ router.include_router(unmatched.router)
 router.include_router(aliases.router)
 router.include_router(shops.router)
 router.include_router(offers.router)
+router.include_router(products.router)
 router.include_router(listings.router)
 router.include_router(orders.router)
 router.include_router(dashboard.router)

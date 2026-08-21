@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models import (
     CanonicalProduct,
     Category,
@@ -71,3 +72,46 @@ async def test_seeding_twice_is_idempotent(test_session: AsyncSession) -> None:
     await seed_database(test_session)
     assert await test_session.scalar(select(func.count(Category.id))) == categories_first
     assert await test_session.scalar(select(func.count(ProductAlias.id))) == aliases_first
+
+
+@pytest.mark.asyncio
+async def test_catalog_only_seed_skips_the_demo_market(test_session: AsyncSession) -> None:
+    """Rolling out catalogue changes must not create placeholder shops.
+
+    This is what runs on every deploy, against a database holding real shops
+    and real offers -- so it has to add products without touching the market.
+    """
+    await seed_database(test_session, catalog_only=True)
+
+    products = (await test_session.execute(select(func.count(CanonicalProduct.id)))).scalar()
+    categories = (await test_session.execute(select(func.count(Category.id)))).scalar()
+    shops = (await test_session.execute(select(func.count(Shop.id)))).scalar()
+    offers = (await test_session.execute(select(func.count(ShopProduct.id)))).scalar()
+
+    assert products and products > 0
+    assert categories and categories > 0
+    assert shops == 0, "catalog-only must not create shops"
+    assert offers == 0, "catalog-only must not create offers"
+
+
+@pytest.mark.asyncio
+async def test_launch_categories_are_all_stocked(test_session: AsyncSession) -> None:
+    """Every category we offer must actually have products behind it."""
+    await seed_database(test_session, catalog_only=True)
+
+    for slug in settings.enabled_category_slugs:
+        category = (
+            (await test_session.execute(select(Category).where(Category.slug == slug)))
+            .scalars()
+            .first()
+        )
+        assert category is not None, f"enabled category '{slug}' is not seeded"
+
+        count = (
+            await test_session.execute(
+                select(func.count(CanonicalProduct.id)).where(
+                    CanonicalProduct.category_id == category.id
+                )
+            )
+        ).scalar()
+        assert count and count > 0, f"enabled category '{slug}' has no products"

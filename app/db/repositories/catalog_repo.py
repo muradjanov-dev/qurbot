@@ -31,9 +31,54 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         return result.scalars().first()
 
     async def list_root_categories(self) -> Sequence[Category]:
-        stmt = select(Category).where(Category.parent_id.is_(None)).order_by(Category.sort_order)
+        """Top-level categories a customer may browse, honouring the allowlist."""
+        filters = [Category.parent_id.is_(None)]
+        slugs = settings.enabled_category_slugs
+        if slugs:
+            filters.append(Category.slug.in_(list(slugs)))
+        stmt = select(Category).where(*filters).order_by(Category.sort_order)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def enabled_category_ids(self) -> list[int] | None:
+        """Ids of the categories currently offered, or None when unrestricted.
+
+        Resolved from slugs rather than ids so the allowlist stays readable in
+        config and survives a reseed, which reassigns primary keys.
+        """
+        slugs = settings.enabled_category_slugs
+        if not slugs:
+            return None
+        stmt = select(Category.id).where(Category.slug.in_(list(slugs)))
+        result = await self.session.execute(stmt)
+        roots = list(result.scalars().all())
+        if not roots:
+            return None
+        ids = list(roots)
+        frontier = roots
+        for _ in range(2):
+            if not frontier:
+                break
+            child_stmt = select(Category.id).where(Category.parent_id.in_(frontier))
+            child_result = await self.session.execute(child_stmt)
+            frontier = list(child_result.scalars().all())
+            ids.extend(frontier)
+        return ids
+
+    async def _scoped_category_ids(
+        self, category_ids: Sequence[int] | None
+    ) -> Sequence[int] | None:
+        """Intersect a caller's category filter with the launch allowlist."""
+        enabled = await self.enabled_category_ids()
+        if enabled is None:
+            return category_ids
+        if category_ids is None:
+            return enabled
+        allowed = set(enabled)
+        narrowed = [cid for cid in category_ids if cid in allowed]
+        # An empty intersection must stay empty, not silently widen to
+        # everything -- the caller asked for a category we do not carry.
+        return narrowed
 
     async def list_child_categories(self, parent_id: int) -> Sequence[Category]:
         stmt = select(Category).where(Category.parent_id == parent_id).order_by(Category.sort_order)
@@ -97,9 +142,13 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         real match out of the candidate set entirely. When the shop owner has
         already told us the category, using it is a straight precision win.
         """
+        scoped = await self._scoped_category_ids(category_ids)
+        if scoped is not None and not scoped:
+            return []
+
         base_filters = [CanonicalProduct.is_active.is_(True)]
-        if category_ids:
-            base_filters.append(CanonicalProduct.category_id.in_(list(category_ids)))
+        if scoped:
+            base_filters.append(CanonicalProduct.category_id.in_(list(scoped)))
 
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
@@ -140,10 +189,14 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         if self.session.bind is None or self.session.bind.dialect.name != "postgresql":
             return []
 
+        scoped = await self._scoped_category_ids(category_ids)
+        if scoped is not None and not scoped:
+            return []
+
         sim = func.word_similarity(query, CanonicalProduct.search_doc)
         filters = [CanonicalProduct.is_active.is_(True), sim > settings.match_trigram_threshold]
-        if category_ids:
-            filters.append(CanonicalProduct.category_id.in_(list(category_ids)))
+        if scoped:
+            filters.append(CanonicalProduct.category_id.in_(list(scoped)))
 
         stmt = select(CanonicalProduct).where(*filters).order_by(sim.desc()).limit(limit)
         result = await self.session.execute(stmt)
@@ -250,3 +303,57 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
     async def reject_alias(self, alias_id: int) -> None:
         stmt = delete(ProductAlias).where(ProductAlias.id == alias_id)
         await self.session.execute(stmt)
+
+    async def admin_list_products(
+        self,
+        *,
+        search: str | None = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[Sequence[tuple[CanonicalProduct, int, Decimal | None]], int]:
+        """Every catalogue product with its offer count and cheapest price.
+
+        Deliberately ignores `enabled_category_slugs`: that allowlist decides
+        what customers are offered, not what an operator is allowed to look at.
+        An admin who cannot see the products they have switched off cannot tell
+        whether switching them off was right.
+        """
+        from app.db.models.shop import ShopProduct
+
+        filters = []
+        if search:
+            term = f"%{search.strip().lower()}%"
+            filters.append(
+                or_(
+                    func.lower(CanonicalProduct.name_uz).like(term),
+                    func.lower(CanonicalProduct.name_ru).like(term),
+                    func.lower(CanonicalProduct.slug).like(term),
+                )
+            )
+
+        total_stmt = select(func.count(CanonicalProduct.id))
+        if filters:
+            total_stmt = total_stmt.where(*filters)
+        total = int((await self.session.execute(total_stmt)).scalar() or 0)
+
+        stmt = (
+            select(
+                CanonicalProduct,
+                func.count(ShopProduct.id),
+                func.min(ShopProduct.price_per_pack),
+            )
+            .outerjoin(
+                ShopProduct,
+                (ShopProduct.canonical_id == CanonicalProduct.id)
+                & (ShopProduct.is_active.is_(True)),
+            )
+            .group_by(CanonicalProduct.id)
+            .order_by(CanonicalProduct.name_uz)
+            .offset(offset)
+            .limit(limit)
+        )
+        if filters:
+            stmt = stmt.where(*filters)
+
+        rows = (await self.session.execute(stmt)).all()
+        return [(r[0], int(r[1] or 0), r[2]) for r in rows], total

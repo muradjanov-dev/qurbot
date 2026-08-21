@@ -14,6 +14,7 @@ Generates:
 import asyncio
 import logging
 import random
+import sys
 from decimal import Decimal
 from typing import Any
 
@@ -229,6 +230,13 @@ CATEGORIES_DATA = [
         "name_ru": "Фасадные материалы",
         "sort_order": 16,
         "icon": "🏢",
+    },
+    {
+        "slug": "plita-va-fanera",
+        "name_uz": "Fanera, MDF, DSP va boshqa plitalar",
+        "name_ru": "Фанера, МДФ, ДСП и другие плиты",
+        "sort_order": 21,
+        "icon": "🪚",
     },
     {
         "slug": "mahkamlash-materiallari",
@@ -2009,6 +2017,441 @@ def generate_catalog_data() -> list[dict[str, Any]]:
                 )
             )
 
+    # 21. Fanera, MDF, DSP va boshqa plitalar
+    # Sheet goods are sold per sheet, so base_unit is `dona` and the sheet
+    # dimensions live in attributes -- thickness is what buyers actually ask
+    # for. Prices are indicative launch values, replaced by real shop uploads.
+    board_items = [
+        (
+            "fanera-bereza-4mm-1525x1525",
+            "Fanera bereza 4 mm (1525x1525)",
+            "Фанера береза 4 мм (1525х1525)",
+            "Фанера березовая 4 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 4, "size": "1525x1525", "material": "birch_plywood"},
+            "standard",
+            Decimal("110000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-bereza-6mm-1525x1525",
+            "Fanera bereza 6 mm (1525x1525)",
+            "Фанера береза 6 мм (1525х1525)",
+            "Фанера березовая 6 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 6, "size": "1525x1525", "material": "birch_plywood"},
+            "standard",
+            Decimal("150000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-bereza-9mm-1525x1525",
+            "Fanera bereza 9 mm (1525x1525)",
+            "Фанера береза 9 мм (1525х1525)",
+            "Фанера березовая 9 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 9, "size": "1525x1525", "material": "birch_plywood"},
+            "standard",
+            Decimal("210000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-bereza-12mm-1525x1525",
+            "Fanera bereza 12 mm (1525x1525)",
+            "Фанера береза 12 мм (1525х1525)",
+            "Фанера березовая 12 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 12, "size": "1525x1525", "material": "birch_plywood"},
+            "standard",
+            Decimal("280000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-bereza-15mm-1525x1525",
+            "Fanera bereza 15 mm (1525x1525)",
+            "Фанера береза 15 мм (1525х1525)",
+            "Фанера березовая 15 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 15, "size": "1525x1525", "material": "birch_plywood"},
+            "standard",
+            Decimal("340000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-bereza-18mm-1525x1525",
+            "Fanera bereza 18 mm (1525x1525)",
+            "Фанера береза 18 мм (1525х1525)",
+            "Фанера березовая 18 мм (1525х1525)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 18, "size": "1525x1525", "material": "birch_plywood"},
+            "premium",
+            Decimal("400000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "fanera-laminat-18mm-1250x2500",
+            "Laminatlangan fanera 18 mm (1250x2500)",
+            "Ламинатланган фанера 18 мм (1250х2500)",
+            "Фанера ламинированная 18 мм (1250х2500)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 18, "size": "1250x2500", "material": "laminated_plywood"},
+            "premium",
+            Decimal("620000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "mdf-3mm-2800x2070",
+            "MDF plita 3 mm (2800x2070)",
+            "МДФ плита 3 мм (2800х2070)",
+            "МДФ плита 3 мм (2800х2070)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 3, "size": "2800x2070", "material": "mdf"},
+            "economy",
+            Decimal("130000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "mdf-8mm-2800x2070",
+            "MDF plita 8 mm (2800x2070)",
+            "МДФ плита 8 мм (2800х2070)",
+            "МДФ плита 8 мм (2800х2070)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 8, "size": "2800x2070", "material": "mdf"},
+            "standard",
+            Decimal("250000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "mdf-16mm-2800x2070",
+            "MDF plita 16 mm (2800x2070)",
+            "МДФ плита 16 мм (2800х2070)",
+            "МДФ плита 16 мм (2800х2070)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 16, "size": "2800x2070", "material": "mdf"},
+            "standard",
+            Decimal("420000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "dsp-16mm-2750x1830",
+            "DSP plita 16 mm (2750x1830)",
+            "ДСП плита 16 мм (2750х1830)",
+            "ДСП плита 16 мм (2750х1830)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 16, "size": "2750x1830", "material": "chipboard"},
+            "standard",
+            Decimal("300000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "ldsp-16mm-2750x1830",
+            "LDSP laminatlangan 16 mm (2750x1830)",
+            "ЛДСП ламинатланган 16 мм (2750х1830)",
+            "ЛДСП ламинированная 16 мм (2750х1830)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 16, "size": "2750x1830", "material": "laminated_chipboard"},
+            "standard",
+            Decimal("330000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "ldsp-18mm-2750x1830",
+            "LDSP laminatlangan 18 mm (2750x1830)",
+            "ЛДСП ламинатланган 18 мм (2750х1830)",
+            "ЛДСП ламинированная 18 мм (2750х1830)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 18, "size": "2750x1830", "material": "laminated_chipboard"},
+            "standard",
+            Decimal("370000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "osb3-9mm-2500x1250",
+            "OSB-3 plita 9 mm (2500x1250)",
+            "ОСБ-3 плита 9 мм (2500х1250)",
+            "ОСБ-3 плита 9 мм (2500х1250)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 9, "size": "2500x1250", "material": "osb3"},
+            "standard",
+            Decimal("180000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "osb3-12mm-2500x1250",
+            "OSB-3 plita 12 mm (2500x1250)",
+            "ОСБ-3 плита 12 мм (2500х1250)",
+            "ОСБ-3 плита 12 мм (2500х1250)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 12, "size": "2500x1250", "material": "osb3"},
+            "standard",
+            Decimal("240000"),
+            Decimal("1"),
+            "dona",
+        ),
+        (
+            "dvp-3-2mm-2745x1700",
+            "DVP plita 3.2 mm (2745x1700)",
+            "ДВП плита 3.2 мм (2745х1700)",
+            "ДВП плита 3.2 мм (2745х1700)",
+            None,
+            "plita-va-fanera",
+            "dona",
+            {"thickness_mm": 3.2, "size": "2745x1700", "material": "hardboard"},
+            "economy",
+            Decimal("75000"),
+            Decimal("1"),
+            "dona",
+        ),
+    ]
+    products.extend(board_items)
+
+    # 22. Mahkamlash materiallari
+    # Sold by the box, so pack_size carries the piece count and the unit price
+    # works out per piece -- which is how buyers compare fasteners.
+    fastener_items = [
+        (
+            "samorez-gk-3-5x25-1000",
+            "Samorez gipsokarton uchun 3.5x25 (1000 dona)",
+            "Саморез гипсокартон учун 3.5х25 (1000 дона)",
+            "Саморез по гипсокартону 3.5х25 (1000 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "3.5x25", "pack_qty": 1000, "type": "drywall_screw"},
+            "standard",
+            Decimal("35000"),
+            Decimal("1000"),
+            "quti",
+        ),
+        (
+            "samorez-gk-3-5x35-1000",
+            "Samorez gipsokarton uchun 3.5x35 (1000 dona)",
+            "Саморез гипсокартон учун 3.5х35 (1000 дона)",
+            "Саморез по гипсокартону 3.5х35 (1000 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "3.5x35", "pack_qty": 1000, "type": "drywall_screw"},
+            "standard",
+            Decimal("45000"),
+            Decimal("1000"),
+            "quti",
+        ),
+        (
+            "samorez-yogoch-4x50-500",
+            "Samorez yogoch uchun 4x50 (500 dona)",
+            "Саморез ёғоч учун 4х50 (500 дона)",
+            "Саморез по дереву 4х50 (500 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "4x50", "pack_qty": 500, "type": "wood_screw"},
+            "standard",
+            Decimal("55000"),
+            Decimal("500"),
+            "quti",
+        ),
+        (
+            "samorez-metall-4-2x75-500",
+            "Samorez metall uchun 4.2x75 (500 dona)",
+            "Саморез металл учун 4.2х75 (500 дона)",
+            "Саморез по металлу 4.2х75 (500 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "4.2x75", "pack_qty": 500, "type": "metal_screw"},
+            "standard",
+            Decimal("65000"),
+            Decimal("500"),
+            "quti",
+        ),
+        (
+            "dyubel-6x40-100",
+            "Dyubel 6x40 (100 dona)",
+            "Дюбель 6х40 (100 дона)",
+            "Дюбель 6х40 (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "6x40", "pack_qty": 100, "type": "dowel"},
+            "standard",
+            Decimal("20000"),
+            Decimal("100"),
+            "quti",
+        ),
+        (
+            "dyubel-8x60-100",
+            "Dyubel 8x60 (100 dona)",
+            "Дюбель 8х60 (100 дона)",
+            "Дюбель 8х60 (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "8x60", "pack_qty": 100, "type": "dowel"},
+            "standard",
+            Decimal("32000"),
+            Decimal("100"),
+            "quti",
+        ),
+        (
+            "anker-bolt-10x100-50",
+            "Anker bolt 10x100 (50 dona)",
+            "Анкер болт 10х100 (50 дона)",
+            "Анкерный болт 10х100 (50 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "10x100", "pack_qty": 50, "type": "anchor_bolt"},
+            "standard",
+            Decimal("85000"),
+            Decimal("50"),
+            "quti",
+        ),
+        (
+            "mix-70mm-1kg",
+            "Mix (gvozd) 70 mm (1 kg)",
+            "Мих (гвоздь) 70 мм (1 кг)",
+            "Гвозди 70 мм (1 кг)",
+            None,
+            "mahkamlash-materiallari",
+            "kg",
+            {"length_mm": 70, "type": "nail"},
+            "economy",
+            Decimal("18000"),
+            Decimal("1"),
+            "kg",
+        ),
+        (
+            "mix-100mm-1kg",
+            "Mix (gvozd) 100 mm (1 kg)",
+            "Мих (гвоздь) 100 мм (1 кг)",
+            "Гвозди 100 мм (1 кг)",
+            None,
+            "mahkamlash-materiallari",
+            "kg",
+            {"length_mm": 100, "type": "nail"},
+            "economy",
+            Decimal("17000"),
+            Decimal("1"),
+            "kg",
+        ),
+        (
+            "bolt-m8x60-100",
+            "Bolt M8x60 (100 dona)",
+            "Болт М8х60 (100 дона)",
+            "Болт М8х60 (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "M8x60", "pack_qty": 100, "type": "bolt"},
+            "standard",
+            Decimal("48000"),
+            Decimal("100"),
+            "quti",
+        ),
+        (
+            "gayka-m8-100",
+            "Gayka M8 (100 dona)",
+            "Гайка М8 (100 дона)",
+            "Гайка М8 (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "M8", "pack_qty": 100, "type": "nut"},
+            "economy",
+            Decimal("15000"),
+            Decimal("100"),
+            "quti",
+        ),
+        (
+            "shayba-m8-100",
+            "Shayba M8 (100 dona)",
+            "Шайба М8 (100 дона)",
+            "Шайба М8 (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"size": "M8", "pack_qty": 100, "type": "washer"},
+            "economy",
+            Decimal("9000"),
+            Decimal("100"),
+            "quti",
+        ),
+        (
+            "perfolenta-12mm-25m",
+            "Perfolenta 12 mm (25 m)",
+            "Перфолента 12 мм (25 м)",
+            "Перфолента 12 мм (25 м)",
+            None,
+            "mahkamlash-materiallari",
+            "metr",
+            {"width_mm": 12, "length_m": 25, "type": "perforated_tape"},
+            "economy",
+            Decimal("12000"),
+            Decimal("25"),
+            "rulon",
+        ),
+        (
+            "kleymer-mahkamlagich-100",
+            "Kleymer mahkamlagich (100 dona)",
+            "Клеймер маҳкамлагич (100 дона)",
+            "Кляймер крепёжный (100 шт)",
+            None,
+            "mahkamlash-materiallari",
+            "dona",
+            {"pack_qty": 100, "type": "clip"},
+            "economy",
+            Decimal("14000"),
+            Decimal("100"),
+            "quti",
+        ),
+    ]
+    products.extend(fastener_items)
+
     return products
 
 
@@ -2329,8 +2772,16 @@ def generate_aliases_for_product(prod: tuple[Any, ...]) -> list[dict[str, Any]]:
     return aliases
 
 
-async def seed_database(session: AsyncSession) -> None:
-    logger.info("Starting database seeding...")
+async def seed_database(session: AsyncSession, catalog_only: bool = False) -> None:
+    """Populate reference and catalogue data, and optionally the demo market.
+
+    `catalog_only` seeds units, categories, districts, canonical products and
+    aliases but stops before shops, offers and demo users. That is what a live
+    deployment wants when the catalogue changes: new products become
+    matchable without re-creating placeholder shops or synthetic offers
+    alongside real ones.
+    """
+    logger.info("Starting database seeding (catalog_only=%s)...", catalog_only)
 
     # 1. Units
     logger.info("Seeding units...")
@@ -2460,6 +2911,10 @@ async def seed_database(session: AsyncSession) -> None:
     await session.flush()
     logger.info(f"Seeded {len(canonical_objs)} canonical products and {alias_count} aliases.")
 
+    if catalog_only:
+        logger.info("catalog_only: stopping before shops, offers and demo users.")
+        return
+
     # 5. Shops & Delivery Rules
     logger.info("Seeding shops and delivery rules...")
     shop_objs: list[Shop] = []
@@ -2580,8 +3035,9 @@ async def seed_database(session: AsyncSession) -> None:
 
 
 async def main() -> None:
+    catalog_only = "--catalog-only" in sys.argv
     async with async_session_factory() as session:
-        await seed_database(session)
+        await seed_database(session, catalog_only=catalog_only)
 
 
 if __name__ == "__main__":

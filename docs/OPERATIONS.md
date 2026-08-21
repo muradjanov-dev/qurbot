@@ -58,8 +58,34 @@ Served from the same web service at `/admin`, behind HTTP Basic Auth
 values before deploying; the defaults are placeholders).
 
 Screens: `/admin/unmatched` (start here — highest-value queue), `/admin/aliases`,
-`/admin/shops`, `/admin/offers`, `/admin/listings` (photo review),
-`/admin/orders`, `/admin/dashboard` (daily metrics), `/admin/llm-cost`.
+`/admin/shops`, `/admin/offers`, `/admin/products` (full catalogue),
+`/admin/listings` (photo review), `/admin/orders`, `/admin/dashboard`
+(daily metrics), `/admin/llm-cost`.
+
+### Full catalogue (`/admin/products`)
+
+Every product, searchable and paged, **including ones hidden from customers**
+by `enabled_category_slugs` — those are marked `yashirin`. Deliberately not
+scoped by that allowlist: an operator who cannot see what they switched off has
+no way to judge whether switching it off was right. The in-bot admin panel
+lists the same thing with paging.
+
+### The seeded demo market
+
+The seed dataset creates 20 placeholder shops with roughly 4,000 offers whose
+prices are `50000 * random(0.92..1.15)` regardless of product. Fine as dev
+fixtures, wrong in production — customers were being quoted meaningless numbers,
+and a real order was placed against one of those shops.
+
+Migration `0010_retire_seeded_market` deactivates those shops and their offers.
+It deactivates rather than deletes because `order_items.shop_product_id` is NOT
+NULL, so deleting an offer already in an order would take the order history with
+it — and because it has to be reversible. `alembic downgrade 0009_user_addresses`
+puts the demo market straight back.
+
+They do not come back on deploy: the pre-deploy seed runs with `--catalog-only`,
+which stops before shops, offers and demo users, so catalogue changes roll out
+without re-creating placeholder shops next to real ones.
 
 ### Photo review (`/admin/listings`)
 

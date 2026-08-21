@@ -17,9 +17,22 @@ from app.bot.handlers.customer import (
     checkout_comment,
     handle_basket_text,
 )
+from app.core.config import settings
 from app.db.models.order import Order
 from app.db.models.user import User
 from scripts.seed import seed_database
+
+
+@pytest.fixture(autouse=True)
+def _full_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise matching across the whole catalogue, not the launch scope.
+
+    The launch allowlist deliberately narrows what can be matched, and it has
+    its own coverage in test_addresses_and_scope.py. Pinning it off here keeps
+    these tests about the matching pipeline, which is what they are for --
+    otherwise they would fail for a product reason rather than a code one.
+    """
+    monkeypatch.setattr(settings, "enabled_category_slugs", [])
 
 
 @pytest.mark.asyncio
@@ -98,6 +111,7 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
         callback=select_cb,
         state=state,
         user=user,
+        session=test_session,
         lang="uz_latn",
     )
 
@@ -106,7 +120,9 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     addr_msg.text = "Chilonzor 9-mavze, 12-uy"
     addr_msg.answer = AsyncMock()
 
-    await checkout_address(message=addr_msg, state=state, lang="uz_latn")
+    await checkout_address(
+        message=addr_msg, state=state, user=user, session=test_session, lang="uz_latn"
+    )
     addr_msg.answer.assert_called_once()
 
     # 7. Simulate entering order comment -- this now shows a review/confirm

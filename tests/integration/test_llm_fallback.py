@@ -16,6 +16,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.catalog import ProductAlias
 from app.db.models.ops import LLMCall
 from app.db.repositories.catalog_repo import CatalogRepository
@@ -23,6 +24,18 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.llm.client import LLMClient
 from app.services.catalog_service import CatalogService
 from scripts.seed import seed_database
+
+
+@pytest.fixture(autouse=True)
+def _full_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise matching across the whole catalogue, not the launch scope.
+
+    The launch allowlist deliberately narrows what can be matched, and it has
+    its own coverage in test_addresses_and_scope.py. Pinning it off here keeps
+    these tests about the matching pipeline, which is what they are for --
+    otherwise they would fail for a product reason rather than a code one.
+    """
+    monkeypatch.setattr(settings, "enabled_category_slugs", [])
 
 
 @pytest.mark.asyncio

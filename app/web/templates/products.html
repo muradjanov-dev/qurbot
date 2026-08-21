@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Katalog — QurBot Admin{% endblock %}
+{% block content %}
+<h1>Katalog</h1>
+<p>
+  Jami <strong>{{ total }}</strong> ta mahsulot.
+  {% if scope_active %}
+  Xaridorlarga faqat yoqilgan kategoriyalar ko'rinadi — bu yerda hammasi ko'rinadi.
+  {% endif %}
+</p>
+
+<form method="get" action="/admin/products" style="margin-bottom:1rem;">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nomi yoki slug bo'yicha qidirish"
+         style="min-width:280px;">
+  <button type="submit">Qidirish</button>
+  {% if q %}<a href="/admin/products">Tozalash</a>{% endif %}
+</form>
+
+{% if not items %}
+<p class="empty">Mahsulot topilmadi.</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Mahsulot</th>
+      <th>Kategoriya</th>
+      <th>Takliflar</th>
+      <th>Eng arzon</th>
+      <th>Holat</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>
+        <strong>{{ item.product.name_uz }}</strong>
+        {% if item.product.brand %}<br><small>{{ item.product.brand }}</small>{% endif %}
+        <br><small style="color:#888;">{{ item.product.slug }}</small>
+      </td>
+      <td>{{ item.category_name }}</td>
+      <td>{{ item.offer_count }}</td>
+      <td>
+        {% if item.min_price is not none %}
+        {{ '{:,.0f}'.format(item.min_price).replace(',', ' ') }} so'm
+        {% else %}
+        <span class="empty">—</span>
+        {% endif %}
+      </td>
+      <td style="white-space:nowrap;">
+        {% if not item.product.is_active %}
+        <span style="color:#b00;">o'chirilgan</span>
+        {% elif not item.customer_visible %}
+        <span style="color:#a60;">yashirin</span>
+        {% else %}
+        <span style="color:#080;">faol</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if pages > 1 %}
+<p style="margin-top:1rem;">
+  {% if page > 1 %}
+  <a href="/admin/products?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}">← Oldingi</a>
+  {% endif %}
+  <span style="margin:0 0.75rem;">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}
+  <a href="/admin/products?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}">Keyingi →</a>
+  {% endif %}
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}

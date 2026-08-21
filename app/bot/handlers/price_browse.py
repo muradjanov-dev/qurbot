@@ -115,7 +115,11 @@ async def callback_product_detail(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    """Show one product: cheapest price, how many shops carry it, and a photo."""
+    """Show one product: its price range and a photo.
+
+    Deliberately says nothing about which shops carry it or how many. The
+    customer is buying from us, so the supply side is not their concern.
+    """
     if not callback.data or not isinstance(callback.message, Message):
         await callback.answer()
         return
@@ -138,7 +142,6 @@ async def callback_product_detail(
             brand=esc(product.brand or "—"),
             min_price=f"{min(prices):,.0f}",
             max_price=f"{max(prices):,.0f}",
-            shops=len(offers),
             unit=product.base_unit_code,
         )
     else:
