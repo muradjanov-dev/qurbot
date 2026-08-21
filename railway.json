@@ -7,8 +7,7 @@
   "deploy": {
     "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
     "preDeployCommand": [
-      "alembic upgrade head",
-      "python -m scripts.seed --catalog-only"
+      "alembic upgrade head && python -m scripts.seed --catalog-only"
     ],
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
