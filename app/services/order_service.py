@@ -10,10 +10,9 @@ from QurBot, not from a list of vendors), so shop identity only ever appears in
 the two places that need it: `order_shop_parts`, and the notifications this
 module sends to the shops themselves and to the admin group.
 
-NOTE: `app/bot/handlers/customer.py` still builds these rows inline for the
-Telegram path. Switching that handler to call `place_order` here is the
-follow-up that removes the duplication -- it was left alone because that file
-was under concurrent edit.
+Both doorways come through here -- the bot's confirm button and the website's
+checkout -- so an order means the same thing whichever way it was placed, and a
+change to what an order *is* cannot land on one and miss the other.
 """
 
 from __future__ import annotations
@@ -46,6 +45,10 @@ class PlacedOrder:
     order: Order
     pebbles: int
     parts: tuple[tuple[OrderShopPart, ShopQuoteGroup], ...]
+    # Which doorway the order came through. Only the admin notification uses
+    # it, and only to say so -- an operator chasing an order wants to know
+    # where the customer is, and the two channels reach them differently.
+    source: str = "bot"
 
 
 def _format_qty(value: Decimal) -> str:
@@ -149,7 +152,7 @@ async def place_order(
     )
     await session.flush()
 
-    return PlacedOrder(order=order, pebbles=pebbles, parts=tuple(parts))
+    return PlacedOrder(order=order, pebbles=pebbles, parts=tuple(parts), source=source)
 
 
 async def notify_order(
@@ -211,8 +214,9 @@ async def notify_order(
         )
 
     comment_line = f"💬 Izoh: {escape(order.comment)}\n" if order.comment else ""
+    channel = " (sayt)" if placed.source == "web" else ""
     admin_text = (
-        f"📦 <b>Yangi buyurtma #{order.id}</b> (sayt)\n\n"
+        f"📦 <b>Yangi buyurtma #{order.id}</b>{channel}\n\n"
         f"👤 Mijoz: {escape(customer_name)}\n"
         f"📞 Tel: {escape(phone)}\n"
         f"📍 Manzil: {escape(address)}\n"

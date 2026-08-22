@@ -388,6 +388,7 @@
     card.appendChild(totalRow(T.itemsTotal, variant.items_total));
     card.appendChild(totalRow(T.delivery, variant.delivery_total));
     card.appendChild(totalRow(T.grandTotal, variant.grand_total, true));
+    if (variant.delivery_note) card.appendChild(el("p", "muted tiny", variant.delivery_note));
 
     if (variant.savings) card.appendChild(el("p", "notice ok", variant.savings));
     var meta = el("p", "muted tiny");
@@ -560,6 +561,7 @@
     host.appendChild(totalRow(T.itemsTotal, variant.items_total));
     host.appendChild(totalRow(T.delivery, variant.delivery_total));
     host.appendChild(totalRow(T.grandTotal, variant.grand_total, true));
+    if (variant.delivery_note) host.appendChild(el("p", "muted tiny", variant.delivery_note));
     host.appendChild(el("p", "muted tiny", variant.eta));
   }
 

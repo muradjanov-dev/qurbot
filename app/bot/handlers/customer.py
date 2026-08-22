@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any
 
 from aiogram import Bot, F, Router
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
@@ -31,7 +31,6 @@ from app.bot.states import BasketStates, OrderCheckoutStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
-from app.db.models.order import Order, OrderItem, OrderShopPart
 from app.db.models.shop import ShopProduct
 from app.db.models.user import User
 from app.db.repositories.address_repo import AddressRepository
@@ -41,9 +40,9 @@ from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
-from app.domain.rewards import pebbles_for_order
 from app.services.address_service import AddressService, ResolvedLocation
 from app.services.catalog_service import CatalogService
+from app.services.order_service import notify_order, place_order
 from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
 
@@ -945,79 +944,21 @@ async def callback_confirm_order(
         await callback.answer()
         return
 
-    # Ensure a Basket exists in DB
-    from app.db.models.order import Basket, Quote
-
-    basket = Basket(
-        user_id=user.id,
-        raw_text="Customer basket",
-        status="ordered",
-    )
-    session.add(basket)
-    await session.flush()
-
-    quote = Quote(
-        basket_id=basket.id,
-        strategy=variant.strategy_labels[0].value if variant.strategy_labels else "cheapest",
-        items_total=variant.items_total_uzs,
-        delivery_total=variant.delivery_total_uzs,
-        grand_total=variant.grand_total_uzs,
-        coverage_pct=Decimal(str(variant.coverage_pct)),
-        shop_count=len(variant.shop_groups),
-        eta_hours=variant.max_eta_hours,
-    )
-    session.add(quote)
-    await session.flush()
-
-    # Create Order in DB
-    order = Order(
-        quote_id=quote.id,
-        user_id=user.id,
-        status="new",
+    # What an order *is* -- basket, quote snapshot, order, per-shop parts and
+    # the pebbles it earns -- is decided in one place, so the bot and the
+    # website cannot drift apart on it.
+    placed = await place_order(
+        session,
+        user=user,
+        variant=variant,
         contact_phone=phone,
         delivery_address=address,
-        grand_total_quoted=variant.grand_total_uzs,
         comment=comment,
+        raw_text="Customer basket",
+        source="bot",
     )
-    session.add(order)
-    await session.flush()
-
-    # Create OrderShopParts and OrderItems
-    shop_parts: list[tuple[OrderShopPart, Any]] = []
-    for g in variant.shop_groups:
-        part = OrderShopPart(
-            order_id=order.id,
-            shop_id=g.shop_id,
-            subtotal=g.subtotal_uzs,
-            delivery_fee=g.delivery_fee_uzs,
-            status="new",
-            shop_response="pending",
-        )
-        session.add(part)
-        await session.flush()
-        shop_parts.append((part, g))
-
-        for line in g.lines:
-            item = OrderItem(
-                order_shop_part_id=part.id,
-                canonical_id=line.canonical_id,
-                shop_product_id=line.offer_id,
-                qty=line.billed_qty,
-                unit_code=line.pack_unit,
-                unit_price_quoted=line.unit_price_uzs,
-                line_total=line.line_cost_uzs,
-            )
-            session.add(item)
-
-    # Loyalty award, before the commit so the order and its pebbles land
-    # together -- a customer must never see "order placed" without the pebbles
-    # it earned, nor pebbles for an order that failed to save.
-    ops_repo = OpsRepository(session)
-    pebbles = pebbles_for_order(order.grand_total_quoted, settings.pebble_rate_per_order)
-    if pebbles > 0:
-        await ops_repo.award_pebbles(
-            user_id=user.id, amount=pebbles, source="order", order_id=order.id
-        )
+    order = placed.order
+    pebbles = placed.pebbles
 
     await session.commit()
     await state.clear()
@@ -1043,7 +984,7 @@ async def callback_confirm_order(
         )
     await callback.answer()
 
-    await _notify_shops_and_admins_of_order(bot, session, order, shop_parts, user, phone, address)
+    await notify_order(bot, session, placed, user=user)
 
 
 @router.message(F.text.in_(["📦 Buyurtmalarim", "📦 Буюртмаларим", "📦 Мои заказы"]))
@@ -1067,85 +1008,6 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 # -----------------------------------------------------------------------------
 # Formatting Helpers
 # -----------------------------------------------------------------------------
-
-
-async def _notify_shops_and_admins_of_order(
-    bot: Bot,
-    session: AsyncSession,
-    order: Order,
-    shop_parts: list[tuple[OrderShopPart, Any]],
-    user: User,
-    phone: str,
-    address: str,
-) -> None:
-    """Tell each shop owner their part of the order, and admins the whole thing.
-
-    Best-effort: a shop with no owner_tg_id on file, or a failed send, is
-    logged and skipped rather than blocking the rest -- the order itself is
-    already committed by the time this runs.
-    """
-    shop_repo = ShopRepository(session)
-    customer_name = user.full_name or str(user.tg_id)
-
-    for part, group in shop_parts:
-        shop = await shop_repo.get(part.shop_id)
-        if not shop or not shop.owner_tg_id:
-            continue
-        lines_str = "\n".join(
-            f"• {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)}"
-            for line in group.lines
-        )
-        text = (
-            f"🆕 <b>Yangi buyurtma #{order.id}</b>\n\n"
-            f"{lines_str}\n\n"
-            f"Jami: <b>{part.subtotal:,.0f} so'm</b> + dostavka {part.delivery_fee:,.0f} so'm\n\n"
-            f"👤 Mijoz: {customer_name}\n"
-            f"📞 Tel: {phone}\n"
-            f"📍 Manzil: {esc(address)}"
-        )
-        try:
-            await bot.send_message(shop.owner_tg_id, text)
-        except TelegramAPIError as exc:
-            logger.warning("shop_order_notify_failed", shop_id=shop.id, error=str(exc))
-
-    # Admins get the whole order, not just its total: they are the ones who
-    # call the customer and chase the shops, so they need the same line-level
-    # detail each shop owner sees, across every shop at once.
-    admin_sections: list[str] = []
-    items_total = Decimal("0")
-    delivery_total = Decimal("0")
-    for part, group in shop_parts:
-        items_total += part.subtotal
-        delivery_total += part.delivery_fee
-        lines_str = "\n".join(
-            f"   • {esc(line.product_name)} × {format_qty(line.billed_qty)} "
-            f"{esc(line.pack_unit)} — {line.line_cost_uzs:,.0f} so'm"
-            for line in group.lines
-        )
-        admin_sections.append(
-            f"🏪 <b>{esc(group.shop_name)}</b>\n"
-            f"{lines_str}\n"
-            f"   <i>Jami: {part.subtotal:,.0f} + dostavka {part.delivery_fee:,.0f} so'm</i>"
-        )
-
-    comment_line = f"💬 Izoh: {esc(order.comment)}\n" if order.comment else ""
-    admin_text = (
-        f"📦 <b>Yangi buyurtma #{order.id}</b>\n\n"
-        f"👤 Mijoz: {esc(customer_name)}\n"
-        f"📞 Tel: {esc(phone)}\n"
-        f"📍 Manzil: {esc(address)}\n"
-        f"{comment_line}"
-        f"\n" + "\n\n".join(admin_sections) + "\n\n"
-        f"──────────────────────────\n"
-        f"Mahsulotlar: {items_total:,.0f} so'm\n"
-        f"Dostavka: {delivery_total:,.0f} so'm\n"
-        f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>"
-    )
-    for admin_id in settings.admin_tg_ids:
-        try:
-            await bot.send_message(admin_id, admin_text)
-        except TelegramAPIError as exc:
-            logger.warning("admin_order_notify_failed", admin_id=admin_id, error=str(exc))
 
 
 async def _safe_edit_text(

@@ -282,12 +282,20 @@ def strategy_label(variant: QuoteVariant, lang: str) -> str:
     return t(STRATEGY_LABEL_KEYS[variant.strategy_labels[0]], lang=lang)
 
 
-def variant_payload(variant: QuoteVariant, lang: str) -> dict[str, Any]:
+def variant_payload(
+    variant: QuoteVariant, lang: str, *, delivery_known: bool = True
+) -> dict[str, Any]:
     """Render a variant for the browser.
 
     White-label on purpose, exactly as the bot's card is: the lines from every
     shop are merged into one list with no shop names, distances or per-shop
     subtotals. The customer buys from QurBot; the sourcing split is internal.
+
+    `delivery_known` is False before we know where the order is going. Delivery
+    is priced per district, so without one the optimiser finds no rule and the
+    fee comes out zero -- shown plainly that would read as "free delivery" and
+    then jump at checkout. Saying "after you choose an address" is the truth,
+    and it is what stops the total from looking like a bait.
     """
     currency = t("web_currency", lang=lang)
     items = [
@@ -309,7 +317,12 @@ def variant_payload(variant: QuoteVariant, lang: str) -> dict[str, Any]:
         "title": strategy_label(variant, lang),
         "items": items,
         "items_total": f"{format_uzs(variant.items_total_uzs)} {currency}",
-        "delivery_total": f"{format_uzs(variant.delivery_total_uzs)} {currency}",
+        "delivery_total": (
+            f"{format_uzs(variant.delivery_total_uzs)} {currency}"
+            if delivery_known
+            else t("web_quote_delivery_unknown", lang=lang)
+        ),
+        "delivery_note": None if delivery_known else t("web_quote_delivery_note", lang=lang),
         "grand_total": f"{format_uzs(variant.grand_total_uzs)} {currency}",
         "grand_total_raw": str(variant.grand_total_uzs),
         "savings": (

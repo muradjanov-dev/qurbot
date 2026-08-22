@@ -125,13 +125,17 @@ async def api_quote(
     if not basket.items:
         return {"ok": False, "error": t("web_basket_nothing_confirmed", lang=lang)}
 
-    variants = await optimize(session, basket.items, district_id=user.district_id if user else None)
+    district_id = user.district_id if user else None
+    variants = await optimize(session, basket.items, district_id=district_id)
     if not variants:
         return {"ok": False, "error": t("web_quote_empty", lang=lang)}
 
     return {
         "ok": True,
-        "variants": [variant_payload(variant, lang) for variant in variants],
+        "variants": [
+            variant_payload(variant, lang, delivery_known=district_id is not None)
+            for variant in variants
+        ],
     }
 
 

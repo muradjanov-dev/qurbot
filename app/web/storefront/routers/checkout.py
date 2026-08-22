@@ -143,7 +143,7 @@ async def api_create_order(
             return {
                 "ok": False,
                 "price_changed": True,
-                "variant": variant_payload(variant, lang),
+                "variant": variant_payload(variant, lang, delivery_known=district_id is not None),
                 "error": t(
                     "web_checkout_price_changed",
                     lang=lang,

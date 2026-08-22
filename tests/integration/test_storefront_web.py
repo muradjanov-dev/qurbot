@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
 from app.db.models.ops import PebbleAward
 from app.db.models.order import Order, OrderItem, OrderShopPart
@@ -599,3 +600,29 @@ async def test_customer_can_save_and_default_an_address(
     deleted = client.post(f"/account/addresses/{saved.id}/delete", follow_redirects=False)
     assert deleted.status_code == 303
     assert (await test_session.execute(select(UserAddress))).scalars().first() is None
+
+
+@pytest.mark.asyncio
+async def test_quote_does_not_promise_free_delivery_before_an_address(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    """A visitor with no district must not be shown delivery as 0.
+
+    Delivery is priced per district, so without one the optimiser finds no rule
+    and the fee comes out zero. Printed as a number that reads as free delivery
+    and then jumps at checkout, which is the one thing a price aggregator
+    cannot afford to look like.
+    """
+    data = await _seed(test_session)
+    body = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
+
+    assert body["ok"] is True
+    variant = body["variants"][0]
+    assert variant["delivery_total"] == t("web_quote_delivery_unknown", lang="uz_latn")
+    assert variant["delivery_note"]
+
+    # ...and a customer whose district is known sees the real fee.
+    _sign_in(client, data.user_id)
+    known = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
+    assert known["variants"][0]["delivery_note"] is None
+    assert "40 000" in known["variants"][0]["delivery_total"]

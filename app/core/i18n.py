@@ -1908,6 +1908,22 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "Доставка",
     },
     "web_quote_grand_total": {"uz_latn": "Jami", "uz_cyrl": "Жами", "ru": "Итого"},
+    "web_quote_delivery_unknown": {
+        "uz_latn": "Manzil tanlangach",
+        "uz_cyrl": "Манзил танлангач",
+        "ru": "После выбора адреса",
+    },
+    "web_quote_delivery_note": {
+        "uz_latn": (
+            "Yetkazib berish narxi manzilingizga bog'liq va rasmiylashtirishda "
+            "qo'shiladi."
+        ),
+        "uz_cyrl": (
+            "Етказиб бериш нархи манзилингизга боғлиқ ва расмийлаштиришда "
+            "қўшилади."
+        ),
+        "ru": ("Стоимость доставки зависит от адреса и добавится при оформлении."),
+    },
     "web_quote_select": {"uz_latn": "Buni tanlash", "uz_cyrl": "Буни танлаш", "ru": "Выбрать"},
     "web_quote_pdf": {"uz_latn": "PDF olish", "uz_cyrl": "PDF олиш", "ru": "Скачать PDF"},
     "web_quote_recalc": {
