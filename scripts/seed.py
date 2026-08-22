@@ -1169,6 +1169,35 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
     await session.flush()
     logger.info(f"Seeded {len(canonical_objs)} canonical products and {alias_count} aliases.")
 
+    # A product dropped from the price list has to be dropped here too. Seeding
+    # is otherwise insert-or-update only, so a row removed from the source data
+    # would sit in the live catalogue forever -- which is what happened to the
+    # DSP rows once they were held back for confirmation.
+    #
+    # Deactivated rather than deleted: an order may reference it, and
+    # is_active=False already takes it out of matching and out of every
+    # customer surface, while an operator can still see it. Only supplier rows
+    # are touched; anything an admin or a shop added is not ours to retire.
+    current_slugs = {item.slug for item in raw_catalog}
+    retired = (
+        (
+            await session.execute(
+                select(CanonicalProduct).where(
+                    CanonicalProduct.source == SOURCE_SUPPLIER,
+                    CanonicalProduct.is_active.is_(True),
+                    CanonicalProduct.slug.notin_(current_slugs),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for product in retired:
+        product.is_active = False
+    if retired:
+        await session.flush()
+        logger.info("Retired %d products no longer on any price list.", len(retired))
+
     if catalog_only:
         logger.info("catalog_only: stopping before shops, offers and demo users.")
         return

@@ -183,3 +183,81 @@ async def test_reseeding_republishes_changed_prices(test_session: AsyncSession) 
     await seed_database(test_session, catalog_only=True)
     await test_session.refresh(product)
     assert product.reference_price == original
+
+
+@pytest.mark.asyncio
+async def test_a_product_dropped_from_the_price_list_is_retired(
+    test_session: AsyncSession,
+) -> None:
+    """Seeding is insert-or-update, so removals need their own step.
+
+    Without it a row taken off the price list stays in the live catalogue for
+    good -- which is what happened to the DSP rows after they were held back.
+    """
+    await seed_database(test_session, catalog_only=True)
+
+    stale = CanonicalProduct(
+        slug="dsp-kronospan-1-6mm-2750x1830",
+        name_uz="DSP plita Kronospan 1.6 mm (2750x1830)",
+        name_uz_cyrl="ДСП плита Kronospan 1.6 мм (2750х1830)",
+        name_ru="ДСП плита Kronospan 1.6 мм (2750х1830)",
+        brand="Kronospan",
+        category_id=(
+            await test_session.scalar(select(Category.id).where(Category.slug == "plita-va-fanera"))
+        ),
+        base_unit_code="dona",
+        attributes={},
+        tier="standard",
+        source=SOURCE_SUPPLIER,
+        source_ref=FANERA_UZ,
+        reference_price=Decimal("260000"),
+        is_active=True,
+        search_doc="dsp plita kronospan",
+    )
+    test_session.add(stale)
+    await test_session.flush()
+
+    await seed_database(test_session, catalog_only=True)
+    await test_session.refresh(stale)
+
+    assert stale.is_active is False, "a product no longer on the price list must be retired"
+
+    # Everything still on the list stays live.
+    live = await test_session.scalar(
+        select(func.count(CanonicalProduct.id)).where(CanonicalProduct.is_active.is_(True))
+    )
+    assert live == len(generate_catalog_data())
+
+
+@pytest.mark.asyncio
+async def test_retiring_leaves_rows_from_other_sources_alone(
+    test_session: AsyncSession,
+) -> None:
+    """A product an admin added is not ours to retire off a supplier's list."""
+    await seed_database(test_session, catalog_only=True)
+
+    admin_product = CanonicalProduct(
+        slug="admin-qoshgan-mahsulot",
+        name_uz="Admin qo'shgan mahsulot",
+        name_uz_cyrl="Админ қўшган маҳсулот",
+        name_ru="Товар добавлен админом",
+        brand=None,
+        category_id=(
+            await test_session.scalar(select(Category.id).where(Category.slug == "plita-va-fanera"))
+        ),
+        base_unit_code="dona",
+        attributes={},
+        tier="standard",
+        source="admin",
+        source_ref=None,
+        reference_price=Decimal("99000"),
+        is_active=True,
+        search_doc="admin qoshgan mahsulot",
+    )
+    test_session.add(admin_product)
+    await test_session.flush()
+
+    await seed_database(test_session, catalog_only=True)
+    await test_session.refresh(admin_product)
+
+    assert admin_product.is_active is True
