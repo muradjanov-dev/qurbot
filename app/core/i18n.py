@@ -44,21 +44,21 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": (
             "Xush kelibsiz! Endi siz qurilish materiallari ro'yxatini erkin matn "
             "shaklida yuborishingiz mumkin. Masalan:\n\n"
-            "«<b>500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30</b>»\n\n"
+            "«<b>10 dona fanera 12mm, 5 dona osb 9mm, 20 dona dvp 3.2</b>»\n\n"
             "Qurilish mollaringizni ro'yxatini yuboring va biz Sizga ularni "
             "topib, jamlab, yetkazib beramiz."
         ),
         "uz_cyrl": (
             "Хуш келибсиз! Энди сиз қурилиш материаллари рўйхатини эркин матн "
             "шаклида юборишингиз мумкин. Масалан:\n\n"
-            "«<b>500 дона ғишт, 10 қоп цемент м400, 3 қути плитка 30х30</b>»\n\n"
+            "«<b>10 дона фанера 12мм, 5 дона осб 9мм, 20 дона двп 3.2</b>»\n\n"
             "Қурилиш молларингизни рўйхатини юборинг ва биз Сизга уларни "
             "топиб, жамлаб, етказиб берамиз."
         ),
         "ru": (
             "Добро пожаловать! Теперь вы можете отправить список стройматериалов "
             "простым текстом. Например:\n\n"
-            "«<b>500 шт кирпич, 10 мешков цемент м400, 3 коробки плитка 30х30</b>»\n\n"
+            "«<b>10 шт фанера 12мм, 5 шт осб 9мм, 20 шт двп 3.2</b>»\n\n"
             "Отправьте список стройматериалов, а мы найдём их, "
             "соберём и доставим вам."
         ),
@@ -612,15 +612,15 @@ MESSAGES: dict[str, dict[str, str]] = {
     "quick_price_prompt": {
         "uz_latn": (
             "Tez narx yangilash uchun mahsulot va narxni yuboring.\n"
-            "Masalan: <code>cement m400 52000</code> yoki <code>g'isht 1400</code>"
+            "Masalan: <code>fanera 12mm 157000</code> yoki <code>osb 9mm 118000</code>"
         ),
         "uz_cyrl": (
             "Тез нарх янгилаш учун маҳсулот ва нархни юборинг.\n"
-            "Масалан: <code>цемент м400 52000</code> ёки <code>ғишт 1400</code>"
+            "Масалан: <code>фанера 12мм 157000</code> ёки <code>осб 9мм 118000</code>"
         ),
         "ru": (
             "Для быстрого обновления отправьте название и цену.\n"
-            "Например: <code>цемент м400 52000</code> или <code>кирпич 1400</code>"
+            "Например: <code>фанера 12мм 157000</code> или <code>осб 9мм 118000</code>"
         ),
     },
     "price_updated_success": {
@@ -1180,21 +1180,21 @@ MESSAGES: dict[str, dict[str, str]] = {
             "📷 Mahsulot rasm(lar)ini yuboring va izohga bir qatorda yozing:\n"
             "<b>nomi + qadoq + narx</b>\n\n"
             "<i>Masalan:</i>\n"
-            "<code>Sement M400 50kg qop 52000 so'm</code>\n\n"
+            "<code>Fanera berezovaya 3x3 12mm dona 157000 so'm</code>\n\n"
             "Rasmsiz ham bo'ladi — shunchaki matn yuboring."
         ),
         "uz_cyrl": (
             "📷 Маҳсулот расм(лар)ини юборинг ва изоҳга бир қаторда ёзинг:\n"
             "<b>номи + қадоқ + нарх</b>\n\n"
             "<i>Масалан:</i>\n"
-            "<code>Sement M400 50kg қоп 52000 сўм</code>\n\n"
+            "<code>Fanera berezovaya 3x3 12mm дона 157000 сўм</code>\n\n"
             "Расмсиз ҳам бўлади — шунчаки матн юборинг."
         ),
         "ru": (
             "📷 Отправьте фото товара и в подписи одной строкой укажите:\n"
             "<b>название + фасовка + цена</b>\n\n"
             "<i>Например:</i>\n"
-            "<code>Цемент М400 50кг мешок 52000 сум</code>\n\n"
+            "<code>Фанера березовая 3х3 12мм шт 157000 сум</code>\n\n"
             "Можно и без фото — просто отправьте текст."
         ),
     },
@@ -1291,9 +1291,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "Выберите подкатегорию:",
     },
     "listing_step_name": {
-        "uz_latn": ("2/7 — Mahsulot nomini yozing.\n" "<i>Masalan: Sement M400 50kg qop</i>"),
-        "uz_cyrl": ("2/7 — Маҳсулот номини ёзинг.\n" "<i>Масалан: Sement M400 50kg қоп</i>"),
-        "ru": ("2/7 — Напишите название товара.\n" "<i>Например: Цемент М400 мешок 50кг</i>"),
+        "uz_latn": ("2/7 — Mahsulot nomini yozing.\n" "<i>Masalan: Fanera berezovaya 3x3 12mm</i>"),
+        "uz_cyrl": ("2/7 — Маҳсулот номини ёзинг.\n" "<i>Масалан: Fanera berezovaya 3x3 12mm</i>"),
+        "ru": ("2/7 — Напишите название товара.\n" "<i>Например: Фанера березовая 3х3 12мм</i>"),
     },
     "listing_step_unit": {
         "uz_latn": (
@@ -1315,15 +1315,15 @@ MESSAGES: dict[str, dict[str, str]] = {
     "listing_step_pack_size": {
         "uz_latn": (
             "Bitta qadoq (qop/quti/rulon) ichida necha <b>{unit}</b> bor?\n"
-            "<i>Masalan: 50 kg lik sement qop uchun — 50</i>"
+            "<i>Masalan: bitta fanera listi uchun — 1</i>"
         ),
         "uz_cyrl": (
             "Битта қадоқ (қоп/қути/рулон) ичида неча <b>{unit}</b> бор?\n"
-            "<i>Масалан: 50 кг лик цемент қоп учун — 50</i>"
+            "<i>Масалан: битта фанера листи учун — 1</i>"
         ),
         "ru": (
             "Сколько <b>{unit}</b> в одной упаковке (мешок/коробка/рулон)?\n"
-            "<i>Например: для мешка цемента 50 кг — 50</i>"
+            "<i>Например: для одного листа фанеры — 1</i>"
         ),
     },
     "listing_step_price": {
@@ -1857,15 +1857,15 @@ MESSAGES: dict[str, dict[str, str]] = {
     "web_basket_parse_failed": {
         "uz_latn": (
             "Ro'yxatni tushunolmadik. Har bir qatorda miqdor va nomni yozing, "
-            "masalan: «10 qop sement m400»."
+            "masalan: «10 dona fanera 12mm»."
         ),
         "uz_cyrl": (
             "Рўйхатни тушунолмадик. Ҳар бир қаторда миқдор ва номни ёзинг, "
-            "масалан: «10 қоп цемент м400»."
+            "масалан: «10 дона фанера 12мм»."
         ),
         "ru": (
             "Не удалось разобрать список. Укажите в строке количество и название, "
-            "например: «10 мешков цемент м400»."
+            "например: «10 шт фанера 12мм»."
         ),
     },
     "web_basket_nothing_confirmed": {
