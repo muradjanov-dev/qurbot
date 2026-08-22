@@ -42,6 +42,11 @@ from app.llm.prompts import (
 
 logger = logging.getLogger(__name__)
 
+# Values that mean "nobody set a key". Config ships the first, `.env.example`
+# the second; either one reaching the API is a configuration mistake, not a
+# call worth making.
+_PLACEHOLDER_API_KEYS = frozenset({"", "changeme", "placeholder_openai_key"})
+
 
 class LLMClient:
     """Async client for LLM fallback calls with caching and budgeting."""
@@ -223,6 +228,15 @@ class LLMClient:
         user_prompt: str,
     ) -> tuple[dict[str, Any] | None, int, int]:
         """Execute request against OpenAI-compatible Chat Completions endpoint."""
+        if self.api_key in _PLACEHOLDER_API_KEYS:
+            # No key was ever configured, so every request would fail auth after
+            # the full timeout-and-retry budget. Refusing here keeps a
+            # misconfigured deployment from adding seconds of certain failure to
+            # every basket, and keeps tests off the network without pretending
+            # the LLM answered.
+            logger.warning("LLM API key is a placeholder; skipping call to %s", self.base_url)
+            return None, 0, 0
+
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",

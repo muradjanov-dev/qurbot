@@ -21,6 +21,7 @@ from app.domain.parsing.excel_parser import (
     parse_csv,
     parse_excel,
 )
+from app.domain.parsing.models import ParsedLine
 from app.services.catalog_service import CatalogService
 
 logger = logging.getLogger(__name__)
@@ -151,13 +152,24 @@ class SupplierService:
         """Match a single import row against the catalog.
 
         Returns (canonical_id, confidence, resolution).
+
+        Matches the name directly rather than going through
+        `parse_and_match_basket`. That entry point is for a customer's free-text
+        list, and its whole-message LLM fallback fires whenever a line carries
+        no quantity -- which is *every* row of a price list, where the quantity
+        lives in its own column. A 150-row import therefore made 150 LLM calls
+        for nothing, which is both the loop CLAUDE.md forbids and what made
+        importing a price list depend on the network being fast.
         """
         try:
-            results = await catalog_service.parse_and_match_basket(row.raw_name)
-            if not results:
-                return None, None, "manual"
-
-            _, decision = results[0]
+            parsed = ParsedLine(
+                line_no=row.row_no,
+                raw_text=row.raw_name,
+                parsed_name=row.raw_name,
+                qty=row.raw_qty if row.raw_qty is not None else Decimal("1"),
+                unit_code=row.raw_unit,
+            )
+            _, decision = await catalog_service.match_parsed_line(parsed)
             conf_decimal = Decimal(str(round(decision.confidence, 2)))
             if decision.canonical_id and decision.confidence >= 0.82:
                 return (
