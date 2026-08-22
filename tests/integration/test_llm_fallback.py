@@ -121,7 +121,7 @@ async def test_llm_held_out_100_queries_evaluation(test_session: AsyncSession) -
         "dvp 3.2 {n} dona",
         "двп 3.2 {n} dona",
         "hdf 3.2 {n} dona",
-        "dsp kronospan {n} dona",
+        "fanera 4x4 4mm {n} dona",
         "fanera 3x3 15mm {n} dona",
     ]
 

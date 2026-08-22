@@ -605,6 +605,17 @@ USERS_DATA = [
 # it, and `reference_price` is None wherever the list says "Kelishiladi"
 # (negotiable) rather than a number. None is not zero -- a zero would win
 # every optimiser comparison it took part in.
+#
+# Held back from the fanera.uz list until the supplier confirms the printed
+# values, because transcribing them faithfully would put a product in the
+# catalogue that cannot exist:
+#
+#   * Section 5, DSP (4 rows) -- thickness printed as "1.6" on every row, at
+#     2750x1830 and 3500x1750. A 1.6 mm sheet that size is not a product;
+#     16 mm is the standard, but guessing that is not transcription.
+#   * Section 3, HDF "Oq" 2800x2071 -- the other two HDF rows say 2070.
+#
+# Re-add them here once confirmed; nothing else in the pipeline needs to know.
 
 
 @dataclass(frozen=True)
@@ -762,18 +773,6 @@ _HARDBOARDS: list[tuple[str, str, str, str, str | None, str, str, str, str, Deci
         None,
     ),
     (
-        "hdf-kronospan-oq-3-2mm-2800x2071",
-        "HDF plita Kronospan oq 3.2 mm (2800x2071)",
-        "ХДФ плита Kronospan оқ 3.2 мм (2800х2071)",
-        "ХДФ плита Kronospan белая 3.2 мм (2800х2071)",
-        "Kronospan",
-        "2800x2071",
-        "3.2",
-        "4",
-        "hdf",
-        None,
-    ),
-    (
         "dvp-t-2-5mm-2745x1700",
         "DVP plita (T markasi) 2.5 mm (2745x1700)",
         "ДВП плита (Т маркаси) 2.5 мм (2745х1700)",
@@ -808,23 +807,6 @@ _OSB3: list[tuple[str, Decimal | None]] = [
     ("15", Decimal("194000")),
     ("18", Decimal("230000")),
     ("21", None),
-]
-
-# fanera.uz section 5 -- DSP. The list gives thickness as 1.6 for every row,
-# transcribed as published; `thickness_label` keeps the printed value so an
-# operator can see it was not a rounding of ours.
-# (slug part, plant uz, plant ru, size, price)
-_DSP: list[tuple[str, str, str, str, Decimal | None]] = [
-    ("kronospan", "Kronospan", "Kronospan", "2750x1830", Decimal("260000")),
-    (
-        "yekaterinburg",
-        "Yekaterinburg",
-        "Екатеринбург",
-        "3500x1750",
-        Decimal("302000"),
-    ),
-    ("murim", "Murim", "Мурим", "3500x1750", Decimal("321000")),
-    ("perm", "Perm", "Пермь", "3500x1750", Decimal("375000")),
 ]
 
 
@@ -926,31 +908,6 @@ def _osb3_items() -> list[CatalogItem]:
     return items
 
 
-def _dsp_items() -> list[CatalogItem]:
-    thickness = "1.6"
-    items = []
-    for slug_part, plant_uz, plant_ru, size, price in _DSP:
-        items.append(
-            _sheet_item(
-                f"dsp-{slug_part}-{_slug_num(thickness)}mm-{size}",
-                f"DSP plita {plant_uz} {thickness} mm ({size})",
-                f"ДСП плита {plant_ru} {thickness} мм ({_cyr_size(size)})",
-                f"ДСП плита {plant_ru} {thickness} мм ({_cyr_size(size)})",
-                brand=plant_uz,
-                attributes={
-                    "thickness_mm": _thickness(thickness),
-                    "thickness_label": thickness,
-                    "size": size,
-                    "material": "cement_bonded_board",
-                    "origin": "Rossiya",
-                },
-                tier="standard",
-                reference_price=price,
-            )
-        )
-    return items
-
-
 def generate_catalog_data() -> list[CatalogItem]:
     """The whole catalogue, in price-list order."""
     items: list[CatalogItem] = []
@@ -958,7 +915,6 @@ def generate_catalog_data() -> list[CatalogItem]:
     items.extend(_birch_plywood_items())
     items.extend(_hardboard_items())
     items.extend(_osb3_items())
-    items.extend(_dsp_items())
     return items
 
 
@@ -984,7 +940,6 @@ _MATERIAL_KEYWORDS: dict[str, tuple[str, ...]] = {
     "osb3": ("osb", "osb-3", "osb3", "осб", "осб-3"),
     "hdf": ("hdf", "хдф"),
     "hardboard": ("dvp", "двп"),
-    "cement_bonded_board": ("dsp", "дсп"),
 }
 
 

@@ -188,7 +188,7 @@ async def test_supplier_import_150_rows(test_session: AsyncSession) -> None:
         "OSB-3 plita 12 mm",
         "DVP plita 3.2 mm",
         "HDF plita Kronospan 3.2 mm",
-        "DSP plita Kronospan",
+        "Fanera berezovaya 3x3 21 mm",
         "Fanera laminatsiyalangan SEGEZHA 18 mm",
         "Fanera berezovaya 2x4 9 mm",
         "Fanera berezovaya 4x4 4 mm",

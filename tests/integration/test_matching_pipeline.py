@@ -16,13 +16,13 @@ osb 9mm 20 dona
 osb-3 12мм 15 dona
 двп 3.2 30 dona
 фанера березовая 18 мм 4 dona
-dsp kronospan 2 dona
+fanera bereza 2x4 9mm 2 dona
 laminat fanera segezha 18 5 dona
 hdf 3.2 10 dona
 фанера 2x4 4мм 6 dona
 osb 18mm 8 dona
 fanera 21mm 3 dona
-дсп пермь 1 dona
+фанера 3x3 10 мм 1 dona
 """
 
 
