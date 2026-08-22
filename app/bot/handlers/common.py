@@ -12,6 +12,8 @@ from app.bot.keyboards.inline import (
     get_address_confirm_keyboard,
     get_district_keyboard,
     get_language_keyboard,
+    get_reregister_confirm_keyboard,
+    get_settings_inline_keyboard,
 )
 from app.bot.keyboards.reply import (
     get_cabinet_keyboard,
@@ -22,6 +24,7 @@ from app.bot.states import RegistrationStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.user import User
+from app.db.repositories.address_repo import AddressRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.services.address_service import AddressService, ResolvedLocation
@@ -377,15 +380,138 @@ async def menu_back_to_main(message: Message, user: User, state: FSMContext, lan
     )
 
 
+@router.message(Command("settings"))
 @router.message(F.text.in_(["⚙️ Sozlamalar", "⚙️ Созламалар", "⚙️ Настройки"]))
 async def menu_settings(message: Message, state: FSMContext, lang: str) -> None:
-    # No registration state here: an already-onboarded user changing language
-    # must not be walked back through district and phone.
     await state.clear()
     await message.answer(
-        t("choose_language", lang=lang),
-        reply_markup=get_language_keyboard(change_only=True),
+        t("settings_menu", lang=lang),
+        reply_markup=get_settings_inline_keyboard(lang=lang),
     )
+
+
+@router.callback_query(F.data == "settings:language")
+async def callback_settings_language(callback: CallbackQuery, lang: str) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.edit_text(
+        t("choose_language", lang=lang),
+        reply_markup=get_language_keyboard(change_only=True, show_back=True, lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "settings:reregister")
+async def callback_settings_reregister(callback: CallbackQuery, lang: str) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.edit_text(
+        t("reregister_confirm_prompt", lang=lang),
+        reply_markup=get_reregister_confirm_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "settings:back")
+async def callback_settings_back(callback: CallbackQuery, lang: str) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.edit_text(
+        t("settings_menu", lang=lang),
+        reply_markup=get_settings_inline_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.message(Command("reregister"))
+@router.message(Command("register"))
+@router.message(Command("reset"))
+@router.message(
+    F.text.in_(
+        [
+            "🔄 0 dan qayta ro'yxatdan o'tish",
+            "🔄 0 дан қайта рўйхатдан ўтиш",
+            "🔄 Перерегистрация (с нуля)",
+            "🔄 Qayta ro'yxatdan o'tish",
+            "🔄 Қайта рўйхатдан ўтиш",
+            "🔄 Перерегистрация",
+        ]
+    )
+)
+async def cmd_reregister(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    lang: str,
+) -> None:
+    await state.clear()
+    await message.answer(
+        t("reregister_confirm_prompt", lang=lang),
+        reply_markup=get_reregister_confirm_keyboard(lang=lang),
+    )
+
+
+@router.callback_query(F.data == "reregister:cancel")
+async def callback_reregister_cancel(
+    callback: CallbackQuery,
+    user: User,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.message.edit_text(
+        t("settings_menu", lang=lang),
+        reply_markup=get_settings_inline_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "reregister:confirm")
+async def callback_reregister_confirm(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    await callback.answer()
+    await _start_reregistration(callback.message, state, user, session, lang, is_callback=True)
+
+
+async def _start_reregistration(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+    *,
+    is_callback: bool = False,
+) -> None:
+    # 1. Reset user onboarding data & delete saved addresses to start fresh
+    user.district_id = None
+    address_repo = AddressRepository(session)
+    await address_repo.delete_all_for_user(user.id)
+    await session.flush()
+
+    # 2. Clear state and enter registration language state
+    await state.clear()
+    await state.set_state(RegistrationStates.waiting_for_language)
+
+    text = t("choose_language", lang=lang or "uz_latn")
+    markup = get_language_keyboard(change_only=False)
+
+    if is_callback:
+        await message.delete()
+        await message.answer(text, reply_markup=markup)
+    else:
+        await message.answer(text, reply_markup=markup)
 
 
 @router.callback_query(F.data.startswith("chg_lang:"))

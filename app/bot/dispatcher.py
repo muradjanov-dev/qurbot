@@ -64,6 +64,8 @@ async def setup_bot_commands(bot: Bot) -> None:
         BotCommand(command="start", description="Boshlash / Menyu"),
         BotCommand(command="menu", description="Asosiy menyu tugmalarini chiqarish"),
         BotCommand(command="orders", description="Mening buyurtmalarim"),
+        BotCommand(command="settings", description="Sozlamalar"),
+        BotCommand(command="reregister", description="0 dan qayta ro'yxatdan o'tish"),
         BotCommand(command="cancel", description="Amalni bekor qilish"),
         BotCommand(command="shop_products", description="Do'kon mahsulotlari (Do'kon egalari)"),
         BotCommand(command="delivery_rules", description="Yetkazish qoidalarini sozlash"),

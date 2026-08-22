@@ -5,7 +5,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc
+from app.bot.formatters.common import esc, format_catalog_price
 from app.bot.keyboards.inline import (
     get_admin_admins_keyboard,
     get_admin_back_keyboard,
@@ -211,9 +211,17 @@ async def cb_admin_products(
 
     lines = [t("adm_products_header", lang=lang, count=total)]
     for product, offer_count, min_price in rows:
-        price_str = f"{min_price:,.0f} so'm" if min_price is not None else "—"
-        lines.append(f"• {esc(product.name_uz)} — {price_str} ({offer_count} taklif)")
-    lines.append(f"\n{page + 1} / {pages}")
+        # An operator looking at the catalogue needs to know both what a row
+        # costs and who put it there -- a price with no provenance is not
+        # something they can act on.
+        price_str = format_catalog_price(min_price, product.reference_price, lang=lang)
+        origin = product.source_ref or product.source
+        lines.append(
+            f"• {esc(product.name_uz)} — <b>{price_str}</b> "
+            f"({offer_count} taklif · {esc(origin)})"
+        )
+    lines.append(f"\n{t('price_reference_hint', lang=lang)}")
+    lines.append(f"{page + 1} / {pages}")
 
     await callback.message.edit_text(
         "\n".join(lines),

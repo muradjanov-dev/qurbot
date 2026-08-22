@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from decimal import Decimal
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -94,7 +93,14 @@ def get_price_category_keyboard(
         builder.button(text=f"{icon}{label}", callback_data=f"price_cat:{cat.id}")
     builder.adjust(2)
 
-    if parent_id is not None:
+    if parent_id is None:
+        # Browsing by category assumes the customer knows which category their
+        # product is in. For a catalogue this size, letting them page through
+        # all of it is faster than guessing.
+        builder.row(
+            InlineKeyboardButton(text=t("btn_all_products", lang=lang), callback_data="all_prod:0")
+        )
+    else:
         builder.row(
             InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root")
         )
@@ -102,18 +108,47 @@ def get_price_category_keyboard(
 
 
 def get_product_picker_keyboard(
-    products: Sequence[tuple["CanonicalProduct", "Decimal"]],
+    products: Sequence[tuple["CanonicalProduct", str]],
     lang: str = "uz_latn",
 ) -> InlineKeyboardMarkup:
-    """Product list where each row is tappable and shows its cheapest price."""
+    """Product list where each row is tappable and shows its price.
+
+    The price arrives already rendered because what to show depends on where
+    it came from -- a live offer, a supplier's list, or nothing at all.
+    """
     builder = InlineKeyboardBuilder()
-    for product, price in products:
+    for product, price_text in products:
         builder.button(
-            text=f"{product.name_uz} — {price:,.0f} so'm",
+            text=f"{product.name_uz} — {price_text}",
             callback_data=f"price_prod:{product.id}",
         )
     builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_all_products_keyboard(
+    products: Sequence[tuple["CanonicalProduct", str]],
+    page: int,
+    pages: int,
+    lang: str = "uz_latn",
+) -> InlineKeyboardMarkup:
+    """One page of the whole catalogue, for customers rather than operators."""
+    builder = InlineKeyboardBuilder()
+    for product, price_text in products:
+        builder.button(
+            text=f"{product.name_uz} — {price_text}",
+            callback_data=f"price_prod:{product.id}",
+        )
+    builder.adjust(1)
+
+    if pages > 1:
+        builder.row(
+            InlineKeyboardButton(text="◀️", callback_data=f"all_prod:{(page - 1) % pages}"),
+            InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="noop"),
+            InlineKeyboardButton(text="▶️", callback_data=f"all_prod:{(page + 1) % pages}"),
+        )
+    builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root"))
     return builder.as_markup()
 
 
@@ -136,7 +171,11 @@ def get_product_detail_keyboard(
     return builder.as_markup()
 
 
-def get_language_keyboard(change_only: bool = False) -> InlineKeyboardMarkup:
+def get_language_keyboard(
+    change_only: bool = False,
+    show_back: bool = False,
+    lang: str = "uz_latn",
+) -> InlineKeyboardMarkup:
     """Build language selection keyboard.
 
     `change_only` switches the callback prefix so picking a language from
@@ -149,6 +188,28 @@ def get_language_keyboard(change_only: bool = False) -> InlineKeyboardMarkup:
     builder.button(text="🇺🇿 Ўзбекча (кирилл)", callback_data=f"{prefix}:uz_cyrl")
     builder.button(text="🇷🇺 Русский", callback_data=f"{prefix}:ru")
     builder.adjust(1)
+    if show_back:
+        builder.row(
+            InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="settings:back")
+        )
+    return builder.as_markup()
+
+
+def get_settings_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Build settings menu keyboard with language change and re-registration options."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_change_language", lang=lang), callback_data="settings:language")
+    builder.button(text=t("btn_reregister", lang=lang), callback_data="settings:reregister")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_reregister_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Build confirmation buttons for re-registering from scratch."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_confirm_reregister", lang=lang), callback_data="reregister:confirm")
+    builder.button(text=t("btn_cancel_reregister", lang=lang), callback_data="reregister:cancel")
+    builder.adjust(2)
     return builder.as_markup()
 
 
@@ -206,8 +267,14 @@ def get_quote_carousel_keyboard(
     lang: str = "uz_latn",
     *,
     has_photos: bool = False,
+    is_orderable: bool = True,
 ) -> InlineKeyboardMarkup:
-    """Build carousel navigation keyboard for quotes: [◀] 1/4 [▶] + actions."""
+    """Build carousel navigation keyboard for quotes: [◀] 1/4 [▶] + actions.
+
+    `is_orderable` is False for a variant that sourced nothing. Its buttons are
+    left off rather than shown and rejected: an enabled "confirm" button is a
+    promise that pressing it does something.
+    """
     builder = InlineKeyboardBuilder()
 
     # Navigation row
@@ -221,25 +288,35 @@ def get_quote_carousel_keyboard(
     ]
     builder.row(*nav_buttons)
 
-    # Action row 1: Select quote
-    builder.row(
-        InlineKeyboardButton(
-            text=t("btn_select_quote", lang=lang),
-            callback_data=f"select_quote:{current_index}",
+    if is_orderable:
+        # Action row 1: Select quote
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_select_quote", lang=lang),
+                callback_data=f"select_quote:{current_index}",
+            )
         )
-    )
 
-    # Action row 2: PDF & Recalculate
-    builder.row(
-        InlineKeyboardButton(
-            text=t("btn_get_pdf", lang=lang),
-            callback_data=f"pdf_quote:{current_index}",
-        ),
-        InlineKeyboardButton(
-            text=t("btn_recalculate", lang=lang),
-            callback_data="calculate_quotes",
-        ),
-    )
+        # Action row 2: PDF & back. Recalculating from here re-ran the same
+        # optimisation over the same basket and returned the same numbers,
+        # which left no way back to the basket to change anything.
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_get_pdf", lang=lang),
+                callback_data=f"pdf_quote:{current_index}",
+            ),
+            InlineKeyboardButton(
+                text=t("btn_back_to_basket", lang=lang),
+                callback_data="back_to_basket",
+            ),
+        )
+    else:
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_back_to_basket", lang=lang),
+                callback_data="back_to_basket",
+            )
+        )
 
     # Photos are opt-in rather than inlined: sending them alongside the card
     # would push the totals off screen, and only some products have any.

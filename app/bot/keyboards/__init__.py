@@ -4,6 +4,8 @@ from app.bot.keyboards.inline import (
     get_district_keyboard,
     get_language_keyboard,
     get_quote_carousel_keyboard,
+    get_reregister_confirm_keyboard,
+    get_settings_inline_keyboard,
     get_shop_order_decision_keyboard,
 )
 from app.bot.keyboards.reply import (
@@ -21,5 +23,7 @@ __all__ = [
     "get_main_menu_keyboard",
     "get_phone_request_keyboard",
     "get_quote_carousel_keyboard",
+    "get_reregister_confirm_keyboard",
+    "get_settings_inline_keyboard",
     "get_shop_order_decision_keyboard",
 ]

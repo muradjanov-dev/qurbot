@@ -59,11 +59,11 @@ class Settings(BaseSettings):
     # their products can be matched -- quoting something we cannot actually
     # source is worse than saying we do not carry it. Empty list = no
     # restriction, which is how the full catalogue is switched back on.
+    # The catalogue is currently one supplier's sheet-goods price list, so
+    # this is the only category with anything behind it. Adding a supplier
+    # means adding their category here in the same change.
     enabled_category_slugs: list[str] = [
         "plita-va-fanera",
-        "mahkamlash-materiallari",
-        "gipsokarton",
-        "yogoch",
     ]
 
     # Reverse geocoding for saved delivery addresses. Yandex is used when a key
@@ -74,6 +74,15 @@ class Settings(BaseSettings):
     # A pin further than this from every district centroid is treated as
     # outside the service area rather than snapped to the nearest one.
     district_match_max_km: float = 40.0
+    # Shortest text accepted as a typed delivery address. A courier needs at
+    # least a street and a number; one short word ("Izza") is someone testing
+    # the box, not somewhere a lorry of plywood can be sent.
+    min_delivery_address_length: int = 8
+
+    # Rows per page in the customer-facing catalogue list. Telegram starts
+    # truncating inline keyboards well before this becomes a message-length
+    # problem, so the page size is what keeps the list scrollable.
+    customer_products_page_size: int = 20
 
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82
@@ -120,6 +129,7 @@ class Settings(BaseSettings):
 
     # Observability (Phase 9 hardening)
     sentry_dsn: str | None = None
+
 
     @property
     def webhook_path(self) -> str:

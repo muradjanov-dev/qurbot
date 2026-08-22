@@ -17,9 +17,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_qty
+from app.bot.formatters.common import esc, format_catalog_price, format_qty
 from app.bot.handlers.customer import _format_parse_table
 from app.bot.keyboards.inline import (
+    get_all_products_keyboard,
     get_basket_actions_keyboard,
     get_price_category_keyboard,
     get_product_detail_keyboard,
@@ -93,18 +94,61 @@ async def callback_price_category(
         return
 
     cheapest = await _cheapest_by_canonical(session, [p.id for p in products])
-    # Only products with a live offer are listed -- a row with no price is
-    # nothing the customer can act on.
-    listed = [(p, price) for p in products if (price := cheapest.get(p.id)) is not None]
-    if not listed:
-        await callback.message.edit_text(t("price_browse_empty", lang=lang))
-        await callback.answer()
-        return
+    # Every product is listed, priced from the cheapest live offer when a shop
+    # carries it and from the supplier's list price otherwise. Listing only
+    # products with a live offer meant the whole catalogue read as empty until
+    # the first shop uploaded, which is not what a customer should be told.
+    listed = [
+        (p, format_catalog_price(cheapest.get(p.id), p.reference_price, lang=lang))
+        for p in products
+    ]
 
     category_name = category.name_ru if lang == "ru" else category.name_uz
     await callback.message.edit_text(
         t("price_browse_header", lang=lang, category=category_name),
         reply_markup=get_product_picker_keyboard(listed, lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("all_prod:"))
+async def callback_all_products(
+    callback: CallbackQuery,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """The whole catalogue, a page at a time, for customers.
+
+    Browsing by category assumes the customer already knows which category
+    their product sits in. Paging through everything is the shortest path when
+    they just want to see what is carried and what it costs.
+    """
+    if not callback.data or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    try:
+        page = max(0, int(callback.data.split(":")[1]))
+    except ValueError:
+        page = 0
+
+    page_size = settings.customer_products_page_size
+    catalog_repo = CatalogRepository(session)
+    rows, total = await catalog_repo.list_catalog_page(offset=page * page_size, limit=page_size)
+    if not rows:
+        await callback.message.edit_text(t("price_browse_empty", lang=lang))
+        await callback.answer()
+        return
+
+    pages = max(1, (total + page_size - 1) // page_size)
+    listed = [
+        (product, format_catalog_price(live_price, product.reference_price, lang=lang))
+        for product, live_price in rows
+    ]
+
+    await callback.message.edit_text(
+        f"{t('all_products_header', lang=lang, count=total)}\n"
+        f"{t('price_reference_hint', lang=lang)}",
+        reply_markup=get_all_products_keyboard(listed, page=page, pages=pages, lang=lang),
     )
     await callback.answer()
 

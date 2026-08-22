@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.shop import District
@@ -91,6 +91,12 @@ class AddressRepository:
                 remaining[0].is_default = True
                 await self.session.flush()
         return True
+
+    async def delete_all_for_user(self, user_id: int) -> None:
+        """Delete all saved delivery addresses for a user (e.g. on full re-registration)."""
+        stmt = delete(UserAddress).where(UserAddress.user_id == user_id)
+        await self.session.execute(stmt)
+        await self.session.flush()
 
     async def _clear_default(self, user_id: int) -> None:
         stmt = (

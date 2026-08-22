@@ -64,7 +64,7 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     fake_status_msg.chat = SimpleNamespace(id=123)
     fake_status_msg.message_id = 1
     fake_msg = AsyncMock(spec=Message)
-    fake_msg.text = "500 kg cement m400, 500 dona g'isht"
+    fake_msg.text = "10 dona fanera 12mm, 5 dona osb 9mm"
     fake_msg.answer = AsyncMock(return_value=fake_status_msg)
 
     # Pre-set contact phone so checkout skips phone prompt
@@ -81,8 +81,8 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     fake_msg.answer.assert_called_once()
     fake_status_msg.edit_text.assert_called_once()
     table_text = fake_status_msg.edit_text.call_args[0][0]
-    assert "Sement" in table_text or "sement" in table_text
-    assert "g'isht" in table_text or "G'isht" in table_text
+    assert "fanera" in table_text.lower()
+    assert "osb" in table_text.lower()
 
     # 4. Simulate clicking "Narxlarni hisoblash"
     fake_callback = AsyncMock(spec=CallbackQuery)
@@ -196,4 +196,4 @@ async def test_basket_text_with_no_product_list_gets_usage_guidance(
     fake_status_msg.edit_text.assert_called_once()
     guidance_text = fake_status_msg.edit_text.call_args[0][0]
     assert "tushunmadim" in guidance_text.lower()
-    assert "qop sement" in guidance_text.lower()
+    assert "fanera" in guidance_text.lower()

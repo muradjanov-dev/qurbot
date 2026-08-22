@@ -4,9 +4,12 @@ from app.bot.keyboards.inline import (
     get_district_keyboard,
     get_language_keyboard,
     get_quote_carousel_keyboard,
+    get_reregister_confirm_keyboard,
+    get_settings_inline_keyboard,
     get_shop_order_decision_keyboard,
 )
 from app.bot.keyboards.reply import (
+    get_cabinet_keyboard,
     get_cancel_keyboard,
     get_main_menu_keyboard,
     get_phone_request_keyboard,
@@ -21,6 +24,24 @@ def test_language_keyboard() -> None:
     assert kb.inline_keyboard[0][0].callback_data == "set_lang:uz_latn"
     assert kb.inline_keyboard[1][0].callback_data == "set_lang:uz_cyrl"
     assert kb.inline_keyboard[2][0].callback_data == "set_lang:ru"
+
+    kb_back = get_language_keyboard(change_only=True, show_back=True, lang="uz_latn")
+    assert len(kb_back.inline_keyboard) == 4
+    assert kb_back.inline_keyboard[0][0].callback_data == "chg_lang:uz_latn"
+    assert kb_back.inline_keyboard[3][0].callback_data == "settings:back"
+
+
+def test_settings_keyboards() -> None:
+    kb = get_settings_inline_keyboard(lang="uz_latn")
+    assert len(kb.inline_keyboard) == 2
+    assert kb.inline_keyboard[0][0].callback_data == "settings:language"
+    assert kb.inline_keyboard[1][0].callback_data == "settings:reregister"
+
+    confirm_kb = get_reregister_confirm_keyboard(lang="uz_latn")
+    assert len(confirm_kb.inline_keyboard) == 1
+    assert len(confirm_kb.inline_keyboard[0]) == 2
+    assert confirm_kb.inline_keyboard[0][0].callback_data == "reregister:confirm"
+    assert confirm_kb.inline_keyboard[0][1].callback_data == "reregister:cancel"
 
 
 def test_district_keyboard() -> None:
@@ -70,12 +91,39 @@ def test_quote_carousel_keyboard() -> None:
     kb = get_quote_carousel_keyboard(current_index=0, total_variants=4, lang="uz_latn")
     # Row 1: ◀️, 1/4, ▶️
     # Row 2: Select
-    # Row 3: PDF, Recalculate
+    # Row 3: PDF, Back to basket
     assert len(kb.inline_keyboard) == 3
     assert kb.inline_keyboard[0][0].callback_data == "nav_quote:3"  # Wraps to last
     assert kb.inline_keyboard[0][1].text == "1/4"
     assert kb.inline_keyboard[0][2].callback_data == "nav_quote:1"
     assert kb.inline_keyboard[1][0].callback_data == "select_quote:0"
+
+
+def test_quote_carousel_offers_a_way_back_to_the_basket() -> None:
+    """Recalculating re-ran the same optimisation over the same basket.
+
+    A customer who spotted a wrong line on the quote screen had no way back to
+    fix it, so the button that returned the same numbers is now the way out.
+    """
+    kb = get_quote_carousel_keyboard(current_index=0, total_variants=4, lang="uz_latn")
+    callbacks = [button.callback_data for row in kb.inline_keyboard for button in row]
+    assert "back_to_basket" in callbacks
+    assert "calculate_quotes" not in callbacks
+
+
+def test_quote_carousel_hides_ordering_when_nothing_was_sourced() -> None:
+    """A variant covering 0 products must not offer a confirm button.
+
+    An enabled button is a promise that pressing it does something; ordering a
+    0-item, 0 so'm quote is not something any shop can fulfil.
+    """
+    kb = get_quote_carousel_keyboard(
+        current_index=0, total_variants=1, lang="uz_latn", is_orderable=False
+    )
+    callbacks = [button.callback_data for row in kb.inline_keyboard for button in row]
+    assert not any(cb and cb.startswith("select_quote:") for cb in callbacks)
+    assert not any(cb and cb.startswith("pdf_quote:") for cb in callbacks)
+    assert "back_to_basket" in callbacks
 
 
 def test_shop_order_decision_keyboard() -> None:
@@ -102,3 +150,13 @@ def test_phone_request_keyboard() -> None:
 def test_cancel_keyboard() -> None:
     kb = get_cancel_keyboard(lang="uz_latn")
     assert kb.keyboard[0][0].text == "❌ Bekor qilish"
+
+
+def test_cabinet_keyboard() -> None:
+    kb = get_cabinet_keyboard(lang="uz_latn")
+    assert len(kb.keyboard) == 3
+    assert kb.keyboard[0][0].text == "📦 Buyurtmalarim"
+    assert kb.keyboard[0][1].text == "📍 Manzillarim"
+    assert kb.keyboard[1][0].text == "⚙️ Sozlamalar"
+    assert kb.keyboard[1][1].text == "🔄 0 dan qayta ro'yxatdan o'tish"
+    assert kb.keyboard[2][0].text == "⬅️ Asosiy menyu"

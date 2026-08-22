@@ -31,13 +31,14 @@ def get_main_menu_keyboard(
 
 
 def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
-    """Build the cabinet submenu: orders, addresses, settings, and a way back."""
+    """Build the cabinet submenu: orders, addresses, settings, reregister, and a way back."""
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("menu_my_orders", lang=lang))
     builder.button(text=t("menu_my_addresses", lang=lang))
     builder.button(text=t("menu_settings", lang=lang))
+    builder.button(text=t("btn_reregister", lang=lang))
     builder.button(text=t("btn_main_menu", lang=lang))
-    builder.adjust(2, 2)
+    builder.adjust(2, 2, 1)
     return builder.as_markup(resize_keyboard=True, is_persistent=True)
 
 
@@ -71,14 +72,23 @@ def get_cancel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_location_request_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
+def get_location_request_keyboard(
+    lang: str = "uz_latn",
+    *,
+    manual_key: str = "btn_choose_district_instead",
+) -> ReplyKeyboardMarkup:
     """Ask for a location pin, with a manual fallback.
 
     request_location only works on a reply keyboard, not an inline one, which
     is why this lives here rather than with the inline keyboards.
+
+    The fallback is not a nicety: Telegram Desktop cannot share a location at
+    all ("location sharing is currently unavailable"), so for a desktop
+    customer this button is the only way forward. `manual_key` picks what it
+    offers -- signup needs a district, checkout needs a street address.
     """
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("btn_send_location", lang=lang), request_location=True)
-    builder.button(text=t("btn_choose_district_instead", lang=lang))
+    builder.button(text=t(manual_key, lang=lang))
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

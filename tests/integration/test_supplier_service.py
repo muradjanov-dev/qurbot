@@ -52,9 +52,9 @@ async def test_supplier_import_full_pipeline(test_session: AsyncSession) -> None
     file_bytes = _make_excel(
         headers=["Nomi", "Narxi", "Birlik"],
         rows=[
-            ["Sement M400", 55000, "qop"],
-            ["G'isht qizil", 1500, "dona"],
-            ["Armatura d12", 19000, "kg"],
+            ["Fanera berezovaya 3x3 12 mm", 155000, "dona"],
+            ["OSB-3 plita 9 mm", 118000, "dona"],
+            ["DVP plita 3.2 mm", 65000, "dona"],
         ],
     )
 
@@ -115,7 +115,7 @@ async def test_supplier_import_price_history(test_session: AsyncSession) -> None
 
     file_bytes = _make_excel(
         headers=["Nomi", "Narxi"],
-        rows=[["Sement M400", 56000]],
+        rows=[["Fanera berezovaya 3x3 12 mm", 156000]],
     )
 
     summary = await svc.process_file_upload(
@@ -148,7 +148,7 @@ async def test_supplier_import_batch_cancellation(test_session: AsyncSession) ->
 
     file_bytes = _make_excel(
         headers=["Nomi", "Narxi"],
-        rows=[["Sement M400", 60000]],
+        rows=[["Fanera berezovaya 3x3 12 mm", 160000]],
     )
 
     summary = await svc.process_file_upload(
@@ -182,16 +182,16 @@ async def test_supplier_import_150_rows(test_session: AsyncSession) -> None:
 
     # Generate 150 rows with realistic product names
     product_names = [
-        "Sement M400",
-        "G'isht qizil",
-        "Armatura d12",
-        "Plitka 30x30",
-        "Gipsokarton 12.5mm",
-        "Bo'yoq oq",
-        "Shifer 8 tolali",
-        "Qum qurilish",
-        "Kraska fasadnaya",
-        "Trubka polietilen",
+        "Fanera berezovaya 3x3 12 mm",
+        "Fanera berezovaya 3x3 18 mm",
+        "OSB-3 plita 9 mm",
+        "OSB-3 plita 12 mm",
+        "DVP plita 3.2 mm",
+        "HDF plita Kronospan 3.2 mm",
+        "DSP plita Kronospan",
+        "Fanera laminatsiyalangan SEGEZHA 18 mm",
+        "Fanera berezovaya 2x4 9 mm",
+        "Fanera berezovaya 4x4 4 mm",
     ]
     rows = []
     for i in range(150):

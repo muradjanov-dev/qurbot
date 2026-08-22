@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +15,7 @@ from app.db.models import (
     Unit,
     User,
 )
-from scripts.seed import seed_database
+from scripts.seed import FANERA_UZ, SOURCE_SUPPLIER, generate_catalog_data, seed_database
 
 
 @pytest.mark.asyncio
@@ -32,13 +34,15 @@ async def test_seed_database(test_session: AsyncSession) -> None:
     dist_count = (await test_session.execute(select(func.count(District.id)))).scalar()
     assert dist_count is not None and dist_count >= 12
 
-    # Verify Canonical Products (250+)
+    # Verify Canonical Products. The catalogue is exactly what the supplier
+    # price lists carry, so a count that drifts from the source data is a
+    # regression rather than growth.
     prod_count = (await test_session.execute(select(func.count(CanonicalProduct.id)))).scalar()
-    assert prod_count is not None and prod_count >= 50  # comprehensive catalog seeded
+    assert prod_count == len(generate_catalog_data())
 
-    # Verify Product Aliases (900+)
+    # Verify Product Aliases
     alias_count = (await test_session.execute(select(func.count(ProductAlias.id)))).scalar()
-    assert alias_count is not None and alias_count >= 100
+    assert alias_count is not None and alias_count >= prod_count
 
     # Verify Shops
     shop_count = (await test_session.execute(select(func.count(Shop.id)))).scalar()
@@ -115,3 +119,67 @@ async def test_launch_categories_are_all_stocked(test_session: AsyncSession) -> 
             )
         ).scalar()
         assert count and count > 0, f"enabled category '{slug}' has no products"
+
+
+@pytest.mark.asyncio
+async def test_catalog_records_where_each_product_came_from(
+    test_session: AsyncSession,
+) -> None:
+    """Provenance is what separates a real row from a placeholder.
+
+    The admin catalogue screen showed 222 rows with no price and no way to
+    tell which were invented by the seed, which is why `source` exists.
+    """
+    await seed_database(test_session, catalog_only=True)
+
+    products = (await test_session.execute(select(CanonicalProduct))).scalars().all()
+    assert products
+    assert {p.source for p in products} == {SOURCE_SUPPLIER}
+    assert {p.source_ref for p in products} == {FANERA_UZ}
+
+
+@pytest.mark.asyncio
+async def test_negotiable_prices_are_null_not_zero(test_session: AsyncSession) -> None:
+    """ "Kelishiladi" means the price is agreed per order, not that it is free.
+
+    A zero would win every comparison the optimiser makes.
+    """
+    await seed_database(test_session, catalog_only=True)
+
+    negotiable = {item.slug for item in generate_catalog_data() if item.reference_price is None}
+    assert negotiable, "the price list has negotiable rows; the fixture should cover them"
+
+    rows = (await test_session.execute(select(CanonicalProduct))).scalars().all()
+    for product in rows:
+        if product.slug in negotiable:
+            assert product.reference_price is None
+        else:
+            assert product.reference_price is not None
+            assert product.reference_price > 0
+
+
+@pytest.mark.asyncio
+async def test_reseeding_republishes_changed_prices(test_session: AsyncSession) -> None:
+    """A price list is republished, not re-created.
+
+    fanera.uz says prices move with the order day, so a re-seed has to reach
+    rows that already exist or the catalogue keeps whatever the first run
+    happened to load.
+    """
+    await seed_database(test_session, catalog_only=True)
+
+    slug = next(i.slug for i in generate_catalog_data() if i.reference_price is not None)
+    product = (
+        (await test_session.execute(select(CanonicalProduct).where(CanonicalProduct.slug == slug)))
+        .scalars()
+        .first()
+    )
+    assert product is not None
+    original = product.reference_price
+
+    product.reference_price = Decimal("1")
+    await test_session.commit()
+
+    await seed_database(test_session, catalog_only=True)
+    await test_session.refresh(product)
+    assert product.reference_price == original

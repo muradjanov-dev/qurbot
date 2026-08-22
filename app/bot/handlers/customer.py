@@ -39,6 +39,7 @@ from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
+from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.domain.rewards import pebbles_for_order
 from app.services.address_service import AddressService, ResolvedLocation
@@ -348,6 +349,36 @@ async def callback_edit_basket(
     await callback.answer()
 
 
+@router.callback_query(F.data == "back_to_basket")
+async def callback_back_to_basket(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    """Return from the quote carousel to the basket it was built from.
+
+    The quote screen used to offer only "recalculate", which re-ran the same
+    optimisation over the same basket and returned the same numbers -- so a
+    customer who saw a wrong line had no way back to fix it.
+    """
+    data = await state.get_data()
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    if not lines:
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("prompt_send_basket", lang=lang))
+        await callback.answer()
+        return
+
+    await state.set_state(BasketStates.viewing_quotes)
+    if isinstance(callback.message, Message):
+        await _safe_edit_text(
+            callback.message,
+            _format_parse_table(lines, lang=lang),
+            reply_markup=get_basket_actions_keyboard(lang=lang),
+        )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "add_item")
 async def callback_add_item(
     callback: CallbackQuery,
@@ -426,6 +457,7 @@ async def callback_calculate_quotes(
                 total_variants=len(result.deduplicated_variants),
                 lang=lang,
                 has_photos=await _variant_has_photos(session, result.deduplicated_variants[0]),
+                is_orderable=result.deduplicated_variants[0].is_orderable,
             ),
         )
     await callback.answer()
@@ -513,6 +545,7 @@ async def callback_nav_quote(
                 total_variants=len(raw_quotes),
                 lang=lang,
                 has_photos=await _variant_has_photos(session, variant),
+                is_orderable=variant.is_orderable,
             ),
         )
     await callback.answer()
@@ -555,9 +588,23 @@ async def callback_select_quote(
     if not callback.data:
         return
     idx = int(callback.data.split(":")[1])
-    await state.update_data(selected_quote_idx=idx)
 
     data = await state.get_data()
+    raw_quotes: list[dict[str, Any]] = data.get("quotes", [])
+    if not raw_quotes or idx >= len(raw_quotes):
+        await callback.answer()
+        return
+
+    # A variant that sourced nothing is a report of what is missing, not an
+    # offer. Its buttons are hidden, but the callback is still reachable from
+    # an older message, so the refusal is enforced here too.
+    if not _deserialize_variant(raw_quotes[idx]).is_orderable:
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("quote_not_orderable", lang=lang))
+        await callback.answer()
+        return
+
+    await state.update_data(selected_quote_idx=idx)
     contact_phone = data.get("contact_phone")
 
     # Check if user has phone
@@ -577,8 +624,19 @@ async def checkout_phone(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if message.text:
-        await state.update_data(contact_phone=message.text.strip())
+    """Take the contact number, but only if it is one.
+
+    This used to store whatever text arrived, so the placeholder printed in
+    the prompt itself ("+998XXXXXXXXX") ended up on real orders and the shop
+    had nobody to call.
+    """
+    raw = message.contact.phone_number if message.contact else (message.text or "")
+    phone = normalize_uz_phone(raw)
+    if phone is None:
+        await message.answer(t("error_invalid_phone", lang=lang))
+        return
+
+    await state.update_data(contact_phone=phone)
     await _ask_delivery_address(message, state, user, session, lang)
 
 
@@ -607,8 +665,8 @@ async def _ask_delivery_address(
 
     await state.set_state(OrderCheckoutStates.awaiting_new_location)
     await message.answer(
-        t("request_location", lang=lang),
-        reply_markup=get_location_request_keyboard(lang=lang),
+        t("request_location_checkout", lang=lang),
+        reply_markup=get_location_request_keyboard(lang=lang, manual_key=_TYPE_ADDRESS_KEY),
     )
 
 
@@ -646,10 +704,19 @@ async def callback_checkout_new_address(
         return
     await state.set_state(OrderCheckoutStates.awaiting_new_location)
     await callback.message.answer(
-        t("request_location", lang=lang),
-        reply_markup=get_location_request_keyboard(lang=lang),
+        t("request_location_checkout", lang=lang),
+        reply_markup=get_location_request_keyboard(lang=lang, manual_key=_TYPE_ADDRESS_KEY),
     )
     await callback.answer()
+
+
+_TYPE_ADDRESS_KEY = "btn_type_address_instead"
+
+# The button's own label in every language, so pressing it is not mistaken for
+# someone typing their street.
+_TYPE_ADDRESS_BUTTONS = frozenset(
+    t(_TYPE_ADDRESS_KEY, lang=code) for code in ("uz_latn", "uz_cyrl", "ru")
+)
 
 
 @router.message(F.location, OrderCheckoutStates.awaiting_new_location)
@@ -687,6 +754,32 @@ async def checkout_location(
         t("address_detected", lang=lang, address=esc(resolved.address_text)),
         reply_markup=get_address_confirm_keyboard(lang=lang),
     )
+
+
+@router.message(OrderCheckoutStates.awaiting_new_location, F.text)
+async def checkout_location_typed(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Accept a typed address instead of a pin.
+
+    Telegram Desktop refuses to share a location at all, so for a desktop
+    customer this is not a fallback -- it is the only way through checkout.
+    Before this, text sent at this step matched no handler and the bot simply
+    went quiet.
+    """
+    text = (message.text or "").strip()
+    if text in _TYPE_ADDRESS_BUTTONS:
+        await state.set_state(OrderCheckoutStates.entering_address)
+        await message.answer(
+            t("prompt_type_address", lang=lang), reply_markup=ReplyKeyboardRemove()
+        )
+        return
+
+    await _store_checkout_address(message, state, user, session, lang, text)
 
 
 @router.callback_query(F.data == "addr_ok", OrderCheckoutStates.confirming_new_address)
@@ -735,7 +828,11 @@ async def _store_checkout_address(
     asking for the same pin again.
     """
     text = address_text.strip()
-    if not text:
+    if len(text) < settings.min_delivery_address_length:
+        await state.set_state(OrderCheckoutStates.entering_address)
+        await message.answer(
+            t("error_address_too_short", lang=lang), reply_markup=ReplyKeyboardRemove()
+        )
         return
     data = await state.get_data()
     lat = data.get("pending_lat")
@@ -822,19 +919,31 @@ async def callback_confirm_order(
 ) -> None:
     data = await state.get_data()
 
-    address = data.get("delivery_address", "Toshkent shahri")
-    phone = data.get("contact_phone", "+998900000000")
+    # No invented fallbacks here. A default phone number ("+998900000000") or
+    # address goes onto a real order that a real shop then cannot deliver or
+    # call about; refusing is the only honest outcome.
+    address = data.get("delivery_address")
+    phone = data.get("contact_phone")
     comment = data.get("order_comment")
     raw_quotes = data.get("quotes", [])
     selected_idx = data.get("selected_quote_idx", 0)
 
-    if not raw_quotes:
+    if not raw_quotes or selected_idx >= len(raw_quotes) or not address or not phone:
         if isinstance(callback.message, Message):
             await callback.message.answer(t("error_generic", lang=lang))
         await callback.answer()
         return
 
     variant = _deserialize_variant(raw_quotes[selected_idx])
+
+    # Last gate before an order row is written. The confirm button is already
+    # hidden for a variant that sourced nothing, but state can outlive the
+    # message it was rendered from.
+    if not variant.is_orderable:
+        if isinstance(callback.message, Message):
+            await callback.message.answer(t("quote_not_orderable", lang=lang))
+        await callback.answer()
+        return
 
     # Ensure a Basket exists in DB
     from app.db.models.order import Basket, Quote

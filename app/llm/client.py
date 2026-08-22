@@ -435,6 +435,14 @@ class LLMClient:
 
     def _mock_parse_whole_message(self, message_text: str) -> dict[str, Any]:
         """Offline mock whole message parser."""
+        text_lower = message_text.lower()
+        if "fanera" in text_lower or "osb" in text_lower:
+            return {
+                "lines": [
+                    {"name": "Fanera 12mm", "qty": 10.0, "unit": "dona", "confidence": 0.95},
+                    {"name": "OSB-3 9mm", "qty": 5.0, "unit": "dona", "confidence": 0.95},
+                ]
+            }
         return {
             "lines": [
                 {"name": "Sement M400", "qty": 10.0, "unit": "qop", "confidence": 0.95},

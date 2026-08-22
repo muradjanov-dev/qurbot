@@ -273,6 +273,51 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "⚙️ Созламалар",
         "ru": "⚙️ Настройки",
     },
+    "settings_menu": {
+        "uz_latn": "⚙️ <b>Sozlamalar</b>\n\nKerakli bo'limni tanlang:",
+        "uz_cyrl": "⚙️ <b>Созламалар</b>\n\nКеракли бўлимни танланг:",
+        "ru": "⚙️ <b>Настройки</b>\n\nВыберите нужный раздел:",
+    },
+    "btn_change_language": {
+        "uz_latn": "🌐 Tilni o'zgartirish",
+        "uz_cyrl": "🌐 Тилни ўзгартириш",
+        "ru": "🌐 Изменить язык",
+    },
+    "btn_reregister": {
+        "uz_latn": "🔄 0 dan qayta ro'yxatdan o'tish",
+        "uz_cyrl": "🔄 0 дан қайта рўйхатдан ўтиш",
+        "ru": "🔄 Перерегистрация (с нуля)",
+    },
+    "reregister_confirm_prompt": {
+        "uz_latn": (
+            "⚠️ <b>0 dan qayta ro'yxatdan o'tish</b>\n\n"
+            "Barcha ma'lumotlaringiz (til, tuman va saqlangan manzillar) tozalanadi va "
+            "boshidan qayta kiritiladi.\n\n"
+            "Haqiqatan ham qayta ro'yxatdan o'tishni istaysizmi?"
+        ),
+        "uz_cyrl": (
+            "⚠️ <b>0 дан қайта рўйхатдан ўтиш</b>\n\n"
+            "Барча маълумотларингиз (тил, туман ва сақланган манзиллар) тозаланади ва "
+            "бошидан қайта киритилади.\n\n"
+            "Ҳақиқатан ҳам қайта рўйхатдан ўтишни истайсизми?"
+        ),
+        "ru": (
+            "⚠️ <b>Перерегистрация с нуля</b>\n\n"
+            "Все ваши данные (язык, район и сохранённые адреса) будут очищены и "
+            "введены заново с самого начала.\n\n"
+            "Вы действительно хотите пройти регистрацию заново?"
+        ),
+    },
+    "btn_confirm_reregister": {
+        "uz_latn": "✅ Ha, qaytadan boshlash",
+        "uz_cyrl": "✅ Ҳа, қайтадан бошлаш",
+        "ru": "✅ Да, начать заново",
+    },
+    "btn_cancel_reregister": {
+        "uz_latn": "❌ Bekor qilish",
+        "uz_cyrl": "❌ Бекор қилиш",
+        "ru": "❌ Отмена",
+    },
     "prompt_send_basket": {
         "uz_latn": (
             "Qurilish mollari ro'yxatini yuboring.\n"
@@ -297,19 +342,19 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Kechirasiz, tushunmadim 🙂\n"
             "QurBot qurilish mollari narxini hisoblaydi. Har bir mahsulotni "
             "yangi qatordan, <b>miqdor + birlik + nom</b> tartibida yozing. Masalan:\n\n"
-            "10 qop sement\n500 dona g'isht\n3 quti plitka 30x30"
+            "10 dona fanera 12mm\n5 dona osb 9mm\n20 dona dvp 3.2"
         ),
         "uz_cyrl": (
             "Кечирасиз, тушунмадим 🙂\n"
             "QurBot қурилиш моллари нархини ҳисоблайди. Ҳар бир маҳсулотни "
             "янги қатордан, <b>миқдор + бирлик + ном</b> тартибида ёзинг. Масалан:\n\n"
-            "10 қоп цемент\n500 дона ғишт\n3 қути плитка 30х30"
+            "10 дона фанера 12мм\n5 дона осб 9мм\n20 дона двп 3.2"
         ),
         "ru": (
             "Извините, не понял 🙂\n"
             "QurBot считает цены на стройматериалы. Пишите каждый товар с новой "
             "строки в формате <b>количество + единица + название</b>. Например:\n\n"
-            "10 мешков цемент\n500 шт кирпич\n3 коробки плитка 30х30"
+            "10 шт фанера 12мм\n5 шт осб 9мм\n20 шт двп 3.2"
         ),
     },
     "qty_out_of_range": {
@@ -413,11 +458,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "📄 PDF tayyorlanmoqda...",
         "uz_cyrl": "📄 PDF тайёрланмоқда...",
         "ru": "📄 Готовим PDF...",
-    },
-    "btn_recalculate": {
-        "uz_latn": "🔄 Qayta hisoblash",
-        "uz_cyrl": "🔄 Қайта ҳисоблаш",
-        "ru": "🔄 Пересчитать",
     },
     "quote_header_cheapest": {
         "uz_latn": "💰 <b>ENG TEJAMLI VARIANT</b>",
@@ -1523,6 +1563,126 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "Bu variant uchun rasm yo'q.",
         "uz_cyrl": "Бу вариант учун расм йўқ.",
         "ru": "Для этого варианта нет фото.",
+    },
+    # --- Catalogue browsing (customer + admin) ---
+    # Checkout's own version of request_location. Telegram Desktop cannot
+    # share a location at all, so the prompt has to say up front that typing
+    # the address works -- otherwise a desktop customer sees only a button
+    # that errors.
+    "request_location_checkout": {
+        "uz_latn": (
+            "📍 Yetkazib berish manzilini yuboring.\n\n"
+            "Lokatsiya tugmasini bosing yoki manzilni shunchaki yozib yuboring."
+        ),
+        "uz_cyrl": (
+            "📍 Етказиб бериш манзилини юборинг.\n\n"
+            "Локация тугмасини босинг ёки манзилни шунчаки ёзиб юборинг."
+        ),
+        "ru": (
+            "📍 Отправьте адрес доставки.\n\n"
+            "Нажмите кнопку геолокации или просто напишите адрес текстом."
+        ),
+    },
+    "currency_suffix": {
+        "uz_latn": "so'm",
+        "uz_cyrl": "сўм",
+        "ru": "сум",
+    },
+    "btn_all_products": {
+        "uz_latn": "📋 Barcha mahsulotlar",
+        "uz_cyrl": "📋 Барча маҳсулотлар",
+        "ru": "📋 Все товары",
+    },
+    "all_products_header": {
+        "uz_latn": "📦 <b>Barcha mahsulotlar ({count} ta)</b>\n",
+        "uz_cyrl": "📦 <b>Барча маҳсулотлар ({count} та)</b>\n",
+        "ru": "📦 <b>Все товары ({count})</b>\n",
+    },
+    # Shown instead of a number wherever the price list says the price is
+    # agreed per order rather than published.
+    "price_negotiable": {
+        "uz_latn": "Kelishiladi",
+        "uz_cyrl": "Келишилади",
+        "ru": "Договорная",
+    },
+    # A price that comes from the supplier's list rather than a live shop
+    # offer. Marked so nobody reads it as a firm quote.
+    "price_reference_hint": {
+        "uz_latn": "<i>~ belgisi — yetkazib beruvchi prays-listidagi narx.</i>",
+        "uz_cyrl": "<i>~ белгиси — етказиб берувчи прайс-листидаги нарх.</i>",
+        "ru": "<i>~ — цена из прайс-листа поставщика.</i>",
+    },
+    # --- Quote screen ---
+    "btn_back_to_basket": {
+        "uz_latn": "◀️ Savatga qaytish",
+        "uz_cyrl": "◀️ Саватга қайтиш",
+        "ru": "◀️ Назад в корзину",
+    },
+    "quote_not_orderable": {
+        "uz_latn": (
+            "❌ Bu variantda birorta mahsulot topilmadi, shuning uchun buyurtma "
+            "berib bo'lmaydi.\n\nSavatni tahrirlab, mahsulot nomlarini "
+            "aniqroq yozib ko'ring."
+        ),
+        "uz_cyrl": (
+            "❌ Бу вариантда бирорта маҳсулот топилмади, шунинг учун буюртма "
+            "бериб бўлмайди.\n\nСаватни таҳрирлаб, маҳсулот номларини "
+            "аниқроқ ёзиб кўринг."
+        ),
+        "ru": (
+            "❌ В этом варианте не найдено ни одного товара, поэтому заказ "
+            "оформить нельзя.\n\nОтредактируйте корзину и укажите названия "
+            "точнее."
+        ),
+    },
+    # --- Checkout: phone ---
+    "error_invalid_phone": {
+        "uz_latn": (
+            "❌ Telefon raqam noto'g'ri.\n"
+            "Namuna: <code>+998901234567</code> yoki <code>901234567</code>"
+        ),
+        "uz_cyrl": (
+            "❌ Телефон рақам нотўғри.\n"
+            "Намуна: <code>+998901234567</code> ёки <code>901234567</code>"
+        ),
+        "ru": (
+            "❌ Неверный номер телефона.\n"
+            "Пример: <code>+998901234567</code> или <code>901234567</code>"
+        ),
+    },
+    # --- Checkout: address ---
+    "btn_type_address_instead": {
+        "uz_latn": "✍️ Manzilni yozib yuboraman",
+        "uz_cyrl": "✍️ Манзилни ёзиб юбораман",
+        "ru": "✍️ Напишу адрес текстом",
+    },
+    "prompt_type_address": {
+        "uz_latn": (
+            "✍️ Yetkazib berish manzilini yozing.\n"
+            "<i>Masalan: Chilonzor tumani, Bunyodkor ko'chasi 12-uy.</i>"
+        ),
+        "uz_cyrl": (
+            "✍️ Етказиб бериш манзилини ёзинг.\n"
+            "<i>Масалан: Чилонзор тумани, Бунёдкор кўчаси 12-уй.</i>"
+        ),
+        "ru": (
+            "✍️ Напишите адрес доставки.\n"
+            "<i>Например: Чиланзарский район, улица Бунёдкор, дом 12.</i>"
+        ),
+    },
+    "error_address_too_short": {
+        "uz_latn": (
+            "❌ Manzil juda qisqa. Tuman, ko'cha va uy raqamini yozing.\n"
+            "<i>Masalan: Yunusobod tumani, Amir Temur 15-uy.</i>"
+        ),
+        "uz_cyrl": (
+            "❌ Манзил жуда қисқа. Туман, кўча ва уй рақамини ёзинг.\n"
+            "<i>Масалан: Юнусобод тумани, Амир Темур 15-уй.</i>"
+        ),
+        "ru": (
+            "❌ Адрес слишком короткий. Укажите район, улицу и дом.\n"
+            "<i>Например: Юнусабадский район, Амир Темур 15.</i>"
+        ),
     },
 }
 

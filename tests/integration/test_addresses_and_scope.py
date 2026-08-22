@@ -173,8 +173,14 @@ async def test_another_users_address_cannot_be_touched(test_session: AsyncSessio
 # ── launch catalogue scope ────────────────────────────────────────────────
 
 
+# The allowlist is a launch setting that moves as suppliers are onboarded, so
+# these tests take the stocked category from the config rather than naming one.
+# What is being tested is that the filter applies, not which slug is in it.
+_ALLOWED_SLUG = settings.enabled_category_slugs[0]
+
+
 async def _catalog_fixture(session: AsyncSession) -> None:
-    allowed = Category(slug="yogoch", name_uz="Yog'och", name_ru="Дерево", sort_order=1)
+    allowed = Category(slug=_ALLOWED_SLUG, name_uz="Sotuvda", name_ru="В продаже", sort_order=1)
     blocked = Category(
         slug="sement-va-qorishmalar", name_uz="Sement", name_ru="Цемент", sort_order=2
     )
@@ -219,7 +225,7 @@ async def test_only_enabled_categories_are_browsable(test_session: AsyncSession)
 
     slugs = {c.slug for c in await repo.list_root_categories()}
 
-    assert "yogoch" in slugs
+    assert _ALLOWED_SLUG in slugs
     assert "sement-va-qorishmalar" not in slugs, "a category we do not stock must not be offered"
 
 

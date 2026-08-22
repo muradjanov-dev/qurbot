@@ -86,6 +86,17 @@ class CanonicalProduct(Base, TimestampMixin):
     tier: Mapped[str] = mapped_column(
         String(32), default="standard", nullable=False
     )  # economy|standard|premium
+    # Where this row came from. Without it nothing distinguishes a product the
+    # seed invented from one lifted off a real supplier's price list, which is
+    # what an operator needs to know before trusting a price or deleting a row.
+    source: Mapped[str] = mapped_column(
+        String(32), default="seed", nullable=False, index=True
+    )  # seed|supplier|admin|shop
+    source_ref: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # The supplier's list price, kept apart from live shop offers: it is what
+    # the catalogue is worth showing before any shop has uploaded anything.
+    # NULL means the price list says "Kelishiladi" -- negotiable, not zero.
+    reference_price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
     search_doc: Mapped[str] = mapped_column(Text, nullable=False)

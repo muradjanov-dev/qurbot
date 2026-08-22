@@ -6,17 +6,23 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.services.catalog_service import CatalogService
 from scripts.seed import seed_database
 
+# Sheet goods written the way customers actually type them: mixed Latin and
+# Cyrillic, thickness with and without a space, grades, plant names, and the
+# product named either by material or by the price list's own wording.
 SPEC_FIXTURES_BASKET = """
-500 dona g'isht, 10 qop cement m400, 3 quti plitka 30x30
-цемент м400 - 20 қоп
-армaтура 12мм 500 кг
-5 rulon ruberoid
-Gipsokarton 12.5mm 40 list
-kraska belaya 3 vedra 10l
-2t qum, 1.5 kub shag'al
-rotband 15 qop
-penoblok 200 dona
-50 dona shifer
+10 dona fanera 12mm
+fanera 3x3 15mm 5 dona
+osb 9mm 20 dona
+osb-3 12мм 15 dona
+двп 3.2 30 dona
+фанера березовая 18 мм 4 dona
+dsp kronospan 2 dona
+laminat fanera segezha 18 5 dona
+hdf 3.2 10 dona
+фанера 2x4 4мм 6 dona
+osb 18mm 8 dona
+fanera 21mm 3 dona
+дсп пермь 1 dona
 """
 
 

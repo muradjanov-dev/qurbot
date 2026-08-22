@@ -304,6 +304,59 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         stmt = delete(ProductAlias).where(ProductAlias.id == alias_id)
         await self.session.execute(stmt)
 
+    async def list_catalog_page(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 20,
+        category_ids: Sequence[int] | None = None,
+    ) -> tuple[Sequence[tuple[CanonicalProduct, Decimal | None]], int]:
+        """One page of the catalogue a customer may browse, cheapest live price
+        included.
+
+        The price is the cheapest active offer, or None when no shop is
+        carrying the product yet -- the caller decides what to show in its
+        place, because the product still has the supplier's list price on it.
+        Rows with no offer are deliberately kept: hiding them made the whole
+        catalogue look empty before any shop had uploaded anything.
+
+        Honours `enabled_category_slugs` like every other customer-facing
+        listing: it decides what is offered, and a product we cannot source
+        does not become sourceable by being listed.
+        """
+        from app.db.models.shop import ShopProduct
+
+        scoped = await self._scoped_category_ids(category_ids)
+        if scoped is not None and not scoped:
+            return [], 0
+
+        filters = [CanonicalProduct.is_active.is_(True)]
+        if scoped:
+            filters.append(CanonicalProduct.category_id.in_(list(scoped)))
+
+        total = int(
+            (
+                await self.session.execute(select(func.count(CanonicalProduct.id)).where(*filters))
+            ).scalar()
+            or 0
+        )
+
+        stmt = (
+            select(CanonicalProduct, func.min(ShopProduct.price_per_pack))
+            .outerjoin(
+                ShopProduct,
+                (ShopProduct.canonical_id == CanonicalProduct.id)
+                & (ShopProduct.is_active.is_(True)),
+            )
+            .where(*filters)
+            .group_by(CanonicalProduct.id)
+            .order_by(CanonicalProduct.name_uz)
+            .offset(offset)
+            .limit(limit)
+        )
+        rows = (await self.session.execute(stmt)).all()
+        return [(row[0], row[1]) for row in rows], total
+
     async def admin_list_products(
         self,
         *,

@@ -122,6 +122,19 @@ class QuoteVariant:
     max_eta_hours: int
     composite_score: float = 0.0
 
+    @property
+    def is_orderable(self) -> bool:
+        """Whether this variant is something a customer can actually buy.
+
+        The optimiser returns a variant even when it sourced nothing, because
+        that is how the customer is shown what is missing. Such a variant is a
+        report, not an offer: ordering it creates an order for 0 items and
+        0 so'm, which no shop can fulfil and nobody can price. A zero total
+        with covered lines means every matched offer is priced at zero, which
+        is a data fault rather than a free delivery.
+        """
+        return self.covered_count > 0 and self.grand_total_uzs > 0
+
 
 @dataclass(frozen=True, slots=True)
 class OptimizationResult:

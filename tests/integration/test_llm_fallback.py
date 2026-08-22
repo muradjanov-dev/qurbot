@@ -49,8 +49,9 @@ async def test_llm_stage3_disambiguation_and_alias_writeback(test_session: Async
     llm_client = LLMClient(session=test_session, mock_mode=True)
     catalog_service = CatalogService(catalog_repo, ops_repo, llm_client=llm_client)
 
-    # "shipr 8 tolali" is a noisy slang query that triggers Stage 3 fallback
-    results = await catalog_service.parse_and_match_basket("10 dona shipr 8 tolali")
+    # "paneradan qalin" is noisy enough that no alias hits it and trigram
+    # scores below auto-accept, so it falls through to Stage 3.
+    results = await catalog_service.parse_and_match_basket("10 dona paneradan qalin 12")
     assert len(results) == 1
     parsed_line, decision = results[0]
 
@@ -91,7 +92,7 @@ async def test_llm_whole_message_parse_fallback(test_session: AsyncSession) -> N
     catalog_service = CatalogService(catalog_repo, ops_repo, llm_client=llm_client)
 
     # Messy text without proper delimiter or structure
-    unstructured_text = "bizga sementdan 10ta qop va g'ishtdan 500ta tashab berilar"
+    unstructured_text = "bizga faneradan 10ta va osbdan 5ta kerak edi tashab berilar"
     results = await catalog_service.parse_and_match_basket(unstructured_text)
 
     assert len(results) >= 1
@@ -112,16 +113,16 @@ async def test_llm_held_out_100_queries_evaluation(test_session: AsyncSession) -
 
     # 100 realistic, noisy construction material query variations
     base_templates = [
-        "sement m400 {n} qop",
-        "m-400 tsement {n} meshok",
-        "qizil gisht {n} dona",
-        "gisht m100 {n} sht",
-        "armatura 12mm {n} kg",
-        "d12 armatura {n} metr",
-        "plitka 30x30 {n} quti",
-        "kafel 30*30 {n} kv",
-        "knauf gipsokarton 12.5 {n} list",
-        "oq kraska 10l {n} dona",
+        "fanera 12mm {n} dona",
+        "faner 12 {n} dona",
+        "фанера 18 мм {n} dona",
+        "osb 9mm {n} dona",
+        "осб-3 12мм {n} dona",
+        "dvp 3.2 {n} dona",
+        "двп 3.2 {n} dona",
+        "hdf 3.2 {n} dona",
+        "dsp kronospan {n} dona",
+        "fanera 3x3 15mm {n} dona",
     ]
 
     queries: list[str] = []
