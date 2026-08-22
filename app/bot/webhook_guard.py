@@ -37,6 +37,17 @@ async def assert_webhook(bot: Bot) -> bool:
     Never raises: a Telegram API hiccup must not take the web process down, and
     the next tick will try again.
     """
+    if not settings.webhook_url_is_public:
+        # This process cannot host a webhook, so it has no business deciding
+        # where Telegram should point. Without this check a worker or preview
+        # container started without WEBHOOK_BASE_URL fights the real web
+        # service for the registration every tick.
+        logger.error(
+            "webhook_guard_disabled_url_not_public",
+            configured=settings.webhook_base_url,
+        )
+        return True
+
     expected = settings.webhook_url
     try:
         info = await bot.get_webhook_info()
@@ -78,6 +89,12 @@ async def watch_webhook(bot: Bot) -> None:
     """
     interval = settings.webhook_watchdog_interval_seconds
     if interval <= 0:
+        return
+    if not settings.webhook_url_is_public:
+        logger.error(
+            "webhook_watchdog_not_started_url_not_public",
+            configured=settings.webhook_base_url,
+        )
         return
 
     while True:

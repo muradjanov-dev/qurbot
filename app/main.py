@@ -28,7 +28,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.dispatcher = dispatcher
     await setup_bot_commands(bot)
 
-    if settings.register_webhook:
+    if settings.register_webhook and not settings.webhook_url_is_public:
+        # Loud, because in a real deployment this means the service is missing
+        # WEBHOOK_BASE_URL and would otherwise spend its life trying to point
+        # Telegram at localhost.
+        logger.error(
+            "webhook_registration_skipped_url_not_public",
+            configured=settings.webhook_base_url,
+        )
+
+    if settings.register_webhook and settings.webhook_url_is_public:
         try:
             await bot.set_webhook(
                 url=settings.webhook_url,

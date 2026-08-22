@@ -177,5 +177,19 @@ class Settings(BaseSettings):
     def webhook_url(self) -> str:
         return f"{self.webhook_base_url}{self.webhook_path}"
 
+    @property
+    def webhook_url_is_public(self) -> bool:
+        """Whether `webhook_url` is somewhere Telegram could actually deliver.
+
+        Telegram accepts HTTPS only, so anything else means this process was
+        started without its webhook settings and fell back to the
+        `http://localhost:8000` default. That is not a harmless misconfig: the
+        watchdog would see the real deployment's registration, call it lost,
+        and try to repoint Telegram at localhost. Today Telegram refuses the
+        non-HTTPS URL and the theft fails by luck; a service pointed at any
+        *other* valid HTTPS host would succeed and silently kill the bot.
+        """
+        return self.webhook_base_url.startswith("https://")
+
 
 settings = Settings()
