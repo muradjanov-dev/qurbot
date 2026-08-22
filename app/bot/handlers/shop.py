@@ -1,9 +1,10 @@
+import asyncio
 import re
 from decimal import Decimal, InvalidOperation
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, ContentType, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, ContentType, Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,7 @@ from app.bot.keyboards.inline import (
     get_shop_picker_keyboard,
     get_stock_status_keyboard,
     get_unmatched_row_keyboard,
+    get_upload_template_keyboard,
 )
 from app.bot.states import ShopOwnerStates
 from app.core.config import settings
@@ -27,6 +29,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
+from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.catalog_service import CatalogService
 from app.services.supplier_service import SupplierService
 
@@ -962,7 +965,27 @@ async def cb_shop_upload(callback: CallbackQuery, user: User, lang: str) -> None
     if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    await callback.message.answer(t("shp_upload_prompt", lang=lang))
+    await callback.message.answer(
+        t("shp_upload_prompt", lang=lang),
+        reply_markup=get_upload_template_keyboard(lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "shp:template")
+async def cb_shop_template(callback: CallbackQuery, user: User, lang: str) -> None:
+    """Hand the owner a price list already in the shape the importer reads."""
+    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+
+    # openpyxl is synchronous and slow enough to stall the event loop, so it
+    # builds off-thread (CLAUDE.md: no blocking calls in handlers).
+    workbook_bytes = await asyncio.to_thread(build_price_template, lang)
+    await callback.message.answer_document(
+        BufferedInputFile(workbook_bytes, filename=TEMPLATE_FILENAME),
+        caption=t("shp_template_caption", lang=lang),
+    )
     await callback.answer()
 
 

@@ -52,6 +52,8 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
     "name": [
         r"no[mz]i",
         r"mahsulot",
+        r"маҳсулот",
+        r"номи",
         r"name",
         r"tovar",
         r"наименование",
@@ -63,6 +65,7 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
     ],
     "price": [
         r"narx",
+        r"нарх",
         r"price",
         r"цена",
         r"сум",
@@ -74,6 +77,8 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
     ],
     "unit": [
         r"birlik",
+        r"бирлик",
+        r"ўлчов",
         r"unit",
         r"ед\.?\s*изм",
         r"единица",
@@ -82,6 +87,8 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
     ],
     "pack_size": [
         r"qadoq",
+        r"қадоқ",
+        r"оғирлик",
         r"fasovka",
         r"фасовка",
         r"pack",
@@ -94,7 +101,9 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
     ],
     "qty": [
         r"miqdor",
+        r"миқдор",
         r"soni",
+        r"сони",
         r"qty",
         r"quantity",
         r"количество",

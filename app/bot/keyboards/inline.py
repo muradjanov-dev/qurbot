@@ -22,6 +22,19 @@ def get_shop_picker_keyboard(
     return builder.as_markup()
 
 
+def get_upload_template_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Offered alongside the upload prompt.
+
+    "Send your Excel here" is not enough on its own: nothing on that screen
+    said which columns the importer reads, so an owner had to guess and find
+    out only after a failed import.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("shp_btn_template", lang=lang), callback_data="shp:template")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_shop_panel_inline_keyboard(
     lang: str = "uz_latn", show_switch: bool = False
 ) -> InlineKeyboardMarkup:

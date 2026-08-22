@@ -1018,6 +1018,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📤 Excel юклаш",
         "ru": "📤 Загрузить Excel",
     },
+    "shp_btn_template": {
+        "uz_latn": "📄 Shablon olish",
+        "uz_cyrl": "📄 Шаблон олиш",
+        "ru": "📄 Скачать шаблон",
+    },
     "shp_btn_delivery": {
         "uz_latn": "🚚 Yetkazish",
         "uz_cyrl": "🚚 Етказиш",
@@ -1056,6 +1061,23 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Напишите название товара и новую цену одной строкой:\n"
             "<code>cement m400 52000</code>\n\n"
             "<i>Для отмены /cancel</i>"
+        ),
+    },
+    "shp_template_caption": {
+        "uz_latn": (
+            "📄 <b>Namuna fayl</b>\n\n"
+            "Ustun nomlarini o'zgartirmang, namunadagi 3 qatorni o'z "
+            "mahsulotlaringiz bilan almashtiring va faylni shu yerga qaytaring."
+        ),
+        "uz_cyrl": (
+            "📄 <b>Намуна файл</b>\n\n"
+            "Устун номларини ўзгартирманг, намунадаги 3 қаторни ўз "
+            "маҳсулотларингиз билан алмаштиринг ва файлни шу ерга қайтаринг."
+        ),
+        "ru": (
+            "📄 <b>Шаблон</b>\n\n"
+            "Не меняйте названия столбцов, замените 3 строки примера своими "
+            "товарами и отправьте файл сюда."
         ),
     },
     "shp_upload_prompt": {
