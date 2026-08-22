@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% set langs = [('uz_latn', "O'zbekcha"), ('uz_cyrl', 'Ўзбекча'), ('ru', 'Русский')] %}
+{% block title %}{{ t('web_account_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <h1>{{ t('web_account_title', lang=lang) }}</h1>
+
+  <div class="card spread">
+    <div>
+      <div class="muted tiny">{{ t('web_account_pebbles', lang=lang) }}</div>
+      <div style="font-size:1.6rem; font-weight:680;">🪨 {{ pebbles }}</div>
+      <div class="muted tiny">{{ t('web_account_pebbles_hint', lang=lang) }}</div>
+    </div>
+    <div class="right">
+      <div class="name">{{ user.full_name or user.username or user.tg_id }}</div>
+      {% if user.username %}<div class="muted tiny">@{{ user.username }}</div>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>{{ t('web_account_addresses', lang=lang) }}</h2>
+
+  {% if addresses %}
+    <div class="list">
+      {% for address in addresses %}
+        <div class="list-row">
+          <span class="grow">
+            <span class="name">
+              {% if address.label %}{{ address.label }} — {% endif %}{{ address.address_text }}
+            </span>
+            {% if address.is_default %}
+              <span class="badge ok">{{ t('web_account_address_default', lang=lang) }}</span>
+            {% endif %}
+          </span>
+          <span class="row">
+            {% if not address.is_default %}
+              <form method="post" action="/account/addresses/{{ address.id }}/default">
+                <button class="btn btn-sm" type="submit">{{ t('web_account_set_default', lang=lang) }}</button>
+              </form>
+            {% endif %}
+            <form method="post" action="/account/addresses/{{ address.id }}/delete">
+              <button class="btn btn-sm btn-danger" type="submit">{{ t('web_delete', lang=lang) }}</button>
+            </form>
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">{{ t('web_account_addresses_empty', lang=lang) }}</div>
+  {% endif %}
+
+  <form class="card" method="post" action="/account/addresses" data-new-address-form>
+    <div class="field-row">
+      <label class="field" style="flex:2;">
+        <span>{{ t('web_checkout_address_placeholder', lang=lang) }}</span>
+        <input type="text" name="address_text" data-address-text required>
+      </label>
+      <label class="field" style="max-width:150px;">
+        <span>{{ t('web_checkout_address_new', lang=lang) }}</span>
+        <input type="text" name="label" placeholder="Ofis / Obyekt">
+      </label>
+      <button class="btn btn-sm" type="button" data-detect>{{ t('web_checkout_detect', lang=lang) }}</button>
+    </div>
+    <input type="hidden" name="lat" data-lat required>
+    <input type="hidden" name="lng" data-lng required>
+    <button class="btn btn-primary btn-sm" type="submit" style="margin-top:12px;">
+      {{ t('web_save', lang=lang) }}
+    </button>
+  </form>
+</section>
+
+<section class="section">
+  <h2>{{ t('web_account_language', lang=lang) }}</h2>
+  <div class="chips">
+    {% for code, label in langs %}
+      <a class="chip {{ 'is-active' if code == lang }}" href="/lang/{{ code }}?next=/account">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="row">
+    {% if bot_username %}
+      <a class="btn btn-sm" href="https://t.me/{{ bot_username }}" target="_blank" rel="noopener">
+        {{ t('web_account_open_bot', lang=lang) }}
+      </a>
+    {% endif %}
+    {% if is_shop_owner %}
+      <a class="btn btn-sm" href="/shop">{{ t('web_shop_title', lang=lang) }}</a>
+    {% endif %}
+    {% if is_admin %}
+      <a class="btn btn-sm" href="/admin">Admin</a>
+    {% endif %}
+    <form method="post" action="/logout">
+      <button class="btn btn-sm btn-danger" type="submit">{{ t('web_logout', lang=lang) }}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

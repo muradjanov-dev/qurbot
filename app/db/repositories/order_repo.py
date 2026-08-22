@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import Order, OrderItem, OrderShopPart
@@ -91,3 +91,35 @@ class OrderRepository(BaseRepository[Order]):
         stmt = select(Order).order_by(Order.created_at.desc()).limit(limit)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    # ─── Shop-side views of an order ───────────────────────────────
+
+    async def get_shop_part(self, part_id: int) -> OrderShopPart | None:
+        return await self.session.get(OrderShopPart, part_id)
+
+    async def list_parts_for_shop(self, shop_id: int, limit: int = 50) -> Sequence[OrderShopPart]:
+        """A shop's own slices of recent orders, newest first.
+
+        Scoped to one shop on purpose: a shop is shown the lines it has to
+        fulfil, never the rest of the customer's basket.
+        """
+        stmt = (
+            select(OrderShopPart)
+            .where(OrderShopPart.shop_id == shop_id)
+            .order_by(OrderShopPart.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def count_pending_parts_for_shop(self, shop_id: int) -> int:
+        """How many order parts are still waiting on this shop's answer."""
+        stmt = (
+            select(func.count())
+            .select_from(OrderShopPart)
+            .where(
+                OrderShopPart.shop_id == shop_id,
+                OrderShopPart.shop_response == "pending",
+            )
+        )
+        return int(await self.session.scalar(stmt) or 0)

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_shop_products', lang=lang) }} — {{ shop.name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ t('web_shop_products', lang=lang) }}</h1>
+    <a class="muted tiny" href="/shop/{{ shop.id }}">← {{ shop.name }}</a>
+  </div>
+
+  {% if products %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ t('web_order_items', lang=lang) }}</th>
+            <th>{{ t('web_shop_price', lang=lang) }}</th>
+            <th>{{ t('web_shop_stock', lang=lang) }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for offer in products %}
+            <tr>
+              <td>
+                <div class="name">{{ offer.canonical_product.name_uz if offer.canonical_product else offer.raw_name }}</div>
+                <div class="muted tiny">
+                  {{ format_qty(offer.pack_size) }} {{ offer.pack_unit_code or offer.raw_unit }}
+                  · <span class="badge {{ 'ok' if offer.staleness_state == 'fresh' else ('warn' if offer.staleness_state == 'aging' else 'bad') }}">{{ offer.staleness_state }}</span>
+                </div>
+              </td>
+              <td colspan="3">
+                <form method="post" action="/shop/{{ shop.id }}/products/{{ offer.id }}" class="field-row">
+                  <input type="hidden" name="page" value="{{ page }}">
+                  <input type="text" name="price" inputmode="decimal"
+                         value="{{ offer.price_per_pack | int }}"
+                         style="max-width:140px;" aria-label="{{ t('web_shop_price', lang=lang) }}">
+                  <select name="stock_status" style="max-width:170px;" aria-label="{{ t('web_shop_stock', lang=lang) }}">
+                    {% for status in stock_statuses %}
+                      <option value="{{ status }}" {{ 'selected' if offer.stock_status == status }}>
+                        {{ t('web_shop_stock_' ~ status, lang=lang) }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-sm btn-primary" type="submit">{{ t('web_save', lang=lang) }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pages > 1 %}
+      <div class="pager">
+        {% if page > 1 %}<a class="btn btn-sm" href="?page={{ page - 1 }}">←</a>{% endif %}
+        <span class="muted tiny">{{ page }} / {{ pages }}</span>
+        {% if page < pages %}<a class="btn btn-sm" href="?page={{ page + 1 }}">→</a>{% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty">{{ t('web_shop_no_products', lang=lang) }}</div>
+  {% endif %}
+</section>
+{% endblock %}

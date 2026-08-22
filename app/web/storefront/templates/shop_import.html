@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_shop_import', lang=lang) }} — {{ shop.name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ t('web_shop_import', lang=lang) }}</h1>
+    <a class="muted tiny" href="/shop/{{ shop.id }}">← {{ shop.name }}</a>
+  </div>
+
+  <form class="card" method="post" action="/shop/{{ shop.id }}/import" enctype="multipart/form-data">
+    <p class="muted tiny" style="margin-bottom:12px;">{{ t('web_shop_upload_hint', lang=lang) }}</p>
+    <div class="field-row">
+      <label class="field" style="flex:1;">
+        <span>Excel / CSV</span>
+        <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+      </label>
+      <button class="btn btn-primary btn-sm" type="submit">{{ t('web_shop_upload', lang=lang) }}</button>
+    </div>
+  </form>
+
+  {% if summary %}
+    <div class="card">
+      <h2>{{ summary.filename }}</h2>
+      <div class="total-row">
+        <span class="muted">{{ t('web_shop_import_total', lang=lang) }}</span><span>{{ summary.total_rows }}</span>
+      </div>
+      <div class="total-row">
+        <span class="muted">{{ t('web_shop_import_matched', lang=lang) }}</span><span>{{ summary.auto_matched }}</span>
+      </div>
+      <div class="total-row">
+        <span class="muted">{{ t('web_shop_import_review', lang=lang) }}</span><span>{{ summary.needs_review }}</span>
+      </div>
+      <div class="total-row">
+        <span class="muted">{{ t('web_shop_import_skipped', lang=lang) }}</span><span>{{ summary.skipped }}</span>
+      </div>
+
+      <div class="row" style="margin-top:16px;">
+        <form method="post" action="/shop/{{ shop.id }}/import/{{ batch_id }}/apply">
+          <button class="btn btn-primary btn-sm" type="submit">{{ t('web_shop_import_apply', lang=lang) }}</button>
+        </form>
+        <form method="post" action="/shop/{{ shop.id }}/import/{{ batch_id }}/cancel">
+          <button class="btn btn-sm btn-danger" type="submit">{{ t('web_shop_import_cancel', lang=lang) }}</button>
+        </form>
+      </div>
+    </div>
+
+    {% if unmatched %}
+      <div class="section">
+        <h2>{{ t('web_shop_import_review', lang=lang) }}</h2>
+        <div class="list">
+          {% for row in unmatched %}
+            <div class="card" style="display:grid; gap:10px;">
+              <div class="spread">
+                <span class="name">{{ row.raw_payload.get('raw_name') or row.row_no }}</span>
+                <span class="muted tiny">
+                  {{ row.raw_payload.get('raw_price') or '' }} {{ row.raw_payload.get('raw_unit') or '' }}
+                </span>
+              </div>
+
+              <form method="get" action="/shop/{{ shop.id }}/import" class="field-row">
+                <input type="hidden" name="batch" value="{{ batch_id }}">
+                <input type="hidden" name="row" value="{{ row.id }}">
+                <label class="field" style="flex:1;">
+                  <input type="search" name="q" placeholder="{{ t('web_catalog_title', lang=lang) }}"
+                         value="{{ query if active_row == row.id else (row.raw_payload.get('raw_name') or '') }}">
+                </label>
+                <button class="btn btn-sm" type="submit">🔍</button>
+                <button class="btn btn-sm btn-danger" type="submit"
+                        formmethod="post"
+                        formaction="/shop/{{ shop.id }}/import/{{ batch_id }}/rows/{{ row.id }}/skip">
+                  {{ t('web_shop_import_skip_row', lang=lang) }}
+                </button>
+              </form>
+
+              {% if active_row == row.id and candidates %}
+                <form method="post" action="/shop/{{ shop.id }}/import/{{ batch_id }}/rows/{{ row.id }}/resolve"
+                      class="radio-list">
+                  {% for candidate in candidates %}
+                    <label class="radio-row">
+                      <input type="radio" name="canonical_id" value="{{ candidate.id }}" {{ 'checked' if loop.first }}>
+                      <span>{{ candidate.name_uz }}{% if candidate.brand %} · {{ candidate.brand }}{% endif %}</span>
+                    </label>
+                  {% endfor %}
+                  <button class="btn btn-sm btn-primary" type="submit">{{ t('web_save', lang=lang) }}</button>
+                </form>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

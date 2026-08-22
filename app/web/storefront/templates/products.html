@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ title }}</h1>
+    <a class="muted tiny" href="/catalog">← {{ t('web_catalog_title', lang=lang) }}</a>
+  </div>
+
+  {% if products %}
+    <div class="grid cols-3">
+      {% for product in products %}
+        <a class="tile" href="/product/{{ product.id }}">
+          <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product.name }}" loading="lazy">
+          <span class="tile-name">{{ product.name }}</span>
+          {% if product.brand %}<span class="muted tiny">{{ product.brand }}</span>{% endif %}
+          <span class="price">{{ product.price }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    {% if pages > 1 %}
+      <div class="pager">
+        {% if page > 1 %}
+          <a class="btn btn-sm" href="?page={{ page - 1 }}">←</a>
+        {% endif %}
+        <span class="muted tiny">{{ page }} / {{ pages }}</span>
+        {% if page < pages %}
+          <a class="btn btn-sm" href="?page={{ page + 1 }}">→</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty">{{ t('web_catalog_empty', lang=lang) }}</div>
+  {% endif %}
+</section>
+{% endblock %}

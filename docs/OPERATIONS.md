@@ -51,6 +51,31 @@ boot/shutdown, `<job>_done` with counts on each successful run, `job_skipped_loc
 if a previous run is still holding the lock — that's expected under overlap, not an
 error unless it persists across multiple scheduled ticks).
 
+## Customer website (`/`)
+
+Served from the same web service as the webhook. Set `WEB_ENABLED=false` to
+take it down without touching the bot.
+
+Before it can sign anyone in:
+
+1. `TELEGRAM_LOGIN_BOT_USERNAME` = the bot's username, no `@`.
+2. BotFather -> `/setdomain` -> the site's public domain. The Login Widget
+   refuses to render for an unregistered domain, and this is the usual cause
+   of "the login button does not appear".
+3. `WEB_SESSION_SECRET` -- optional, but set it: without one the cookie key is
+   derived from `BOT_TOKEN`, so rotating the token signs every customer out.
+
+`WEB_DEV_LOGIN_ENABLED` must stay `false` in every deployment: it grants a
+session for any Telegram id that is typed in.
+
+Rate limits are per web process (`throttle_quote_limit_per_minute` for quoting
+and PDF, `throttle_limit_per_minute` for parsing and geocoding). With several
+replicas the effective limit multiplies -- move them to Redis if that becomes
+a problem.
+
+Orders placed on the site notify shops and admins through the same Telegram
+messages the bot sends, and are marked `(sayt)` in the admin message.
+
 ## Admin web panel (SPEC §11)
 
 Served from the same web service at `/admin`, behind HTTP Basic Auth

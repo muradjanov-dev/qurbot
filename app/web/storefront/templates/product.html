@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ product_name }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <a class="muted tiny" href="/catalog/{{ product.category_id }}">← {{ t('web_back', lang=lang) }}</a>
+
+  <div class="grid cols-2">
+    <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product_name }}">
+
+    <div class="card" style="display:grid; gap:14px; align-content:start;">
+      <div>
+        <h1>{{ product_name }}</h1>
+        {% if product.brand %}
+          <p class="muted tiny">{{ t('web_product_brand', lang=lang) }}: {{ product.brand }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <div class="price" style="font-size:1.3rem;">{{ price_label }}</div>
+        <p class="muted tiny">{{ t('web_product_unit', lang=lang) }}: {{ product.base_unit_code }}</p>
+      </div>
+
+      <div class="field-row">
+        <div class="qty" data-qty>
+          <button type="button" data-step="-1" aria-label="−">−</button>
+          <input type="text" inputmode="decimal" value="1" min="1" aria-label="{{ t('web_qty', lang=lang) }}">
+          <button type="button" data-step="1" aria-label="+">+</button>
+        </div>
+        <span class="muted tiny">{{ product.base_unit_code }}</span>
+      </div>
+
+      <button class="btn btn-primary" type="button" data-add-product="{{ product.id }}">
+        {{ t('web_add_to_basket', lang=lang) }}
+      </button>
+
+      {% if not has_live_offer %}
+        <p class="notice warn">{{ t('web_product_no_offers', lang=lang) }}</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

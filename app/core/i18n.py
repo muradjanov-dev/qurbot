@@ -1684,6 +1684,575 @@ MESSAGES: dict[str, dict[str, str]] = {
             "<i>Например: Юнусабадский район, Амир Темур 15.</i>"
         ),
     },
+    # ══════════════════════════════════════════════════════════════════════
+    # Web storefront (app/web/storefront). Deliberately a separate key space
+    # from the bot's: these strings are rendered into HTML by Jinja, which
+    # escapes them, so unlike the bot catalogue above they must carry no
+    # markup of their own.
+    # ══════════════════════════════════════════════════════════════════════
+    "web_tagline": {
+        "uz_latn": "Qurilish mollari — bitta ro'yxat, eng arzon narx",
+        "uz_cyrl": "Қурилиш моллари — битта рўйхат, энг арзон нарх",
+        "ru": "Стройматериалы — один список, лучшая цена",
+    },
+    "web_nav_home": {"uz_latn": "Bosh sahifa", "uz_cyrl": "Бош саҳифа", "ru": "Главная"},
+    "web_nav_catalog": {"uz_latn": "Katalog", "uz_cyrl": "Каталог", "ru": "Каталог"},
+    "web_nav_basket": {"uz_latn": "Savat", "uz_cyrl": "Сават", "ru": "Корзина"},
+    "web_nav_orders": {"uz_latn": "Buyurtmalar", "uz_cyrl": "Буюртмалар", "ru": "Заказы"},
+    "web_nav_account": {"uz_latn": "Kabinet", "uz_cyrl": "Кабинет", "ru": "Кабинет"},
+    "web_nav_shop": {"uz_latn": "Do'kon", "uz_cyrl": "Дўкон", "ru": "Магазин"},
+    "web_login": {"uz_latn": "Kirish", "uz_cyrl": "Кириш", "ru": "Войти"},
+    "web_logout": {"uz_latn": "Chiqish", "uz_cyrl": "Чиқиш", "ru": "Выйти"},
+    "web_back": {"uz_latn": "Orqaga", "uz_cyrl": "Орқага", "ru": "Назад"},
+    "web_save": {"uz_latn": "Saqlash", "uz_cyrl": "Сақлаш", "ru": "Сохранить"},
+    "web_delete": {"uz_latn": "O'chirish", "uz_cyrl": "Ўчириш", "ru": "Удалить"},
+    "web_saved": {"uz_latn": "Saqlandi", "uz_cyrl": "Сақланди", "ru": "Сохранено"},
+    "web_currency": {"uz_latn": "so'm", "uz_cyrl": "сўм", "ru": "сум"},
+    "web_loading": {"uz_latn": "Hisoblanmoqda…", "uz_cyrl": "Ҳисобланмоқда…", "ru": "Считаем…"},
+    "web_error_generic": {
+        "uz_latn": "Xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
+        "uz_cyrl": "Хатолик юз берди. Бироздан сўнг қайта уриниб кўринг.",
+        "ru": "Произошла ошибка. Попробуйте ещё раз чуть позже.",
+    },
+    "web_not_found": {
+        "uz_latn": "Sahifa topilmadi.",
+        "uz_cyrl": "Саҳифа топилмади.",
+        "ru": "Страница не найдена.",
+    },
+    # ── Home ──────────────────────────────────────────────────────────────
+    "web_home_title": {
+        "uz_latn": "Ro'yxatingizni yozing — narxini biz topamiz",
+        "uz_cyrl": "Рўйхатингизни ёзинг — нархини биз топамиз",
+        "ru": "Напишите список — цену найдём мы",
+    },
+    "web_home_subtitle": {
+        "uz_latn": (
+            "Kerakli qurilish mollarini xohlagancha yozing. Biz ularni topamiz, "
+            "eng arzon variantni jamlaymiz va yetkazib beramiz."
+        ),
+        "uz_cyrl": (
+            "Керакли қурилиш молларини хоҳлаганча ёзинг. Биз уларни топамиз, "
+            "энг арзон вариантни жамлаймиз ва етказиб берамиз."
+        ),
+        "ru": (
+            "Напишите нужные стройматериалы как удобно. Мы найдём их, соберём "
+            "самый выгодный вариант и доставим."
+        ),
+    },
+    "web_home_placeholder": {
+        "uz_latn": "10 dona fanera 12mm, 5 dona osb 9mm, 20 dona dvp 3.2",
+        "uz_cyrl": "10 дона фанера 12мм, 5 дона осб 9мм, 20 дона двп 3.2",
+        "ru": "10 шт фанера 12мм, 5 шт осб 9мм, 20 шт двп 3.2",
+    },
+    "web_home_cta": {
+        "uz_latn": "Narxlarni hisoblash",
+        "uz_cyrl": "Нархларни ҳисоблаш",
+        "ru": "Рассчитать цены",
+    },
+    "web_home_example": {"uz_latn": "Namuna", "uz_cyrl": "Намуна", "ru": "Пример"},
+    "web_home_how": {
+        "uz_latn": "Qanday ishlaydi",
+        "uz_cyrl": "Қандай ишлайди",
+        "ru": "Как это работает",
+    },
+    "web_home_step1_title": {
+        "uz_latn": "Ro'yxat yuboring",
+        "uz_cyrl": "Рўйхат юборинг",
+        "ru": "Отправьте список",
+    },
+    "web_home_step1_body": {
+        "uz_latn": "Erkin matnda — lotin, kirill yoki ruscha, aralash bo'lsa ham.",
+        "uz_cyrl": "Эркин матнда — лотин, кирилл ёки русча, аралаш бўлса ҳам.",
+        "ru": "Свободным текстом — латиницей, кириллицей или по-русски, можно вперемешку.",
+    },
+    "web_home_step2_title": {
+        "uz_latn": "Variantni tanlang",
+        "uz_cyrl": "Вариантни танланг",
+        "ru": "Выберите вариант",
+    },
+    "web_home_step2_body": {
+        "uz_latn": "Yetkazib berish bilan birga hisoblangan variantlarni solishtiring.",
+        "uz_cyrl": "Етказиб бериш билан бирга ҳисобланган вариантларни солиштиринг.",
+        "ru": "Сравните варианты, посчитанные вместе с доставкой.",
+    },
+    "web_home_step3_title": {
+        "uz_latn": "Buyurtma bering",
+        "uz_cyrl": "Буюртма беринг",
+        "ru": "Оформите заказ",
+    },
+    "web_home_step3_body": {
+        "uz_latn": "Manzilni tanlang — qolganini biz bajaramiz.",
+        "uz_cyrl": "Манзилни танланг — қолганини биз бажарамиз.",
+        "ru": "Выберите адрес — остальное сделаем мы.",
+    },
+    "web_home_categories": {
+        "uz_latn": "Bo'limlar",
+        "uz_cyrl": "Бўлимлар",
+        "ru": "Разделы",
+    },
+    # ── Catalog ───────────────────────────────────────────────────────────
+    "web_catalog_title": {"uz_latn": "Katalog", "uz_cyrl": "Каталог", "ru": "Каталог"},
+    "web_catalog_empty": {
+        "uz_latn": "Hozircha bu bo'limda mahsulot yo'q.",
+        "uz_cyrl": "Ҳозирча бу бўлимда маҳсулот йўқ.",
+        "ru": "В этом разделе пока нет товаров.",
+    },
+    "web_price_from": {"uz_latn": "narxi", "uz_cyrl": "нархи", "ru": "цена"},
+    "web_product_no_offers": {
+        "uz_latn": "Narx hozircha mavjud emas",
+        "uz_cyrl": "Нарх ҳозирча мавжуд эмас",
+        "ru": "Цена пока недоступна",
+    },
+    "web_product_brand": {"uz_latn": "Brend", "uz_cyrl": "Бренд", "ru": "Бренд"},
+    "web_product_unit": {"uz_latn": "O'lchov", "uz_cyrl": "Ўлчов", "ru": "Единица"},
+    "web_add_to_basket": {
+        "uz_latn": "Savatga qo'shish",
+        "uz_cyrl": "Саватга қўшиш",
+        "ru": "В корзину",
+    },
+    "web_qty": {"uz_latn": "Miqdor", "uz_cyrl": "Миқдор", "ru": "Количество"},
+    "web_added_to_basket": {
+        "uz_latn": "Savatga qo'shildi",
+        "uz_cyrl": "Саватга қўшилди",
+        "ru": "Добавлено в корзину",
+    },
+    # ── Basket ────────────────────────────────────────────────────────────
+    "web_basket_title": {"uz_latn": "Savat", "uz_cyrl": "Сават", "ru": "Корзина"},
+    "web_basket_empty": {
+        "uz_latn": "Savat bo'sh.",
+        "uz_cyrl": "Сават бўш.",
+        "ru": "Корзина пуста.",
+    },
+    "web_basket_empty_hint": {
+        "uz_latn": "Ro'yxatingizni yozing yoki katalogdan tanlang.",
+        "uz_cyrl": "Рўйхатингизни ёзинг ёки каталогдан танланг.",
+        "ru": "Напишите список или выберите из каталога.",
+    },
+    "web_basket_count": {
+        "uz_latn": "{count} ta mahsulot",
+        "uz_cyrl": "{count} та маҳсулот",
+        "ru": "товаров: {count}",
+    },
+    "web_basket_choose_kind": {
+        "uz_latn": "turini tanlang",
+        "uz_cyrl": "турини танланг",
+        "ru": "уточните вид",
+    },
+    "web_basket_not_found": {
+        "uz_latn": "katalogda topilmadi",
+        "uz_cyrl": "каталогда топилмади",
+        "ru": "нет в каталоге",
+    },
+    "web_basket_add_more": {
+        "uz_latn": "Yana qo'shish",
+        "uz_cyrl": "Яна қўшиш",
+        "ru": "Добавить ещё",
+    },
+    "web_basket_clear": {"uz_latn": "Tozalash", "uz_cyrl": "Тозалаш", "ru": "Очистить"},
+    "web_basket_calculate": {
+        "uz_latn": "Narxlarni hisoblash",
+        "uz_cyrl": "Нархларни ҳисоблаш",
+        "ru": "Рассчитать цены",
+    },
+    "web_basket_parse_failed": {
+        "uz_latn": (
+            "Ro'yxatni tushunolmadik. Har bir qatorda miqdor va nomni yozing, "
+            "masalan: «10 qop sement m400»."
+        ),
+        "uz_cyrl": (
+            "Рўйхатни тушунолмадик. Ҳар бир қаторда миқдор ва номни ёзинг, "
+            "масалан: «10 қоп цемент м400»."
+        ),
+        "ru": (
+            "Не удалось разобрать список. Укажите в строке количество и название, "
+            "например: «10 мешков цемент м400»."
+        ),
+    },
+    "web_basket_nothing_confirmed": {
+        "uz_latn": "Hisoblash uchun kamida bitta tasdiqlangan mahsulot kerak.",
+        "uz_cyrl": "Ҳисоблаш учун камида битта тасдиқланган маҳсулот керак.",
+        "ru": "Для расчёта нужен хотя бы один подтверждённый товар.",
+    },
+    # ── Quote ─────────────────────────────────────────────────────────────
+    "web_quote_title": {"uz_latn": "Takliflar", "uz_cyrl": "Таклифлар", "ru": "Предложения"},
+    "web_quote_empty": {
+        "uz_latn": "Bu mahsulotlar bo'yicha hozircha taklif topilmadi.",
+        "uz_cyrl": "Бу маҳсулотлар бўйича ҳозирча таклиф топилмади.",
+        "ru": "По этим товарам пока нет предложений.",
+    },
+    "web_quote_cheapest": {
+        "uz_latn": "Eng tejamli",
+        "uz_cyrl": "Энг тежамли",
+        "ru": "Самый выгодный",
+    },
+    "web_quote_single_shop": {
+        "uz_latn": "Bir yetkazishda",
+        "uz_cyrl": "Бир етказишда",
+        "ru": "Одной доставкой",
+    },
+    "web_quote_fastest": {"uz_latn": "Eng tez", "uz_cyrl": "Энг тез", "ru": "Самый быстрый"},
+    "web_quote_premium": {"uz_latn": "Premium", "uz_cyrl": "Премиум", "ru": "Премиум"},
+    "web_quote_balanced": {
+        "uz_latn": "Muvozanatli",
+        "uz_cyrl": "Мувозанатли",
+        "ru": "Сбалансированный",
+    },
+    "web_quote_items_total": {
+        "uz_latn": "Mahsulotlar",
+        "uz_cyrl": "Маҳсулотлар",
+        "ru": "Товары",
+    },
+    "web_quote_delivery": {
+        "uz_latn": "Yetkazib berish",
+        "uz_cyrl": "Етказиб бериш",
+        "ru": "Доставка",
+    },
+    "web_quote_grand_total": {"uz_latn": "Jami", "uz_cyrl": "Жами", "ru": "Итого"},
+    "web_quote_select": {"uz_latn": "Buni tanlash", "uz_cyrl": "Буни танлаш", "ru": "Выбрать"},
+    "web_quote_pdf": {"uz_latn": "PDF olish", "uz_cyrl": "PDF олиш", "ru": "Скачать PDF"},
+    "web_quote_recalc": {
+        "uz_latn": "Qayta hisoblash",
+        "uz_cyrl": "Қайта ҳисоблаш",
+        "ru": "Пересчитать",
+    },
+    # ── Checkout ──────────────────────────────────────────────────────────
+    "web_checkout_title": {
+        "uz_latn": "Buyurtmani rasmiylashtirish",
+        "uz_cyrl": "Буюртмани расмийлаштириш",
+        "ru": "Оформление заказа",
+    },
+    "web_checkout_phone": {"uz_latn": "Telefon", "uz_cyrl": "Телефон", "ru": "Телефон"},
+    "web_checkout_phone_hint": {
+        "uz_latn": "Kuryer shu raqamga qo'ng'iroq qiladi.",
+        "uz_cyrl": "Курьер шу рақамга қўнғироқ қилади.",
+        "ru": "По этому номеру позвонит курьер.",
+    },
+    "web_checkout_address": {"uz_latn": "Manzil", "uz_cyrl": "Манзил", "ru": "Адрес"},
+    "web_checkout_address_new": {
+        "uz_latn": "Yangi manzil",
+        "uz_cyrl": "Янги манзил",
+        "ru": "Новый адрес",
+    },
+    "web_checkout_detect": {
+        "uz_latn": "Joylashuvni aniqlash",
+        "uz_cyrl": "Жойлашувни аниқлаш",
+        "ru": "Определить местоположение",
+    },
+    "web_checkout_detecting": {
+        "uz_latn": "Aniqlanmoqda…",
+        "uz_cyrl": "Аниқланмоқда…",
+        "ru": "Определяем…",
+    },
+    "web_checkout_detect_failed": {
+        "uz_latn": "Joylashuvni aniqlay olmadik — manzilni qo'lda yozing.",
+        "uz_cyrl": "Жойлашувни аниқлай олмадик — манзилни қўлда ёзинг.",
+        "ru": "Не удалось определить местоположение — введите адрес вручную.",
+    },
+    "web_checkout_address_placeholder": {
+        "uz_latn": "Ko'cha, uy, mo'ljal",
+        "uz_cyrl": "Кўча, уй, мўлжал",
+        "ru": "Улица, дом, ориентир",
+    },
+    "web_checkout_comment": {"uz_latn": "Izoh", "uz_cyrl": "Изоҳ", "ru": "Комментарий"},
+    "web_checkout_comment_hint": {
+        "uz_latn": "Ixtiyoriy — qavat, kirish, yetkazish vaqti.",
+        "uz_cyrl": "Ихтиёрий — қават, кириш, етказиш вақти.",
+        "ru": "Необязательно — этаж, подъезд, время доставки.",
+    },
+    "web_checkout_confirm": {
+        "uz_latn": "Buyurtmani tasdiqlash",
+        "uz_cyrl": "Буюртмани тасдиқлаш",
+        "ru": "Подтвердить заказ",
+    },
+    "web_checkout_login_required": {
+        "uz_latn": "Buyurtma berish uchun Telegram orqali kiring.",
+        "uz_cyrl": "Буюртма бериш учун Telegram орқали киринг.",
+        "ru": "Чтобы оформить заказ, войдите через Telegram.",
+    },
+    "web_checkout_phone_required": {
+        "uz_latn": "Telefon raqamini kiriting.",
+        "uz_cyrl": "Телефон рақамини киритинг.",
+        "ru": "Укажите номер телефона.",
+    },
+    "web_checkout_address_required": {
+        "uz_latn": "Yetkazib berish manzilini kiriting.",
+        "uz_cyrl": "Етказиб бериш манзилини киритинг.",
+        "ru": "Укажите адрес доставки.",
+    },
+    "web_checkout_price_changed": {
+        "uz_latn": "Narx yangilandi: {total}. Tasdiqlash uchun yana bosing.",
+        "uz_cyrl": "Нарх янгиланди: {total}. Тасдиқлаш учун яна босинг.",
+        "ru": "Цена обновилась: {total}. Нажмите ещё раз для подтверждения.",
+    },
+    # ── Orders ────────────────────────────────────────────────────────────
+    "web_orders_title": {
+        "uz_latn": "Buyurtmalarim",
+        "uz_cyrl": "Буюртмаларим",
+        "ru": "Мои заказы",
+    },
+    "web_orders_empty": {
+        "uz_latn": "Hali buyurtmalar yo'q.",
+        "uz_cyrl": "Ҳали буюртмалар йўқ.",
+        "ru": "Заказов пока нет.",
+    },
+    "web_order_created": {
+        "uz_latn": "Buyurtma qabul qilindi",
+        "uz_cyrl": "Буюртма қабул қилинди",
+        "ru": "Заказ принят",
+    },
+    "web_order_created_hint": {
+        "uz_latn": "Tez orada operator siz bilan bog'lanadi.",
+        "uz_cyrl": "Тез орада оператор сиз билан боғланади.",
+        "ru": "Скоро с вами свяжется оператор.",
+    },
+    "web_order_items": {"uz_latn": "Mahsulotlar", "uz_cyrl": "Маҳсулотлар", "ru": "Товары"},
+    "web_order_status_new": {"uz_latn": "Yangi", "uz_cyrl": "Янги", "ru": "Новый"},
+    "web_order_status_confirmed": {
+        "uz_latn": "Tasdiqlangan",
+        "uz_cyrl": "Тасдиқланган",
+        "ru": "Подтверждён",
+    },
+    "web_order_status_partially_fulfilled": {
+        "uz_latn": "Qisman bajarilgan",
+        "uz_cyrl": "Қисман бажарилган",
+        "ru": "Частично выполнен",
+    },
+    "web_order_status_fulfilled": {
+        "uz_latn": "Yetkazilgan",
+        "uz_cyrl": "Етказилган",
+        "ru": "Доставлен",
+    },
+    "web_order_status_cancelled": {
+        "uz_latn": "Bekor qilingan",
+        "uz_cyrl": "Бекор қилинган",
+        "ru": "Отменён",
+    },
+    # ── Account ───────────────────────────────────────────────────────────
+    "web_account_title": {"uz_latn": "Kabinet", "uz_cyrl": "Кабинет", "ru": "Кабинет"},
+    "web_account_pebbles": {"uz_latn": "Toshchalar", "uz_cyrl": "Тошчалар", "ru": "Камешки"},
+    "web_account_pebbles_hint": {
+        "uz_latn": "Har bir buyurtma uchun to'planadi.",
+        "uz_cyrl": "Ҳар бир буюртма учун тўпланади.",
+        "ru": "Начисляются за каждый заказ.",
+    },
+    "web_account_addresses": {
+        "uz_latn": "Manzillarim",
+        "uz_cyrl": "Манзилларим",
+        "ru": "Мои адреса",
+    },
+    "web_account_addresses_empty": {
+        "uz_latn": "Saqlangan manzillar yo'q.",
+        "uz_cyrl": "Сақланган манзиллар йўқ.",
+        "ru": "Сохранённых адресов нет.",
+    },
+    "web_account_address_default": {
+        "uz_latn": "Asosiy",
+        "uz_cyrl": "Асосий",
+        "ru": "Основной",
+    },
+    "web_account_set_default": {
+        "uz_latn": "Asosiy qilish",
+        "uz_cyrl": "Асосий қилиш",
+        "ru": "Сделать основным",
+    },
+    "web_account_language": {"uz_latn": "Til", "uz_cyrl": "Тил", "ru": "Язык"},
+    "web_account_open_bot": {
+        "uz_latn": "Telegram botni ochish",
+        "uz_cyrl": "Telegram ботни очиш",
+        "ru": "Открыть Telegram-бота",
+    },
+    # ── Login ─────────────────────────────────────────────────────────────
+    "web_login_title": {
+        "uz_latn": "Telegram orqali kirish",
+        "uz_cyrl": "Telegram орқали кириш",
+        "ru": "Вход через Telegram",
+    },
+    "web_login_body": {
+        "uz_latn": (
+            "Bot bilan bitta hisob — buyurtmalaringiz, manzillaringiz va "
+            "toshchalaringiz o'sha joyda qoladi."
+        ),
+        "uz_cyrl": (
+            "Бот билан битта ҳисоб — буюртмаларингиз, манзилларингиз ва "
+            "тошчаларингиз ўша жойда қолади."
+        ),
+        "ru": ("Один аккаунт с ботом — ваши заказы, адреса и камешки остаются на месте."),
+    },
+    "web_login_unavailable": {
+        "uz_latn": "Telegram orqali kirish hozircha sozlanmagan. Botdan foydalaning.",
+        "uz_cyrl": "Telegram орқали кириш ҳозирча созланмаган. Ботдан фойдаланинг.",
+        "ru": "Вход через Telegram пока не настроен. Воспользуйтесь ботом.",
+    },
+    "web_login_failed": {
+        "uz_latn": "Kirish amalga oshmadi. Qayta urinib ko'ring.",
+        "uz_cyrl": "Кириш амалга ошмади. Қайта уриниб кўринг.",
+        "ru": "Не удалось войти. Попробуйте ещё раз.",
+    },
+    "web_login_blocked": {
+        "uz_latn": "Bu hisob bloklangan.",
+        "uz_cyrl": "Бу ҳисоб блокланган.",
+        "ru": "Этот аккаунт заблокирован.",
+    },
+    # ── Shop portal ───────────────────────────────────────────────────────
+    "web_shop_title": {
+        "uz_latn": "Do'kon paneli",
+        "uz_cyrl": "Дўкон панели",
+        "ru": "Панель магазина",
+    },
+    "web_shop_none": {
+        "uz_latn": "Sizga biriktirilgan do'kon topilmadi.",
+        "uz_cyrl": "Сизга бириктирилган дўкон топилмади.",
+        "ru": "К вам не привязан ни один магазин.",
+    },
+    "web_shop_products": {
+        "uz_latn": "Mahsulotlarim",
+        "uz_cyrl": "Маҳсулотларим",
+        "ru": "Мои товары",
+    },
+    "web_shop_orders": {
+        "uz_latn": "Buyurtmalar",
+        "uz_cyrl": "Буюртмалар",
+        "ru": "Заказы",
+    },
+    "web_shop_delivery": {
+        "uz_latn": "Yetkazib berish shartlari",
+        "uz_cyrl": "Етказиб бериш шартлари",
+        "ru": "Условия доставки",
+    },
+    "web_shop_import": {
+        "uz_latn": "Narxlarni yuklash",
+        "uz_cyrl": "Нархларни юклаш",
+        "ru": "Загрузка цен",
+    },
+    "web_shop_price": {"uz_latn": "Narx", "uz_cyrl": "Нарх", "ru": "Цена"},
+    "web_shop_stock": {"uz_latn": "Mavjudlik", "uz_cyrl": "Мавжудлик", "ru": "Наличие"},
+    "web_shop_stock_in_stock": {"uz_latn": "Bor", "uz_cyrl": "Бор", "ru": "В наличии"},
+    "web_shop_stock_low": {"uz_latn": "Kam qoldi", "uz_cyrl": "Кам қолди", "ru": "Мало"},
+    "web_shop_stock_on_order": {
+        "uz_latn": "Buyurtma asosida",
+        "uz_cyrl": "Буюртма асосида",
+        "ru": "Под заказ",
+    },
+    "web_shop_stock_out": {"uz_latn": "Yo'q", "uz_cyrl": "Йўқ", "ru": "Нет"},
+    "web_shop_updated": {
+        "uz_latn": "Yangilandi",
+        "uz_cyrl": "Янгиланди",
+        "ru": "Обновлено",
+    },
+    "web_shop_no_products": {
+        "uz_latn": "Hali mahsulot qo'shilmagan.",
+        "uz_cyrl": "Ҳали маҳсулот қўшилмаган.",
+        "ru": "Товары ещё не добавлены.",
+    },
+    "web_shop_no_orders": {
+        "uz_latn": "Yangi buyurtmalar yo'q.",
+        "uz_cyrl": "Янги буюртмалар йўқ.",
+        "ru": "Новых заказов нет.",
+    },
+    "web_shop_accept": {"uz_latn": "Qabul qilish", "uz_cyrl": "Қабул қилиш", "ru": "Принять"},
+    "web_shop_reject": {"uz_latn": "Rad etish", "uz_cyrl": "Рад этиш", "ru": "Отклонить"},
+    "web_shop_response_pending": {
+        "uz_latn": "Javob kutilmoqda",
+        "uz_cyrl": "Жавоб кутилмоқда",
+        "ru": "Ожидает ответа",
+    },
+    "web_shop_response_accepted": {
+        "uz_latn": "Qabul qilingan",
+        "uz_cyrl": "Қабул қилинган",
+        "ru": "Принят",
+    },
+    "web_shop_response_rejected": {
+        "uz_latn": "Rad etilgan",
+        "uz_cyrl": "Рад этилган",
+        "ru": "Отклонён",
+    },
+    "web_shop_rule_district": {"uz_latn": "Tuman", "uz_cyrl": "Туман", "ru": "Район"},
+    "web_shop_rule_all_districts": {
+        "uz_latn": "Barcha tumanlar",
+        "uz_cyrl": "Барча туманлар",
+        "ru": "Все районы",
+    },
+    "web_shop_rule_fee": {
+        "uz_latn": "Yetkazish narxi",
+        "uz_cyrl": "Етказиш нархи",
+        "ru": "Стоимость доставки",
+    },
+    "web_shop_rule_free_above": {
+        "uz_latn": "Shu summadan bepul",
+        "uz_cyrl": "Шу суммадан бепул",
+        "ru": "Бесплатно от суммы",
+    },
+    "web_shop_rule_min_order": {
+        "uz_latn": "Eng kam buyurtma",
+        "uz_cyrl": "Энг кам буюртма",
+        "ru": "Минимальный заказ",
+    },
+    "web_shop_rule_eta": {
+        "uz_latn": "Yetkazish (soat)",
+        "uz_cyrl": "Етказиш (соат)",
+        "ru": "Доставка (часы)",
+    },
+    "web_shop_rule_none": {
+        "uz_latn": "Shartlar kiritilmagan.",
+        "uz_cyrl": "Шартлар киритилмаган.",
+        "ru": "Условия не заданы.",
+    },
+    "web_shop_upload_hint": {
+        "uz_latn": "Excel yoki CSV fayl yuklang. Tasdiqlamaguningizcha narxlar o'zgarmaydi.",
+        "uz_cyrl": "Excel ёки CSV файл юкланг. Тасдиқламагунингизча нархлар ўзгармайди.",
+        "ru": "Загрузите файл Excel или CSV. До подтверждения цены не изменятся.",
+    },
+    "web_shop_upload": {"uz_latn": "Yuklash", "uz_cyrl": "Юклаш", "ru": "Загрузить"},
+    "web_shop_import_total": {
+        "uz_latn": "Jami qatorlar",
+        "uz_cyrl": "Жами қаторлар",
+        "ru": "Всего строк",
+    },
+    "web_shop_import_matched": {
+        "uz_latn": "Avtomatik moslashtirildi",
+        "uz_cyrl": "Автоматик мослаштирилди",
+        "ru": "Сопоставлено автоматически",
+    },
+    "web_shop_import_review": {
+        "uz_latn": "Tasdiqlash kutmoqda",
+        "uz_cyrl": "Тасдиқлаш кутмоқда",
+        "ru": "Ожидает проверки",
+    },
+    "web_shop_import_skipped": {
+        "uz_latn": "O'tkazib yuborilgan",
+        "uz_cyrl": "Ўтказиб юборилган",
+        "ru": "Пропущено",
+    },
+    "web_shop_import_apply": {
+        "uz_latn": "Narxlarni qo'llash",
+        "uz_cyrl": "Нархларни қўллаш",
+        "ru": "Применить цены",
+    },
+    "web_shop_import_cancel": {
+        "uz_latn": "Bekor qilish",
+        "uz_cyrl": "Бекор қилиш",
+        "ru": "Отменить",
+    },
+    "web_shop_import_applied": {
+        "uz_latn": "{count} ta narx yangilandi.",
+        "uz_cyrl": "{count} та нарх янгиланди.",
+        "ru": "Обновлено цен: {count}.",
+    },
+    "web_shop_import_skip_row": {
+        "uz_latn": "O'tkazib yuborish",
+        "uz_cyrl": "Ўтказиб юбориш",
+        "ru": "Пропустить",
+    },
+    "web_shop_import_bad_file": {
+        "uz_latn": "Faylni o'qib bo'lmadi. Excel (.xlsx) yoki CSV yuboring.",
+        "uz_cyrl": "Файлни ўқиб бўлмади. Excel (.xlsx) ёки CSV юборинг.",
+        "ru": "Не удалось прочитать файл. Отправьте Excel (.xlsx) или CSV.",
+    },
+    "web_shop_import_too_big": {
+        "uz_latn": "Fayl juda katta.",
+        "uz_cyrl": "Файл жуда катта.",
+        "ru": "Файл слишком большой.",
+    },
 }
 
 

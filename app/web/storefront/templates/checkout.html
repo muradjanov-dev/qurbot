@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_checkout_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section" data-checkout data-strategy="{{ strategy }}">
+  <h1>{{ t('web_checkout_title', lang=lang) }}</h1>
+
+  <div class="card" data-order-summary></div>
+
+  <div class="card" style="display:grid; gap:16px;">
+    <label class="field">
+      <span>{{ t('web_checkout_phone', lang=lang) }}</span>
+      <input type="tel" data-phone value="{{ last_phone }}" placeholder="+998 90 123 45 67"
+             autocomplete="tel" inputmode="tel">
+      <span class="muted tiny">{{ t('web_checkout_phone_hint', lang=lang) }}</span>
+    </label>
+
+    <div class="field">
+      <span>{{ t('web_checkout_address', lang=lang) }}</span>
+      <div class="radio-list">
+        {% for address in addresses %}
+          <label class="radio-row">
+            <input type="radio" name="address_choice" value="{{ address.id }}" {{ 'checked' if loop.first }}>
+            <span>
+              {% if address.label %}<strong>{{ address.label }}</strong> — {% endif %}{{ address.address_text }}
+              {% if address.is_default %}<span class="badge ok">{{ t('web_account_address_default', lang=lang) }}</span>{% endif %}
+            </span>
+          </label>
+        {% endfor %}
+        <label class="radio-row">
+          <input type="radio" name="address_choice" value="new" {{ 'checked' if not addresses }}>
+          <span>{{ t('web_checkout_address_new', lang=lang) }}</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field" data-new-address>
+      <div class="field-row">
+        <label class="field" style="flex:1;">
+          <span class="muted tiny">{{ t('web_checkout_address_placeholder', lang=lang) }}</span>
+          <input type="text" data-address-text placeholder="{{ t('web_checkout_address_placeholder', lang=lang) }}">
+        </label>
+        <button class="btn btn-sm" type="button" data-detect>{{ t('web_checkout_detect', lang=lang) }}</button>
+      </div>
+      <input type="hidden" data-lat>
+      <input type="hidden" data-lng>
+    </div>
+
+    <label class="field">
+      <span>{{ t('web_checkout_comment', lang=lang) }}</span>
+      <textarea data-comment rows="3" style="min-height:80px;"
+                placeholder="{{ t('web_checkout_comment_hint', lang=lang) }}"></textarea>
+    </label>
+
+    <button class="btn btn-primary btn-block" type="button" data-confirm>
+      {{ t('web_checkout_confirm', lang=lang) }}
+    </button>
+  </div>
+</section>
+{% endblock %}

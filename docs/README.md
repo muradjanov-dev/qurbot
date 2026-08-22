@@ -19,6 +19,7 @@ app/
   llm/          Stage 3 disambiguation + whole-message parse fallback
   services/     orchestration layer: wires domain + repositories + llm
   web/          admin panel (FastAPI + Jinja2, HTTP Basic Auth)
+  web/storefront/  the customer website: same product as the bot, Telegram sign-in
   workers/      arq background jobs + cron schedule
 migrations/     Alembic revisions
 scripts/        seed.py, load_test.py, backup.py, restore.py, notify_deploy.py
@@ -52,6 +53,40 @@ and the shop notifications, where fulfilment actually needs it.
 Stock is respected when quoting: a shop that can't cover the requested quantity
 is not offered, and if nobody can, the shop holding the most is offered rather
 than showing the customer nothing (`BasketOptimizer._filter_by_stock`).
+
+## The customer website
+
+`app/web/storefront/` serves the site at `/` from the same web service as the
+bot webhook and the admin panel. It is not a second product: a visitor signs in
+with Telegram and lands on the very `users` row the bot writes, so orders,
+saved addresses and pebbles are shared between the two.
+
+What it covers: paste-a-list parsing, the catalogue, the basket, the optimised
+quote cards (white-labelled exactly as the bot's are), checkout with saved
+addresses, order history, the cabinet, and a shop-owner portal (prices, stock,
+delivery terms, orders, Excel import).
+
+Two ways in, both proved offline against the bot token, neither needing a
+second password:
+
+- **Login Widget** for a browser tab. Requires `TELEGRAM_LOGIN_BOT_USERNAME`
+  *and* the site's domain registered on the bot (BotFather -> `/setdomain`).
+  Without both, the widget cannot render and the site says so.
+- **Mini App** when the site is opened inside Telegram: `initData` is posted to
+  `/auth/webapp` and verified with the Mini App key derivation.
+
+The session is a signed cookie (`qb_session`), keyed from `WEB_SESSION_SECRET`
+or, unset, derived from `BOT_TOKEN` -- rotating the token signs everyone out
+unless the secret is set explicitly.
+
+`WEB_DEV_LOGIN_ENABLED=true` adds a local sign-in form that takes any Telegram
+id. It is gated on its own setting, never on `APP_ENV` (which defaults to
+`local`), so it cannot be left on by forgetting to set the environment.
+
+Browsing, the basket and a quote need no account; placing an order does. The
+basket lives in the browser's `localStorage`; the server never trusts a price
+from it and recomputes the quote before writing an order, refusing the order if
+the total moved (the customer is shown the new one and asked again).
 
 ## Launch catalogue scope
 

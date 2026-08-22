@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.name }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ shop.name }}</h1>
+    <a class="muted tiny" href="/shop">← {{ t('web_shop_title', lang=lang) }}</a>
+  </div>
+  <p class="muted tiny">{{ shop.address }}</p>
+
+  <div class="grid cols-2">
+    <a class="tile" href="/shop/{{ shop.id }}/products">
+      <span class="tile-name">{{ t('web_shop_products', lang=lang) }}</span>
+      <span class="muted tiny">{{ product_count }}</span>
+    </a>
+    <a class="tile" href="/shop/{{ shop.id }}/orders">
+      <span class="tile-name">
+        {{ t('web_shop_orders', lang=lang) }}
+        {% if pending_orders %}<span class="count">{{ pending_orders }}</span>{% endif %}
+      </span>
+      <span class="muted tiny">{{ t('web_shop_response_pending', lang=lang) }}</span>
+    </a>
+    <a class="tile" href="/shop/{{ shop.id }}/delivery">
+      <span class="tile-name">{{ t('web_shop_delivery', lang=lang) }}</span>
+    </a>
+    <a class="tile" href="/shop/{{ shop.id }}/import">
+      <span class="tile-name">{{ t('web_shop_import', lang=lang) }}</span>
+      <span class="muted tiny">Excel / CSV</span>
+    </a>
+  </div>
+</section>
+{% endblock %}

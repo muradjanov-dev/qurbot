@@ -1,0 +1,94 @@
+{% set langs = [('uz_latn', "O'zbekcha"), ('uz_cyrl', 'Ўзбекча'), ('ru', 'Русский')] %}
+<!doctype html>
+<html lang="{{ 'ru' if lang == 'ru' else 'uz' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#faf9f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="{{ t('web_tagline', lang=lang) }}">
+  <title>{% block title %}QurBot{% endblock %}</title>
+  <link rel="stylesheet" href="{{ static_url }}/app.css">
+  <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
+  <a class="skip" href="#main">→</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">QurBot</span>
+      </a>
+
+      <nav class="topnav" aria-label="{{ t('web_nav_home', lang=lang) }}">
+        <a href="/" class="{{ 'is-active' if path == '/' }}">{{ t('web_nav_home', lang=lang) }}</a>
+        <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
+        <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
+        {% if user %}<a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>{% endif %}
+        {% if is_shop_owner %}<a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
+      </nav>
+
+      <div class="topbar-side">
+        <details class="menu">
+          <summary aria-label="{{ t('web_account_language', lang=lang) }}">
+            {{ 'RU' if lang == 'ru' else ('УЗ' if lang == 'uz_cyrl' else 'UZ') }}
+          </summary>
+          <div class="menu-body">
+            {% for code, label in langs %}
+              <a href="/lang/{{ code }}?next={{ path }}" class="{{ 'is-active' if code == lang }}">{{ label }}</a>
+            {% endfor %}
+          </div>
+        </details>
+
+        {% if user %}
+          <a class="btn btn-ghost btn-sm" href="/account">{{ t('web_nav_account', lang=lang) }}</a>
+        {% else %}
+          <a class="btn btn-primary btn-sm" href="/login?next={{ path }}">{{ t('web_login', lang=lang) }}</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  {% if flash %}<div class="flash" role="status">{{ flash }}</div>{% endif %}
+
+  <main id="main" class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <span>QurBot — {{ t('web_tagline', lang=lang) }}</span>
+  </footer>
+
+  <nav class="tabbar" aria-label="{{ t('web_nav_home', lang=lang) }}">
+    <a href="/" class="{{ 'is-active' if path == '/' }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      <span>{{ t('web_nav_home', lang=lang) }}</span>
+    </a>
+    <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v5H4zM13 14h7v5h-7z"/></svg>
+      <span>{{ t('web_nav_catalog', lang=lang) }}</span>
+    </a>
+    <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM9 7a3 3 0 0 1 6 0"/></svg>
+      <span>{{ t('web_nav_basket', lang=lang) }}</span>
+      <em class="count" data-basket-count hidden>0</em>
+    </a>
+    <a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6"/></svg>
+      <span>{{ t('web_nav_orders', lang=lang) }}</span>
+    </a>
+    <a href="/account" class="{{ 'is-active' if path.startswith('/account') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 20a8 8 0 0 1 16 0"/></svg>
+      <span>{{ t('web_nav_account', lang=lang) }}</span>
+    </a>
+  </nav>
+
+  <div class="toast" data-toast hidden></div>
+
+  <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
+  <script src="{{ static_url }}/app.js" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

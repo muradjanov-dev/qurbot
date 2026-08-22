@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_catalog_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{% if category %}{{ category.name_ru if lang == 'ru' else category.name_uz }}{% else %}{{ t('web_catalog_title', lang=lang) }}{% endif %}</h1>
+    {% if category %}
+      <a class="muted tiny" href="/catalog">← {{ t('web_back', lang=lang) }}</a>
+    {% else %}
+      <a class="muted tiny" href="/catalog/all">{{ t('web_home_categories', lang=lang) }} →</a>
+    {% endif %}
+  </div>
+
+  {% if categories %}
+    <div class="grid cols-3">
+      {% for item in categories %}
+        <a class="tile" href="/catalog/{{ item.id }}">
+          <span class="tile-name">{{ item.name_ru if lang == 'ru' else item.name_uz }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">{{ t('web_catalog_empty', lang=lang) }}</div>
+  {% endif %}
+</section>
+{% endblock %}

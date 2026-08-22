@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_shop_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <h1>{{ t('web_shop_title', lang=lang) }}</h1>
+
+  {% if shops %}
+    <div class="list">
+      {% for shop in shops %}
+        <a class="list-row" href="/shop/{{ shop.id }}">
+          <span class="grow">
+            <span class="name">{{ shop.name }}</span>
+            <span class="muted tiny">{{ shop.address }}</span>
+          </span>
+          <span>→</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">{{ t('web_shop_none', lang=lang) }}</div>
+  {% endif %}
+</section>
+{% endblock %}

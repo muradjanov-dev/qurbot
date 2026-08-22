@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_shop_delivery', lang=lang) }} — {{ shop.name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ t('web_shop_delivery', lang=lang) }}</h1>
+    <a class="muted tiny" href="/shop/{{ shop.id }}">← {{ shop.name }}</a>
+  </div>
+
+  {% if rules %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ t('web_shop_rule_district', lang=lang) }}</th>
+            <th>{{ t('web_shop_rule_fee', lang=lang) }}</th>
+            <th>{{ t('web_shop_rule_free_above', lang=lang) }}</th>
+            <th>{{ t('web_shop_rule_min_order', lang=lang) }}</th>
+            <th>{{ t('web_shop_rule_eta', lang=lang) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rule in rules %}
+            <tr>
+              <td>{{ rule.district.name_uz if rule.district else t('web_shop_rule_all_districts', lang=lang) }}</td>
+              <td class="price">{{ format_uzs(rule.fee) }}</td>
+              <td class="price">{{ format_uzs(rule.free_above) if rule.free_above else '—' }}</td>
+              <td class="price">{{ format_uzs(rule.min_order) }}</td>
+              <td>{{ rule.eta_hours }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">{{ t('web_shop_rule_none', lang=lang) }}</div>
+  {% endif %}
+
+  <form class="card" method="post" action="/shop/{{ shop.id }}/delivery">
+    <div class="field-row">
+      <label class="field">
+        <span>{{ t('web_shop_rule_district', lang=lang) }}</span>
+        <select name="district_id">
+          <option value="">{{ t('web_shop_rule_all_districts', lang=lang) }}</option>
+          {% for district in districts %}
+            <option value="{{ district.id }}">{{ district.name_ru if lang == 'ru' else district.name_uz }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field">
+        <span>{{ t('web_shop_rule_fee', lang=lang) }}</span>
+        <input type="text" name="fee" inputmode="numeric" value="0">
+      </label>
+      <label class="field">
+        <span>{{ t('web_shop_rule_free_above', lang=lang) }}</span>
+        <input type="text" name="free_above" inputmode="numeric" placeholder="—">
+      </label>
+      <label class="field">
+        <span>{{ t('web_shop_rule_min_order', lang=lang) }}</span>
+        <input type="text" name="min_order" inputmode="numeric" value="0">
+      </label>
+      <label class="field" style="max-width:120px;">
+        <span>{{ t('web_shop_rule_eta', lang=lang) }}</span>
+        <input type="number" name="eta_hours" min="1" value="24">
+      </label>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit" style="margin-top:12px;">
+      {{ t('web_save', lang=lang) }}
+    </button>
+  </form>
+</section>
+{% endblock %}

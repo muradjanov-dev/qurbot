@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.deploy_notify import notify_admins_of_deploy
 from app.core.logging import configure_logging, configure_sentry, get_logger
 from app.web.routers import router as admin_router
+from app.web.storefront import install_storefront
 
 logger = get_logger(__name__)
 
@@ -65,6 +66,10 @@ def create_app() -> FastAPI:
     app.include_router(webhook.router)
     app.include_router(metrics.router)
     app.include_router(admin_router)
+    if settings.web_enabled:
+        # The customer-facing site. Mounted last so its "/" never shadows the
+        # webhook, health or admin routes above.
+        install_storefront(app)
     return app
 
 

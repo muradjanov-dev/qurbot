@@ -1,3 +1,4 @@
+import hashlib
 from decimal import Decimal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -130,6 +131,38 @@ class Settings(BaseSettings):
     # Observability (Phase 9 hardening)
     sentry_dsn: str | None = None
 
+    # ── Customer web app / storefront ─────────────────────────────────────
+    # The website is the same product as the bot, so identity is the same
+    # too: a visitor signs in with Telegram and lands on the very `users` row
+    # the bot writes. Nothing here introduces a second account system.
+    web_enabled: bool = True
+    # Signs the session cookie. Left unset it is derived from the bot token,
+    # which every deployment already has -- one less secret to forget. Set it
+    # explicitly to keep sessions alive across a bot-token rotation.
+    web_session_secret: str | None = None
+    web_session_max_age_days: int = 30
+    # How old a Telegram login payload may be before it is refused. Telegram's
+    # own guidance; a replayed older payload is treated as an attack.
+    web_login_max_age_seconds: int = 86400
+    # BotFather username (without @) that the Login Widget is bound to. Without
+    # it the widget cannot render, and only the Mini App path can sign anyone in.
+    telegram_login_bot_username: str | None = None
+    # Deliberately opt-in and never implied by app_env: `app_env` defaults to
+    # "local", so keying a login bypass on it would leave one live in any
+    # deployment that forgot to set it.
+    web_dev_login_enabled: bool = False
+    web_catalog_page_size: int = 24
+    web_orders_page_size: int = 20
+    web_shop_products_page_size: int = 20
+    # Largest price file the web upload accepts, mirroring what the bot takes.
+    web_max_upload_bytes: int = 5 * 1024 * 1024
+
+    @property
+    def web_session_key(self) -> bytes:
+        """Key used to sign browser session cookies."""
+        if self.web_session_secret:
+            return self.web_session_secret.encode()
+        return hashlib.sha256(f"qurbot-web-session:{self.bot_token}".encode()).digest()
 
     @property
     def webhook_path(self) -> str:

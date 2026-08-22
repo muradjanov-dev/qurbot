@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_basket_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <h1>{{ t('web_basket_title', lang=lang) }}</h1>
+
+  <div class="list" data-basket></div>
+
+  <form class="card" data-add-form hidden>
+    <label class="field">
+      <span>{{ t('web_basket_add_more', lang=lang) }}</span>
+      <textarea rows="3" placeholder="{{ t('web_home_placeholder', lang=lang) }}"></textarea>
+    </label>
+    <button class="btn btn-primary btn-sm" type="submit">{{ t('web_basket_add_more', lang=lang) }}</button>
+  </form>
+
+  <div class="row" data-basket-actions hidden>
+    <button class="btn btn-sm" type="button" data-add-toggle>+ {{ t('web_basket_add_more', lang=lang) }}</button>
+    <button class="btn btn-sm btn-danger" type="button" data-clear>{{ t('web_basket_clear', lang=lang) }}</button>
+    <a class="btn btn-sm" href="/catalog">{{ t('web_nav_catalog', lang=lang) }}</a>
+    <button class="btn btn-primary" type="button" data-calculate style="margin-left:auto;">
+      {{ t('web_basket_calculate', lang=lang) }}
+    </button>
+  </div>
+</section>
+
+<section class="section" data-quote></section>
+{% endblock %}

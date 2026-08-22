@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_orders_title', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <h1>{{ t('web_orders_title', lang=lang) }}</h1>
+
+  {% if orders %}
+    <div class="list">
+      {% for order in orders %}
+        <a class="list-row" href="/orders/{{ order.id }}">
+          <span class="grow">
+            <span class="name">#{{ order.id }}</span>
+            <span class="muted tiny">{{ order.created_at.strftime('%d.%m.%Y') if order.created_at }}</span>
+          </span>
+          <span class="badge {{ 'ok' if order.status in ('fulfilled', 'confirmed') else ('bad' if order.status == 'cancelled' else '') }}">
+            {{ t('web_order_status_' ~ order.status, lang=lang) }}
+          </span>
+          <span class="price">{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <p>{{ t('web_orders_empty', lang=lang) }}</p>
+      <p><a class="btn btn-primary btn-sm" href="/">{{ t('web_home_cta', lang=lang) }}</a></p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

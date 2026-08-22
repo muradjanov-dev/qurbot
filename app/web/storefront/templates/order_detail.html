@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}#{{ order.id }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>#{{ order.id }}</h1>
+    <a class="muted tiny" href="/orders">← {{ t('web_orders_title', lang=lang) }}</a>
+  </div>
+
+  {% if flash %}
+    <div class="notice ok">
+      <strong>{{ t('web_order_created', lang=lang) }}</strong> — {{ t('web_order_created_hint', lang=lang) }}
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="spread" style="margin-bottom:12px;">
+      <span class="badge {{ 'ok' if order.status in ('fulfilled', 'confirmed') else ('bad' if order.status == 'cancelled' else '') }}">
+        {{ t('web_order_status_' ~ order.status, lang=lang) }}
+      </span>
+      <span class="muted tiny">{{ order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at }}</span>
+    </div>
+
+    <h2>{{ t('web_order_items', lang=lang) }}</h2>
+    <div class="quote-lines">
+      {% for item in items %}
+        <div class="quote-line">
+          <div class="q-name">
+            <div>{{ item.name }}</div>
+            <div class="q-qty">{{ format_qty(item.qty) }} {{ item.unit }}</div>
+          </div>
+          <div class="price">{{ format_uzs(item.total) }} {{ t('web_currency', lang=lang) }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="total-row">
+      <span>{{ t('web_quote_items_total', lang=lang) }}</span>
+      <span class="price">{{ format_uzs(items_total) }} {{ t('web_currency', lang=lang) }}</span>
+    </div>
+    <div class="total-row">
+      <span>{{ t('web_quote_delivery', lang=lang) }}</span>
+      <span class="price">{{ format_uzs(delivery_total) }} {{ t('web_currency', lang=lang) }}</span>
+    </div>
+    <div class="total-row grand">
+      <span>{{ t('web_quote_grand_total', lang=lang) }}</span>
+      <span class="price">{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="total-row">
+      <span class="muted">{{ t('web_checkout_phone', lang=lang) }}</span>
+      <span>{{ order.contact_phone }}</span>
+    </div>
+    <div class="total-row">
+      <span class="muted">{{ t('web_checkout_address', lang=lang) }}</span>
+      <span class="right">{{ order.delivery_address }}</span>
+    </div>
+    {% if order.comment %}
+      <div class="total-row">
+        <span class="muted">{{ t('web_checkout_comment', lang=lang) }}</span>
+        <span class="right">{{ order.comment }}</span>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

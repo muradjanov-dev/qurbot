@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_shop_orders', lang=lang) }} — {{ shop.name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-head">
+    <h1>{{ t('web_shop_orders', lang=lang) }}</h1>
+    <a class="muted tiny" href="/shop/{{ shop.id }}">← {{ shop.name }}</a>
+  </div>
+
+  {% if parts %}
+    <div class="list">
+      {% for part in parts %}
+        <div class="card" style="display:grid; gap:12px;">
+          <div class="spread">
+            <strong>#{{ part.order_id }}</strong>
+            <span class="badge {{ 'ok' if part.shop_response == 'accepted' else ('bad' if part.shop_response == 'rejected' else 'warn') }}">
+              {{ t('web_shop_response_' ~ part.shop_response, lang=lang) }}
+            </span>
+          </div>
+
+          <div class="quote-lines">
+            {% for item in part.items %}
+              <div class="quote-line">
+                <div class="q-name">
+                  <div>{{ item.canonical_product.name_uz if item.canonical_product else item.canonical_id }}</div>
+                  <div class="q-qty">{{ format_qty(item.qty) }} {{ item.unit_code }}</div>
+                </div>
+                <div class="price">{{ format_uzs(item.line_total) }} {{ t('web_currency', lang=lang) }}</div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="total-row grand">
+            <span>{{ t('web_quote_grand_total', lang=lang) }}</span>
+            <span class="price">
+              {{ format_uzs(part.subtotal + part.delivery_fee) }} {{ t('web_currency', lang=lang) }}
+            </span>
+          </div>
+
+          {% if part.shop_response == 'pending' %}
+            <div class="row">
+              <form method="post" action="/shop/{{ shop.id }}/orders/{{ part.id }}/accept">
+                <button class="btn btn-sm btn-primary" type="submit">{{ t('web_shop_accept', lang=lang) }}</button>
+              </form>
+              <form method="post" action="/shop/{{ shop.id }}/orders/{{ part.id }}/reject">
+                <button class="btn btn-sm btn-danger" type="submit">{{ t('web_shop_reject', lang=lang) }}</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">{{ t('web_shop_no_orders', lang=lang) }}</div>
+  {% endif %}
+</section>
+{% endblock %}

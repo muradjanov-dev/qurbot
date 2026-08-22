@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}QurBot — {{ t('web_tagline', lang=lang) }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>{{ t('web_home_title', lang=lang) }}</h1>
+  <p>{{ t('web_home_subtitle', lang=lang) }}</p>
+
+  <form class="hero-form card" data-list-form>
+    <label class="field">
+      <span class="sr-only">{{ t('web_home_cta', lang=lang) }}</span>
+      <textarea data-list-input rows="5"
+        placeholder="{{ t('web_home_placeholder', lang=lang) }}"></textarea>
+    </label>
+    <div class="chips">
+      <button type="button" class="chip" data-example="{{ t('web_home_placeholder', lang=lang) }}">
+        {{ t('web_home_example', lang=lang) }}
+      </button>
+    </div>
+    <button class="btn btn-primary btn-block" data-submit type="submit">
+      {{ t('web_home_cta', lang=lang) }}
+    </button>
+  </form>
+</section>
+
+<section class="section">
+  <h2>{{ t('web_home_how', lang=lang) }}</h2>
+  <div class="grid cols-3 steps">
+    {% for n in [1, 2, 3] %}
+      <div class="card step">
+        <span class="step-no">{{ n }}</span>
+        <h3>{{ t('web_home_step' ~ n ~ '_title', lang=lang) }}</h3>
+        <p class="muted tiny">{{ t('web_home_step' ~ n ~ '_body', lang=lang) }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% if categories %}
+<section class="section">
+  <div class="section-head">
+    <h2>{{ t('web_home_categories', lang=lang) }}</h2>
+    <a class="muted tiny" href="/catalog/all">{{ t('web_catalog_title', lang=lang) }} →</a>
+  </div>
+  <div class="grid cols-4">
+    {% for category in categories %}
+      <a class="tile" href="/catalog/{{ category.id }}">
+        <span class="tile-name">{{ category.name_ru if lang == 'ru' else category.name_uz }}</span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
