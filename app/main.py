@@ -1,12 +1,14 @@
+import asyncio
 import os
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from aiogram.exceptions import TelegramAPIError
 from fastapi import FastAPI
 
 from app.api.routers import health, metrics, webhook
 from app.bot.dispatcher import create_bot, dispatcher, setup_bot_commands
+from app.bot.webhook_guard import watch_webhook
 from app.core.config import settings
 from app.core.deploy_notify import notify_admins_of_deploy
 from app.core.logging import configure_logging, configure_sentry, get_logger
@@ -47,7 +49,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         release_label = os.environ.get("RAILWAY_DEPLOYMENT_ID", "local")
         await notify_admins_of_deploy(bot, release_label)
 
+        # Setting the webhook once is not enough to keep it set: a rolling
+        # deploy's outgoing container, or a stray deleteWebhook, empties it
+        # minutes later and the bot goes silent while /health stays green.
+        # This re-asserts it on a timer and repairs it if it ever goes.
+        watchdog = asyncio.create_task(watch_webhook(bot))
+    else:
+        watchdog = None
+
     yield
+
+    if watchdog is not None:
+        watchdog.cancel()
+        with suppress(asyncio.CancelledError):
+            await watchdog
 
     # Deliberately does NOT call bot.delete_webhook() here. Railway's deploys are
     # rolling: the new container sets the webhook and starts serving before the

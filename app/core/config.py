@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     webhook_secret: str = "placeholder_secret"
     webhook_base_url: str = "http://localhost:8000"
     register_webhook: bool = True
+    # How often to re-check that Telegram still points at this deployment.
+    # Registering once at startup does not survive a rolling deploy's outgoing
+    # container deleting the webhook the new one just set -- and that failure
+    # is silent: /health stays green while the bot answers nobody. 0 disables.
+    webhook_watchdog_interval_seconds: int = 300
     admin_tg_ids: list[int] = [917456291, 576437661, 3896397, 1630243859]
     # Super admins may grant/revoke admin rights. Kept separate from
     # admin_tg_ids so a promoted admin cannot promote further admins.
