@@ -1915,13 +1915,9 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "web_quote_delivery_note": {
         "uz_latn": (
-            "Yetkazib berish narxi manzilingizga bog'liq va rasmiylashtirishda "
-            "qo'shiladi."
+            "Yetkazib berish narxi manzilingizga bog'liq va rasmiylashtirishda " "qo'shiladi."
         ),
-        "uz_cyrl": (
-            "Етказиб бериш нархи манзилингизга боғлиқ ва расмийлаштиришда "
-            "қўшилади."
-        ),
+        "uz_cyrl": ("Етказиб бериш нархи манзилингизга боғлиқ ва расмийлаштиришда " "қўшилади."),
         "ru": ("Стоимость доставки зависит от адреса и добавится при оформлении."),
     },
     "web_quote_select": {"uz_latn": "Buni tanlash", "uz_cyrl": "Буни танлаш", "ru": "Выбрать"},
