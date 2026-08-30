@@ -117,6 +117,37 @@ DIAMETER_REGEX = re.compile(
 )
 NUMBER_REGEX = re.compile(r"\b\d+(?:[.,]\d+)?\b")
 
+# A price list prints thicknesses zero-padded to keep the column straight -- 03,
+# 04, 09 -- and customers copy that across. The lookbehind protects a decimal:
+# 3.05 mm is a real thickness and must not become 3.5. A word boundary will not
+# serve as the closing guard: "03mm" has none between the digit and the unit.
+LEADING_ZERO_REGEX = re.compile(r"(?<![\d.])0+(\d+)(?![\d.])")
+
+# Sheet goods are sold by a size in millimetres (1525x1525) and asked for by a
+# size in metres ("1.50 na 1.50"). Both numbers being fractional is what marks
+# the metre form -- a millimetre size never is.
+METRE_SIZE_REGEX = re.compile(r"\b(\d\.\d{1,3})x(\d\.\d{1,3})\b")
+
+# Plywood grade, as an experienced buyer writes it: 2/4, 3/3, 2/2. The catalog
+# spells the same thing with an x. Deliberately gated on the plywood word,
+# because "1/2 truba" is a half-inch pipe, and rewriting that to "1x2" would
+# invent a product.
+PLYWOOD_WORD_REGEX = re.compile(r"\b(?:fanera|faner|fanerka|plywood)\b")
+GRADE_SLASH_REGEX = re.compile(r"\b([1-4])/([1-4])\b")
+
+
+def metres_to_millimetres(match: re.Match[str]) -> str:
+    """Rewrite a metre-by-metre size as the catalog's millimetre pair.
+
+    The longer side leads, as every sheet in the price list is written --
+    "1.22x2.44" and "2.44x1.22" are the same sheet, and only one of them can
+    match.
+    """
+    first = int(round(float(match.group(1)) * 1000))
+    second = int(round(float(match.group(2)) * 1000))
+    longer, shorter = max(first, second), min(first, second)
+    return f"{longer}x{shorter}"
+
 
 def extract_grades(text: str) -> list[str]:
     grades = []
@@ -222,6 +253,14 @@ def normalize_text(raw: str) -> str:
 
     # 5. Diameter patterns
     text = DIAMETER_REGEX.sub(r"d\1", text)
+
+    # 5b. Sheet-goods notation: metre sizes, zero-padded thicknesses, and the
+    # slash the plywood trade uses for a grade. Runs after the size pass, so a
+    # size is already spelled with a single x whichever separator was typed.
+    text = METRE_SIZE_REGEX.sub(metres_to_millimetres, text)
+    text = LEADING_ZERO_REGEX.sub(r"\1", text)
+    if PLYWOOD_WORD_REGEX.search(text):
+        text = GRADE_SLASH_REGEX.sub(r"\1x\2", text)
 
     # 6. Normalize punctuation
     text = re.sub(r"[-–—_]", " ", text)
