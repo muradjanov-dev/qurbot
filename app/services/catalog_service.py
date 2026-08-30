@@ -147,11 +147,17 @@ class CatalogService:
         either settles it or writes the question worth asking -- and because the
         basket is batched, looking at more lines costs no extra round trip.
 
-        Left alone: an exact approved alias, which is certain and free, and a
-        line with no candidates, which gives the model nothing to choose
-        between.
+        A line with no candidates at all goes too, and matters most: that is the
+        "katalogda topilmadi" the customer sees for a product the catalog does
+        carry, under a name they did not use. With nothing to choose from the
+        model cannot pick an id, but it can say what the line means, and the
+        search runs again on that.
+
+        Left alone only: an exact approved alias. A human already confirmed
+        that answer, it costs nothing, and asking the model to review it can
+        only make it worse.
         """
-        if match.decision.method == "alias" or not match.candidates:
+        if match.decision.method == "alias":
             return False
         return match.decision.status != "auto_accept"
 
@@ -232,6 +238,56 @@ class CatalogService:
             clarify_question=answer.question,
         )
 
+    async def _retry_with_search_term(
+        self,
+        match: _DeterministicMatch,
+        answer: BatchLineDecision,
+        current: MatchDecision,
+    ) -> MatchDecision:
+        """Search again on the wording the model supplied, when nothing was found.
+
+        The worst case turned around: "katalogda topilmadi" for a product the
+        catalog carries under a name the customer did not use. The second search
+        is deterministic and cheap -- no further model call -- and on success the
+        original phrasing is written back as an alias, so the next customer to
+        say it that way is answered by Stage 1 for free.
+        """
+        term = (answer.search_term or "").strip()
+        if not term or term == match.query.text_norm:
+            return current
+
+        retried = await self._match_deterministic(replace(match.parsed_line, parsed_name=term))
+        if retried.decision.canonical_id is None:
+            return current
+
+        await self.catalog_repo.create_unapproved_alias(
+            canonical_id=retried.decision.canonical_id,
+            alias_norm=match.query.text_norm,
+            alias_raw=match.parsed_line.raw_text,
+            confidence=retried.decision.confidence,
+            source="llm",
+        )
+
+        # The question survives the rescue: a line the search had to be told
+        # about is exactly the one worth confirming with the customer.
+        return replace(
+            retried.decision,
+            method="llm_search",
+            needs_review=retried.decision.status != "auto_accept",
+            clarify_question=answer.question or retried.decision.clarify_question,
+        )
+
+    async def _settle_with_model(
+        self,
+        match: _DeterministicMatch,
+        answer: BatchLineDecision,
+    ) -> MatchDecision:
+        """Apply the model's answer, then retry the search if it named a better term."""
+        decision = await self._apply_llm_decision(match, answer)
+        if decision.canonical_id is None and answer.search_term:
+            decision = await self._retry_with_search_term(match, answer, decision)
+        return decision
+
     async def _finalize(
         self,
         parsed_line: ParsedLine,
@@ -270,7 +326,7 @@ class CatalogService:
             )
             answer = batch.lines.get(parsed_line.line_no)
             if answer is not None:
-                decision = await self._apply_llm_decision(match, answer)
+                decision = await self._settle_with_model(match, answer)
 
         await self._finalize(parsed_line, decision, match.query.text_norm, user_id)
         return parsed_line, decision
@@ -363,7 +419,7 @@ class CatalogService:
                     # The model skipped this line; its deterministic decision
                     # stands rather than being replaced by a guess.
                     continue
-                results[index] = (results[index][0], await self._apply_llm_decision(match, answer))
+                results[index] = (results[index][0], await self._settle_with_model(match, answer))
 
         for index, match in matched:
             await self._finalize(

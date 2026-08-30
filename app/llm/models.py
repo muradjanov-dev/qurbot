@@ -66,6 +66,12 @@ class BatchLineDecision:
     confidence: float
     reason: str = ""
     question: str | None = None
+    # What to search the catalog for instead, in catalog wording. The way out
+    # of the worst case: trigram found nothing at all, so there was no
+    # candidate list to choose from and the customer was told the product does
+    # not exist. The model reads the line, says what it is, and the search runs
+    # again on that.
+    search_term: str | None = None
 
 
 @dataclass(frozen=True)

@@ -491,6 +491,8 @@ class LLMClient:
 
             question = raw.get("question")
             question_text = str(question).strip() if question else ""
+            search_term = raw.get("search_term")
+            search_text = str(search_term).strip() if search_term else ""
 
             decisions[line_no] = BatchLineDecision(
                 line_no=line_no,
@@ -498,6 +500,7 @@ class LLMClient:
                 confidence=confidence,
                 reason=str(raw.get("reason", "")),
                 question=question_text or None,
+                search_term=search_text or None,
             )
         return BatchDisambiguationResult(lines=decisions)
 

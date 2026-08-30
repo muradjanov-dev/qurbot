@@ -76,5 +76,11 @@ def test_an_exact_alias_is_never_second_guessed() -> None:
     assert CatalogService._needs_llm(_match("auto_accept", 1.0, method="alias")) is False
 
 
-def test_a_line_with_no_candidates_has_nothing_to_ask_about() -> None:
-    assert CatalogService._needs_llm(_match("unresolved", 0.0, candidates=[])) is False
+def test_a_line_with_no_candidates_goes_too_and_matters_most() -> None:
+    """This is the "katalogda topilmadi" the customer actually sees.
+
+    With nothing to choose from the model cannot pick an id, but it can say
+    what the line means -- and the search is then run again on that wording,
+    which is how a product the catalog carries under another name is found.
+    """
+    assert CatalogService._needs_llm(_match("unresolved", 0.0, candidates=[])) is True

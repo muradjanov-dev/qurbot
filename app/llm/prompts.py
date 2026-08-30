@@ -100,12 +100,19 @@ Rules:
    {
      "lines": [
        {"line_no": 1, "canonical_id": 12, "confidence": 0.93,
-        "reason": "short explanation", "question": null}
+        "reason": "short explanation", "question": null, "search_term": null}
      ]
    }
 2. Answer every line_no you were given, exactly once. Never return a canonical_id that is
    not in that line's own candidate list; if none of them fits, use null with confidence
    0.0.
+2b. A line may arrive with an EMPTY candidate list, or with candidates that are all
+   wrong. That means the catalog search failed, not that the product does not exist.
+   Set canonical_id null and put in "search_term" the plain catalog wording for what the
+   customer means -- Uzbek Latin, product noun first, then the details that identify it
+   ("fanera 12mm", "sement m400", "osb 9mm"). No quantity, no units, no adjectives. The
+   search is run again on that term. Leave "search_term" null when the candidate you
+   picked is right.
 3. Customers write Uzbek Latin, Uzbek Cyrillic, Russian and street slang, often mixed in
    one line: sement/tsement, g'isht/kirpich, shifer/shipr, qum/pesok, shag'al/shcheben,
    mix/gvozdi, bo'yoq/kraska, quvur/truba. Grades (M400, M500, d12, 12mm) and sizes
