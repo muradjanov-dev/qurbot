@@ -10,10 +10,11 @@ Tests:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -166,3 +167,52 @@ async def test_llm_held_out_100_queries_evaluation(test_session: AsyncSession) -
     match_rate = matched_count / len(queries)
     print(f"\n[EVALUATION] match rate: {match_rate:.1%} ({matched_count}/100 messy queries)")
     assert match_rate >= 0.90, f"Match rate {match_rate:.1%} is below target 90%!"
+
+
+@pytest.mark.asyncio
+async def test_token_budget_is_a_day_not_a_lifetime(test_session: AsyncSession) -> None:
+    """Yesterday's spend must not switch the model off today.
+
+    Summed over all time this was not a budget but a kill switch: once the
+    project had ever spent its allowance, every LLM stage went quiet for good
+    and looked exactly like a model with nothing to say.
+    """
+    ops_repo = OpsRepository(test_session)
+    over_budget = settings.llm_daily_token_budget * 2
+
+    await ops_repo.record_llm_call(
+        purpose="batch_disambiguation",
+        prompt_version="v1",
+        input_hash="spent-yesterday",
+        input_tokens=over_budget,
+        output_tokens=0,
+        cost_usd=Decimal("1.00"),
+        latency_ms=10,
+        cache_hit=False,
+        raw_response="{}",
+    )
+    await test_session.execute(
+        update(LLMCall)
+        .where(LLMCall.input_hash == "spent-yesterday")
+        .values(created_at=datetime.now(UTC) - timedelta(days=3))
+    )
+    await test_session.flush()
+
+    client = LLMClient(session=test_session, mock_mode=True)
+    assert await client._has_token_budget() is True, "three-day-old spend still counted"
+
+    # Spend the same amount now, and the budget must close for the rest of the day.
+    await ops_repo.record_llm_call(
+        purpose="batch_disambiguation",
+        prompt_version="v1",
+        input_hash="spent-today",
+        input_tokens=over_budget,
+        output_tokens=0,
+        cost_usd=Decimal("1.00"),
+        latency_ms=10,
+        cache_hit=False,
+        raw_response="{}",
+    )
+    await test_session.flush()
+
+    assert await client._has_token_budget() is False

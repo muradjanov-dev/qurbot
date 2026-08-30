@@ -15,6 +15,7 @@ import json
 import logging
 import random
 import time
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -399,12 +400,29 @@ class LLMClient:
         return None
 
     async def _has_token_budget(self) -> bool:
+        """Whether the last 24 hours leave room under the daily token budget.
+
+        The window is the point. Summed over all time, this was not a daily
+        budget but a lifetime one: once the project had ever spent 100k tokens,
+        every LLM stage switched itself off permanently, silently, and looked
+        exactly like a model that had nothing to say.
+        """
         if not self.session:
             return True
         try:
-            stmt = select(func.sum(LLMCall.input_tokens + LLMCall.output_tokens))
+            since = datetime.now(UTC) - timedelta(hours=24)
+            stmt = select(func.sum(LLMCall.input_tokens + LLMCall.output_tokens)).where(
+                LLMCall.created_at >= since
+            )
             res = await self.session.execute(stmt)
-            total_tokens = res.scalar() or 0
+            total_tokens = int(res.scalar() or 0)
+
+            # Deferred import: the alert reaches the bot to DM the admins, and
+            # the dispatcher pulls in handlers -> services -> this module, so a
+            # module-scope import would close the cycle.
+            from app.services.llm_budget_alert import warn_admins_if_budget_low
+
+            await warn_admins_if_budget_low(self.session, total_tokens)
             return bool(total_tokens < settings.llm_daily_token_budget)
         except Exception:
             return True
