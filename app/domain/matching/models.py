@@ -26,3 +26,7 @@ class MatchDecision:
     candidates: list[CandidateMatch] = field(default_factory=list)
     method: str = "trgm"
     needs_review: bool = False
+    # What to put to the customer when the line stays ambiguous -- phrased
+    # around the difference that matters (grade, size, colour), not around the
+    # catalog name. Empty whenever the match was certain enough to skip asking.
+    clarify_question: str | None = None

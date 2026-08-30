@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from app.core.config import settings
@@ -9,11 +10,31 @@ from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.matching.models import CandidateMatch, MatchDecision, MatchStatus
 from app.domain.matching.scorer import score_and_rank_candidates
+from app.domain.models import NormalizedQuery
 from app.domain.normalize.text import normalize_query
 from app.domain.parsing.models import ParsedLine
 from app.domain.parsing.parser import is_qty_orderable, parse_basket_lines
 from app.llm.client import LLMClient
-from app.llm.models import DisambiguationCandidateInput
+from app.llm.models import (
+    BatchLineDecision,
+    BatchLineInput,
+    DisambiguationCandidateInput,
+)
+
+
+@dataclass(frozen=True)
+class _DeterministicMatch:
+    """What Stages 0-2 produced for one line, plus what Stage 3 would need.
+
+    Carrying the candidates back out of the deterministic pass is what makes
+    batching possible: the caller collects every unresolved line first, then
+    asks the model about all of them in one request.
+    """
+
+    parsed_line: ParsedLine
+    query: NormalizedQuery
+    decision: MatchDecision
+    candidates: list[CandidateMatch]
 
 
 class CatalogService:
@@ -27,18 +48,17 @@ class CatalogService:
         self.ops_repo = ops_repo
         self.llm_client = llm_client or LLMClient(session=catalog_repo.session)
 
-    async def match_parsed_line(
+    async def _match_deterministic(
         self,
         parsed_line: ParsedLine,
-        user_id: int | None = None,
         category_ids: Sequence[int] | None = None,
-    ) -> tuple[ParsedLine, MatchDecision]:
-        """Execute Stage 0 -> Stage 1 -> Stage 2 -> Stage 3 (LLM) -> Stage 4 matching cascade.
+    ) -> _DeterministicMatch:
+        """Stages 0-2: normalize, exact alias lookup, trigram + attribute scoring.
 
-        `category_ids` restricts Stage 2 candidates. It is supplied when the
-        caller already knows the category (the shop upload wizard asks for it
-        up front), which keeps unrelated products from consuming the candidate
-        limit before scoring runs.
+        No network, no LLM. `category_ids` restricts Stage 2 candidates. It is
+        supplied when the caller already knows the category (the shop upload
+        wizard asks for it up front), which keeps unrelated products from
+        consuming the candidate limit before scoring runs.
         """
         # Stage 0: Normalize text and extract feature bag
         query = normalize_query(parsed_line.parsed_name)
@@ -61,18 +81,21 @@ class CatalogService:
                     score=1.0,
                     match_method="alias",
                 )
-                decision = MatchDecision(
-                    canonical_id=canonical.id,
-                    status="auto_accept",
-                    confidence=1.0,
+                return _DeterministicMatch(
+                    parsed_line=parsed_line,
+                    query=query,
+                    decision=MatchDecision(
+                        canonical_id=canonical.id,
+                        status="auto_accept",
+                        confidence=1.0,
+                        candidates=[cand],
+                        method="alias",
+                        needs_review=False,
+                    ),
                     candidates=[cand],
-                    method="alias",
-                    needs_review=False,
                 )
-                match_method_total.labels(method="alias").inc()
-                return parsed_line, decision
 
-        # Stage 2: Candidate search + Multi-factor Re-ranking
+        # Stage 2: Candidate search + multi-factor re-ranking
         raw_candidates = await self.catalog_repo.search_canonical_products(
             query.text_norm, limit=20, category_ids=category_ids
         )
@@ -83,6 +106,7 @@ class CatalogService:
             raw_candidates = await self.catalog_repo.search_canonical_products(
                 query.text_norm, limit=20
             )
+
         candidate_matches: list[CandidateMatch] = [
             CandidateMatch(
                 canonical_id=c.id,
@@ -105,90 +129,159 @@ class CatalogService:
             ask_user_threshold=settings.match_ask_user_threshold,
         )
 
-        # Stage 3: LLM Disambiguation Fallback (§6 Stage 3)
-        # Trigger when Stage 2 is unresolved or score < 0.55, but we have candidates
-        if (
-            decision.status == "unresolved"
-            or decision.confidence < settings.match_ask_user_threshold
-        ) and raw_candidates:
-            top_candidates = [
+        return _DeterministicMatch(
+            parsed_line=parsed_line,
+            query=query,
+            decision=decision,
+            candidates=candidate_matches,
+        )
+
+    @staticmethod
+    def _needs_llm(match: _DeterministicMatch) -> bool:
+        """Stage 3 is only for what the deterministic cascade could not settle."""
+        if match.decision.method == "alias" or not match.candidates:
+            return False
+        return (
+            match.decision.status == "unresolved"
+            or match.decision.confidence < settings.match_ask_user_threshold
+        )
+
+    @staticmethod
+    def _to_batch_input(match: _DeterministicMatch, line_no: int) -> BatchLineInput:
+        """Package one unresolved line for the batched Stage 3 call."""
+        return BatchLineInput(
+            line_no=line_no,
+            raw_text=match.parsed_line.raw_text,
+            normalized_text=match.query.text_norm,
+            candidates=[
                 DisambiguationCandidateInput(
-                    canonical_id=c.id,
+                    canonical_id=c.canonical_id,
                     name_uz=c.name_uz,
                     brand=c.brand,
                     attributes=c.attributes if isinstance(c.attributes, dict) else {},
                 )
-                for c in raw_candidates[:8]
-            ]
+                for c in match.candidates[:8]
+            ],
+        )
 
-            llm_result = await self.llm_client.disambiguate(
-                raw_query=parsed_line.raw_text,
-                normalized_query=query.text_norm,
-                candidates=top_candidates,
-            )
+    async def _apply_llm_decision(
+        self,
+        match: _DeterministicMatch,
+        answer: BatchLineDecision,
+    ) -> MatchDecision:
+        """Fold one model answer into the deterministic decision for that line."""
+        canonical_id = answer.canonical_id
+        if canonical_id is None or answer.confidence < settings.llm_alias_writeback_min_confidence:
+            # Not strong enough to move the match. The question is still worth
+            # keeping: it is the one thing that can resolve the line, and it
+            # costs the customer a single tap.
+            if answer.question:
+                return replace(match.decision, clarify_question=answer.question)
+            return match.decision
 
-            if llm_result.canonical_id and llm_result.confidence >= 0.70:
-                # Self-learning feedback loop: write back alias for future fast lookups
-                await self.catalog_repo.create_unapproved_alias(
-                    canonical_id=llm_result.canonical_id,
-                    alias_norm=query.text_norm,
-                    alias_raw=parsed_line.raw_text,
-                    confidence=llm_result.confidence,
-                    source="llm",
+        # Self-learning feedback loop: once an admin approves this alias,
+        # Stage 1 answers the same query for free from then on.
+        await self.catalog_repo.create_unapproved_alias(
+            canonical_id=canonical_id,
+            alias_norm=match.query.text_norm,
+            alias_raw=match.parsed_line.raw_text,
+            confidence=answer.confidence,
+            source="llm",
+        )
+
+        matched_cand = next(
+            (c for c in match.candidates if c.canonical_id == canonical_id),
+            None,
+        )
+        if not matched_cand:
+            canon_db = await self.catalog_repo.get(canonical_id)
+            if canon_db:
+                matched_cand = CandidateMatch(
+                    canonical_id=canon_db.id,
+                    slug=canon_db.slug,
+                    name_uz=canon_db.name_uz,
+                    brand=canon_db.brand,
+                    attributes=canon_db.attributes,
+                    score=answer.confidence,
+                    match_method="llm",
                 )
 
-                # Find matched canonical product details
-                matched_cand = next(
-                    (c for c in candidate_matches if c.canonical_id == llm_result.canonical_id),
-                    None,
-                )
-                if not matched_cand:
-                    canon_db = await self.catalog_repo.get(llm_result.canonical_id)
-                    if canon_db:
-                        matched_cand = CandidateMatch(
-                            canonical_id=canon_db.id,
-                            slug=canon_db.slug,
-                            name_uz=canon_db.name_uz,
-                            brand=canon_db.brand,
-                            attributes=canon_db.attributes,
-                            score=llm_result.confidence,
-                            match_method="llm",
-                        )
+        # A question the model chose to ask outranks its own confidence: it
+        # said the difference matters to the buyer, so the buyer decides.
+        status: MatchStatus = (
+            "auto_accept"
+            if answer.confidence >= settings.match_auto_accept_threshold and not answer.question
+            else "ask_user"
+        )
+        return MatchDecision(
+            canonical_id=canonical_id,
+            status=status,
+            confidence=answer.confidence,
+            candidates=[matched_cand] if matched_cand else match.decision.candidates,
+            method="llm",
+            needs_review=(status != "auto_accept"),
+            clarify_question=answer.question,
+        )
 
-                status: MatchStatus = (
-                    "auto_accept"
-                    if llm_result.confidence >= settings.match_auto_accept_threshold
-                    else "ask_user"
-                )
-                decision = MatchDecision(
-                    canonical_id=llm_result.canonical_id,
-                    status=status,
-                    confidence=llm_result.confidence,
-                    candidates=[matched_cand] if matched_cand else decision.candidates,
-                    method="llm",
-                    needs_review=(status != "auto_accept"),
-                )
+    async def _finalize(
+        self,
+        parsed_line: ParsedLine,
+        decision: MatchDecision,
+        normalized: str,
+        user_id: int | None,
+    ) -> None:
+        """Stage 4: record what stayed unmatched, then count the method used.
 
-        # Stage 4: Unresolved query logging (§6 Stage 4)
+        The unmatched queue is how the catalog grows, so this runs after the
+        LLM has had its say -- not before, or every line the model rescued
+        would still be filed as a gap.
+        """
         if decision.status == "unresolved":
             await self.ops_repo.record_unmatched_query(
                 raw_text=parsed_line.raw_text,
-                normalized=query.text_norm,
+                normalized=normalized,
                 user_id=user_id,
             )
-
         match_method_total.labels(method=decision.method).inc()
+
+    async def match_parsed_line(
+        self,
+        parsed_line: ParsedLine,
+        user_id: int | None = None,
+        category_ids: Sequence[int] | None = None,
+        lang: str = "uz_latn",
+    ) -> tuple[ParsedLine, MatchDecision]:
+        """Run the whole cascade (Stages 0-4) for a single line."""
+        match = await self._match_deterministic(parsed_line, category_ids)
+        decision = match.decision
+
+        if self._needs_llm(match):
+            batch = await self.llm_client.disambiguate_batch(
+                [self._to_batch_input(match, parsed_line.line_no)], lang=lang
+            )
+            answer = batch.lines.get(parsed_line.line_no)
+            if answer is not None:
+                decision = await self._apply_llm_decision(match, answer)
+
+        await self._finalize(parsed_line, decision, match.query.text_norm, user_id)
         return parsed_line, decision
 
     async def parse_and_match_basket(
         self,
         raw_text: str,
         user_id: int | None = None,
+        lang: str = "uz_latn",
     ) -> list[tuple[ParsedLine, MatchDecision]]:
-        """Parse raw basket text and execute matching cascade for every line.
+        """Parse raw basket text and match every line, using at most one LLM call.
 
-        If deterministic parsing fails structured extraction (< 50% of lines have quantities),
-        calls LLM whole-message parse fallback (§7).
+        Stages 0-2 run for every line first; only the leftovers go to the model,
+        and they go together. Asking per line meant a ten-line basket became ten
+        sequential round trips, each re-sending the same prompt -- the customer
+        waited for the sum of them, and the bill grew the same way.
+
+        If deterministic parsing fails structured extraction (< 50% of lines
+        have quantities), the whole message goes to the LLM parser first
+        (SPEC §7).
         """
         parsed_lines = parse_basket_lines(raw_text)
 
@@ -221,6 +314,9 @@ class CatalogService:
 
         max_qty = Decimal(settings.basket_max_qty)
         results: list[tuple[ParsedLine, MatchDecision]] = []
+        matched: list[tuple[int, _DeterministicMatch]] = []
+        pending: list[tuple[int, _DeterministicMatch]] = []
+
         for line in parsed_lines:
             if not is_qty_orderable(line.qty, max_qty=max_qty):
                 # Refused before matching: an unorderable quantity should not
@@ -240,6 +336,29 @@ class CatalogService:
                     )
                 )
                 continue
-            res = await self.match_parsed_line(line, user_id=user_id)
-            results.append(res)
+
+            match = await self._match_deterministic(line)
+            index = len(results)
+            results.append((line, match.decision))
+            matched.append((index, match))
+            if self._needs_llm(match):
+                pending.append((index, match))
+
+        if pending:
+            batch = await self.llm_client.disambiguate_batch(
+                [self._to_batch_input(match, index) for index, match in pending], lang=lang
+            )
+            for index, match in pending:
+                answer = batch.lines.get(index)
+                if answer is None:
+                    # The model skipped this line; its deterministic decision
+                    # stands rather than being replaced by a guess.
+                    continue
+                results[index] = (results[index][0], await self._apply_llm_decision(match, answer))
+
+        for index, match in matched:
+            await self._finalize(
+                results[index][0], results[index][1], match.query.text_norm, user_id
+            )
+
         return results

@@ -72,13 +72,40 @@ async def test_llm_stage3_disambiguation_and_alias_writeback(test_session: Async
     assert created_alias.confidence > Decimal("0")
 
     # Verify LLM call was logged in llm_calls table
-    call_stmt = select(LLMCall).where(LLMCall.purpose == "disambiguation")
+    call_stmt = select(LLMCall).where(LLMCall.purpose == "batch_disambiguation")
     call_res = await test_session.execute(call_stmt)
     logged_call = call_res.scalars().first()
 
     assert logged_call is not None
     assert logged_call.input_tokens > 0
     assert logged_call.cost_usd >= Decimal("0")
+
+
+@pytest.mark.asyncio
+async def test_stage3_costs_one_call_per_basket(test_session: AsyncSession) -> None:
+    """A basket asks the model once, however many of its lines are unresolved.
+
+    This is the property, not an optimisation: per-line calls made the customer
+    wait for the sum of the round trips and re-sent the same prompt each time,
+    and CLAUDE.md forbids looping the LLM over basket lines.
+    """
+    await seed_database(test_session)
+
+    catalog_repo = CatalogRepository(test_session)
+    ops_repo = OpsRepository(test_session)
+    llm_client = LLMClient(session=test_session, mock_mode=True)
+    catalog_service = CatalogService(catalog_repo, ops_repo, llm_client=llm_client)
+
+    # Three lines noisy enough that none is settled by alias or trigram alone.
+    basket = "10 dona paneradan qalin 12\n5 dona osbdan yupqa\n8 dona dvpdan nozik"
+    results = await catalog_service.parse_and_match_basket(basket)
+    assert len(results) == 3
+
+    call_stmt = select(LLMCall).where(LLMCall.purpose == "batch_disambiguation")
+    call_res = await test_session.execute(call_stmt)
+    calls = list(call_res.scalars().all())
+
+    assert len(calls) == 1, f"expected a single batched call, got {len(calls)}"
 
 
 @pytest.mark.asyncio

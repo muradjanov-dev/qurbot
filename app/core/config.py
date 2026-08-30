@@ -114,6 +114,10 @@ class Settings(BaseSettings):
     llm_daily_token_budget: int = 100000
     llm_enabled: bool = True
     llm_prompt_version: str = "v1"
+    # Below this the model's answer is not trusted enough to become an alias
+    # the catalog will reuse forever. An approved alias short-circuits Stage 1
+    # on every future basket, so a wrong one is expensive to notice.
+    llm_alias_writeback_min_confidence: float = 0.70
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5

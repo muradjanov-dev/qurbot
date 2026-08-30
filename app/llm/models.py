@@ -41,3 +41,39 @@ class LLMParseResult:
     """Full basket parse result from LLM whole-message fallback."""
 
     lines: list[LLMParsedLine]
+
+
+@dataclass(frozen=True)
+class BatchLineInput:
+    """One unresolved basket line, as handed to the batched disambiguation call."""
+
+    line_no: int
+    raw_text: str
+    normalized_text: str
+    candidates: list[DisambiguationCandidateInput] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class BatchLineDecision:
+    """The model's answer for a single line of a batch.
+
+    `question` is what to ask the customer when the model stayed torn between
+    plausible candidates -- the deciding detail, in the customer's language.
+    """
+
+    line_no: int
+    canonical_id: int | None
+    confidence: float
+    reason: str = ""
+    question: str | None = None
+
+
+@dataclass(frozen=True)
+class BatchDisambiguationResult:
+    """Answers keyed by the line_no they were asked about.
+
+    A line the model skipped is simply absent: the caller keeps the
+    deterministic decision it already had rather than inventing one.
+    """
+
+    lines: dict[int, BatchLineDecision] = field(default_factory=dict)

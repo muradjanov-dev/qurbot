@@ -28,14 +28,19 @@ from app.db.models.ops import LLMCall
 from app.db.repositories.ops_repo import OpsRepository
 from app.llm.cache import compute_llm_input_hash
 from app.llm.models import (
+    BatchDisambiguationResult,
+    BatchLineDecision,
+    BatchLineInput,
     DisambiguationCandidateInput,
     DisambiguationResult,
     LLMParsedLine,
     LLMParseResult,
 )
 from app.llm.prompts import (
+    BATCH_DISAMBIGUATION_SYSTEM_PROMPT,
     DISAMBIGUATION_SYSTEM_PROMPT,
     WHOLE_MESSAGE_SYSTEM_PROMPT,
+    format_batch_disambiguation_prompt,
     format_disambiguation_prompt,
     format_whole_message_prompt,
 )
@@ -156,6 +161,78 @@ class LLMClient:
             confidence=float(response_dict.get("confidence", 0.0)),
             reason=str(response_dict.get("reason", "")),
         )
+
+    async def disambiguate_batch(
+        self,
+        lines: list[BatchLineInput],
+        lang: str = "uz_latn",
+    ) -> BatchDisambiguationResult:
+        """Stage 3 for a whole basket: every unresolved line in one request.
+
+        Per-line calls made a ten-line basket ten sequential round trips, each
+        paying the full system prompt again -- the customer waited for the sum
+        of them. Batching also gives the model the rest of the basket as
+        context, which is exactly what disambiguates a bare grade.
+
+        A line the model does not answer is left out of the result; the caller
+        keeps its deterministic decision rather than being handed a guess.
+        """
+        if not lines or not settings.llm_enabled:
+            return BatchDisambiguationResult()
+
+        prompt_version = settings.llm_prompt_version
+        user_prompt = format_batch_disambiguation_prompt(lines, lang)
+        input_hash = compute_llm_input_hash("batch_disambiguation", prompt_version, user_prompt)
+
+        cached_result = await self._get_cached_call(input_hash)
+        if cached_result:
+            try:
+                return self._deserialize_batch(json.loads(cached_result))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                logger.warning("Cached batch disambiguation payload was unreadable; recomputing")
+
+        if not await self._has_token_budget():
+            logger.warning("Daily LLM token budget exceeded; skipping batch disambiguation.")
+            return BatchDisambiguationResult()
+
+        if self.mock_mode:
+            data = self._mock_disambiguate_batch(lines)
+            await self._record_call(
+                purpose="batch_disambiguation",
+                prompt_version=prompt_version,
+                input_hash=input_hash,
+                input_tokens=150 * len(lines),
+                output_tokens=30 * len(lines),
+                cost_usd=Decimal("0.00045") * len(lines),
+                latency_ms=140,
+                cache_hit=False,
+                raw_response=json.dumps(data),
+            )
+            return self._deserialize_batch(data)
+
+        start_time = time.monotonic()
+        response_dict, in_toks, out_toks = await self._call_chat_completions(
+            system_prompt=BATCH_DISAMBIGUATION_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+        )
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+
+        await self._record_call(
+            purpose="batch_disambiguation",
+            prompt_version=prompt_version,
+            input_hash=input_hash,
+            input_tokens=in_toks,
+            output_tokens=out_toks,
+            cost_usd=self._estimate_cost(in_toks, out_toks),
+            latency_ms=latency_ms,
+            cache_hit=False,
+            raw_response=json.dumps(response_dict) if response_dict else "{}",
+        )
+
+        if not response_dict:
+            return BatchDisambiguationResult()
+
+        return self._deserialize_batch(response_dict)
 
     async def parse_whole_message(self, message_text: str) -> LLMParseResult:
         """Whole message parsing fallback when structured parser yields < 50% lines."""
@@ -369,6 +446,58 @@ class LLMClient:
             Decimal(out_tokens) * Decimal("0.000010")
         )
         return cost.quantize(Decimal("0.000001"))
+
+    def _deserialize_batch(self, data: dict[str, Any]) -> BatchDisambiguationResult:
+        """Read the model's per-line answers, discarding anything malformed.
+
+        A line whose payload cannot be trusted is dropped rather than defaulted:
+        the caller's deterministic decision is a better answer than a fabricated
+        one, and silently inventing a canonical_id here would put a product the
+        customer never asked for into their basket.
+        """
+        decisions: dict[int, BatchLineDecision] = {}
+        for raw in data.get("lines", []):
+            if not isinstance(raw, dict):
+                continue
+            try:
+                line_no = int(raw["line_no"])
+            except (KeyError, TypeError, ValueError):
+                continue
+
+            raw_canonical = raw.get("canonical_id")
+            try:
+                canonical_id = int(raw_canonical) if raw_canonical is not None else None
+                confidence = float(raw.get("confidence", 0.0))
+            except (TypeError, ValueError):
+                continue
+
+            question = raw.get("question")
+            question_text = str(question).strip() if question else ""
+
+            decisions[line_no] = BatchLineDecision(
+                line_no=line_no,
+                canonical_id=canonical_id,
+                confidence=confidence,
+                reason=str(raw.get("reason", "")),
+                question=question_text or None,
+            )
+        return BatchDisambiguationResult(lines=decisions)
+
+    def _mock_disambiguate_batch(self, lines: list[BatchLineInput]) -> dict[str, Any]:
+        """Offline batch mock: the single-line heuristic applied to each line."""
+        answers = []
+        for line in lines:
+            data = self._mock_disambiguate(line.raw_text, line.candidates)
+            answers.append(
+                {
+                    "line_no": line.line_no,
+                    "canonical_id": data.get("canonical_id"),
+                    "confidence": data.get("confidence", 0.0),
+                    "reason": data.get("reason", "mock_match"),
+                    "question": None,
+                }
+            )
+        return {"lines": answers}
 
     def _deserialize_parse_lines(self, data: dict[str, Any]) -> LLMParseResult:
         raw_lines = data.get("lines", [])

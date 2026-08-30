@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from app.llm.models import DisambiguationCandidateInput
+from app.llm.models import BatchLineInput, DisambiguationCandidateInput
 
 DISAMBIGUATION_SYSTEM_PROMPT = """You are an expert construction material classifier for QurBot \
 in Uzbekistan.
@@ -81,3 +81,76 @@ Rules:
 def format_whole_message_prompt(message_text: str) -> str:
     """Build user prompt for whole message parsing fallback."""
     return json.dumps({"raw_message": message_text}, ensure_ascii=False, indent=2)
+
+
+# One call for the whole basket. Asking per line cost a round trip and a full
+# prompt each time, and made a ten-line order ten sequential waits; the model
+# also gains from seeing the lines together, since a basket that already
+# mentions cement and sand tells it which "M400" is meant.
+BATCH_DISAMBIGUATION_SYSTEM_PROMPT = """You are an expert construction material \
+classifier for QurBot in Uzbekistan.
+
+You receive SEVERAL order lines at once. Each line carries the customer's raw text, a
+normalized form, and the catalog candidates found for it. Decide every line in one
+answer, and use the other lines as context: a basket is usually one job, so neighbouring
+lines tell you which product family is meant.
+
+Rules:
+1. Return ONLY a valid JSON object with the key "lines":
+   {
+     "lines": [
+       {"line_no": 1, "canonical_id": 12, "confidence": 0.93,
+        "reason": "short explanation", "question": null}
+     ]
+   }
+2. Answer every line_no you were given, exactly once. Never return a canonical_id that is
+   not in that line's own candidate list; if none of them fits, use null with confidence
+   0.0.
+3. Customers write Uzbek Latin, Uzbek Cyrillic, Russian and street slang, often mixed in
+   one line: sement/tsement, g'isht/kirpich, shifer/shipr, qum/pesok, shag'al/shcheben,
+   mix/gvozdi, bo'yoq/kraska, quvur/truba. Grades (M400, M500, d12, 12mm) and sizes
+   (30x30) must agree with the candidate's attributes -- a grade mismatch is a different
+   product, not a near miss.
+4. "question": fill it only when two or more candidates are genuinely plausible AND the
+   difference matters to the buyer (grade, size, thickness, colour, pack size). Then put
+   your best guess in canonical_id, keep confidence below 0.7, and write ONE short
+   question about that difference -- never about the catalog name, never longer than one
+   sentence. When the match is clear, "question" must be null.
+5. Write "question" in the language named by "answer_language" in the input, in the words
+   a builder would use rather than catalog phrasing.
+6. Do NOT output markdown, backticks, or any text outside the JSON object."""
+
+
+# The bot's language codes, spelled out for the model. Uzbek customers read
+# Latin or Cyrillic and will not accept an answer in the other script.
+_ANSWER_LANGUAGES = {
+    "uz_latn": "Uzbek, Latin script",
+    "uz_cyrl": "Uzbek, Cyrillic script",
+    "ru": "Russian",
+}
+
+
+def format_batch_disambiguation_prompt(lines: list[BatchLineInput], lang: str) -> str:
+    """Build the user prompt for one batched pass over a basket's unresolved lines."""
+    payload = {
+        "answer_language": _ANSWER_LANGUAGES.get(lang, _ANSWER_LANGUAGES["uz_latn"]),
+        "lines": [
+            {
+                "line_no": line.line_no,
+                "customer_text": line.raw_text,
+                "normalized": line.normalized_text,
+                "candidates": [
+                    {
+                        "id": c.canonical_id,
+                        "name": c.name_uz,
+                        "brand": c.brand,
+                        "category": c.category_name,
+                        "attributes": c.attributes,
+                    }
+                    for c in line.candidates
+                ],
+            }
+            for line in lines
+        ],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
