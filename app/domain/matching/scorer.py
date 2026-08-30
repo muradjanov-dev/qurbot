@@ -1,30 +1,60 @@
 import math
+import re
 from typing import Any
 
 from app.domain.matching.models import CandidateMatch, MatchDecision
 from app.domain.matching.trigram import best_match_similarity
 from app.domain.models import NormalizedQuery
 
+# A plywood grade ("2x4", "3x3") is written like a size and comes out of
+# normalization as one -- both are digits joined by an x. No sheet is three
+# millimetres across, so the digit count is what separates them, and getting it
+# wrong means judging a customer who named a grade against a size they never
+# mentioned.
+_GRADE_LIKE_SIZE = re.compile(r"^\dx\d$")
+
+
+def _grade_like_sizes(query: NormalizedQuery) -> list[str]:
+    return [size for size in query.sizes if _GRADE_LIKE_SIZE.match(size)]
+
+
+def _true_sizes(query: NormalizedQuery) -> list[str]:
+    return [size for size in query.sizes if not _GRADE_LIKE_SIZE.match(size)]
+
 
 def compute_attribute_match(query: NormalizedQuery, attributes: dict[str, Any]) -> float:
-    """Compute attribute overlap score (e.g. grade, size, diameter)."""
+    """Score the attributes the customer actually named.
+
+    Only what was stated is scored. A buyer who writes "10 dona fanera" has
+    named the product and left grade, size and thickness to the shop, which is
+    how this trade is spoken -- counting each unmentioned attribute as a failed
+    check drove a bare family word below the threshold for even asking, and the
+    customer was told the catalog had no fanera while it held thirty.
+
+    What the customer did state still has to agree: a grade is not a near miss,
+    it is a different sheet at a different price.
+    """
+    stated_grades = query.grades + _grade_like_sizes(query)
+    stated_sizes = _true_sizes(query)
+    states_thickness = bool(query.grades) or any("mm" in token for token in query.tokens)
+
     if not attributes:
-        return 0.5 if not query.grades and not query.sizes else 0.0
+        return 0.5 if not stated_grades and not stated_sizes else 0.0
 
     score = 0.0
     checks = 0
 
-    # Grade check (e.g. m400)
+    # Grade check (e.g. m400 for cement, 2x4 for plywood)
     attr_grade = attributes.get("grade")
-    if attr_grade:
+    if attr_grade and stated_grades:
         checks += 1
         grade_clean = str(attr_grade).lower().replace("-", "").replace(" ", "")
-        if grade_clean in query.grades or any(g in grade_clean for g in query.grades):
+        if grade_clean in stated_grades or any(g in grade_clean for g in stated_grades):
             score += 1.0
 
-    # Diameter check (e.g. 12mm)
+    # Diameter / thickness check (e.g. 12mm)
     attr_diam = attributes.get("diameter_mm") or attributes.get("thickness_mm")
-    if attr_diam:
+    if attr_diam and states_thickness:
         checks += 1
         diam_str = f"d{attr_diam}".lower()
         if diam_str in query.grades or any(
@@ -34,10 +64,10 @@ def compute_attribute_match(query: NormalizedQuery, attributes: dict[str, Any]) 
 
     # Size check (e.g. 30x30)
     attr_size = attributes.get("size") or attributes.get("dimensions")
-    if attr_size:
+    if attr_size and stated_sizes:
         checks += 1
         size_clean = str(attr_size).lower().replace(" ", "").replace("*", "x")
-        if size_clean in query.sizes or any(s in size_clean for s in query.sizes):
+        if size_clean in stated_sizes or any(s in size_clean for s in stated_sizes):
             score += 1.0
 
     if checks == 0:
