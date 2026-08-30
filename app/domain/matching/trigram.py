@@ -30,6 +30,28 @@ def trigram_similarity(s1: str, s2: str) -> float:
     return round(float(intersection / union), 4)
 
 
+def trigram_containment(query_text: str, text: str) -> float:
+    """Share of the query's trigrams that appear in `text`.
+
+    Asymmetric on purpose, and the same question PostgreSQL's `word_similarity`
+    asks -- which is what the candidate search already uses. Jaccard divides by
+    the union, so a `search_doc` carrying three scripts and a slug drags the
+    score down for being thorough: a query naming a sheet's grade, thickness
+    and size scored 0.47 against that exact sheet. Discrimination between
+    candidates then comes from the attribute and brand terms, which is where it
+    belongs.
+    """
+    c1 = extract_trigrams(query_text.lower().strip())
+    if not c1:
+        return 0.0
+    c2 = extract_trigrams(text.lower().strip())
+    if not c2:
+        return 0.0
+
+    intersection = sum((c1 & c2).values())
+    return round(float(intersection / sum(c1.values())), 4)
+
+
 def best_match_similarity(query_text: str, *candidate_texts: str | None) -> float:
     """Best trigram similarity between the query and any candidate text.
 
@@ -45,7 +67,11 @@ def best_match_similarity(query_text: str, *candidate_texts: str | None) -> floa
     for text in candidate_texts:
         if not text:
             continue
-        best = max(best, trigram_similarity(query_text, text))
+        best = max(
+            best,
+            trigram_similarity(query_text, text),
+            trigram_containment(query_text, text),
+        )
         for token in text.split():
             best = max(best, trigram_similarity(query_text, token))
         if best == 1.0:
