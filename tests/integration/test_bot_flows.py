@@ -197,3 +197,44 @@ async def test_basket_text_with_no_product_list_gets_usage_guidance(
     guidance_text = fake_status_msg.edit_text.call_args[0][0]
     assert "tushunmadim" in guidance_text.lower()
     assert "fanera" in guidance_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_unparseable_message_prefers_the_model_s_guidance(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the model answers, the customer gets its words, not the fixed string.
+
+    The fallback above is the floor, not the intent: a fixed "tushunmadim" tells
+    someone who wrote a greeting nothing they can act on.
+    """
+    from app.services.catalog_service import CatalogService
+
+    guidance = "Salom! 10 dona fanera 12mm ko'rinishida yozing."
+
+    async def _guide(self: CatalogService, message_text: str, lang: str = "uz_latn") -> str:
+        return guidance
+
+    monkeypatch.setattr(CatalogService, "guide_customer", _guide)
+    await seed_database(test_session)
+
+    storage = MemoryStorage()
+    state = FSMContext(storage=storage, key=StorageKey(bot_id=1, chat_id=125, user_id=555555556))
+
+    fake_status_msg = AsyncMock(spec=Message)
+    fake_status_msg.edit_text = AsyncMock()
+    fake_msg = AsyncMock(spec=Message)
+    fake_msg.text = "Salom, bot qanday ishlaydi?"
+    fake_msg.answer = AsyncMock(return_value=fake_status_msg)
+
+    await handle_basket_text(
+        message=fake_msg,
+        state=state,
+        session=test_session,
+        lang="uz_latn",
+    )
+
+    sent = fake_status_msg.edit_text.call_args[0][0]
+    assert guidance in sent
+    assert "tushunmadim" not in sent.lower()

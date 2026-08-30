@@ -14,6 +14,13 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 # the second test to feed an update through it died with "Event loop is
 # closed". Tests have no Redis to talk to anyway.
 os.environ.setdefault("FSM_USE_REDIS", "false")
+# The repo's .env carries a live model key, and pydantic-settings reads it, so
+# any test that reaches an LLM path was quietly calling the real API: money per
+# run, answers that change between runs, and a suite that behaves differently in
+# CI, where no key exists. Pinned rather than defaulted -- an exported key in a
+# developer's shell would otherwise still get through. Clients built with
+# mock_mode=True are unaffected; they never reach the HTTP layer.
+os.environ["OPENAI_API_KEY"] = "placeholder_openai_key"
 
 import app.db.models  # noqa: F401
 from app.db.base import Base
