@@ -697,6 +697,36 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "⏳ Файл таҳлил қилинмоқда...",
         "ru": "⏳ Файл обрабатывается...",
     },
+    # Shown on every path that puts products into the catalogue: the manual
+    # wizard, the Excel template, and the import summary. Kept as one key
+    # rather than three copies, because the wording is the shop's promise to
+    # its customers and has to change in one place.
+    "upload_disclaimer": {
+        "uz_latn": (
+            "\u26a0\ufe0f <b>Diqqat!</b>\n"
+            "Mahsulot <b>nomi, narxi va sonini</b> aniq kiriting \u2014 keyinchalik "
+            "buyurtmalarda tushunmovchilik bo'lmasligi uchun.\n"
+            "Yuklashdagi xato mahsulot tufayli TezQur bot jamoasi mas'uliyatni "
+            "zimmasiga olmaydi. Iltimos, mahsulotlarni tekshirib yuklang.\n"
+            "Savdoingiz barakali bo'lsin! \U0001f91d"
+        ),
+        "uz_cyrl": (
+            "\u26a0\ufe0f <b>Диққат!</b>\n"
+            "Маҳсулот <b>номи, нархи ва сонини</b> аниқ киритинг \u2014 кейинчалик "
+            "буюртмаларда тушунмовчилик бўлмаслиги учун.\n"
+            "Юклашдаги хато маҳсулот туфайли TezQur bot жамоаси масъулиятни "
+            "зиммасига олмайди. Илтимос, маҳсулотларни текшириб юкланг.\n"
+            "Савдоингиз баракали бўлсин! \U0001f91d"
+        ),
+        "ru": (
+            "\u26a0\ufe0f <b>Внимание!</b>\n"
+            "Указывайте <b>название, цену и количество</b> товара точно \u2014 чтобы "
+            "потом не возникало недоразумений с заказами.\n"
+            "За ошибку в загруженном товаре команда TezQur bot ответственности не "
+            "несёт. Пожалуйста, проверяйте товары перед загрузкой.\n"
+            "Удачной торговли! \U0001f91d"
+        ),
+    },
     "batch_summary": {
         "uz_latn": (
             "📊 <b>Import natijasi:</b>\n\n"

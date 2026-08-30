@@ -459,13 +459,17 @@ async def handle_document_upload(
     await session.commit()
 
     # Show summary with confirmation buttons
-    summary_text = t(
-        "batch_summary",
-        lang=lang,
-        total=summary.total_rows,
-        auto_count=summary.auto_matched,
-        manual_count=summary.needs_review,
-        skipped=summary.skipped,
+    summary_text = (
+        t(
+            "batch_summary",
+            lang=lang,
+            total=summary.total_rows,
+            auto_count=summary.auto_matched,
+            manual_count=summary.needs_review,
+            skipped=summary.skipped,
+        )
+        + "\n\n"
+        + t("upload_disclaimer", lang=lang)
     )
 
     await status_msg.edit_text(
@@ -984,7 +988,7 @@ async def cb_shop_template(callback: CallbackQuery, user: User, lang: str) -> No
     workbook_bytes = await asyncio.to_thread(build_price_template, lang)
     await callback.message.answer_document(
         BufferedInputFile(workbook_bytes, filename=TEMPLATE_FILENAME),
-        caption=t("shp_template_caption", lang=lang),
+        caption=t("shp_template_caption", lang=lang) + "\n\n" + t("upload_disclaimer", lang=lang),
     )
     await callback.answer()
 

@@ -279,7 +279,9 @@ async def menu_add_product(
         await message.answer(t("no_shop_found", lang=lang))
         return
     await state.set_state(ShopListingStates.quick_entry)
-    await message.answer(t("listing_quick_prompt", lang=lang))
+    await message.answer(
+        t("listing_quick_prompt", lang=lang) + "\n\n" + t("upload_disclaimer", lang=lang)
+    )
 
 
 @router.message(StateFilter(None, ShopListingStates), F.photo)
