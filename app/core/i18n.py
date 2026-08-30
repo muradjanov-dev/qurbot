@@ -238,10 +238,25 @@ MESSAGES: dict[str, dict[str, str]] = {
             "📏 Единица: {unit}"
         ),
     },
+    # "Not available" on its own is where the customer leaves. The apology and
+    # a number to call turn a dead end into a phone order -- which is how this
+    # trade already works, and how an older customer prefers to be served.
     "product_card_no_offers": {
-        "uz_latn": "<b>{name}</b>\n\nHozircha mavjud emas.",
-        "uz_cyrl": "<b>{name}</b>\n\nҲозирча мавжуд эмас.",
-        "ru": "<b>{name}</b>\n\nПока нет в наличии.",
+        "uz_latn": (
+            "<b>{name}</b>\n\n"
+            "Kechirasiz, bu mahsulot hozircha tugagan 😔\n"
+            "Iltimos, qo'ng'iroq qilib so'rang: <b>{phone}</b>"
+        ),
+        "uz_cyrl": (
+            "<b>{name}</b>\n\n"
+            "Кечирасиз, бу маҳсулот ҳозирча тугаган 😔\n"
+            "Илтимос, қўнғироқ қилиб сўранг: <b>{phone}</b>"
+        ),
+        "ru": (
+            "<b>{name}</b>\n\n"
+            "Извините, этого товара сейчас нет 😔\n"
+            "Пожалуйста, позвоните и уточните: <b>{phone}</b>"
+        ),
     },
     "price_browse_choose_category": {
         "uz_latn": "🔍 <b>Mahsulot narxlari</b>\n\nKategoriyani tanlang:",
@@ -249,9 +264,17 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "🔍 <b>Цены на товары</b>\n\nВыберите категорию:",
     },
     "price_browse_empty": {
-        "uz_latn": "Bu kategoriyada hozircha narxlar mavjud emas.",
-        "uz_cyrl": "Бу категорияда ҳозирча нархлар мавжуд эмас.",
-        "ru": "В этой категории пока нет цен.",
+        "uz_latn": (
+            "Bu kategoriyada hozircha narxlar yo'q 😔\n"
+            "Kerakli mahsulotni telefon orqali so'rang: <b>{phone}</b>"
+        ),
+        "uz_cyrl": (
+            "Бу категорияда ҳозирча нархлар йўқ 😔\n"
+            "Керакли маҳсулотни телефон орқали сўранг: <b>{phone}</b>"
+        ),
+        "ru": (
+            "В этой категории пока нет цен 😔\n" "Спросите нужный товар по телефону: <b>{phone}</b>"
+        ),
     },
     "price_browse_header": {
         "uz_latn": "💰 <b>{category}</b>\n\nBatafsil ko'rish uchun mahsulotni tanlang:",
@@ -318,18 +341,29 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "❌ Бекор қилиш",
         "ru": "❌ Отмена",
     },
+    # The example is the instruction. Asking for a list and leaving the shape
+    # to be guessed is what produced most "tushunmadim" replies, and the people
+    # this bot is for do not experiment -- they close the chat. Same wording and
+    # same three products as basket_not_understood, so a customer who gets it
+    # wrong is shown exactly what they were shown before.
     "prompt_send_basket": {
         "uz_latn": (
             "Qurilish mollari ro'yxatini yuboring.\n"
-            "Har bir mahsulotni yangi qatordan yoki vergul bilan ajratib yozing:"
+            "Har bir mahsulotni yangi qatordan, <b>miqdor + birlik + nom</b> "
+            "tartibida yozing. Masalan:\n\n"
+            "10 dona fanera 12mm\n5 dona osb 9mm\n20 dona dvp 3.2"
         ),
         "uz_cyrl": (
             "Қурилиш моллари рўйхатини юборинг.\n"
-            "Ҳар бир маҳсулотни янги қатордан ёки вергул билан ажратиб ёзинг:"
+            "Ҳар бир маҳсулотни янги қатордан, <b>миқдор + бирлик + ном</b> "
+            "тартибида ёзинг. Масалан:\n\n"
+            "10 дона фанера 12мм\n5 дона осб 9мм\n20 дона двп 3.2"
         ),
         "ru": (
             "Отправьте список стройматериалов.\n"
-            "Пишите каждый товар с новой строки или через запятую:"
+            "Пишите каждый товар с новой строки в формате "
+            "<b>количество + единица + название</b>. Например:\n\n"
+            "10 шт фанера 12мм\n5 шт осб 9мм\n20 шт двп 3.2"
         ),
     },
     "parsing_in_progress": {

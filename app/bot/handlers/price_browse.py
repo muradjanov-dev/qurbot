@@ -89,7 +89,9 @@ async def callback_price_category(
         "", limit=_MAX_PRODUCTS, category_ids=subtree_ids
     )
     if not products:
-        await callback.message.edit_text(t("price_browse_empty", lang=lang))
+        await callback.message.edit_text(
+            t("price_browse_empty", lang=lang, phone=settings.support_phone)
+        )
         await callback.answer()
         return
 
@@ -135,7 +137,9 @@ async def callback_all_products(
     catalog_repo = CatalogRepository(session)
     rows, total = await catalog_repo.list_catalog_page(offset=page * page_size, limit=page_size)
     if not rows:
-        await callback.message.edit_text(t("price_browse_empty", lang=lang))
+        await callback.message.edit_text(
+            t("price_browse_empty", lang=lang, phone=settings.support_phone)
+        )
         await callback.answer()
         return
 
@@ -189,7 +193,12 @@ async def callback_product_detail(
             unit=product.base_unit_code,
         )
     else:
-        body = t("product_card_no_offers", lang=lang, name=esc(product.name_uz))
+        body = t(
+            "product_card_no_offers",
+            lang=lang,
+            name=esc(product.name_uz),
+            phone=settings.support_phone,
+        )
 
     photo = await shop_repo.get_photo_for_canonical(canonical_id)
     keyboard = get_product_detail_keyboard(

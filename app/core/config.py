@@ -119,6 +119,11 @@ class Settings(BaseSettings):
     # on every future basket, so a wrong one is expensive to notice.
     llm_alias_writeback_min_confidence: float = 0.70
 
+    # Where a customer is sent when the catalog cannot help: an out-of-stock
+    # product or an empty category. Kept here rather than in the string
+    # catalogue so it changes in one place across all three languages.
+    support_phone: str = "+998935394994"
+
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5
     price_staleness_stale_days: int = 7
