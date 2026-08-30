@@ -208,9 +208,24 @@ async def _admin_digest_impl(session: AsyncSession, bot: Bot, day_start: datetim
     stale_shop_count = await ops_repo.count_stale_shops()
     order_count, gmv = await ops_repo.get_order_stats(day_start, day_end)
 
+    # The AI budget is the one number in the digest that can quietly break the
+    # product: when it runs out every LLM stage stops answering and nothing
+    # says so. Reported over the same 24 hours the budget is enforced on, not
+    # over the digest's calendar day, or the figure would not match the limit
+    # it is being compared against.
+    tokens_used = await ops_repo.get_llm_tokens_since(datetime.now(UTC) - timedelta(hours=24))
+    token_budget = settings.llm_daily_token_budget
+    tokens_left = max(token_budget - tokens_used, 0)
+    used_percent = round(tokens_used / token_budget * 100) if token_budget else 0
+
     lines = ["📋 <b>Kunlik hisobot</b>\n"]
     lines.append(f"• Kecha buyurtmalar: <b>{order_count}</b>, GMV: <b>{gmv:,.0f} so'm</b>")
     lines.append(f"• Eskirgan narxli do'konlar: <b>{stale_shop_count}</b>")
+    lines.append(
+        f"• AI sarfi (24 soat): <b>{tokens_used:,}</b> / {token_budget:,} token "
+        f"({used_percent}%)"
+    )
+    lines.append(f"• AI limitidan qolgani: <b>{tokens_left:,}</b> token")
     if top_unmatched:
         lines.append("\n<b>Eng ko'p topilmagan so'rovlar:</b>")
         for q in top_unmatched:

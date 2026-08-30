@@ -19,6 +19,7 @@ from app.db.models.ops import DailyMetrics
 from app.db.models.order import Basket, Order, OrderShopPart, Quote
 from app.db.models.shop import District, Shop, ShopProduct
 from app.db.models.user import User
+from app.db.repositories.ops_repo import OpsRepository
 from app.workers.tasks import (
     _abandon_baskets_impl,
     _admin_digest_impl,
@@ -224,6 +225,39 @@ async def test_admin_digest_sends_to_all_admins(test_session: AsyncSession) -> N
 
     assert "Eskirgan narxli do'konlar" in digest_text
     assert len(bot.sent) == len(settings.admin_tg_ids)
+
+
+@pytest.mark.asyncio
+async def test_admin_digest_reports_ai_usage_against_the_limit(
+    test_session: AsyncSession,
+) -> None:
+    """The budget is the one number in the digest that can silence the product.
+
+    When it runs out every LLM stage stops answering and nothing announces it,
+    so the daily report carries both what was spent and what is left.
+    """
+    spent = 12_000
+    await OpsRepository(test_session).record_llm_call(
+        purpose="batch_disambiguation",
+        prompt_version="v1",
+        input_hash="digest-usage",
+        input_tokens=spent,
+        output_tokens=0,
+        cost_usd=Decimal("0.03"),
+        latency_ms=10,
+        cache_hit=False,
+        raw_response="{}",
+    )
+    await test_session.flush()
+
+    now = datetime.now(UTC)
+    day_start = datetime(now.year, now.month, now.day, tzinfo=UTC) - timedelta(days=1)
+    digest_text = await _admin_digest_impl(test_session, FakeBot(), day_start)  # type: ignore[arg-type]
+
+    assert "AI sarfi" in digest_text
+    assert f"{spent:,}" in digest_text
+    assert "AI limitidan qolgani" in digest_text
+    assert f"{settings.llm_daily_token_budget - spent:,}" in digest_text
 
 
 @pytest.mark.asyncio

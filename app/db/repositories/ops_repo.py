@@ -128,6 +128,18 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         result = await self.session.execute(stmt)
         return Decimal(str(result.scalar() or 0))
 
+    async def get_llm_tokens_since(self, since: datetime) -> int:
+        """Tokens spent since `since` -- the figure the daily budget is measured in.
+
+        Cost is what an accountant asks for; tokens are what actually runs out,
+        and running out is what silences the model.
+        """
+        stmt = select(
+            func.coalesce(func.sum(LLMCall.input_tokens + LLMCall.output_tokens), 0)
+        ).where(LLMCall.created_at >= since)
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
+
     async def get_basket_line_stats(
         self, start: datetime, end: datetime
     ) -> tuple[int, int, int, int]:

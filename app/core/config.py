@@ -112,6 +112,11 @@ class Settings(BaseSettings):
     # by reasoning and return an empty completion.
     llm_max_completion_tokens: int = 2000
     llm_daily_token_budget: int = 100000
+    # How much of the daily budget may be spent before the admins are told.
+    # Running out is invisible from the outside -- the model simply stops
+    # answering -- so the warning has to arrive while there is still room to
+    # raise the budget.
+    llm_budget_warn_ratio: float = 0.9
     llm_enabled: bool = True
     llm_prompt_version: str = "v1"
     # Below this the model's answer is not trusted enough to become an alias
