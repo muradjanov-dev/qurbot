@@ -140,7 +140,7 @@ async def _process_basket_input(
     ops_repo = OpsRepository(session)
     catalog_service = CatalogService(catalog_repo, ops_repo)
 
-    parsed_results = await catalog_service.parse_and_match_basket(raw_text)
+    parsed_results = await catalog_service.parse_and_match_basket(raw_text, lang=lang)
 
     if not parsed_results or all(line.needs_review for line, _ in parsed_results):
         # The parser found no explicit "qty + unit" pattern on any line -- the
@@ -185,6 +185,7 @@ async def _process_basket_input(
                     decision.candidates[0].name_uz if decision.candidates else line.parsed_name
                 ),
                 "candidates": cand_data,
+                "clarify_question": decision.clarify_question,
             }
         )
 
@@ -242,11 +243,25 @@ async def _process_basket_input(
         table_message_id=table_message_id,
     )
 
-    # 5. For every newly-ambiguous line, ask which specific product was meant
+    # 5. For every newly-ambiguous line, ask which specific product was meant.
+    # When the matcher worked out *what* is unclear -- the grade, the
+    # thickness, the colour -- it asks about that instead of the generic
+    # "pick one", which is the difference between a customer who answers and
+    # one who guesses.
     for item in new_lines:
         if item["status"] == "ask_user" and item["candidates"]:
+            question = item.get("clarify_question")
+            if question:
+                prompt = t(
+                    "clarify_question_prompt",
+                    lang=lang,
+                    name=esc(item["parsed_name"]),
+                    question=esc(question),
+                )
+            else:
+                prompt = t("choose_candidate_prompt", lang=lang, name=esc(item["parsed_name"]))
             await message.answer(
-                t("choose_candidate_prompt", lang=lang, name=item["parsed_name"]),
+                prompt,
                 reply_markup=_build_candidate_picker_keyboard(item["line_no"], item["candidates"]),
             )
 

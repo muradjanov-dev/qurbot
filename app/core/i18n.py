@@ -400,6 +400,14 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "❓ <i>«{name}»</i> учун аниқ турини танланг:",
         "ru": "❓ Уточните, что вы имели в виду под <i>«{name}»</i>:",
     },
+    # The question itself is written by the model in the customer's own
+    # language, so all three variants carry the same frame -- only the name and
+    # the question move.
+    "clarify_question_prompt": {
+        "uz_latn": "\u2753 <i>\u00ab{name}\u00bb</i> \u2014 {question}",
+        "uz_cyrl": "\u2753 <i>\u00ab{name}\u00bb</i> \u2014 {question}",
+        "ru": "\u2753 <i>\u00ab{name}\u00bb</i> \u2014 {question}",
+    },
     "candidate_selected": {
         "uz_latn": "✅ Tanlandi: <b>{name}</b>",
         "uz_cyrl": "✅ Танланди: <b>{name}</b>",
