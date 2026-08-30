@@ -138,13 +138,22 @@ class CatalogService:
 
     @staticmethod
     def _needs_llm(match: _DeterministicMatch) -> bool:
-        """Stage 3 is only for what the deterministic cascade could not settle."""
+        """Every line the search is not certain about, the model looks at.
+
+        Trigram scoring is fast and free, so it goes first and keeps what it is
+        sure of. The band below auto-accept is where accuracy is actually lost:
+        a line at 0.6 is a coin the search is not qualified to flip, and it used
+        to be handed straight to the customer as "pick one of three". The model
+        either settles it or writes the question worth asking -- and because the
+        basket is batched, looking at more lines costs no extra round trip.
+
+        Left alone: an exact approved alias, which is certain and free, and a
+        line with no candidates, which gives the model nothing to choose
+        between.
+        """
         if match.decision.method == "alias" or not match.candidates:
             return False
-        return (
-            match.decision.status == "unresolved"
-            or match.decision.confidence < settings.match_ask_user_threshold
-        )
+        return match.decision.status != "auto_accept"
 
     @staticmethod
     def _to_batch_input(match: _DeterministicMatch, line_no: int) -> BatchLineInput:
