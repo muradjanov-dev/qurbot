@@ -39,9 +39,11 @@ from app.llm.models import (
 )
 from app.llm.prompts import (
     BATCH_DISAMBIGUATION_SYSTEM_PROMPT,
+    CUSTOMER_GUIDE_SYSTEM_PROMPT,
     DISAMBIGUATION_SYSTEM_PROMPT,
     WHOLE_MESSAGE_SYSTEM_PROMPT,
     format_batch_disambiguation_prompt,
+    format_customer_guide_prompt,
     format_disambiguation_prompt,
     format_whole_message_prompt,
 )
@@ -295,6 +297,92 @@ class LLMClient:
             return LLMParseResult(lines=[])
 
         return self._deserialize_parse_lines(response_dict)
+
+    async def guide_customer(self, message_text: str, lang: str = "uz_latn") -> str | None:
+        """Turn a message the parser could not read into a next step the customer can take.
+
+        The fixed "I did not understand" is where people leave: it says nothing
+        to someone who wrote "salom" or "fanera bormi?", and the customers this
+        bot is for do not experiment with phrasings until one works. The model
+        reads what they actually sent and answers with the instruction.
+
+        Returns None whenever the model is unavailable or says nothing usable,
+        and the caller falls back to the catalogue string -- guidance is worth a
+        call, never worth a silence.
+        """
+        if not message_text.strip() or not settings.llm_enabled:
+            return None
+
+        prompt_version = settings.llm_prompt_version
+        user_prompt = format_customer_guide_prompt(message_text, lang)
+        input_hash = compute_llm_input_hash("customer_guide", prompt_version, user_prompt)
+
+        cached_result = await self._get_cached_call(input_hash)
+        if cached_result:
+            try:
+                cached_reply = str(json.loads(cached_result).get("reply", "")).strip()
+                if cached_reply:
+                    return self._trim_guide(cached_reply)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                logger.warning("Cached guidance payload was unreadable; recomputing")
+
+        if not await self._has_token_budget():
+            logger.warning("Daily LLM token budget exceeded; skipping customer guidance.")
+            return None
+
+        if self.mock_mode:
+            data = {
+                "reply": (
+                    "Ro'yxatni shunday yozing: miqdor + birlik + nom.\n"
+                    "Masalan: 10 dona fanera 12mm"
+                )
+            }
+            await self._record_call(
+                purpose="customer_guide",
+                prompt_version=prompt_version,
+                input_hash=input_hash,
+                input_tokens=120,
+                output_tokens=40,
+                cost_usd=Decimal("0.00043"),
+                latency_ms=130,
+                cache_hit=False,
+                raw_response=json.dumps(data),
+            )
+            return self._trim_guide(data["reply"])
+
+        start_time = time.monotonic()
+        response_dict, in_toks, out_toks = await self._call_chat_completions(
+            system_prompt=CUSTOMER_GUIDE_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+        )
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+
+        await self._record_call(
+            purpose="customer_guide",
+            prompt_version=prompt_version,
+            input_hash=input_hash,
+            input_tokens=in_toks,
+            output_tokens=out_toks,
+            cost_usd=self._estimate_cost(in_toks, out_toks),
+            latency_ms=latency_ms,
+            cache_hit=False,
+            raw_response=json.dumps(response_dict) if response_dict else "{}",
+        )
+
+        if not response_dict:
+            return None
+        reply = str(response_dict.get("reply", "")).strip()
+        return self._trim_guide(reply) if reply else None
+
+    @staticmethod
+    def _trim_guide(reply: str) -> str:
+        """Cut a runaway answer at the last full line that fits."""
+        limit = settings.llm_guide_max_chars
+        if len(reply) <= limit:
+            return reply
+        cut = reply[:limit]
+        newline = cut.rfind("\n")
+        return (cut[:newline] if newline > 0 else cut).rstrip()
 
     # ---------------------------------------------------------------------------
     # Internal HTTP Request Execution

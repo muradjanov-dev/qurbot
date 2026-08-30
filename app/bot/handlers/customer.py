@@ -150,7 +150,16 @@ async def _process_basket_input(
         # message with at least one real "10 dona X"-shaped line still reaches
         # the parse table below, even if that product isn't in the catalog --
         # Stage 4 already handles that per-line.
-        await status_msg.edit_text(t("basket_not_understood", lang=lang))
+        # The fixed "I did not understand" is where customers leave: it says
+        # nothing to someone who wrote "salom" or "fanera bormi?", and the
+        # people this bot is for do not try another phrasing -- they close the
+        # chat. The model reads what they actually sent and answers with the
+        # next step; the catalogue string stays as the floor for when it
+        # cannot (no budget, no key, no answer).
+        guidance = await catalog_service.guide_customer(raw_text, lang=lang)
+        await status_msg.edit_text(
+            esc(guidance) if guidance else t("basket_not_understood", lang=lang)
+        )
         if existing_lines:
             await state.set_state(BasketStates.viewing_quotes)
         return

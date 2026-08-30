@@ -117,6 +117,10 @@ class Settings(BaseSettings):
     # answering -- so the warning has to arrive while there is still room to
     # raise the budget.
     llm_budget_warn_ratio: float = 0.9
+    # A guidance reply is read on a phone by someone who is already unsure
+    # what to type. Past a few lines it stops being help and becomes another
+    # wall of text, so an over-long answer is cut rather than sent.
+    llm_guide_max_chars: int = 700
     llm_enabled: bool = True
     llm_prompt_version: str = "v1"
     # Below this the model's answer is not trusted enough to become an alias

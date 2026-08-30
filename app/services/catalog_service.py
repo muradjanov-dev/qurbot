@@ -48,6 +48,15 @@ class CatalogService:
         self.ops_repo = ops_repo
         self.llm_client = llm_client or LLMClient(session=catalog_repo.session)
 
+    async def guide_customer(self, message_text: str, lang: str = "uz_latn") -> str | None:
+        """What to tell a customer whose message could not be read as an order.
+
+        Returns None when the model has nothing to offer, so the caller can fall
+        back to the fixed string: a customer must always get an answer, even
+        when the model is out of budget or unreachable.
+        """
+        return await self.llm_client.guide_customer(message_text, lang=lang)
+
     async def _match_deterministic(
         self,
         parsed_line: ParsedLine,
