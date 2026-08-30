@@ -3,6 +3,7 @@ import unicodedata
 from decimal import Decimal
 
 from app.domain.models import NormalizedQuery
+from app.domain.normalize.slang import FILLER_WORDS, expand_slang
 from app.domain.normalize.translit import (
     cyrillic_to_latin_uz,
     normalize_apostrophes,
@@ -32,6 +33,10 @@ STOPWORDS = {
     "хороший",
     "доставка",
 }
+
+# Greetings and "how much" words live with the rest of the street vocabulary;
+# to this module they behave exactly like a stopword.
+STOPWORDS |= FILLER_WORDS
 
 # Unit unification dictionary
 UNIT_MAP = {
@@ -188,15 +193,12 @@ def normalize_text(raw: str) -> str:
     nfkc = unicodedata.normalize("NFKC", raw)
     text = normalize_apostrophes(nfkc).lower().strip()
 
-    # 2. Transliterate Cyrillic to Latin
-    # Replace common phonetic words before generic translit
-    text = re.sub(r"\bцемент\b", "sement", text)
-    text = re.sub(r"\bсемент\b", "sement", text)
-    text = re.sub(r"\bшипр\b", "shifer", text)
-    text = re.sub(r"\bшифр\b", "shifer", text)
+    # 2. Transliterate Cyrillic to Latin, then rewrite street vocabulary.
+    # Slang runs after transliteration on purpose: one entry then covers both
+    # scripts, instead of the per-word regex this step used to carry for
+    # sement and shifer.
     text = cyrillic_to_latin_uz(text)
-    text = re.sub(r"\bshipr\b", "shifer", text)
-    text = re.sub(r"\bshifr\b", "shifer", text)
+    text = expand_slang(text)
 
     # 3. Grade patterns
     def replace_grade(match: re.Match[str]) -> str:

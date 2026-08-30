@@ -1,6 +1,7 @@
 import re
 from decimal import Decimal
 
+from app.domain.normalize.slang import strip_fillers
 from app.domain.normalize.text import normalize_text, unify_unit_str
 from app.domain.parsing.models import ParsedLine
 
@@ -53,6 +54,37 @@ def protect_decimal_commas(text: str) -> str:
     return DECIMAL_COMMA_REGEX.sub(r"\1.\2", text)
 
 
+# "500 dona kirpich va 2 tonna pesok" is two orders in one breath, and nothing
+# else in the message says so -- no comma, no newline. Left joined, the second
+# product is swallowed into the first line's name and quietly never ordered,
+# which is worse than failing to match it.
+CONJUNCTION_REGEX = re.compile(r"\s+(?:va|ва|и|and)\s+", re.IGNORECASE)
+DIGIT_REGEX = re.compile(r"\d")
+
+
+def split_on_conjunctions(text: str) -> list[str]:
+    """Split on "and" only when every part stands alone as an order line.
+
+    The test is the parser itself: each half must yield a quantity through the
+    same regex battery a real line goes through. That is what separates two
+    orders ("500 dona kirpich va 2 tonna pesok") from prose that merely
+    contains the word -- "faneradan 10ta va osbdan 5ta kerak edi" reads like
+    two items but neither half parses, and splitting it would strand the
+    remainder as junk instead of letting the whole message reach the LLM
+    parser, which can actually read it.
+    """
+    parts = CONJUNCTION_REGEX.split(text)
+    if len(parts) < 2:
+        return [text]
+
+    stripped = [part.strip() for part in parts]
+    if not all(part and DIGIT_REGEX.search(part) for part in stripped):
+        return [text]
+    if not all(not parse_single_line(0, part).needs_review for part in stripped):
+        return [text]
+    return stripped
+
+
 def split_message_to_lines(raw_text: str) -> list[str]:
     """Split a free-text order into individual item lines while protecting numeric decimals."""
     if not raw_text or not raw_text.strip():
@@ -67,11 +99,12 @@ def split_message_to_lines(raw_text: str) -> list[str]:
         chunk = chunk.strip()
         if not chunk:
             continue
-        # Also split by commas (now that decimal commas are protected)
+        # Also split by commas (now that decimal commas are protected), then by
+        # a spoken "and" joining two quantified items.
         for sub in chunk.split(","):
             sub_clean = sub.strip()
             if sub_clean:
-                raw_lines.append(sub_clean)
+                raw_lines.extend(split_on_conjunctions(sub_clean))
 
     # 3. Clean line prefixes (e.g. "1. ", "• ")
     clean_lines = []
@@ -85,7 +118,11 @@ def split_message_to_lines(raw_text: str) -> list[str]:
 
 def parse_single_line(line_no: int, raw_line: str) -> ParsedLine:
     """Parse a single text line into structured (parsed_name, qty, unit_code)."""
-    text = protect_decimal_commas(raw_line).strip()
+    # Greetings come off before the quantity regexes run: those anchor on the
+    # start of the line, so "aka menga 10 qop sement" extracted no quantity at
+    # all until "aka menga" was gone -- and a basket where no line carries a
+    # quantity is what sends the whole message to the LLM.
+    text = strip_fillers(protect_decimal_commas(raw_line).strip())
     needs_review = False
     user_note: str | None = None
 

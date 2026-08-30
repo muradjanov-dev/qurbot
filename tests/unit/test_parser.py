@@ -43,7 +43,9 @@ def test_split_message_lines() -> None:
         ("армaтура 12мм 500 кг", "armatura 12mm", Decimal("500"), "kg"),
         ("5 rulon ruberoid", "ruberoid", Decimal("5"), "rulon"),
         ("Gipsokarton 12.5mm 40 list", "gipsokarton 12.5mm", Decimal("40"), "dona"),
-        ("kraska belaya 3 vedra 10l", "kraska belaya", Decimal("30"), "litr"),
+        # Normalization rewrites the Russian trade word and its colour into
+        # the catalog's own wording, which is what the matcher searches.
+        ("kraska belaya 3 vedra 10l", "bo'yoq oq", Decimal("30"), "litr"),
         ("2t qum", "qum", Decimal("2"), "tonna"),
         ("1.5 kub shag'al", "shag'al", Decimal("1.5"), "m3"),
         ("100 metr armatura 14mm", "armatura 14mm", Decimal("100"), "metr"),
@@ -138,3 +140,28 @@ def test_dash_attached_to_a_number_stays_negative() -> None:
     assert len(lines) == 1
     assert lines[0].qty == Decimal("-5")
     assert not is_qty_orderable(lines[0].qty)
+
+
+def test_conjunction_splits_only_when_both_halves_are_quantified() -> None:
+    """ "va" separates two orders, but it also lives inside ordinary names."""
+    two_orders = parse_basket_lines("500 dona kirpich va 2 tonna pesok")
+    assert len(two_orders) == 2
+    assert two_orders[0].qty == Decimal("500")
+    assert two_orders[1].qty == Decimal("2")
+    assert two_orders[1].unit_code == "tonna"
+
+    # No quantities on either side: one product phrase, left intact.
+    assert len(parse_basket_lines("eshik va deraza")) == 1
+
+    # Only one side is quantified -- still a single line.
+    assert len(parse_basket_lines("sement va 10 qop qum")) == 1
+
+    # Both halves mention a number, but neither is a parseable order line:
+    # left whole, so the message can still reach the LLM parser intact.
+    prose = parse_basket_lines("bizga faneradan 10ta va osbdan 5ta kerak edi")
+    assert len(prose) == 1
+
+    # The word must stand alone; "vagonka" is not a conjunction.
+    single = parse_basket_lines("10 dona vagonka")
+    assert len(single) == 1
+    assert single[0].qty == Decimal("10")

@@ -27,6 +27,11 @@ UZ_CYRL_TO_LATN_MULTI = [
     ("Ё", "Yo"),
     ("ц", "ts"),
     ("Ц", "Ts"),
+    # Not part of the Uzbek Cyrillic alphabet, but constant in the Russian
+    # words customers mix in -- "щебень", "трубы". Left unmapped, those tokens
+    # stayed Cyrillic and matched nothing at all.
+    ("щ", "shch"),
+    ("Щ", "Shch"),
 ]
 
 UZ_CYRL_TO_LATN_SINGLE = {
@@ -54,6 +59,7 @@ UZ_CYRL_TO_LATN_SINGLE = {
     "х": "x",
     "ҳ": "h",
     "қ": "q",
+    "ы": "y",
     "э": "e",
     "ъ": "'",
     "ь": "",
@@ -81,6 +87,7 @@ UZ_CYRL_TO_LATN_SINGLE = {
     "Х": "X",
     "Ҳ": "H",
     "Қ": "Q",
+    "Ы": "Y",
     "Э": "E",
     "Ъ": "'",
     "Ь": "",
@@ -183,6 +190,11 @@ RU_CYRL_TO_LATN_MULTI = [
     ("Э", "E"),
     ("ц", "ts"),
     ("Ц", "Ts"),
+    # Not part of the Uzbek Cyrillic alphabet, but constant in the Russian
+    # words customers mix in -- "щебень", "трубы". Left unmapped, those tokens
+    # stayed Cyrillic and matched nothing at all.
+    ("щ", "shch"),
+    ("Щ", "Shch"),
 ]
 
 RU_CYRL_TO_LATN_SINGLE = {
