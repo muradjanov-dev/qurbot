@@ -548,6 +548,36 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "✅ {amount} сўм тежайсиз ({pct}%)",
         "ru": "✅ Вы экономите {amount} сум ({pct}%)",
     },
+    # An empty quote card under an "ENG TEJAMLI" banner is the worst screen in
+    # the bot: no products, 0 so'm, and no button. The customer cannot tell
+    # whether the shop is out of stock or the bot is broken. These three say it.
+    "quote_nothing_found": {
+        "uz_latn": (
+            "\U0001f614 <b>Afsuski, hozircha narx topilmadi</b>\n\n"
+            "Ro'yxatingizdagi mahsulotlar bo'yicha do'konlarda hozir taklif yo'q. "
+            "Bu mahsulot umuman yo'q degani emas \u2014 narxi hali yangilanmagan bo'lishi mumkin."
+        ),
+        "uz_cyrl": (
+            "\U0001f614 <b>Афсуски, ҳозирча нарх топилмади</b>\n\n"
+            "Рўйхатингиздаги маҳсулотлар бўйича дўконларда ҳозир таклиф йўқ. "
+            "Бу маҳсулот умуман йўқ дегани эмас \u2014 нархи ҳали янгиланмаган бўлиши мумкин."
+        ),
+        "ru": (
+            "\U0001f614 <b>К сожалению, цену найти не удалось</b>\n\n"
+            "По товарам из вашего списка сейчас нет предложений. Это не значит, что товара "
+            "нет \u2014 возможно, цена ещё не обновлена."
+        ),
+    },
+    "quote_missing_items": {
+        "uz_latn": "\u26a0\ufe0f <b>Bularga narx topilmadi:</b>",
+        "uz_cyrl": "\u26a0\ufe0f <b>Буларга нарх топилмади:</b>",
+        "ru": "\u26a0\ufe0f <b>На эти товары цена не найдена:</b>",
+    },
+    "quote_call_us": {
+        "uz_latn": "\U0001f4de Aniqlashtirish uchun qo'ng'iroq qiling: <b>{phone}</b>",
+        "uz_cyrl": "\U0001f4de Аниқлаштириш учун қўнғироқ қилинг: <b>{phone}</b>",
+        "ru": "\U0001f4de Позвоните, чтобы уточнить: <b>{phone}</b>",
+    },
     "quote_coverage": {
         "uz_latn": "📦 Qamrov: {covered}/{total} mahsulot",
         "uz_cyrl": "📦 Қамров: {covered}/{total} маҳсулот",

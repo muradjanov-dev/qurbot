@@ -1105,6 +1105,16 @@ def _format_parse_table(lines: list[dict[str, Any]], lang: str) -> str:
 
 
 def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
+    # Nothing was sourced. Rendering the usual card here produced an empty
+    # block under a "cheapest basket" banner with 0 so'm and no button -- the
+    # customer could not tell whether the shop was out of stock or the bot was
+    # broken. Say which it is, and give them a person to call.
+    if not variant.is_orderable:
+        return (
+            f"{t('quote_nothing_found', lang=lang)}\n\n"
+            f"{t('quote_call_us', lang=lang, phone=settings.support_phone)}"
+        )
+
     # Header badge
     strat = (
         variant.strategy_labels[0]
@@ -1165,7 +1175,17 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
         f"{eta_str}"
     )
 
-    return f"{header}\n\n{items_block}\n\n{summary}"
+    # Partial coverage names what is missing. "Qamrov: 1/2" tells the customer
+    # a number; it does not tell them which product to ask about on the phone.
+    missing_block = ""
+    if variant.missing_lines:
+        missing_names = "\n".join(f"\u2022 {esc(item.name_uz)}" for item in variant.missing_lines)
+        missing_block = (
+            f"\n\n{t('quote_missing_items', lang=lang)}\n{missing_names}\n"
+            f"{t('quote_call_us', lang=lang, phone=settings.support_phone)}"
+        )
+
+    return f"{header}\n\n{items_block}\n\n{summary}{missing_block}"
 
 
 def _serialize_variant(v: QuoteVariant) -> dict[str, Any]:

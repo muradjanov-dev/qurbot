@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
@@ -108,6 +108,40 @@ async def msg_registration_location(
     session: AsyncSession,
     lang: str,
 ) -> None:
+    if message.location is None:
+        return
+    await _handle_location(
+        message,
+        state,
+        user,
+        session,
+        lang,
+        lat=message.location.latitude,
+        lng=message.location.longitude,
+        next_state=RegistrationStates.confirming_address,
+        text_state=RegistrationStates.editing_address_text,
+    )
+
+
+@router.message(F.location, StateFilter(None))
+async def msg_location_outside_a_flow(
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """A pin dropped outside any flow is a new delivery address, not noise.
+
+    Location was only ever read in two states -- signup and checkout -- so a
+    customer who sent a pin at any other moment got no reply whatsoever: to add
+    a second address, or simply after their signup state had expired. Telegram
+    gives no sign that a message went unhandled, so the bot looks broken, and
+    "lokatsiya ishlamayapti" is exactly how that gets reported.
+
+    Restricted to having no active state, so it can never shadow the signup or
+    checkout handlers, which own the pin while their own flow is running.
+    """
     if message.location is None:
         return
     await _handle_location(
@@ -569,3 +603,12 @@ async def menu_my_addresses(
         label = f"<b>{esc(addr.label)}</b> — " if addr.label else ""
         lines.append(f"{mark} {label}{esc(addr.address_text)}")
     await message.answer("\n".join(lines))
+
+    # The docstring promised to offer another address; the code only listed the
+    # ones already saved. A customer with one place had no way to add a second
+    # -- sending a pin here did nothing at all.
+    await state.set_state(RegistrationStates.waiting_for_location)
+    await message.answer(
+        t("request_location", lang=lang),
+        reply_markup=get_location_request_keyboard(lang=lang),
+    )
