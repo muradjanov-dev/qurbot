@@ -484,6 +484,13 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "\u2753 <i>\u00ab{name}\u00bb</i> \u2014 {question}",
         "ru": "\u2753 <i>\u00ab{name}\u00bb</i> \u2014 {question}",
     },
+    "pick_custom_prompt": {
+        "uz_latn": (
+            "\u270d\ufe0f Mahsulot nomini o'zingiz yozing.\n" "Masalan: <b>fanera 12mm</b>"
+        ),
+        "uz_cyrl": ("\u270d\ufe0f Маҳсулот номини ўзингиз ёзинг.\n" "Масалан: <b>фанера 12мм</b>"),
+        "ru": ("\u270d\ufe0f Напишите название товара сами.\n" "Например: <b>фанера 12мм</b>"),
+    },
     "candidate_selected": {
         "uz_latn": "✅ Tanlandi: <b>{name}</b>",
         "uz_cyrl": "✅ Танланди: <b>{name}</b>",

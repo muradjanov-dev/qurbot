@@ -329,6 +329,49 @@ async def callback_pick_candidate(
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("pick_custom:"))
+async def callback_pick_custom(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    """ "Boshqa" -- the customer will name the product themselves.
+
+    The button was offered on every ambiguous line and wired to nothing, so the
+    one customer who knew exactly what they wanted was the one who got stuck.
+    Their next message replaces that line and goes back through matching.
+    """
+    if not callback.data:
+        return
+    line_no = int(callback.data.split(":")[1])
+    await state.update_data(editing_line_no=line_no)
+    await state.set_state(BasketStates.editing_line)
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("pick_custom_prompt", lang=lang))
+    await callback.answer()
+
+
+@router.message(BasketStates.editing_line, F.text, _not_a_menu_button)
+async def handle_line_rewrite(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Replace one basket line with what the customer typed, and re-match it."""
+    if not message.text:
+        return
+    data = await state.get_data()
+    line_no = data.get("editing_line_no")
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+
+    remaining = [line for line in lines if line["line_no"] != line_no]
+    await state.update_data(basket_lines=remaining, editing_line_no=None)
+    await _process_basket_input(
+        message, state, session, lang, message.text, existing_lines=remaining
+    )
+
+
 @router.callback_query(F.data == "back_to_menu")
 async def callback_back_to_menu(
     callback: CallbackQuery,

@@ -11,7 +11,7 @@ says what to do instead.
 """
 
 from aiogram import F, Router
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.core.config import settings
 from app.core.i18n import t
@@ -34,3 +34,15 @@ async def msg_voice_not_supported(message: Message, lang: str) -> None:
 async def msg_unhandled(message: Message, lang: str) -> None:
     """Anything else nobody claimed: a photo, a video, a forwarded card."""
     await message.answer(t("fallback_unknown", lang=lang, phone=settings.support_phone))
+
+
+@router.callback_query()
+async def cb_unanswered(callback: CallbackQuery) -> None:
+    """Close the loop on any button no handler answered.
+
+    Telegram spins the button for half a minute until the callback is
+    acknowledged, so a decorative one -- the "3/8" page counter between the
+    arrows -- looks like a tap that is still working. Answering costs nothing
+    and shows nothing.
+    """
+    await callback.answer()

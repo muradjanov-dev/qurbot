@@ -284,6 +284,37 @@ async def menu_add_product(
     )
 
 
+@router.callback_query(F.data == "shp:add_product")
+async def cb_add_product(
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """The shop panel's own button for the same thing the menu entry starts.
+
+    It was drawn on the panel but never wired: tapping it did nothing at all,
+    which is worse than not offering it -- the owner concludes the upload is
+    broken and stops trying.
+    """
+    if not isinstance(callback.message, Message):
+        await callback.answer()
+        return
+    if not _is_shop_owner(user):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
+    if await _shop_for(user, session) is None:
+        await callback.answer(t("no_shop_found", lang=lang), show_alert=True)
+        return
+
+    await state.set_state(ShopListingStates.quick_entry)
+    await callback.message.answer(
+        t("listing_quick_prompt", lang=lang) + "\n\n" + t("upload_disclaimer", lang=lang)
+    )
+    await callback.answer()
+
+
 @router.message(StateFilter(None, ShopListingStates), F.photo)
 async def handle_product_photo(
     message: Message,
