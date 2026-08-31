@@ -59,10 +59,17 @@ def test_district_keyboard() -> None:
 
 
 def test_basket_actions_keyboard() -> None:
+    """Fix the list first, order it last -- the order button closes the screen."""
     kb = get_basket_actions_keyboard(lang="uz_latn")
     assert len(kb.inline_keyboard) == 3
-    assert kb.inline_keyboard[0][0].callback_data == "calculate_quotes"
-    assert kb.inline_keyboard[2][0].callback_data == "back_to_menu"
+
+    editing = [b.callback_data for b in kb.inline_keyboard[0]]
+    assert editing == ["edit_basket", "add_item", "clear_basket"]
+    assert kb.inline_keyboard[1][0].callback_data == "back_to_menu"
+
+    order_button = kb.inline_keyboard[2][0]
+    assert order_button.callback_data == "calculate_quotes"
+    assert order_button.text.startswith("✅")
 
 
 def test_candidate_picker_keyboard() -> None:

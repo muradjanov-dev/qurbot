@@ -239,14 +239,20 @@ def get_district_keyboard(
 
 
 def get_basket_actions_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
-    """Build action buttons for parsed basket view."""
+    """Build action buttons for parsed basket view.
+
+    Order follows the order of the work: correct the list first, then order it.
+    Ordering sat at the top, above the buttons for fixing what it would be
+    ordering -- so the last thing the customer reads is now the thing they came
+    to do.
+    """
     builder = InlineKeyboardBuilder()
-    builder.button(text=t("btn_calculate_quotes", lang=lang), callback_data="calculate_quotes")
     builder.button(text=t("btn_edit_basket", lang=lang), callback_data="edit_basket")
     builder.button(text=t("btn_add_item", lang=lang), callback_data="add_item")
     builder.button(text=t("btn_clear_basket", lang=lang), callback_data="clear_basket")
     builder.button(text=t("btn_back", lang=lang), callback_data="back_to_menu")
-    builder.adjust(1, 3, 1)
+    builder.button(text=t("btn_calculate_quotes", lang=lang), callback_data="calculate_quotes")
+    builder.adjust(3, 1, 1)
     return builder.as_markup()
 
 
