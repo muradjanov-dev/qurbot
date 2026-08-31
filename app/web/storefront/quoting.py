@@ -100,7 +100,9 @@ async def parse_basket_text(
 ) -> list[dict[str, Any]]:
     """Run the free-text list through the same parse+match cascade the bot uses."""
     catalog_service = CatalogService(CatalogRepository(session), OpsRepository(session))
-    results = await catalog_service.parse_and_match_basket(raw_text, user_id=user_id)
+    results = await catalog_service.parse_and_match_basket(
+        raw_text, user_id=user_id, require_offers=True
+    )
 
     lines: list[dict[str, Any]] = []
     for offset, (parsed, decision) in enumerate(results, start=1):

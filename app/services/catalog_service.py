@@ -61,6 +61,8 @@ class CatalogService:
         self,
         parsed_line: ParsedLine,
         category_ids: Sequence[int] | None = None,
+        *,
+        require_offers: bool = False,
     ) -> _DeterministicMatch:
         """Stages 0-2: normalize, exact alias lookup, trigram + attribute scoring.
 
@@ -106,14 +108,14 @@ class CatalogService:
 
         # Stage 2: Candidate search + multi-factor re-ranking
         raw_candidates = await self.catalog_repo.search_canonical_products(
-            query.text_norm, limit=20, category_ids=category_ids
+            query.text_norm, limit=20, category_ids=category_ids, require_offers=require_offers
         )
         if not raw_candidates and category_ids:
             # The owner may have filed the product under the wrong category.
             # Retrying unscoped keeps a mis-categorised listing matchable
             # instead of dropping it into the unmatched queue.
             raw_candidates = await self.catalog_repo.search_canonical_products(
-                query.text_norm, limit=20
+                query.text_norm, limit=20, require_offers=require_offers
             )
 
         candidate_matches: list[CandidateMatch] = [
@@ -252,6 +254,8 @@ class CatalogService:
         match: _DeterministicMatch,
         answer: BatchLineDecision,
         current: MatchDecision,
+        *,
+        require_offers: bool = False,
     ) -> MatchDecision:
         """Search again on the wording the model supplied, when nothing was found.
 
@@ -265,7 +269,9 @@ class CatalogService:
         if not term or term == match.query.text_norm:
             return current
 
-        retried = await self._match_deterministic(replace(match.parsed_line, parsed_name=term))
+        retried = await self._match_deterministic(
+            replace(match.parsed_line, parsed_name=term), require_offers=require_offers
+        )
         if retried.decision.canonical_id is None:
             return current
 
@@ -290,11 +296,15 @@ class CatalogService:
         self,
         match: _DeterministicMatch,
         answer: BatchLineDecision,
+        *,
+        require_offers: bool = False,
     ) -> MatchDecision:
         """Apply the model's answer, then retry the search if it named a better term."""
         decision = await self._apply_llm_decision(match, answer)
         if decision.canonical_id is None and answer.search_term:
-            decision = await self._retry_with_search_term(match, answer, decision)
+            decision = await self._retry_with_search_term(
+                match, answer, decision, require_offers=require_offers
+            )
         return decision
 
     async def _finalize(
@@ -324,9 +334,13 @@ class CatalogService:
         user_id: int | None = None,
         category_ids: Sequence[int] | None = None,
         lang: str = "uz_latn",
+        *,
+        require_offers: bool = False,
     ) -> tuple[ParsedLine, MatchDecision]:
         """Run the whole cascade (Stages 0-4) for a single line."""
-        match = await self._match_deterministic(parsed_line, category_ids)
+        match = await self._match_deterministic(
+            parsed_line, category_ids, require_offers=require_offers
+        )
         decision = match.decision
 
         if self._needs_llm(match):
@@ -335,7 +349,9 @@ class CatalogService:
             )
             answer = batch.lines.get(parsed_line.line_no)
             if answer is not None:
-                decision = await self._settle_with_model(match, answer)
+                decision = await self._settle_with_model(
+                    match, answer, require_offers=require_offers
+                )
 
         await self._finalize(parsed_line, decision, match.query.text_norm, user_id)
         return parsed_line, decision
@@ -345,6 +361,8 @@ class CatalogService:
         raw_text: str,
         user_id: int | None = None,
         lang: str = "uz_latn",
+        *,
+        require_offers: bool = False,
     ) -> list[tuple[ParsedLine, MatchDecision]]:
         """Parse raw basket text and match every line, using at most one LLM call.
 
@@ -411,7 +429,7 @@ class CatalogService:
                 )
                 continue
 
-            match = await self._match_deterministic(line)
+            match = await self._match_deterministic(line, require_offers=require_offers)
             index = len(results)
             results.append((line, match.decision))
             matched.append((index, match))
@@ -428,7 +446,10 @@ class CatalogService:
                     # The model skipped this line; its deterministic decision
                     # stands rather than being replaced by a guess.
                     continue
-                results[index] = (results[index][0], await self._settle_with_model(match, answer))
+                results[index] = (
+                    results[index][0],
+                    await self._settle_with_model(match, answer, require_offers=require_offers),
+                )
 
         for index, match in matched:
             await self._finalize(

@@ -482,9 +482,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "🗑 Очистить",
     },
     "btn_calculate_quotes": {
-        "uz_latn": "🔎 Buyurtma qilish",
-        "uz_cyrl": "🔎 Буюртма қилиш",
-        "ru": "🔎 Оформить заказ",
+        "uz_latn": "✅ Buyurtma qilish",
+        "uz_cyrl": "✅ Буюртма қилиш",
+        "ru": "✅ Оформить заказ",
     },
     "btn_select_quote": {
         "uz_latn": "✅ Buyurtmani tasdiqlash",

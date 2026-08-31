@@ -140,7 +140,13 @@ async def _process_basket_input(
     ops_repo = OpsRepository(session)
     catalog_service = CatalogService(catalog_repo, ops_repo)
 
-    parsed_results = await catalog_service.parse_and_match_basket(raw_text, lang=lang)
+    # require_offers: a customer may only be offered products a shop
+    # actually sells. The catalogue carries a supplier's whole price list,
+    # and picking a sheet nobody stocks produced a quote of 0 so'm over 0/2
+    # products -- which reads as a broken bot, not an absent product.
+    parsed_results = await catalog_service.parse_and_match_basket(
+        raw_text, lang=lang, require_offers=True
+    )
 
     if not parsed_results or all(line.needs_review for line, _ in parsed_results):
         # The parser found no explicit "qty + unit" pattern on any line -- the

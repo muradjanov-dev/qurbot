@@ -1,13 +1,30 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Any
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
+from app.db.models.shop import ShopProduct
 from app.db.repositories.base import BaseRepository
+
+# Stock states a customer can actually be quoted from. Matches the offer query
+# in ShopRepository.get_active_offers_for_canonicals -- the two have to agree,
+# or the catalogue offers a product the optimizer will then refuse to price.
+QUOTABLE_STOCK_STATES = ("in_stock", "low", "on_order")
+
+
+def _has_quotable_offer() -> Any:
+    """EXISTS clause: at least one live offer for this canonical product."""
+    return exists().where(
+        ShopProduct.canonical_id == CanonicalProduct.id,
+        ShopProduct.is_active.is_(True),
+        ShopProduct.staleness_state != "stale",
+        ShopProduct.stock_status.in_(QUOTABLE_STOCK_STATES),
+    )
 
 
 class CatalogRepository(BaseRepository[CanonicalProduct]):
@@ -133,6 +150,8 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         query: str,
         limit: int = 20,
         category_ids: Sequence[int] | None = None,
+        *,
+        require_offers: bool = False,
     ) -> Sequence[CanonicalProduct]:
         """Fetch candidates for Stage 2 re-ranking using multi-token matching.
 
@@ -141,6 +160,14 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         fill the whole limit with rows from unrelated categories and push the
         real match out of the candidate set entirely. When the shop owner has
         already told us the category, using it is a straight precision win.
+
+        `require_offers` keeps products nobody sells out of a customer's
+        choices. The catalogue carries a supplier's whole price list, but a
+        shop only stocks part of it -- offering the rest led customers to pick a
+        sheet no shop had, and the quote came back "0 so'm, 0/2 mahsulot",
+        which reads as a broken bot rather than an absent product. Shop-side
+        callers leave it off: a shop uploading a price is *creating* the first
+        offer, so requiring one would match nothing.
         """
         scoped = await self._scoped_category_ids(category_ids)
         if scoped is not None and not scoped:
@@ -149,6 +176,8 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         base_filters = [CanonicalProduct.is_active.is_(True)]
         if scoped:
             base_filters.append(CanonicalProduct.category_id.in_(list(scoped)))
+        if require_offers:
+            base_filters.append(_has_quotable_offer())
 
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
@@ -169,13 +198,17 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         # this; falling back to it here keeps those queries inside the pipeline
         # instead of reaching Stage 4 with an empty candidate list -- which also
         # meant Stage 3 (LLM) was skipped entirely, since it requires candidates.
-        return await self._search_by_trigram_similarity(query, limit, category_ids)
+        return await self._search_by_trigram_similarity(
+            query, limit, category_ids, require_offers=require_offers
+        )
 
     async def _search_by_trigram_similarity(
         self,
         query: str,
         limit: int,
         category_ids: Sequence[int] | None = None,
+        *,
+        require_offers: bool = False,
     ) -> Sequence[CanonicalProduct]:
         """Fuzzy candidate lookup via pg_trgm. No-op on non-PostgreSQL.
 
@@ -197,6 +230,8 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         filters = [CanonicalProduct.is_active.is_(True), sim > settings.match_trigram_threshold]
         if scoped:
             filters.append(CanonicalProduct.category_id.in_(list(scoped)))
+        if require_offers:
+            filters.append(_has_quotable_offer())
 
         stmt = select(CanonicalProduct).where(*filters).order_by(sim.desc()).limit(limit)
         result = await self.session.execute(stmt)
