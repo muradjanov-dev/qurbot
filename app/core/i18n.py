@@ -366,6 +366,48 @@ MESSAGES: dict[str, dict[str, str]] = {
             "10 шт фанера 12мм\n5 шт осб 9мм\n20 шт двп 3.2"
         ),
     },
+    # Nothing in Telegram tells a sender their message went unread, so an
+    # unhandled kind of message is indistinguishable from a broken bot.
+    "fallback_voice": {
+        "uz_latn": (
+            "\U0001f3a4 Kechirasiz, hozircha ovozli xabarni tinglay olmayman.\n\n"
+            "Kerakli mollarni <b>yozib</b> yuboring. Masalan:\n"
+            "10 dona fanera 12mm\n\n"
+            "Yoki qo'ng'iroq qiling: <b>{phone}</b>"
+        ),
+        "uz_cyrl": (
+            "\U0001f3a4 Кечирасиз, ҳозирча овозли хабарни тинглай олмайман.\n\n"
+            "Керакли молларни <b>ёзиб</b> юборинг. Масалан:\n"
+            "10 дона фанера 12мм\n\n"
+            "Ёки қўнғироқ қилинг: <b>{phone}</b>"
+        ),
+        "ru": (
+            "\U0001f3a4 Извините, голосовые сообщения я пока не понимаю.\n\n"
+            "Напишите нужные товары <b>текстом</b>. Например:\n"
+            "10 шт фанера 12мм\n\n"
+            "Или позвоните: <b>{phone}</b>"
+        ),
+    },
+    "fallback_unknown": {
+        "uz_latn": (
+            "Bu xabarni o'qiy olmadim \U0001f642\n\n"
+            "Qurilish mollari ro'yxatini matn bilan yozing. Masalan:\n"
+            "10 dona fanera 12mm\n\n"
+            "Savol bo'lsa: <b>{phone}</b>"
+        ),
+        "uz_cyrl": (
+            "Бу хабарни ўқий олмадим \U0001f642\n\n"
+            "Қурилиш моллари рўйхатини матн билан ёзинг. Масалан:\n"
+            "10 дона фанера 12мм\n\n"
+            "Савол бўлса: <b>{phone}</b>"
+        ),
+        "ru": (
+            "Не смог прочитать это сообщение \U0001f642\n\n"
+            "Напишите список стройматериалов текстом. Например:\n"
+            "10 шт фанера 12мм\n\n"
+            "Вопросы: <b>{phone}</b>"
+        ),
+    },
     "parsing_in_progress": {
         "uz_latn": "⏳ Ro'yxat tahlil qilinmoqda…",
         "uz_cyrl": "⏳ Рўйхат таҳлил қилинмоқда…",

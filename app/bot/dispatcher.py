@@ -12,6 +12,7 @@ from app.bot.handlers import (
     admin_router,
     common_router,
     customer_router,
+    fallback_router,
     price_browse_router,
     shop_listing_router,
     shop_router,
@@ -108,6 +109,10 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(shop_router)
     dp.include_router(customer_router)
     dp.include_router(admin_router)
+    # Last: whatever no handler claimed still gets an answer. Registered
+    # here so it can never shadow a real handler -- it only ever sees what
+    # fell all the way through.
+    dp.include_router(fallback_router)
 
     return dp
 
