@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     # truncating inline keyboards well before this becomes a message-length
     # problem, so the page size is what keeps the list scrollable.
     customer_products_page_size: int = 20
+    # Rows per page when a shop owner checks a staged price list. Twenty fits
+    # a phone screen without scrolling past what the eye can still check.
+    import_preview_page_size: int = 20
 
     # Matching Pipeline Thresholds (§6)
     match_auto_accept_threshold: float = 0.82

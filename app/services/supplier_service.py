@@ -105,6 +105,10 @@ class SupplierService:
                 "raw_unit": row_data.raw_unit,
                 "raw_price": str(row_data.raw_price) if row_data.raw_price else None,
                 "raw_pack_size": str(row_data.raw_pack_size) if row_data.raw_pack_size else None,
+                # Kept for the owner's own check: the warning on every upload
+                # asks them to verify name, price and quantity, so the preview
+                # has to be able to show all three.
+                "raw_qty": str(row_data.raw_qty) if row_data.raw_qty is not None else None,
             }
 
             import_row_dicts.append(

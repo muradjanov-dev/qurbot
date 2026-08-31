@@ -419,6 +419,49 @@ def get_import_batch_keyboard(
     return builder.as_markup()
 
 
+def get_import_preview_keyboard(
+    batch_id: int,
+    page: int,
+    total_pages: int,
+    lang: str = "uz_latn",
+) -> InlineKeyboardMarkup:
+    """Page through a staged price list, then confirm or cancel the whole of it.
+
+    Navigation only appears when there is more than one page: a single arrow
+    that wraps to the page you are already on is noise on a phone.
+    """
+    builder = InlineKeyboardBuilder()
+
+    if total_pages > 1:
+        prev_page = (page - 2) % total_pages + 1
+        next_page = page % total_pages + 1
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_import_prev", lang=lang),
+                callback_data=f"imp_page:{batch_id}:{prev_page}",
+            ),
+            InlineKeyboardButton(text=f"{page}/{total_pages}", callback_data="noop"),
+            InlineKeyboardButton(
+                text=t("btn_import_next", lang=lang),
+                callback_data=f"imp_page:{batch_id}:{next_page}",
+            ),
+        )
+
+    builder.row(
+        InlineKeyboardButton(
+            text=t("btn_confirm_all", lang=lang),
+            callback_data=f"import_confirm:{batch_id}",
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text=t("btn_cancel_import", lang=lang),
+            callback_data=f"import_cancel:{batch_id}",
+        )
+    )
+    return builder.as_markup()
+
+
 def get_unmatched_row_keyboard(
     row_id: int,
     candidates: list[tuple[int, str, float]],

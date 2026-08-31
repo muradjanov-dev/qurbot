@@ -731,6 +731,44 @@ MESSAGES: dict[str, dict[str, str]] = {
     # wizard, the Excel template, and the import summary. Kept as one key
     # rather than three copies, because the wording is the shop's promise to
     # its customers and has to change in one place.
+    # The paged preview of a staged price list. The owner confirms content,
+    # not a count -- so the page has to say where they are in the file.
+    "import_preview_header": {
+        "uz_latn": (
+            "\U0001f4cb <b>Faylda o'qilganlar</b> ({total_rows} ta qator)\n"
+            "Sahifa {page}/{total_pages} \u2014 tekshirib chiqing:"
+        ),
+        "uz_cyrl": (
+            "\U0001f4cb <b>Файлда ўқилганлар</b> ({total_rows} та қатор)\n"
+            "Саҳифа {page}/{total_pages} \u2014 текшириб чиқинг:"
+        ),
+        "ru": (
+            "\U0001f4cb <b>Что прочитано из файла</b> ({total_rows} строк)\n"
+            "Страница {page}/{total_pages} \u2014 проверьте:"
+        ),
+    },
+    "import_preview_empty": {
+        "uz_latn": "Bu faylda qator topilmadi.",
+        "uz_cyrl": "Бу файлда қатор топилмади.",
+        "ru": "В этом файле строк не найдено.",
+    },
+    "import_row_no_price": {
+        "uz_latn": "<i>narx yo'q</i>",
+        "uz_cyrl": "<i>нарх йўқ</i>",
+        "ru": "<i>цены нет</i>",
+    },
+    "import_row_needs_review": {
+        "uz_latn": "<i>tekshirish kerak</i>",
+        "uz_cyrl": "<i>текшириш керак</i>",
+        "ru": "<i>нужна проверка</i>",
+    },
+    "import_row_skipped": {
+        "uz_latn": "<i>o'tkazib yuborildi</i>",
+        "uz_cyrl": "<i>ўтказиб юборилди</i>",
+        "ru": "<i>пропущено</i>",
+    },
+    "btn_import_prev": {"uz_latn": "\u25c0\ufe0f", "uz_cyrl": "\u25c0\ufe0f", "ru": "\u25c0\ufe0f"},
+    "btn_import_next": {"uz_latn": "\u25b6\ufe0f", "uz_cyrl": "\u25b6\ufe0f", "ru": "\u25b6\ufe0f"},
     "upload_disclaimer": {
         "uz_latn": (
             "\u26a0\ufe0f <b>Diqqat!</b>\n"

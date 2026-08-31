@@ -298,6 +298,29 @@ class ShopRepository(BaseRepository[Shop]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    async def get_import_rows_page(
+        self, batch_id: int, offset: int, limit: int
+    ) -> Sequence[ImportRow]:
+        """One page of staged rows, in file order.
+
+        Paged rather than loaded whole: a price list runs to hundreds of rows,
+        and the owner checks them a screen at a time.
+        """
+        stmt = (
+            select(ImportRow)
+            .where(ImportRow.batch_id == batch_id)
+            .order_by(ImportRow.row_no)
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def count_import_rows(self, batch_id: int) -> int:
+        stmt = select(func.count(ImportRow.id)).where(ImportRow.batch_id == batch_id)
+        result = await self.session.execute(stmt)
+        return int(result.scalar() or 0)
+
     async def get_unmatched_import_rows(self, batch_id: int) -> Sequence[ImportRow]:
         stmt = (
             select(ImportRow)

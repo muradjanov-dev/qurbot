@@ -4,13 +4,24 @@ from decimal import Decimal, InvalidOperation
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile, CallbackQuery, ContentType, Message
+from aiogram.types import (
+    BufferedInputFile,
+    CallbackQuery,
+    ContentType,
+    InlineKeyboardMarkup,
+    Message,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import esc, format_qty
+from app.bot.formatters.import_preview import (
+    ImportPreviewRow,
+    format_import_page,
+)
 from app.bot.keyboards.inline import (
     get_import_batch_keyboard,
+    get_import_preview_keyboard,
     get_product_edit_keyboard,
     get_product_list_keyboard,
     get_shop_order_decision_keyboard,
@@ -23,6 +34,7 @@ from app.bot.keyboards.inline import (
 from app.bot.states import ShopOwnerStates
 from app.core.config import settings
 from app.core.i18n import t
+from app.db.models.catalog import CanonicalProduct
 from app.db.models.order import OrderShopPart
 from app.db.models.shop import ImportRow, Shop, ShopProduct
 from app.db.models.user import User
@@ -472,15 +484,95 @@ async def handle_document_upload(
         + t("upload_disclaimer", lang=lang)
     )
 
-    await status_msg.edit_text(
-        summary_text,
-        reply_markup=get_import_batch_keyboard(
-            batch_id=summary.batch_id,
-            auto_count=summary.auto_matched,
-            manual_count=summary.needs_review,
-            lang=lang,
-        ),
+    # The counts go first, then what was actually read. A summary alone asked
+    # the owner to agree with a number: a row understood as 5 000 instead of
+    # 50 000 looked exactly like a correct one until a customer ordered at that
+    # price.
+    await status_msg.edit_text(summary_text)
+    page_text, page_keyboard = await _render_import_page(session, summary.batch_id, 1, lang)
+    await message.answer(page_text, reply_markup=page_keyboard)
+
+
+async def _render_import_page(
+    session: AsyncSession, batch_id: int, page: int, lang: str
+) -> tuple[str, InlineKeyboardMarkup]:
+    """One page of a staged price list, ready to send.
+
+    The owner is confirming content, not a count -- so this reads back what the
+    file was understood to say, a screen at a time, before anything reaches the
+    live price list.
+    """
+    shop_repo = ShopRepository(session)
+    page_size = settings.import_preview_page_size
+    total_rows = await shop_repo.count_import_rows(batch_id)
+    total_pages = max((total_rows + page_size - 1) // page_size, 1)
+    page = min(max(page, 1), total_pages)
+
+    rows = await shop_repo.get_import_rows_page(batch_id, (page - 1) * page_size, page_size)
+
+    # One query for every matched name on this page, rather than one per row.
+    canonical_ids = [r.matched_canonical_id for r in rows if r.matched_canonical_id]
+    names: dict[int, str] = {}
+    if canonical_ids:
+        result = await session.execute(
+            select(CanonicalProduct).where(CanonicalProduct.id.in_(canonical_ids))
+        )
+        names = {p.id: p.name_uz for p in result.scalars().all()}
+
+    preview_rows = [
+        ImportPreviewRow(
+            row_no=row.row_no,
+            raw_name=str((row.raw_payload or {}).get("raw_name") or ""),
+            matched_name=names.get(row.matched_canonical_id or 0),
+            price=_as_decimal((row.raw_payload or {}).get("raw_price")),
+            unit=(row.raw_payload or {}).get("raw_unit"),
+            qty=_as_decimal((row.raw_payload or {}).get("raw_qty")),
+            resolution=row.resolution,
+        )
+        for row in rows
+    ]
+
+    text = format_import_page(
+        preview_rows,
+        page=page,
+        total_pages=total_pages,
+        total_rows=total_rows,
+        lang=lang,
     )
+    return text, get_import_preview_keyboard(batch_id, page, total_pages, lang=lang)
+
+
+def _as_decimal(value: object) -> Decimal | None:
+    """Payload numbers are stored as strings; a bad one is absent, not zero."""
+    if value in (None, ""):
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+@router.callback_query(F.data.startswith("imp_page:"))
+async def callback_import_page(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Move to another page of the staged rows, in place."""
+    if not callback.data:
+        return
+    _, raw_batch_id, raw_page = callback.data.split(":", 2)
+    batch_id = int(raw_batch_id)
+
+    if not await _batch_belongs_to_user(user, session, batch_id):
+        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        return
+
+    text, keyboard = await _render_import_page(session, batch_id, int(raw_page), lang)
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    await callback.answer()
 
 
 # ---------------------------------------------------------------------------
