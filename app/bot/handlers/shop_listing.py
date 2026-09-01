@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.formatters.common import format_uzs
 from app.bot.formatters.listing import render_listing_card, render_saved_confirmation
 from app.bot.keyboards.listing import (
+    COMMON_PACK_UNITS,
     get_pack_keyboard,
     get_price_confirm_keyboard,
     get_saved_keyboard,
@@ -210,8 +211,13 @@ async def _pack_suggestions(
         for size, unit in await repo.common_packs_for_canonical(match.canonical_id, limit=3):
             if (size, unit) not in suggestions:
                 suggestions.append((size, unit))
-    if not suggestions:
-        suggestions = [(Decimal("1"), match.base_unit)]
+    # Then every ordinary way a material is sold, so the answer is always a
+    # tap rather than a typed line. The catalogue's own packs come first --
+    # they keep pack sizes consistent between shops, which is what makes the
+    # per-unit comparison like-for-like -- and these fill in the rest.
+    for unit in (match.base_unit, *COMMON_PACK_UNITS):
+        if not any(existing_unit == unit for _size, existing_unit in suggestions):
+            suggestions.append((Decimal("1"), unit))
     return suggestions
 
 

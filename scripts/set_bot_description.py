@@ -90,9 +90,7 @@ async def apply() -> None:
     try:
         for lang, (description, short) in DESCRIPTIONS.items():
             await bot.set_my_description(description=description, language_code=lang or None)
-            await bot.set_my_short_description(
-                short_description=short, language_code=lang or None
-            )
+            await bot.set_my_short_description(short_description=short, language_code=lang or None)
             logger.info("set description for %s", lang or "default")
     finally:
         await bot.session.close()

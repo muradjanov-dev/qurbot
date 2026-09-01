@@ -1403,27 +1403,29 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "➕ Янги маҳсулот",
         "ru": "➕ Новый товар",
     },
+    # One question at a time. Asking for "nomi + qadoq + narx" on a single
+    # line put three decisions in front of someone who is holding a phone in a
+    # shop -- and a line that got any of the three wrong had to be redone
+    # whole. The name is asked here; pack and price follow as their own steps,
+    # each with buttons. A full line still parses, for owners who prefer it.
     "listing_quick_prompt": {
         "uz_latn": (
-            "📷 Mahsulot rasm(lar)ini yuboring va izohga bir qatorda yozing:\n"
-            "<b>nomi + qadoq + narx</b>\n\n"
-            "<i>Masalan:</i>\n"
-            "<code>Fanera berezovaya 3x3 12mm dona 157000 so'm</code>\n\n"
-            "Rasmsiz ham bo'ladi — shunchaki matn yuboring."
+            "1\ufe0f\u20e3 <b>Mahsulot nomini yozing.</b>\n"
+            "Masalan: <code>Fanera berezovaya 3x3 12mm</code>\n\n"
+            "Rasm ham qo'shmoqchi bo'lsangiz \u2014 rasmni shu nom bilan birga yuboring.\n"
+            "Keyin qadog'ini va narxini so'rayman."
         ),
         "uz_cyrl": (
-            "📷 Маҳсулот расм(лар)ини юборинг ва изоҳга бир қаторда ёзинг:\n"
-            "<b>номи + қадоқ + нарх</b>\n\n"
-            "<i>Масалан:</i>\n"
-            "<code>Fanera berezovaya 3x3 12mm дона 157000 сўм</code>\n\n"
-            "Расмсиз ҳам бўлади — шунчаки матн юборинг."
+            "1\ufe0f\u20e3 <b>Маҳсулот номини ёзинг.</b>\n"
+            "Масалан: <code>Фанера березовая 3x3 12мм</code>\n\n"
+            "Расм ҳам қўшмоқчи бўлсангиз \u2014 расмни шу ном билан бирга юборинг.\n"
+            "Кейин қадоғини ва нархини сўрайман."
         ),
         "ru": (
-            "📷 Отправьте фото товара и в подписи одной строкой укажите:\n"
-            "<b>название + фасовка + цена</b>\n\n"
-            "<i>Например:</i>\n"
-            "<code>Фанера березовая 3х3 12мм шт 157000 сум</code>\n\n"
-            "Можно и без фото — просто отправьте текст."
+            "1\ufe0f\u20e3 <b>Напишите название товара.</b>\n"
+            "Например: <code>Фанера березовая 3x3 12мм</code>\n\n"
+            "Хотите добавить фото \u2014 отправьте его вместе с названием.\n"
+            "Дальше спрошу упаковку и цену."
         ),
     },
     "listing_ask_name": {

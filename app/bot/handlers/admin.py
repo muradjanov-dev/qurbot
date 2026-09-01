@@ -13,6 +13,7 @@ from app.bot.keyboards.inline import (
     get_admin_products_keyboard,
     get_district_keyboard,
 )
+from app.bot.keyboards.reply import get_main_menu_keyboard
 from app.bot.states import AdminPanelStates, AdminShopStates
 from app.core.config import settings
 from app.core.i18n import t
@@ -423,19 +424,31 @@ async def admin_shop_address(
 
 @router.message(AdminShopStates.entering_owner_id, Command("done"))
 async def admin_shop_finish(
-    message: Message, state: FSMContext, session: AsyncSession, lang: str
+    message: Message,
+    state: FSMContext,
+    user: User,
+    session: AsyncSession,
+    lang: str,
 ) -> None:
     data = await state.get_data()
     shop_repo = ShopRepository(session)
     shop = await shop_repo.get(data["shop_id"])
     await state.clear()
+    # Land back on the menu rather than on a bare confirmation. The wizard
+    # removed the reply keyboard on its way in, so finishing left the admin on
+    # a screen with no buttons at all and nothing saying where to go next.
+    is_shop_owner = user.role in ("shop_owner", "admin")
+    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
     await message.answer(
         t(
             "admin_shop_done",
             lang=lang,
             name=shop.name if shop else "-",
             count=data.get("owner_count", 0),
-        )
+        ),
+        reply_markup=get_main_menu_keyboard(
+            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
+        ),
     )
 
 
