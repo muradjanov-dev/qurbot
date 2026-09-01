@@ -183,13 +183,19 @@ async def notify_order(
             f"{escape(line.pack_unit)}"
             for line in group.lines
         )
+        # A shop is told what to prepare and nothing about who it is for.
+        # QurBot collects from the shop and delivers; the customer and the shop
+        # never deal with each other. Sending the name, phone and address here
+        # handed a shop everything it needed to go around us -- and handed a
+        # customer's personal details to a third party that has no use for
+        # them. The admins get the full picture; they are the ones arranging
+        # the pickup.
         text = (
             f"🆕 <b>Yangi buyurtma #{order.id}</b>\n\n"
             f"{lines_str}\n\n"
-            f"Jami: <b>{part.subtotal:,.0f} so'm</b> + dostavka {part.delivery_fee:,.0f} so'm\n\n"
-            f"👤 Mijoz: {escape(customer_name)}\n"
-            f"📞 Tel: {escape(phone)}\n"
-            f"📍 Manzil: {escape(address)}"
+            f"Mollar summasi: <b>{part.subtotal:,.0f} so'm</b>\n\n"
+            f"📦 Iltimos, tayyorlab qo'ying — <b>kuryerimiz olib ketadi</b>.\n"
+            f"Mijoz bilan bog'lanish shart emas, hammasi QurBot orqali."
         )
         try:
             await bot.send_message(shop.owner_tg_id, text)

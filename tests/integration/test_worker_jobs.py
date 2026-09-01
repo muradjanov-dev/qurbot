@@ -26,6 +26,7 @@ from app.workers.tasks import (
     _mark_price_staleness_impl,
     _nudge_shops_impl,
     _recompute_trust_scores_impl,
+    _remind_unconfirmed_orders_impl,
     _rollup_metrics_impl,
 )
 
@@ -353,3 +354,83 @@ async def test_accept_rate_reflected_in_trust_score(test_session: AsyncSession) 
         + Decimal("1") * Decimal(str(settings.trust_score_rating_weight))
     ).quantize(Decimal("0.01"))
     assert shop.trust_score == expected
+
+
+async def _placed_but_unconfirmed(session: AsyncSession, minutes_ago: int) -> Order:
+    """An order in the state it is created in, aged by `minutes_ago`."""
+    user = User(tg_id=987654, lang="uz_latn", full_name="Mijoz")
+    session.add(user)
+    await session.flush()
+    basket = Basket(user_id=user.id, raw_text="10 dona fanera", status="ordered")
+    session.add(basket)
+    await session.flush()
+    quote = Quote(
+        basket_id=basket.id,
+        strategy="cheapest",
+        items_total=Decimal("100000"),
+        delivery_total=Decimal("0"),
+        grand_total=Decimal("100000"),
+        coverage_pct=Decimal("100"),
+        shop_count=1,
+    )
+    session.add(quote)
+    await session.flush()
+    order = Order(
+        quote_id=quote.id,
+        user_id=user.id,
+        status="new",
+        contact_phone="+998901234567",
+        delivery_address="Chilonzor 9",
+        grand_total_quoted=Decimal("100000"),
+    )
+    session.add(order)
+    await session.flush()
+    await session.execute(
+        Order.__table__.update()
+        .where(Order.id == order.id)
+        .values(created_at=datetime.now(UTC) - timedelta(minutes=minutes_ago))
+    )
+    await session.flush()
+    await session.refresh(order)
+    return order
+
+
+@pytest.mark.asyncio
+async def test_an_order_left_unconfirmed_reminds_the_admins(test_session: AsyncSession) -> None:
+    """The customer has already been told it is placed; the silence is on our side."""
+    order = await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    bot = FakeBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 1
+    assert len(bot.sent) == len(settings.admin_tg_ids)
+    assert f"#{order.id}" in bot.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_a_fresh_order_is_left_alone(test_session: AsyncSession) -> None:
+    await _placed_but_unconfirmed(test_session, minutes_ago=2)
+    bot = FakeBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 0
+    assert bot.sent == []
+
+
+@pytest.mark.asyncio
+async def test_the_reminder_is_said_once_not_every_five_minutes(
+    test_session: AsyncSession,
+) -> None:
+    """Repeating it each run would train the admins to ignore it."""
+    await _placed_but_unconfirmed(test_session, minutes_ago=30)
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    first = await _remind_unconfirmed_orders_impl(test_session, FakeBot(), cutoff)  # type: ignore[arg-type]
+    second = await _remind_unconfirmed_orders_impl(test_session, FakeBot(), cutoff)  # type: ignore[arg-type]
+
+    assert first == 1
+    assert second == 0

@@ -14,14 +14,16 @@ from typing import Any
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.inline import get_price_nudge_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.models.ops import DailyMetrics
+from app.db.models.ops import DailyMetrics, Event
 from app.db.repositories.basket_repo import BasketRepository
 from app.db.repositories.ops_repo import OpsRepository
+from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import async_session_factory
 from app.workers.locks import try_acquire_job_lock
@@ -251,6 +253,72 @@ async def admin_digest(ctx: dict[str, Any]) -> None:
         await _admin_digest_impl(session, ctx["bot"], day_start)
         await session.commit()
         logger.info("admin_digest_done", admins=len(settings.admin_tg_ids))
+
+
+ORDER_REMINDER_EVENT = "order_confirm_reminder_sent"
+
+
+async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutoff: datetime) -> int:
+    """DM the admins about every order that has sat unconfirmed past `cutoff`.
+
+    Once per order, not once per run: the customer has already been told their
+    order is placed, so the reminder is for us, and repeating it every five
+    minutes would train the admins to ignore it. The events table is the record
+    of what has already been said.
+    """
+    order_repo = OrderRepository(session)
+    ops_repo = OpsRepository(session)
+
+    stale_orders = await order_repo.list_unconfirmed_before(cutoff)
+    if not stale_orders:
+        return 0
+
+    already = await session.execute(select(Event.props).where(Event.name == ORDER_REMINDER_EVENT))
+    reminded = {
+        int(props["order_id"])
+        for (props,) in already.all()
+        if isinstance(props, dict) and props.get("order_id") is not None
+    }
+
+    sent = 0
+    for order in stale_orders:
+        if order.id in reminded:
+            continue
+        # Postgres hands back an aware timestamp, SQLite a naive one, and the
+        # subtraction raises on the mismatch rather than quietly misreporting.
+        created_at = order.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=UTC)
+        waiting_minutes = int((datetime.now(UTC) - created_at).total_seconds() // 60)
+        text = (
+            f"\u23f0 <b>Buyurtma #{order.id} hali tasdiqlanmagan</b>\n\n"
+            f"{waiting_minutes} daqiqadan beri kutmoqda.\n"
+            f"Summa: <b>{order.grand_total_quoted:,.0f} so'm</b>\n"
+            f"\U0001f4de Tel: {order.contact_phone}\n"
+            f"\U0001f4cd Manzil: {order.delivery_address}\n\n"
+            f"Iltimos, mijozga qo'ng'iroq qilib tasdiqlang."
+        )
+        for admin_id in settings.admin_tg_ids:
+            try:
+                await bot.send_message(admin_id, text)
+            except TelegramAPIError as exc:
+                logger.warning("order_reminder_send_failed", admin_id=admin_id, error=str(exc))
+        await ops_repo.log_event(name=ORDER_REMINDER_EVENT, props={"order_id": order.id})
+        sent += 1
+
+    return sent
+
+
+async def remind_unconfirmed_orders(ctx: dict[str, Any]) -> None:
+    """Every 5 min: nudge the admins about orders nobody has confirmed."""
+    async with async_session_factory() as session:
+        if not await try_acquire_job_lock(session, "remind_unconfirmed_orders"):
+            logger.info("job_skipped_locked", job="remind_unconfirmed_orders")
+            return
+        cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+        count = await _remind_unconfirmed_orders_impl(session, ctx["bot"], cutoff)
+        await session.commit()
+        logger.info("remind_unconfirmed_orders_done", count=count)
 
 
 async def _abandon_baskets_impl(session: AsyncSession, cutoff: datetime) -> int:

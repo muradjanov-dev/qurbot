@@ -144,6 +144,10 @@ class Settings(BaseSettings):
     trust_score_rating_weight: float = 0.2
     trust_score_window_days: int = 30
     basket_abandon_hours: int = 24
+    # How long an order may sit unconfirmed before the admins are reminded.
+    # A customer who has pressed "confirm" is waiting; ten minutes of silence
+    # on our side is already long, and nothing else in the system notices.
+    order_confirm_reminder_minutes: int = 10
 
     # Admin Web (§11)
     admin_basic_auth_user: str = "admin"

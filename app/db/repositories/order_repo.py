@@ -87,6 +87,20 @@ class OrderRepository(BaseRepository[Order]):
         await self.session.flush()
         return part
 
+    async def list_unconfirmed_before(self, cutoff: datetime) -> Sequence[Order]:
+        """Orders still sitting in `new` since before `cutoff`, oldest first.
+
+        `new` is the state an order is created in and nothing moves it out of
+        on its own -- so an order still there is one no human has touched.
+        """
+        stmt = (
+            select(Order)
+            .where(Order.status == "new", Order.created_at <= cutoff)
+            .order_by(Order.created_at)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def list_recent_orders(self, limit: int = 50) -> Sequence[Order]:
         stmt = select(Order).order_by(Order.created_at.desc()).limit(limit)
         result = await self.session.execute(stmt)

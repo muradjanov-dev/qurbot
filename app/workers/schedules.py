@@ -11,6 +11,7 @@ from app.workers.tasks import (
     mark_price_staleness,
     nudge_shops,
     recompute_trust_scores,
+    remind_unconfirmed_orders,
     rollup_metrics,
 )
 
@@ -21,4 +22,7 @@ CRON_JOBS: list[CronJob] = [
     cron(rollup_metrics, hour=4, minute=0),  # daily 04:00
     cron(admin_digest, hour=8, minute=0),  # daily 08:00
     cron(abandon_baskets, minute={0, 30}),  # every 30 min
+    # Every 5 minutes: a customer who pressed confirm is waiting, and an
+    # order nobody has touched is the one failure the customer sees.
+    cron(remind_unconfirmed_orders, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
 ]
