@@ -206,10 +206,12 @@ async def _process_basket_input(
 
     # 3b. Attach a reference price to each candidate so ambiguous-line pickers
     # let the user tell products apart by price, not just name.
+    # Unresolved lines get prices too: they are about to be offered as the
+    # nearest matches, and a price is how a customer tells two sheets apart.
     ask_user_canonical_ids = {
         cand["canonical_id"]
         for item in new_lines
-        if item["status"] == "ask_user"
+        if item["status"] in ("ask_user", "unresolved")
         for cand in item["candidates"]
     }
     if ask_user_canonical_ids:
@@ -220,7 +222,7 @@ async def _process_basket_input(
             if offer.canonical_id is not None and offer.canonical_id not in min_price_by_canonical:
                 min_price_by_canonical[offer.canonical_id] = offer.price_per_pack
         for item in new_lines:
-            if item["status"] == "ask_user":
+            if item["status"] in ("ask_user", "unresolved"):
                 for cand in item["candidates"]:
                     price = min_price_by_canonical.get(cand["canonical_id"])
                     cand["min_price"] = f"{price:,.0f}" if price is not None else None
@@ -264,7 +266,7 @@ async def _process_basket_input(
     # "pick one", which is the difference between a customer who answers and
     # one who guesses.
     for item in new_lines:
-        if item["status"] == "ask_user" and item["candidates"]:
+        if item["candidates"] and item["status"] in ("ask_user", "unresolved"):
             question = item.get("clarify_question")
             if question:
                 prompt = t(
@@ -273,6 +275,12 @@ async def _process_basket_input(
                     name=esc(item["parsed_name"]),
                     question=esc(question),
                 )
+            elif item["status"] == "unresolved":
+                # Nothing scored well enough to name, but the near misses are
+                # right there. "0.3mm" is a typo for "3mm", and the customer
+                # sees that the moment the real row is put in front of them --
+                # which is a great deal more use than "katalogda topilmadi".
+                prompt = t("closest_matches_prompt", lang=lang, name=esc(item["parsed_name"]))
             else:
                 prompt = t("choose_candidate_prompt", lang=lang, name=esc(item["parsed_name"]))
             await message.answer(

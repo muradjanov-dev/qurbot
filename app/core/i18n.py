@@ -491,6 +491,23 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": ("\u270d\ufe0f Маҳсулот номини ўзингиз ёзинг.\n" "Масалан: <b>фанера 12мм</b>"),
         "ru": ("\u270d\ufe0f Напишите название товара сами.\n" "Например: <b>фанера 12мм</b>"),
     },
+    # A line the matcher could not settle still has near misses behind it.
+    # Showing them turns a dead end into a choice -- "0.3mm" is a typo for
+    # "3mm", and the customer can see that the moment the real row is offered.
+    "closest_matches_prompt": {
+        "uz_latn": (
+            "\U0001f50e <i>\u00ab{name}\u00bb</i> aniq topilmadi.\n"
+            "Eng yaqin mahsulotlar - kerakligini tanlang:"
+        ),
+        "uz_cyrl": (
+            "\U0001f50e <i>\u00ab{name}\u00bb</i> аниқ топилмади.\n"
+            "Энг яқин маҳсулотлар - кераклигини танланг:"
+        ),
+        "ru": (
+            "\U0001f50e <i>\u00ab{name}\u00bb</i> точно не найден.\n"
+            "Самые близкие товары - выберите нужный:"
+        ),
+    },
     "candidate_selected": {
         "uz_latn": "✅ Tanlandi: <b>{name}</b>",
         "uz_cyrl": "✅ Танланди: <b>{name}</b>",

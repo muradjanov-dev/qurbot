@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
-from app.db.models.shop import ShopProduct
+from app.db.models.shop import Shop, ShopProduct
 from app.db.repositories.base import BaseRepository
 
 # Stock states a customer can actually be quoted from. Matches the offer query
@@ -18,13 +18,34 @@ QUOTABLE_STOCK_STATES = ("in_stock", "low", "on_order")
 
 
 def _has_quotable_offer() -> Any:
-    """EXISTS clause: at least one live offer for this canonical product."""
+    """EXISTS clause: at least one live offer, from a shop that is still trading.
+
+    The shop's own flag matters as much as the offer's: switching a shop off is
+    how a market is retired or a partner suspended, and its prices must stop
+    being sold the moment that happens -- not only if someone remembers to
+    deactivate every row it uploaded.
+    """
     return exists().where(
         ShopProduct.canonical_id == CanonicalProduct.id,
+        ShopProduct.shop_id == Shop.id,
+        Shop.is_active.is_(True),
         ShopProduct.is_active.is_(True),
         ShopProduct.staleness_state != "stale",
         ShopProduct.stock_status.in_(QUOTABLE_STOCK_STATES),
     )
+
+
+def _is_orderable() -> Any:
+    """A product a customer may put in a basket at all.
+
+    Either a shop is selling it today, or the supplier's price list carries it
+    -- the catalogue deliberately shows both, since listing only stocked rows
+    made the whole catalogue read as empty before the first shop uploaded. What
+    must not happen is what the customer saw: a product priced at "~315 000" in
+    the catalogue and answered with "narx topilmadi" in the basket. Matching it
+    is what lets the quote name the product and hand over a phone number.
+    """
+    return or_(_has_quotable_offer(), CanonicalProduct.reference_price.is_not(None))
 
 
 class CatalogRepository(BaseRepository[CanonicalProduct]):
@@ -177,7 +198,7 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         if scoped:
             base_filters.append(CanonicalProduct.category_id.in_(list(scoped)))
         if require_offers:
-            base_filters.append(_has_quotable_offer())
+            base_filters.append(_is_orderable())
 
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
@@ -231,7 +252,7 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         if scoped:
             filters.append(CanonicalProduct.category_id.in_(list(scoped)))
         if require_offers:
-            filters.append(_has_quotable_offer())
+            filters.append(_is_orderable())
 
         stmt = select(CanonicalProduct).where(*filters).order_by(sim.desc()).limit(limit)
         result = await self.session.execute(stmt)
