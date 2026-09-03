@@ -19,6 +19,7 @@ from app.db.models.shop import (
     ShopOwner,
     ShopProduct,
     ShopProductDraft,
+    ShopProductPriceTier,
 )
 from app.db.models.user import User, UserAddress
 
@@ -34,6 +35,7 @@ __all__ = [
     "ShopDeliveryRule",
     "ShopOwner",
     "ShopProduct",
+    "ShopProductPriceTier",
     "ShopProductDraft",
     "ProductPhotoBlob",
     "PriceHistory",

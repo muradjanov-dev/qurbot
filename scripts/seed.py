@@ -34,6 +34,7 @@ from app.db.models import (
     Shop,
     ShopDeliveryRule,
     ShopProduct,
+    ShopProductPriceTier,
     Unit,
     User,
 )
@@ -868,6 +869,8 @@ _BIRCH_PLYWOOD: list[tuple[str, str, str, Decimal | None]] = [
     ("1525x1525", "3x3", "21", Decimal("296000")),
     ("1525x1525", "4x4", "3", Decimal("48000")),
     ("1525x1525", "4x4", "4", Decimal("60000")),
+    ("1525x1525", "3x3", "14", None),
+    ("1525x1525", "3x3", "30", None),
     ("1525x1525", "4x4", "14", Decimal("194000")),
     ("2440x1220", "2x4", "3", None),
     ("2440x1220", "2x4", "4", Decimal("121000")),
@@ -1046,11 +1049,105 @@ def _osb3_items() -> list[CatalogItem]:
     return items
 
 
+# Sawn timber, transcribed from the wagon manifests. Every board is 6 m long,
+# so the SKU is thickness x width; the volume of one board comes out of those
+# three numbers and is carried as an attribute, because timber is bought by the
+# cubic metre as often as by the piece.
+#
+# (thickness mm, width mm, grade or None, species or None)
+_TIMBER: list[tuple[int, int, str | None, str | None]] = [
+    (17, 110, "3/4", None),
+    (17, 140, "3/4", None),
+    (20, 90, None, None),
+    (20, 108, None, None),
+    (20, 110, None, None),
+    (20, 135, None, None),
+    (20, 140, None, None),
+    (20, 170, None, None),
+    (31, 108, None, None),
+    (31, 135, None, None),
+    (31, 165, None, None),
+    (31, 185, None, None),
+    (35, 108, None, None),
+    (35, 135, None, None),
+    (35, 165, None, None),
+    (35, 185, None, None),
+    (37, 108, None, None),
+    (37, 135, None, None),
+    (37, 165, None, None),
+    (37, 185, None, None),
+    (38, 108, None, None),
+    (38, 138, None, None),
+    (38, 168, None, None),
+    (38, 188, None, None),
+    (42, 108, None, None),
+    (42, 135, None, None),
+    (42, 165, None, None),
+    (42, 185, None, None),
+    (45, 140, None, "listvennitsa"),
+    (45, 170, None, "listvennitsa"),
+    (45, 190, None, "listvennitsa"),
+]
+
+_TIMBER_LENGTH_MM = 6000
+_TIMBER_CATEGORY = "yogoch"
+
+
+def _timber_items() -> list[CatalogItem]:
+    """One SKU per section, priced on request until the price list arrives."""
+    items: list[CatalogItem] = []
+    for thickness, width, grade, species in _TIMBER:
+        volume_m3 = round(thickness / 1000 * width / 1000 * _TIMBER_LENGTH_MM / 1000, 5)
+        label = f"{thickness}x{width}x{_TIMBER_LENGTH_MM} mm"
+        species_uz = " listvennitsa" if species else ""
+        species_ru = " лиственница" if species else ""
+        grade_part = f" {grade} sort" if grade else ""
+        grade_part_ru = f" {grade} сорт" if grade else ""
+
+        attributes: dict[str, Any] = {
+            "thickness_mm": thickness,
+            "width_mm": width,
+            "length_mm": _TIMBER_LENGTH_MM,
+            "volume_m3": volume_m3,
+            "material": "timber",
+        }
+        if grade:
+            attributes["grade"] = grade
+        if species:
+            attributes["species"] = species
+
+        slug_species = f"-{species}" if species else ""
+        slug_grade = f"-{grade.replace('/', '-')}" if grade else ""
+        items.append(
+            CatalogItem(
+                slug=f"taxta{slug_species}{slug_grade}-{thickness}x{width}x{_TIMBER_LENGTH_MM}",
+                name_uz=f"Taxta{species_uz} {label}{grade_part}",
+                name_uz_cyrl=f"Тахта{species_uz} {label}{grade_part}",
+                name_ru=f"Доска{species_ru} {label}{grade_part_ru}",
+                brand=None,
+                category_slug=_TIMBER_CATEGORY,
+                base_unit="dona",
+                attributes=attributes,
+                tier="standard",
+                # Priced on request: the manifests carry dimensions and counts,
+                # not money. NULL is what makes the catalogue say "kelishiladi"
+                # rather than quote a number nobody agreed to.
+                reference_price=None,
+                pack_size=Decimal("1"),
+                pack_unit="dona",
+                source=SOURCE_SUPPLIER,
+                source_ref="vagon",
+            )
+        )
+    return items
+
+
 def generate_catalog_data() -> list[CatalogItem]:
     """The whole catalogue, in price-list order."""
     items: list[CatalogItem] = []
     items.extend(_laminated_plywood_items())
     items.extend(_birch_plywood_items())
+    items.extend(_timber_items())
     items.extend(_hardboard_items())
     items.extend(_osb3_items())
     return items
@@ -1136,6 +1233,142 @@ def generate_aliases_for_product(item: CatalogItem) -> list[dict[str, Any]]:
             }
         )
     return aliases
+
+
+# Our own plywood price list. Quoted per sheet in dollars, with a wholesale
+# price that applies from a given number of sheets upward -- "10.2$, 10$ from
+# 200". Converted once here at a written-down rate rather than at a rate that
+# lives in someone's head; when the rate moves, this constant moves with it and
+# every price follows.
+USD_TO_UZS = Decimal("11820.48")  # O'zbekiston MB, 02.09.2026
+
+OUR_SHOP_NAME = "QurBot"
+OUR_SHOP_PHONE = "+998935394994"
+
+# (size, grade, thickness mm, retail $, wholesale $, wholesale from N sheets)
+_OUR_PLYWOOD_PRICES: list[tuple[str, str, str, str, str, int]] = [
+    ("1525x1525", "3x3", "3", "4.6", "4.3", 390),
+    ("1525x1525", "4x4", "3", "4.2", "4.0", 390),
+    ("1525x1525", "3x3", "4", "5.6", "5.2", 300),
+    ("1525x1525", "3x3", "5", "7.5", "7.0", 160),
+    ("1525x1525", "3x3", "6", "8.5", "8.0", 130),
+    ("1525x1525", "3x3", "8", "10.5", "10.2", 150),
+    ("1525x1525", "3x3", "10", "12.5", "12.0", 120),
+    ("1525x1525", "3x3", "12", "13.5", "13.3", 66),
+    ("1525x1525", "3x3", "14", "16.5", "16.0", 56),
+    ("1525x1525", "3x3", "15", "18.5", "18.0", 54),
+    ("1525x1525", "3x3", "18", "21.5", "21.0", 66),
+    ("1525x1525", "3x3", "21", "25.5", "25.0", 57),
+    ("1525x1525", "3x3", "30", "38.0", "37.0", 52),
+    ("2440x1220", "2x4", "4", "10.2", "10.0", 200),
+    ("2440x1220", "2x4", "6", "13.5", "13.0", 132),
+    ("2440x1220", "2x4", "9", "19.5", "19.0", 132),
+    ("2440x1220", "2x4", "12", "23.0", "22.5", 66),
+    ("2440x1220", "2x4", "15", "26.5", "26.0", 52),
+    ("2440x1220", "2x4", "18", "32.0", "31.8", 66),
+    ("2440x1220", "2x4", "21", "38.0", "37.5", 19),
+]
+
+
+# Exposed so tests can assert "our own offers and no others" without
+# repeating the number.
+OUR_PLYWOOD_PRICE_COUNT = _OUR_PLYWOOD_PRICES
+
+
+def _uzs(usd: str) -> Decimal:
+    """Dollars to so'm, rounded to whole so'm -- nobody quotes tiyin."""
+    return (Decimal(usd) * USD_TO_UZS).quantize(Decimal("1"))
+
+
+async def seed_own_offers(session: AsyncSession) -> int:
+    """Create or refresh QurBot's own offers, with their wholesale tiers.
+
+    Runs inside the catalogue-only path because these are real prices a
+    customer can order against, not demo data: skipping them on deploy would
+    leave the catalogue priced by nobody.
+    """
+    district_stmt = select(District).order_by(District.id).limit(1)
+    district = (await session.execute(district_stmt)).scalars().first()
+    if district is None:
+        logger.warning("seed_own_offers: no districts yet, skipping")
+        return 0
+
+    shop_stmt = select(Shop).where(Shop.name == OUR_SHOP_NAME)
+    shop = (await session.execute(shop_stmt)).scalars().first()
+    if shop is None:
+        shop = Shop(
+            name=OUR_SHOP_NAME,
+            phone=OUR_SHOP_PHONE,
+            district_id=district.id,
+            address="Toshkent",
+            is_active=True,
+        )
+        session.add(shop)
+        await session.flush()
+
+    written = 0
+    for size, grade, thickness, retail_usd, wholesale_usd, from_qty in _OUR_PLYWOOD_PRICES:
+        slug = f"fanera-bereza-{grade}-{_slug_num(thickness)}mm-{size}"
+        canonical = (
+            (await session.execute(select(CanonicalProduct).where(CanonicalProduct.slug == slug)))
+            .scalars()
+            .first()
+        )
+        if canonical is None:
+            logger.warning("seed_own_offers: no canonical product for %s", slug)
+            continue
+
+        price = _uzs(retail_usd)
+        offer_stmt = select(ShopProduct).where(
+            ShopProduct.shop_id == shop.id,
+            ShopProduct.canonical_id == canonical.id,
+        )
+        offer = (await session.execute(offer_stmt)).scalars().first()
+        if offer is None:
+            offer = ShopProduct(
+                shop_id=shop.id,
+                canonical_id=canonical.id,
+                raw_name=canonical.name_uz,
+                raw_unit="dona",
+                pack_size=Decimal("1"),
+                pack_unit_code="dona",
+                price_per_pack=price,
+                price_per_base_unit=price,
+                stock_status="in_stock",
+                staleness_state="fresh",
+                updated_by="admin",
+                is_active=True,
+            )
+            session.add(offer)
+            await session.flush()
+        else:
+            offer.price_per_pack = price
+            offer.price_per_base_unit = price
+            offer.stock_status = "in_stock"
+            offer.staleness_state = "fresh"
+            offer.is_active = True
+
+        wholesale = _uzs(wholesale_usd)
+        tier_stmt = select(ShopProductPriceTier).where(
+            ShopProductPriceTier.shop_product_id == offer.id,
+            ShopProductPriceTier.min_qty == Decimal(from_qty),
+        )
+        tier = (await session.execute(tier_stmt)).scalars().first()
+        if tier is None:
+            session.add(
+                ShopProductPriceTier(
+                    shop_product_id=offer.id,
+                    min_qty=Decimal(from_qty),
+                    price_per_pack=wholesale,
+                )
+            )
+        else:
+            tier.price_per_pack = wholesale
+        written += 1
+
+    await session.flush()
+    logger.info("Seeded %d own offers with wholesale tiers.", written)
+    return written
 
 
 async def seed_database(session: AsyncSession, catalog_only: bool = False) -> None:
@@ -1335,6 +1568,10 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
     if retired:
         await session.flush()
         logger.info("Retired %d products no longer on any price list.", len(retired))
+
+    # Our own prices are real, orderable offers -- they belong to the catalogue
+    # pass, not the demo market that follows it.
+    await seed_own_offers(session)
 
     if catalog_only:
         logger.info("catalog_only: stopping before shops, offers and demo users.")

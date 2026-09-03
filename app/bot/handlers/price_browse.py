@@ -361,7 +361,9 @@ async def handle_product_qty(
 
     table = await message.answer(
         _format_parse_table(existing, lang=lang),
-        reply_markup=get_basket_actions_keyboard(lang=lang),
+        reply_markup=get_basket_actions_keyboard(
+            lang=lang, line_numbers=[item["line_no"] for item in existing]
+        ),
     )
     await state.set_state(BasketStates.viewing_quotes)
     await state.update_data(

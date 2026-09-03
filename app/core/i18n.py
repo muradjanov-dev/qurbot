@@ -547,6 +547,38 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "🗑 Ўчириш",
         "ru": "🗑 Очистить",
     },
+    # Numbered so the button and the line in the table above it are obviously
+    # the same thing -- the customer is matching "2." to "2.", not reading
+    # labels.
+    "btn_line_edit": {
+        "uz_latn": "{line}. \u270f\ufe0f o'zgartirish",
+        "uz_cyrl": "{line}. \u270f\ufe0f ўзгартириш",
+        "ru": "{line}. \u270f\ufe0f изменить",
+    },
+    "btn_line_delete": {
+        "uz_latn": "{line}. \U0001f5d1 o'chirish",
+        "uz_cyrl": "{line}. \U0001f5d1 ўчириш",
+        "ru": "{line}. \U0001f5d1 удалить",
+    },
+    "line_deleted": {
+        "uz_latn": "\U0001f5d1 {line}-mahsulot ro'yxatdan olib tashlandi.",
+        "uz_cyrl": "\U0001f5d1 {line}-маҳсулот рўйхатдан олиб ташланди.",
+        "ru": "\U0001f5d1 Товар {line} удалён из списка.",
+    },
+    "line_edit_prompt": {
+        "uz_latn": (
+            "\u270f\ufe0f {line}-mahsulot o'rniga nima kerak? Yozing.\n"
+            "Masalan: <code>10 dona fanera 12mm</code>"
+        ),
+        "uz_cyrl": (
+            "\u270f\ufe0f {line}-маҳсулот ўрнига нима керак? Ёзинг.\n"
+            "Масалан: <code>10 дона фанера 12мм</code>"
+        ),
+        "ru": (
+            "\u270f\ufe0f Чем заменить товар {line}? Напишите.\n"
+            "Например: <code>10 шт фанера 12мм</code>"
+        ),
+    },
     "btn_calculate_quotes": {
         "uz_latn": "✅ Buyurtma qilish",
         "uz_cyrl": "✅ Буюртма қилиш",

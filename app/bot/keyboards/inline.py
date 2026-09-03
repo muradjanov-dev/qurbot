@@ -238,21 +238,51 @@ def get_district_keyboard(
     return builder.as_markup()
 
 
-def get_basket_actions_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+# Beyond this many lines the per-line rows push the order button off the
+# screen, and a customer scrolling past their own basket to reach it is worse
+# off than one who retypes a long list.
+MAX_PER_LINE_ROWS = 8
+
+
+def get_basket_actions_keyboard(
+    lang: str = "uz_latn",
+    line_numbers: Sequence[int] | None = None,
+) -> InlineKeyboardMarkup:
     """Build action buttons for parsed basket view.
 
     Order follows the order of the work: correct the list first, then order it.
     Ordering sat at the top, above the buttons for fixing what it would be
     ordering -- so the last thing the customer reads is now the thing they came
     to do.
+
+    `line_numbers` adds a row per product: change this one, remove this one.
+    Without them the only tools were "rewrite the whole list" and "delete
+    everything", so fixing the third of three items meant retyping all three.
     """
     builder = InlineKeyboardBuilder()
-    builder.button(text=t("btn_edit_basket", lang=lang), callback_data="edit_basket")
-    builder.button(text=t("btn_add_item", lang=lang), callback_data="add_item")
-    builder.button(text=t("btn_clear_basket", lang=lang), callback_data="clear_basket")
-    builder.button(text=t("btn_back", lang=lang), callback_data="back_to_menu")
-    builder.button(text=t("btn_calculate_quotes", lang=lang), callback_data="calculate_quotes")
-    builder.adjust(3, 1, 1)
+
+    for line_no in list(line_numbers or [])[:MAX_PER_LINE_ROWS]:
+        builder.row(
+            InlineKeyboardButton(
+                text=t("btn_line_edit", lang=lang, line=line_no),
+                callback_data=f"line_edit:{line_no}",
+            ),
+            InlineKeyboardButton(
+                text=t("btn_line_delete", lang=lang, line=line_no),
+                callback_data=f"line_del:{line_no}",
+            ),
+        )
+
+    builder.row(
+        InlineKeyboardButton(text=t("btn_add_item", lang=lang), callback_data="add_item"),
+        InlineKeyboardButton(text=t("btn_clear_basket", lang=lang), callback_data="clear_basket"),
+    )
+    builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="back_to_menu"))
+    builder.row(
+        InlineKeyboardButton(
+            text=t("btn_calculate_quotes", lang=lang), callback_data="calculate_quotes"
+        )
+    )
     return builder.as_markup()
 
 

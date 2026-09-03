@@ -91,6 +91,12 @@ class QuoteService:
                     lat=lat,
                     lon=lon,
                     stock_qty=o.stock_qty,
+                    # Loaded with the offer (selectin), so volume prices cost
+                    # one extra query for the whole basket rather than one per
+                    # offer on the hot quote path.
+                    price_tiers=tuple(
+                        (tier.min_qty, tier.price_per_pack) for tier in (o.price_tiers or [])
+                    ),
                 )
             )
 

@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import suppress
 from decimal import Decimal
 from typing import Any
 
@@ -119,6 +120,11 @@ async def handle_add_item_text(
     await _process_basket_input(
         message, state, session, lang, message.text, existing_lines=existing_lines
     )
+
+
+def _basket_keyboard(lines: list[dict[str, Any]], lang: str) -> InlineKeyboardMarkup:
+    """Basket buttons for exactly the lines currently in it."""
+    return get_basket_actions_keyboard(lang=lang, line_numbers=[item["line_no"] for item in lines])
 
 
 async def _process_basket_input(
@@ -243,13 +249,13 @@ async def _process_basket_input(
             table_text,
             chat_id=table_chat_id,
             message_id=table_message_id,
-            reply_markup=get_basket_actions_keyboard(lang=lang),
+            reply_markup=_basket_keyboard(serialized_lines, lang),
         )
         await status_msg.delete()
     else:
         await status_msg.edit_text(
             table_text,
-            reply_markup=get_basket_actions_keyboard(lang=lang),
+            reply_markup=_basket_keyboard(serialized_lines, lang),
         )
         table_chat_id = status_msg.chat.id
         table_message_id = status_msg.message_id
@@ -332,7 +338,7 @@ async def callback_pick_candidate(
             table_text,
             chat_id=table_chat_id,
             message_id=table_message_id,
-            reply_markup=get_basket_actions_keyboard(lang=lang),
+            reply_markup=_basket_keyboard(lines, lang),
         )
     await callback.answer()
 
@@ -380,6 +386,78 @@ async def handle_line_rewrite(
     )
 
 
+@router.callback_query(F.data.startswith("line_del:"))
+async def callback_delete_line(
+    callback: CallbackQuery,
+    state: FSMContext,
+    bot: Bot,
+    lang: str,
+) -> None:
+    """Remove one product from the basket, leaving the rest alone.
+
+    The only tools before this were "rewrite the whole list" and "delete
+    everything", so dropping the third of three items meant retyping the other
+    two.
+    """
+    if not callback.data:
+        return
+    line_no = int(callback.data.split(":")[1])
+    data = await state.get_data()
+    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+
+    remaining = [line for line in lines if line["line_no"] != line_no]
+    if len(remaining) == len(lines):
+        await callback.answer()
+        return
+
+    await state.update_data(basket_lines=remaining)
+    await _redraw_basket(callback, state, bot, remaining, lang)
+    await callback.answer(t("line_deleted", lang=lang, line=line_no))
+
+
+@router.callback_query(F.data.startswith("line_edit:"))
+async def callback_edit_line(
+    callback: CallbackQuery,
+    state: FSMContext,
+    lang: str,
+) -> None:
+    """Replace one product: the next message is re-parsed into that line."""
+    if not callback.data:
+        return
+    line_no = int(callback.data.split(":")[1])
+    await state.update_data(editing_line_no=line_no)
+    await state.set_state(BasketStates.editing_line)
+    if isinstance(callback.message, Message):
+        await callback.message.answer(t("line_edit_prompt", lang=lang, line=line_no))
+    await callback.answer()
+
+
+async def _redraw_basket(
+    callback: CallbackQuery,
+    state: FSMContext,
+    bot: Bot,
+    lines: list[dict[str, Any]],
+    lang: str,
+) -> None:
+    """Repaint the basket message in place after a line changed."""
+    data = await state.get_data()
+    table_chat_id = data.get("table_chat_id")
+    table_message_id = data.get("table_message_id")
+    if not lines:
+        await state.set_state(BasketStates.waiting_for_basket_text)
+    if table_chat_id and table_message_id:
+        text = (
+            _format_parse_table(lines, lang=lang) if lines else t("prompt_send_basket", lang=lang)
+        )
+        with suppress(TelegramBadRequest):
+            await bot.edit_message_text(
+                text,
+                chat_id=table_chat_id,
+                message_id=table_message_id,
+                reply_markup=_basket_keyboard(lines, lang) if lines else None,
+            )
+
+
 @router.callback_query(F.data == "back_to_menu")
 async def callback_back_to_menu(
     callback: CallbackQuery,
@@ -413,22 +491,6 @@ async def callback_clear_basket(
     await callback.answer()
 
 
-@router.callback_query(F.data == "edit_basket")
-async def callback_edit_basket(
-    callback: CallbackQuery,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    data = await state.get_data()
-    lines: list[dict[str, Any]] = data.get("basket_lines", [])
-    current_list = "\n".join(f"- {item['raw_text']}" for item in lines) or "-"
-
-    await state.set_state(BasketStates.waiting_for_basket_text)
-    if isinstance(callback.message, Message):
-        await callback.message.answer(t("prompt_edit_basket", lang=lang, current_list=current_list))
-    await callback.answer()
-
-
 @router.callback_query(F.data == "back_to_basket")
 async def callback_back_to_basket(
     callback: CallbackQuery,
@@ -454,7 +516,7 @@ async def callback_back_to_basket(
         await _safe_edit_text(
             callback.message,
             _format_parse_table(lines, lang=lang),
-            reply_markup=get_basket_actions_keyboard(lang=lang),
+            reply_markup=_basket_keyboard(lines, lang),
         )
     await callback.answer()
 

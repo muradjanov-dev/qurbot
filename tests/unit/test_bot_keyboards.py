@@ -63,8 +63,10 @@ def test_basket_actions_keyboard() -> None:
     kb = get_basket_actions_keyboard(lang="uz_latn")
     assert len(kb.inline_keyboard) == 3
 
+    # "Rewrite the whole list" is gone: each line now has its own change and
+    # remove buttons, which is what that button was a blunt substitute for.
     editing = [b.callback_data for b in kb.inline_keyboard[0]]
-    assert editing == ["edit_basket", "add_item", "clear_basket"]
+    assert editing == ["add_item", "clear_basket"]
     assert kb.inline_keyboard[1][0].callback_data == "back_to_menu"
 
     order_button = kb.inline_keyboard[2][0]

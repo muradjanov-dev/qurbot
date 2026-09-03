@@ -563,11 +563,12 @@ class BasketOptimizer:
         best_min_id = min(best["used_shops"]) if best["used_shops"] else 0
         return bool(cand_min_id < best_min_id)
 
-    def _compute_line_assignment(self, item: BasketItemQuery, offer: ShopOffer) -> LineAssignment:
+    def _price_line(
+        self, item: BasketItemQuery, offer: ShopOffer, price_per_pack: Decimal
+    ) -> tuple[Any, Decimal]:
+        """Cost this line at a given per-pack price. Returns (cost, unit price)."""
         price_per_base = (
-            (offer.price_uzs / offer.pack_size)
-            if offer.pack_size > Decimal("0")
-            else offer.price_uzs
+            (price_per_pack / offer.pack_size) if offer.pack_size > Decimal("0") else price_per_pack
         )
         offer_pricing = OfferPricing(
             shop_product_id=offer.offer_id,
@@ -576,7 +577,7 @@ class BasketOptimizer:
             raw_name=offer.shop_name,
             pack_size=offer.pack_size,
             pack_unit=offer.pack_unit,
-            price_per_pack=offer.price_uzs,
+            price_per_pack=price_per_pack,
             price_per_base_unit=price_per_base,
         )
         cost_calc = line_cost(
@@ -587,9 +588,22 @@ class BasketOptimizer:
         u_price = unit_price(
             pack_size=offer.pack_size,
             pack_unit=offer.pack_unit,
-            price_per_pack=offer.price_uzs,
+            price_per_pack=price_per_pack,
             base_unit=item.unit_code,
         )
+        return cost_calc, u_price
+
+    def _compute_line_assignment(self, item: BasketItemQuery, offer: ShopOffer) -> LineAssignment:
+        cost_calc, u_price = self._price_line(item, offer, offer.price_uzs)
+
+        # How many packs are needed does not depend on the price, so the volume
+        # price is resolved once that is known and the line is costed again.
+        # Wholesale is quoted as a threshold ("10$ from 200 sheets"), and a
+        # customer ordering a lorry-load must not be billed the retail price.
+        if offer.price_tiers:
+            tier_price = offer.price_for_packs(Decimal(cost_calc.packs_needed))
+            if tier_price != offer.price_uzs:
+                cost_calc, u_price = self._price_line(item, offer, tier_price)
         return LineAssignment(
             line_no=item.line_no,
             canonical_id=item.canonical_id,

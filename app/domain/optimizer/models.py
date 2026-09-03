@@ -38,6 +38,23 @@ class ShopOffer:
     # imports that carry no count, and reading "untracked" as "none" would empty
     # the catalogue.
     stock_qty: Decimal | None = None
+    # Volume prices as (min_qty in packs, price per pack), in any order. The
+    # trade quotes wholesale as a threshold -- "10.2$ a sheet, 10$ from 200
+    # sheets" -- and without it a lorry-load is quoted at the retail price.
+    price_tiers: tuple[tuple[Decimal, Decimal], ...] = ()
+
+    def price_for_packs(self, packs: Decimal) -> Decimal:
+        """What one pack costs at this order size.
+
+        The threshold itself counts: "from 200" includes the two hundredth. A
+        tier dearer than the retail price is ignored rather than applied -- a
+        mistyped row must not make a bigger order cost more.
+        """
+        best = self.price_uzs
+        for min_qty, price in self.price_tiers:
+            if packs >= min_qty and price < best:
+                best = price
+        return best
 
 
 @dataclass(frozen=True, slots=True)

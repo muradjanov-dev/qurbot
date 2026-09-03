@@ -187,6 +187,12 @@ class ShopProduct(Base, TimestampMixin):
     )  # pending|approved|rejected
 
     shop: Mapped[Shop] = relationship("Shop", back_populates="products", lazy="selectin")
+    price_tiers: Mapped[list["ShopProductPriceTier"]] = relationship(
+        "ShopProductPriceTier",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
     canonical_product: Mapped[CanonicalProduct | None] = relationship(
         "CanonicalProduct", lazy="selectin"
     )
@@ -278,6 +284,36 @@ class ImportRow(Base, TimestampMixin):
     batch: Mapped[ImportBatch] = relationship("ImportBatch", back_populates="rows", lazy="selectin")
     matched_canonical: Mapped[CanonicalProduct | None] = relationship(
         "CanonicalProduct", lazy="selectin"
+    )
+
+
+class ShopProductPriceTier(Base, TimestampMixin):
+    """A volume price: from `min_qty` packs upward, one pack costs this much.
+
+    Wholesale in this trade is quoted exactly this way -- "10.2$ a sheet, 10$
+    from 200 sheets" -- and without it a customer ordering a lorry-load is
+    quoted the retail price, which is both wrong and the kind of wrong that
+    loses the order to a phone call.
+
+    Kept as rows rather than a JSON column on the offer because the optimizer
+    has to compare tiers across shops, and because a price a customer was
+    quoted has to be auditable afterwards.
+    """
+
+    __tablename__ = "shop_product_price_tiers"
+
+    id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    shop_product_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("shop_products.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # The smallest order this price applies from, in packs.
+    min_qty: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
+    price_per_pack: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+
+    product: Mapped["ShopProduct"] = relationship("ShopProduct", back_populates="price_tiers")
+
+    __table_args__ = (
+        UniqueConstraint("shop_product_id", "min_qty", name="uq_price_tier_product_min_qty"),
     )
 
 

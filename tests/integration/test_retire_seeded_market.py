@@ -76,12 +76,20 @@ async def test_seeded_offers_are_deactivated_and_real_ones_are_not(
     assert shop_count == len(migration.SEEDED_SHOP_NAMES)
     assert offer_count > 0
 
-    still_active = (
+    # Counting every active offer would now also count our own priced ones,
+    # which the migration has no business touching. What it promises is
+    # narrower: nothing belonging to a seeded shop stays active.
+    seeded_still_active = (
         await test_session.execute(
-            select(func.count(ShopProduct.id)).where(ShopProduct.is_active.is_(True))
+            select(func.count(ShopProduct.id))
+            .join(Shop, Shop.id == ShopProduct.shop_id)
+            .where(
+                ShopProduct.is_active.is_(True),
+                Shop.name.in_(migration.SEEDED_SHOP_NAMES),
+            )
         )
     ).scalar()
-    assert still_active == 1, "only the real shop's offer should remain active"
+    assert seeded_still_active == 0, "no seeded shop's offer may stay active"
 
     real_offer = (
         (await test_session.execute(select(ShopProduct).where(ShopProduct.shop_id == real.id)))
@@ -110,7 +118,12 @@ async def test_the_cleanup_is_reversible(test_session: AsyncSession) -> None:
     await connection.run_sync(lambda c: migration.set_seeded_market_active(c, False))
     after_off = (
         await test_session.execute(
-            select(func.count(ShopProduct.id)).where(ShopProduct.is_active.is_(True))
+            select(func.count(ShopProduct.id))
+            .join(Shop, Shop.id == ShopProduct.shop_id)
+            .where(
+                ShopProduct.is_active.is_(True),
+                Shop.name.in_(migration.SEEDED_SHOP_NAMES),
+            )
         )
     ).scalar()
     assert after_off == 0

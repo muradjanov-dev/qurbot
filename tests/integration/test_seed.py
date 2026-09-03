@@ -15,7 +15,14 @@ from app.db.models import (
     Unit,
     User,
 )
-from scripts.seed import FANERA_UZ, SOURCE_SUPPLIER, generate_catalog_data, seed_database
+from scripts.seed import (
+    FANERA_UZ,
+    OUR_PLYWOOD_PRICE_COUNT,
+    OUR_SHOP_NAME,
+    SOURCE_SUPPLIER,
+    generate_catalog_data,
+    seed_database,
+)
 
 
 @pytest.mark.asyncio
@@ -94,8 +101,21 @@ async def test_catalog_only_seed_skips_the_demo_market(test_session: AsyncSessio
 
     assert products and products > 0
     assert categories and categories > 0
-    assert shops == 0, "catalog-only must not create shops"
-    assert offers == 0, "catalog-only must not create offers"
+    # Our own shop is seeded here on purpose: its prices are real offers a
+    # customer can order against, and a deploy that skipped them would leave
+    # the catalogue priced by nobody. What must stay out is the demo market.
+    own_shops = (
+        (await test_session.execute(select(Shop.name).where(Shop.name == OUR_SHOP_NAME)))
+        .scalars()
+        .all()
+    )
+    assert len(own_shops) == 1
+    assert shops == 1, "catalog-only must create no shop but our own"
+    # Same reasoning as the shop above: these are our own prices, the only
+    # ones a customer can order against before a partner uploads anything.
+    assert offers == len(
+        OUR_PLYWOOD_PRICE_COUNT
+    ), "catalog-only must create our own offers and no others"
 
 
 @pytest.mark.asyncio
@@ -135,7 +155,9 @@ async def test_catalog_records_where_each_product_came_from(
     products = (await test_session.execute(select(CanonicalProduct))).scalars().all()
     assert products
     assert {p.source for p in products} == {SOURCE_SUPPLIER}
-    assert {p.source_ref for p in products} == {FANERA_UZ}
+    # The wagon manifests are a second supplier: dimensions and counts, no
+    # prices yet.
+    assert {p.source_ref for p in products} == {FANERA_UZ, "vagon"}
 
 
 @pytest.mark.asyncio
