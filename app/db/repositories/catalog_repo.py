@@ -342,6 +342,41 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         await self.session.flush()
         return alias
 
+    async def learn_alias_from_customer(
+        self,
+        canonical_id: int,
+        alias_norm: str,
+        alias_raw: str,
+    ) -> ProductAlias | None:
+        """Remember a phrasing a customer confirmed by picking the product.
+
+        This is the strongest signal the system ever gets: not a model's guess
+        but a person saying "yes, that is what I meant". So unlike an
+        LLM-written alias it is approved on the spot, and the next customer who
+        writes it that way is answered by Stage 1 for nothing -- no scoring, no
+        model call. It is how the bot gets better with use rather than with
+        redeploys.
+
+        Returns None when there is nothing worth learning: a phrasing too short
+        to identify anything, or one an approved alias already claims. An
+        existing mapping is never repointed here -- overwriting a curated alias
+        on the strength of one tap is how a catalogue quietly rots.
+        """
+        cleaned = alias_norm.strip()
+        if len(cleaned) < 3 or not any(ch.isalpha() for ch in cleaned):
+            return None
+
+        existing = await self.get_approved_alias(cleaned)
+        if existing is not None:
+            return None
+
+        return await self.create_approved_alias(
+            canonical_id=canonical_id,
+            alias_norm=cleaned,
+            alias_raw=alias_raw,
+            source="user",
+        )
+
     async def list_unapproved_aliases(self, limit: int = 100) -> Sequence[ProductAlias]:
         stmt = (
             select(ProductAlias)

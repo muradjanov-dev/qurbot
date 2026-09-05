@@ -103,6 +103,12 @@ class Settings(BaseSettings):
     # separates them. This only decides which rows become candidates; the
     # scorer and then the LLM still re-rank whatever comes back.
     match_trigram_threshold: float = 0.3
+    # Below this a candidate is not worth offering as a "did you mean". The
+    # search always returns its best guess, and for a product we do not carry
+    # that guess can be a different material entirely -- plywood suggested for
+    # gipsokarton, because both are 15 mm. Saying "we do not have it, call us"
+    # is more use than a confident wrong list.
+    match_suggest_floor: float = 0.45
 
     # LLM Settings (§6 & §7)
     openai_api_key: str = "placeholder_openai_key"

@@ -23,7 +23,11 @@ UNIT_TOKENS = (
 )
 
 # Range pattern: e.g. "10-15" or "10 - 15" or "10..15"
-RANGE_REGEX = re.compile(r"\b(\d+(?:\.\d+)?)\s*(?:[-–—]|\.{2})\s*(\d+(?:\.\d+)?)\b")
+# "10-15 qop" is a range. "1.5x1.5 - 15 ta" is a size and a quantity, and
+# reading it as a range produced 1500x1150 -- a sheet nobody makes -- and ate
+# the quantity on the way. The lookbehind keeps the range syntax away from
+# anything that is already part of a size.
+RANGE_REGEX = re.compile(r"(?<![xх×*\d.])\b(\d+(?:\.\d+)?)\s*(?:[-–—]|\.{2})\s*(\d+(?:\.\d+)?)\b")
 
 # Multiplier pattern: e.g. "5 x 10 qop"
 MULTIPLIER_REGEX = re.compile(
@@ -116,6 +120,37 @@ def split_message_to_lines(raw_text: str) -> list[str]:
     return clean_lines
 
 
+# Units that count things you can put on a lorry. A dimension is not one of
+# them: nobody orders "3 mm" of plywood, and reading a thickness as the
+# quantity is how "03m 10ta fanera" became three metres of "10ta fanera".
+COUNT_UNIT_TOKENS = (
+    r"dona|дона|шт|штук|sht|pcs|ta|qop|қоп|мешок|meshok|rulon|рулон|quti|коробка|list|лист"
+)
+COUNT_ANYWHERE_REGEX = re.compile(rf"\b(\d+(?:\.\d+)?)\s*({COUNT_UNIT_TOKENS})\b", re.IGNORECASE)
+
+# "03m ...", "12mm ..." -- a line that opens with a measurement, not an amount.
+STARTS_WITH_DIMENSION_REGEX = re.compile(
+    r"^\s*\d+(?:\.\d+)?\s*(?:mm|мм|sm|см|m|м)\b", re.IGNORECASE
+)
+
+
+def find_counted_quantity(text: str) -> tuple[Decimal, str, str] | None:
+    """A "10 ta"-shaped quantity anywhere in the line, and the line without it.
+
+    The price list puts the thickness first -- "03m 10ta fanera" -- so the
+    first number on the line is routinely not the amount being ordered. A
+    counting unit is unambiguous in a way position is not, so when one is
+    present it wins, and what remains is the product.
+    """
+    match = COUNT_ANYWHERE_REGEX.search(text)
+    if match is None:
+        return None
+    remainder = (text[: match.start()] + " " + text[match.end() :]).strip()
+    if not remainder:
+        return None
+    return Decimal(match.group(1)), unify_unit_str(match.group(2)), remainder
+
+
 def parse_single_line(line_no: int, raw_line: str) -> ParsedLine:
     """Parse a single text line into structured (parsed_name, qty, unit_code)."""
     # Greetings come off before the quantity regexes run: those anchor on the
@@ -125,6 +160,25 @@ def parse_single_line(line_no: int, raw_line: str) -> ParsedLine:
     text = strip_fillers(protect_decimal_commas(raw_line).strip())
     needs_review = False
     user_note: str | None = None
+
+    # A line that opens with a dimension is the price list's own order --
+    # "03m 10ta fanera" is three millimetres, ten sheets. Position says the
+    # first number is the amount; the counting unit says otherwise, and it is
+    # the one that cannot be misread. Narrow on purpose: every other line keeps
+    # the rules below, including negative amounts, ranges and multipliers,
+    # which a broader version of this quietly broke.
+    counted = find_counted_quantity(text) if STARTS_WITH_DIMENSION_REGEX.match(text) else None
+    if counted is not None:
+        counted_qty, counted_unit, remainder = counted
+        return ParsedLine(
+            line_no=line_no,
+            raw_text=raw_line,
+            parsed_name=normalize_text(remainder),
+            qty=counted_qty,
+            unit_code=counted_unit,
+            confidence=0.95,
+            needs_review=False,
+        )
 
     # Check for container * volume pattern: e.g. "kraska belaya 3 vedra 10l"
     container_match = CONTAINER_VOL_REGEX.search(text)

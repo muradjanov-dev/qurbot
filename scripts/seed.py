@@ -1178,6 +1178,15 @@ _MATERIAL_KEYWORDS: dict[str, tuple[str, ...]] = {
 }
 
 
+# What a sheet size is called out loud. Seeded rather than computed: the
+# arithmetic does not close -- 1.5 by 1.5 metres is 1500x1500 and the sheet is
+# 1525x1525 -- so only the naming knows they are the same thing.
+_SIZE_SPOKEN_AS: dict[str, tuple[str, ...]] = {
+    "1525x1525": ("1.5x1.5", "1.50x1.50", "1.52x1.52", "1.525x1.525"),
+    "2440x1220": ("1.22x2.44", "2.44x1.22"),
+}
+
+
 def generate_aliases_for_product(item: CatalogItem) -> list[dict[str, Any]]:
     """Search aliases for one catalogue row.
 
@@ -1202,6 +1211,15 @@ def generate_aliases_for_product(item: CatalogItem) -> list[dict[str, Any]]:
                 raw_forms.append(f"{keyword} {grade} {thickness}")
             if size:
                 raw_forms.append(f"{keyword} {thickness}mm {size}")
+                # And the size as people say it out loud, in metres. This has
+                # to be an alias rather than a conversion: 1.5 x 1.5 metres is
+                # 1500x1500, the sheet is 1525x1525, and no arithmetic bridges
+                # that gap -- only knowing that this is what the sheet is
+                # called. Straight off the unmatched queue, where "1.50x1.50",
+                # "1.52x1.52" and "1.525x1.525" all appear.
+                for spoken in _SIZE_SPOKEN_AS.get(str(size), ()):
+                    raw_forms.append(f"{keyword} {spoken} {thickness}mm")
+                    raw_forms.append(f"{keyword} {thickness}mm {spoken}")
             if item.brand:
                 raw_forms.append(f"{keyword} {item.brand} {thickness}")
             raw_forms.append(f"{keyword} {thickness}mm")

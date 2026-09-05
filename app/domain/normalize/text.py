@@ -123,6 +123,12 @@ NUMBER_REGEX = re.compile(r"\b\d+(?:[.,]\d+)?\b")
 # serve as the closing guard: "03mm" has none between the digit and the unit.
 LEADING_ZERO_REGEX = re.compile(r"(?<![\d.])0+(\d+)(?![\d.])")
 
+# A price list writes a thickness zero-padded -- 03m, 04m, 08m -- and the
+# customer copies it across. Without the zero it stays a length: "3 m" of cable
+# or skirting is an ordinary thing to order, so only the padded form is
+# rewritten, and it is rewritten before the zero itself is stripped.
+PADDED_MM_REGEX = re.compile(r"(?<![\d.])0(\d{1,2})\s*m(?![a-z0-9])", re.IGNORECASE)
+
 # Sheet goods are sold by a size in millimetres (1525x1525) and asked for by a
 # size in metres ("1.50 na 1.50"). Both numbers being fractional is what marks
 # the metre form -- a millimetre size never is.
@@ -258,6 +264,7 @@ def normalize_text(raw: str) -> str:
     # slash the plywood trade uses for a grade. Runs after the size pass, so a
     # size is already spelled with a single x whichever separator was typed.
     text = METRE_SIZE_REGEX.sub(metres_to_millimetres, text)
+    text = PADDED_MM_REGEX.sub(r"\1mm", text)
     text = LEADING_ZERO_REGEX.sub(r"\1", text)
     if PLYWOOD_WORD_REGEX.search(text):
         text = GRADE_SLASH_REGEX.sub(r"\1x\2", text)

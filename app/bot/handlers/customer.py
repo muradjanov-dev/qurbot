@@ -40,6 +40,7 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.normalize.phone import normalize_uz_phone
+from app.domain.normalize.text import normalize_query
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
 from app.services.catalog_service import CatalogService
@@ -272,7 +273,15 @@ async def _process_basket_input(
     # "pick one", which is the difference between a customer who answers and
     # one who guesses.
     for item in new_lines:
-        if item["candidates"] and item["status"] in ("ask_user", "unresolved"):
+        # An unresolved line is only worth a "did you mean" when the guess is
+        # in the right neighbourhood. The search always returns something, and
+        # for a product we do not carry that something can be another material
+        # with the same thickness.
+        near_enough = (
+            item["status"] == "ask_user"
+            or item.get("confidence", 0.0) >= settings.match_suggest_floor
+        )
+        if item["candidates"] and near_enough and item["status"] in ("ask_user", "unresolved"):
             question = item.get("clarify_question")
             if question:
                 prompt = t(
@@ -299,6 +308,7 @@ async def _process_basket_input(
 async def callback_pick_candidate(
     callback: CallbackQuery,
     state: FSMContext,
+    session: AsyncSession,
     bot: Bot,
     lang: str,
 ) -> None:
@@ -312,15 +322,29 @@ async def callback_pick_candidate(
     lines: list[dict[str, Any]] = data.get("basket_lines", [])
 
     chosen_name = ""
+    learned_from = ""
     for line in lines:
         if line["line_no"] == line_no:
             line["status"] = "auto_accept"
             line["canonical_id"] = canonical_id
+            learned_from = line.get("parsed_name", "")
             for c in line.get("candidates", []):
                 if c["canonical_id"] == canonical_id:
                     line["canonical_name"] = c["name_uz"]
                     chosen_name = c["name_uz"]
                     break
+
+    # Learn the phrasing. A customer picking from a list is the strongest
+    # signal in the system -- a person saying "yes, that is what I meant" --
+    # so it is approved on the spot, and the next customer who writes it that
+    # way is answered by the exact-match stage for nothing. This is what makes
+    # the bot better with use rather than only with redeploys.
+    if learned_from:
+        await CatalogRepository(session).learn_alias_from_customer(
+            canonical_id=canonical_id,
+            alias_norm=normalize_query(learned_from).text_norm,
+            alias_raw=learned_from,
+        )
 
     await state.update_data(basket_lines=lines)
 
