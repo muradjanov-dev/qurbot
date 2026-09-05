@@ -3,6 +3,8 @@ from collections.abc import Sequence
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from app.bot.formatters.common import shorten_button_label
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct, Category
 from app.db.models.shop import District, Shop, ShopProduct
@@ -120,6 +122,16 @@ def get_price_category_keyboard(
     return builder.as_markup()
 
 
+def _row_label(name: str, suffix: str) -> str:
+    """A product row that keeps its size when the line runs out.
+
+    The suffix -- a price, a score -- is what the customer is comparing, so it
+    is never the part that gets dropped; the name is shortened around it.
+    """
+    room = settings.inline_button_max_chars - len(suffix) - 3
+    return f"{shorten_button_label(name, max(room, 8))} — {suffix}"
+
+
 def get_product_picker_keyboard(
     products: Sequence[tuple["CanonicalProduct", str]],
     lang: str = "uz_latn",
@@ -132,7 +144,7 @@ def get_product_picker_keyboard(
     builder = InlineKeyboardBuilder()
     for product, price_text in products:
         builder.button(
-            text=f"{product.name_uz} — {price_text}",
+            text=_row_label(product.name_uz, price_text),
             callback_data=f"price_prod:{product.id}",
         )
     builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
@@ -150,7 +162,7 @@ def get_all_products_keyboard(
     builder = InlineKeyboardBuilder()
     for product, price_text in products:
         builder.button(
-            text=f"{product.name_uz} — {price_text}",
+            text=_row_label(product.name_uz, price_text),
             callback_data=f"price_prod:{product.id}",
         )
     builder.adjust(1)
@@ -303,8 +315,10 @@ def get_candidate_picker_keyboard(
     """Build inline candidate picker for ambiguous lines (⚠️)."""
     builder = InlineKeyboardBuilder()
     for cand in candidates[:3]:
-        name = cand.name_uz
-        builder.button(text=name, callback_data=f"pick_cand:{line_no}:{cand.canonical_id}")
+        builder.button(
+            text=shorten_button_label(cand.name_uz, settings.inline_button_max_chars),
+            callback_data=f"pick_cand:{line_no}:{cand.canonical_id}",
+        )
     builder.button(text="✍️ Boshqa (qo'lda kiritish)", callback_data=f"pick_custom:{line_no}")
     builder.adjust(1)
     return builder.as_markup()
@@ -503,7 +517,8 @@ def get_unmatched_row_keyboard(
     """
     builder = InlineKeyboardBuilder()
     for canonical_id, name, score in candidates[:5]:
-        label = f"{'✅' if score >= 0.8 else '🔹'} {name} ({score:.0%})"
+        mark = "✅" if score >= 0.8 else "🔹"
+        label = f"{mark} {_row_label(name, f'{score:.0%}')}"
         builder.button(text=label, callback_data=f"import_resolve:{row_id}:{canonical_id}")
     builder.button(text="⏭ O'tkazib yuborish", callback_data=f"import_skip:{row_id}")
     builder.adjust(1)

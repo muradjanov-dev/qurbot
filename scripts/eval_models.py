@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -31,6 +32,10 @@ from app.services.catalog_service import CatalogService
 from scripts.seed import seed_database
 
 DEFAULT_CANDIDATES = ("gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra")
+
+# Accuracy is not the only thing being chosen. A customer waits in the chat
+# while this runs, so a model that answers better but takes four times as
+# long is not automatically the better one -- the seconds are printed too.
 
 
 @dataclass(frozen=True)
@@ -66,12 +71,25 @@ CASES: tuple[Case, ...] = (
     Case("Osb 15mm 25 ta", "OSB", "abbreviation"),
     Case("5 dona osb", "OSB", "no thickness"),
     Case("Dvp 3mm - 10 ta", "DVP", "abbreviation"),
+    # Fasteners, since the metiz prays went in. Written the way they arrive:
+    # Cyrillic, decimal commas, Uzbek and Russian plurals, and the packaging
+    # words the price list abbreviates.
+    Case("10 kg sariq samorez 3x25", "Sariq samorez", "sizes off a list row"),
+    Case("5 kg саморез потай 4,2х25", "Potay samorez", "cyrillic, decimal comma"),
+    Case("20 kg mix 70", "Mix", "length inside a priced span"),
+    Case("3 quti chopiq qizil 6x40", "Chopiq qizil", "uzbek spelling"),
+    Case("болты 12х100 3 кг", "Bolt", "russian plural"),
+    Case("5 kg medved 7.5x100", "Medved", "name ending in d"),
+    Case("2 пач заклепка орбита 5х20", "Zaklepka Orbita", "pack unit abbreviated"),
+    Case("shuruplar 4,8х40 2 кор", "samorez", "shurup means samorez"),
+    Case("Samarez 70 1kg", "samorez", "phonetic spelling"),
+    Case("50 dona anker 12x150", "anker", "family word, any of them"),
     # Nothing in the catalogue answers these. Saying so is the right answer.
     Case("2 dona tosh", None, "not carried"),
-    Case("Samarez 70 1kg", None, "not carried"),
     Case("Gipsokarton 15 mm oq 6 ta", None, "not carried"),
     Case("Emdef 16m 3 dona", None, "MDF, not carried"),
     Case("10 dona oboy", None, "not carried"),
+    Case("5 qop sement m400", None, "not carried"),
 )
 
 
@@ -124,9 +142,14 @@ async def main(models: tuple[str, ...]) -> None:
 
         print(f"{len(CASES)} ta haqiqiy so'rov, {len(models)} ta model\n")
         for model in models:
+            started = time.perf_counter()
             correct, wrong, misses = await _score(session, model)
+            elapsed = time.perf_counter() - started
             pct = correct / len(CASES) * 100
-            print(f"{model:<18} {correct}/{len(CASES)}  ({pct:.0f}%)")
+            print(
+                f"{model:<18} {correct}/{len(CASES)}  ({pct:.0f}%)"
+                f"  {elapsed:.0f}s  {elapsed / len(CASES):.1f}s/so'rov"
+            )
             for miss in misses:
                 print(f"    x {miss}")
             print()

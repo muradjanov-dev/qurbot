@@ -33,6 +33,42 @@ def esc(value: object) -> str:
     return html_escape(str(value), quote=False)
 
 
+def shorten_button_label(text: str, limit: int) -> str:
+    """Fit a product name into an inline button without losing what identifies it.
+
+    Telegram gives a button one line and clips whatever does not fit, from the
+    right -- which on these names throws away the size, the only part that
+    tells two rows apart. "Krovelniy samorez oq (metallga) 6.3x25-200" arrived
+    on a phone as "Krovelniy samorez oq (metall", and the customer was asked to
+    choose between three buttons that read the same.
+
+    So the family word is kept and the middle is dropped instead, taking as
+    much of the tail as will fit. What survives is what a buyer is choosing
+    between: "Fanera… SiyPly 18 mm (2440x1220)", "Krovelniy… (metallga)
+    6.3x25-200". Cutting from the right instead would leave both of those as
+    the word they share.
+    """
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+
+    words = text.split(" ")
+    head = words[0]
+    budget = limit - len(head) - 2  # the ellipsis and the space after it
+    if budget <= 0:
+        return text[:limit]
+
+    tail_words: list[str] = []
+    for word in reversed(words[1:]):
+        candidate = [word, *tail_words]
+        if len(" ".join(candidate)) > budget:
+            break
+        tail_words = candidate
+    if not tail_words:
+        return f"{head}… {words[-1][-budget:]}"
+    return f"{head}… {' '.join(tail_words)}"
+
+
 def format_catalog_price(
     live_price: Decimal | None,
     reference_price: Decimal | None,

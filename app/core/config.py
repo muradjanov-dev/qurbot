@@ -113,10 +113,27 @@ class Settings(BaseSettings):
     # is more use than a confident wrong list.
     match_suggest_floor: float = 0.45
 
+    # How much of a product name fits on one line of an inline button before
+    # Telegram clips it. Measured on a narrow phone, which is what most of
+    # these customers hold; a longer label is shortened around its size rather
+    # than cut off at the right edge.
+    inline_button_max_chars: int = 34
+
     # LLM Settings (§6 & §7)
     openai_api_key: str = "placeholder_openai_key"
     openai_base_url: str | None = None
-    llm_model: str = "gpt-5.6-luna"
+    # Chosen by measurement, not by tier name -- `scripts.eval_models` runs
+    # every candidate over queries taken from the unmatched queue. Every model
+    # we can actually call ties at 27/28, and the one miss is a matching-layer
+    # fault the model never sees, so accuracy cannot separate them. Latency
+    # can, and the customer is sitting in the chat while this runs: terra
+    # answers in 1.3s against luna's 1.6 and sol's 1.9, reproducibly.
+    #
+    # The "pro" tiers are deliberately not here. They are not served on
+    # /v1/chat/completions -- every call 404s -- so reaching them means
+    # teaching the client the Responses API, for a model that is slower and
+    # that nothing in the measurements suggests would answer better.
+    llm_model: str = "gpt-5.6-terra"
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
     # Reasoning models spend part of this budget on hidden reasoning tokens

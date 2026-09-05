@@ -17,7 +17,7 @@ from app.domain.optimizer.models import (
     ShopOffer,
     ShopQuoteGroup,
 )
-from app.domain.pricing.units import line_cost, unit_price
+from app.domain.pricing.units import can_price_line, line_cost, unit_price
 
 
 class BasketOptimizer:
@@ -45,7 +45,33 @@ class BasketOptimizer:
             and o.staleness_state != "stale"
             and o.stock_status in ("in_stock", "low", "on_order")
         ]
-        self.valid_offers = self._filter_by_stock(available)
+        self.valid_offers = self._filter_by_stock(self._filter_by_priceability(available))
+
+    def _filter_by_priceability(self, offers: list[ShopOffer]) -> list[ShopOffer]:
+        """Drop offers that cannot be costed against the line that asked for them.
+
+        Pricing happens deep inside a `min()` over candidate offers, so an
+        offer that cannot be costed did not cost us that offer -- it raised out
+        of the solver and took the entire quote with it, including the lines
+        that priced perfectly well. A customer asking for "5 kg" of something
+        this catalogue sells by the box got no answer at all, for anything.
+
+        An offer no line can use is not an error; it is simply not a candidate.
+        A line left with none is reported as unavailable by the existing path,
+        which is what the customer should hear.
+        """
+        units_by_canonical: dict[int, set[str]] = {}
+        for item in self.basket_items:
+            units_by_canonical.setdefault(item.canonical_id, set()).add(item.unit_code)
+
+        return [
+            offer
+            for offer in offers
+            if any(
+                can_price_line(unit, offer.pack_unit)
+                for unit in units_by_canonical.get(offer.canonical_id, set())
+            )
+        ]
 
     def _filter_by_stock(self, offers: list[ShopOffer]) -> list[ShopOffer]:
         """Drop offers that cannot cover what the customer asked for.

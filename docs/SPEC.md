@@ -38,7 +38,7 @@ mobile app.
 | Migrations | Alembic. Every schema change gets a migration — never `create_all` in prod. |
 | Cache / FSM | Redis (aiogram `RedisStorage`, plus app-level cache) |
 | Background jobs | `arq` (Redis-backed) — separate worker process |
-| LLM | OpenAI-compatible Chat Completions API (`gpt-5.6-luna`), used **only as fallback**, see §6 |
+| LLM | OpenAI-compatible Chat Completions API (`gpt-5.6-terra`), used **only as fallback**, see §6 |
 | Config | `pydantic-settings`, all secrets from env, `.env.example` committed |
 | Logging | `structlog`, JSON output, request/update correlation IDs |
 | Tests | `pytest` + `pytest-asyncio` + `testcontainers` (or a dedicated test DB) |

@@ -28,6 +28,9 @@ STANDARD_UNITS: dict[str, UnitDefinition] = {
     "rulon": UnitDefinition(
         code="rulon", dimension="count", base_code="dona", factor_to_base=Decimal("1.0000")
     ),
+    "pachka": UnitDefinition(
+        code="pachka", dimension="count", base_code="dona", factor_to_base=Decimal("1.0000")
+    ),
     # Area
     "m2": UnitDefinition(
         code="m2", dimension="area", base_code=None, factor_to_base=Decimal("1.0000")
@@ -61,6 +64,36 @@ def get_unit_def(
     if clean_unit not in registry:
         raise UnknownUnitError(clean_unit)
     return registry[clean_unit]
+
+
+def can_price_line(
+    required_unit: str,
+    pack_unit: str,
+    custom_units: dict[str, UnitDefinition] | None = None,
+) -> bool:
+    """Whether a line asked for in one unit can be costed against an offer in another.
+
+    Exactly the rule `line_cost` enforces, asked in advance instead of by
+    catching what it raises. Two things make an offer unpriceable for a line:
+
+    * a unit neither side recognises -- a shop is free to type "banka" into its
+      upload, and that must cost us that one offer, not the quote;
+    * a physical dimension the other side does not share. "5 kg" of something
+      priced by the box has no answer, because nobody recorded what a box
+      weighs, and inventing one would put a number on the order that no shop
+      agreed to. The one direction that does work is a bare package count
+      ("3 quti") against any offer, since one package is one pack.
+
+    The caller drops the offer. If a line has none left, it is reported as
+    unavailable -- which is what the customer should hear, rather than the
+    whole basket failing on one line's unit.
+    """
+    try:
+        req = get_unit_def(required_unit, custom_units)
+        pack = get_unit_def(pack_unit, custom_units)
+    except UnknownUnitError:
+        return False
+    return req.dimension == pack.dimension or req.dimension == "count"
 
 
 def to_base(

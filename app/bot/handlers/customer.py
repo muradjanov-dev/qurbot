@@ -18,7 +18,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_qty
+from app.bot.formatters.common import esc, format_qty, shorten_button_label
 from app.bot.handlers.shop_listing import send_listing_photos
 from app.bot.keyboards.inline import (
     get_address_confirm_keyboard,
@@ -299,7 +299,7 @@ async def _process_basket_input(
             else:
                 prompt = t("choose_candidate_prompt", lang=lang, name=esc(item["parsed_name"]))
             await message.answer(
-                prompt,
+                f"{prompt}\n\n{_format_candidate_list(item['candidates'])}",
                 reply_markup=_build_candidate_picker_keyboard(item["line_no"], item["candidates"]),
             )
 
@@ -1196,16 +1196,44 @@ async def _safe_edit_text(
             raise
 
 
+_PICK_NUMERALS = ("1️⃣", "2️⃣", "3️⃣")
+
+
+def _candidate_choices(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The candidates a picker offers, with the numeral that labels each."""
+    return [
+        {**cand, "numeral": _PICK_NUMERALS[index]}
+        for index, cand in enumerate(candidates[: len(_PICK_NUMERALS)])
+    ]
+
+
+def _format_candidate_list(candidates: list[dict[str, Any]]) -> str:
+    """The choices written out in full, above the buttons.
+
+    A button holds one clipped line; the message holds the whole name and the
+    price. Both are shown because the button is what gets tapped and the text
+    is what gets read -- and with names like "Krovelniy samorez oq (metallga)
+    6.3x25-200" the button alone cannot say which is which.
+    """
+    lines = []
+    for cand in _candidate_choices(candidates):
+        row = f"{cand['numeral']} <b>{esc(cand['name_uz'])}</b>"
+        if cand.get("min_price"):
+            row = f"{row} — {esc(cand['min_price'])} so'm"
+        lines.append(row)
+    return "\n".join(lines)
+
+
 def _build_candidate_picker_keyboard(
     line_no: int, candidates: list[dict[str, Any]]
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    for cand in candidates[:3]:
-        label = str(cand["name_uz"])
-        if cand.get("min_price"):
-            label = f"{label} — {cand['min_price']} so'm"
+    for cand in _candidate_choices(candidates):
+        label = shorten_button_label(
+            str(cand["name_uz"]), settings.inline_button_max_chars - len(cand["numeral"]) - 1
+        )
         builder.button(
-            text=label,
+            text=f"{cand['numeral']} {label}",
             callback_data=f"pick_cand:{line_no}:{cand['canonical_id']}",
         )
     builder.adjust(1)

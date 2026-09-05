@@ -1,4 +1,4 @@
-"""Async LLM client for QurBot supporting gpt-5.6-luna and OpenAI-compatible APIs.
+"""Async LLM client for QurBot supporting gpt-5.6-terra and OpenAI-compatible APIs.
 
 Handles:
 - Structured JSON completion requests with retries and jitter.
@@ -547,7 +547,7 @@ class LLMClient:
             logger.exception("Failed to record LLM call in DB")
 
     def _estimate_cost(self, in_tokens: int, out_tokens: int) -> Decimal:
-        """Cost estimate for gpt-5.6-luna / modern fast models ($2.5 / 1M in, $10 / 1M out)."""
+        """Cost estimate for gpt-5.6-terra / modern fast models ($2.5 / 1M in, $10 / 1M out)."""
         cost = (Decimal(in_tokens) * Decimal("0.0000025")) + (
             Decimal(out_tokens) * Decimal("0.000010")
         )
