@@ -65,11 +65,14 @@ class Settings(BaseSettings):
     # their products can be matched -- quoting something we cannot actually
     # source is worse than saying we do not carry it. Empty list = no
     # restriction, which is how the full catalogue is switched back on.
-    # The catalogue is currently one supplier's sheet-goods price list, so
-    # this is the only category with anything behind it. Adding a supplier
-    # means adding their category here in the same change.
+    # One entry per price list actually transcribed into the catalogue. A
+    # category left out of this list is invisible no matter how many rows sit
+    # behind it -- which is what silently happened to the sawn timber: it was
+    # seeded, and no customer could reach a single board.
     enabled_category_slugs: list[str] = [
         "plita-va-fanera",
+        "yogoch",
+        "mahkamlash-materiallari",
     ]
 
     # Reverse geocoding for saved delivery addresses. Yandex is used when a key

@@ -2,11 +2,12 @@ import re
 from decimal import Decimal
 
 from app.domain.normalize.slang import strip_fillers
-from app.domain.normalize.text import normalize_text, unify_unit_str
+from app.domain.normalize.text import (
+    normalize_text,
+    protect_decimal_commas,
+    unify_unit_str,
+)
 from app.domain.parsing.models import ParsedLine
-
-# Regex to protect decimal numbers with commas: e.g. "12,5" -> "12.5"
-DECIMAL_COMMA_REGEX = re.compile(r"(\d+),(\d+)")
 
 # Line start bullets or numbering: "1.", "1)", "•", "-", "*"
 # (requires space + non-digit after number prefix)
@@ -18,7 +19,8 @@ LINE_PREFIX_REGEX = re.compile(r"^\s*(?:[\d]+[\.\)](?=\s+[^\d])|[•*]|-(?=\s))\
 # Known unit regex tokens
 UNIT_TOKENS = (
     r"dona|дона|шт|штук|sht|pcs|ta|list|лист|qop|қоп|мешок|meshok|m2|м2|m²|kv\.m|кв\.м|kvadrat|квадрат|"
-    r"m3|м3|m³|kub|куб|kub\.m|куб\.м|litr|литр|л|l|rulon|рулон|quti|коробка|metr|метр|m|м|"
+    r"m3|м3|m³|kub|куб|kub\.m|куб\.м|litr|литр|л|l|rulon|рулон|quti|коробка|кор|korobka|"
+    r"pachka|пачка|пач|pach|upakovka|упаковка|metr|метр|m|м|"
     r"sm|см|mm|мм|tonna|тонна|t|т|kg|кг|kilo|кило|килограмм|gramm|грамм|g|г"
 )
 
@@ -52,10 +54,6 @@ QTY_END_REGEX = re.compile(
     rf"^(.*)\s*(?:[:-]\s*|\s+)(\d+(?:\.\d+)?)\s*({UNIT_TOKENS})\s*$",
     re.IGNORECASE,
 )
-
-
-def protect_decimal_commas(text: str) -> str:
-    return DECIMAL_COMMA_REGEX.sub(r"\1.\2", text)
 
 
 # "500 dona kirpich va 2 tonna pesok" is two orders in one breath, and nothing
@@ -124,7 +122,8 @@ def split_message_to_lines(raw_text: str) -> list[str]:
 # them: nobody orders "3 mm" of plywood, and reading a thickness as the
 # quantity is how "03m 10ta fanera" became three metres of "10ta fanera".
 COUNT_UNIT_TOKENS = (
-    r"dona|дона|шт|штук|sht|pcs|ta|qop|қоп|мешок|meshok|rulon|рулон|quti|коробка|list|лист"
+    r"dona|дона|шт|штук|sht|pcs|ta|qop|қоп|мешок|meshok|rulon|рулон|quti|коробка|кор|"
+    r"pachka|пачка|пач|list|лист"
 )
 COUNT_ANYWHERE_REGEX = re.compile(rf"\b(\d+(?:\.\d+)?)\s*({COUNT_UNIT_TOKENS})\b", re.IGNORECASE)
 

@@ -17,10 +17,10 @@ from app.db.models import (
 )
 from scripts.seed import (
     FANERA_UZ,
-    OUR_PLYWOOD_PRICE_COUNT,
     OUR_SHOP_NAME,
     SOURCE_SUPPLIER,
     generate_catalog_data,
+    our_priced_rows,
     seed_database,
 )
 
@@ -113,9 +113,7 @@ async def test_catalog_only_seed_skips_the_demo_market(test_session: AsyncSessio
     assert shops == 1, "catalog-only must create no shop but our own"
     # Same reasoning as the shop above: these are our own prices, the only
     # ones a customer can order against before a partner uploads anything.
-    assert offers == len(
-        OUR_PLYWOOD_PRICE_COUNT
-    ), "catalog-only must create our own offers and no others"
+    assert offers == len(our_priced_rows()), "catalog-only must create our own offers and no others"
 
 
 @pytest.mark.asyncio
@@ -155,9 +153,9 @@ async def test_catalog_records_where_each_product_came_from(
     products = (await test_session.execute(select(CanonicalProduct))).scalars().all()
     assert products
     assert {p.source for p in products} == {SOURCE_SUPPLIER}
-    # The wagon manifests are a second supplier: dimensions and counts, no
-    # prices yet.
-    assert {p.source_ref for p in products} == {FANERA_UZ, "vagon"}
+    # One value per price list transcribed: the sheet-goods list, the wagon
+    # manifests (dimensions and counts, no prices yet), and the fastener prays.
+    assert {p.source_ref for p in products} == {FANERA_UZ, "vagon", "metiz-prays"}
 
 
 @pytest.mark.asyncio

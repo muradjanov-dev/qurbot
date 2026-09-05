@@ -81,6 +81,54 @@ PRODUCT_SLANG: dict[str, str] = {
     # Tom yopish -- phonetic spellings of shifer that reach us constantly
     "shipr": "shifer",
     "shifr": "shifer",
+    # Mahkamlash materiallari (metiz). The fastener trade is spoken in Russian
+    # nouns that get an Uzbek plural, a Russian plural, or neither depending on
+    # who is typing -- "anker", "ankera" and "ankerlar" are one word in three
+    # coats, and only the bare stem is on the price list.
+    #
+    # The supplier's own spellings are here too, mapped the other way round:
+    # the list prints "ПОТТАЙ", "ПРОПКА" and "САРИК" where the words are potay,
+    # probka and sariq, and the catalogue carries the correct spelling.
+    "ankera": "anker",
+    "ankeri": "anker",
+    "ankerlar": "anker",
+    "samarez": "samorez",
+    "samorezi": "samorez",
+    "samorezy": "samorez",
+    "samorezlar": "samorez",
+    "shurup": "samorez",
+    "shurupy": "samorez",
+    "shuruplar": "samorez",
+    "bolty": "bolt",
+    "boltlar": "bolt",
+    "gayki": "gayka",
+    "gaykalar": "gayka",
+    "shayby": "shayba",
+    "shaybalar": "shayba",
+    "shpilki": "shpilka",
+    "shpilkalar": "shpilka",
+    "kryuchki": "kryuchok",
+    "kryuchkov": "kryuchok",
+    "kryuchoklar": "kryuchok",
+    "ilmoq": "kryuchok",
+    "dubel": "dyubel",
+    "dyubeli": "dyubel",
+    "dyubelya": "dyubel",
+    "dyubellar": "dyubel",
+    "zaklyopka": "zaklepka",
+    "zaklyopki": "zaklepka",
+    "zaklepki": "zaklepka",
+    "chopiq": "chopik",
+    "chopiqlar": "chopik",
+    "glukhar": "gluxar",
+    "krovelnyy": "krovelniy",
+    "krovelny": "krovelniy",
+    "krovelnaya": "krovelniy",
+    "pottay": "potay",
+    "propka": "probka",
+    "styajka": "stashka",
+    "sarik": "sariq",
+    "kora samorez": "qora samorez",
     # Ranglar. A colour is half of how a customer names brick, paint or tile
     # ("krasniy kirpich"), and the catalog writes it in Uzbek, so the Russian
     # adjective has to cross over with the noun or the line scores worse than

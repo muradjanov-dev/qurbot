@@ -18,6 +18,7 @@ Seeds:
 import asyncio
 import logging
 import random
+import re
 import sys
 from dataclasses import dataclass
 from decimal import Decimal
@@ -39,7 +40,7 @@ from app.db.models import (
     User,
 )
 from app.db.session import async_session_factory
-from app.domain.normalize.text import normalize_text
+from app.domain.normalize.text import normalize_query, normalize_text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seed")
@@ -109,6 +110,16 @@ UNITS_DATA = [
         "code": "rulon",
         "name_uz": "Rulon",
         "name_ru": "Рулон",
+        "dimension": "count",
+        "base_code": "dona",
+        "factor_to_base": Decimal("1.0000"),
+    },
+    # The fastener list prices some rows per box and others per pack, and
+    # charges differently for the two, so they cannot share a unit.
+    {
+        "code": "pachka",
+        "name_uz": "Pachka",
+        "name_ru": "Пачка",
         "dimension": "count",
         "base_code": "dona",
         "factor_to_base": Decimal("1.0000"),
@@ -1142,6 +1153,1015 @@ def _timber_items() -> list[CatalogItem]:
     return items
 
 
+# Metiz -- the fastener price list: samorez, anker, mix, bolt, gayka and the
+# rest. Transcribed from the supplier's four-page prays.
+#
+# Three things about this list shape the code below.
+#
+# * **The unit is part of the price.** The same trade sells by the piece, by
+#   the kilo, by the box and by the pack, and which one a row uses is not
+#   guessable from the product -- kровельный saмorez is quoted per box in one
+#   block and per kilo in the next. So the unit travels with the block.
+# * **A row often names a size range, not a size.** "4.2x13-76" and
+#   "3x13-16-20-25" are one price covering every size in between; that range is
+#   the product, not a row we failed to split. It is kept verbatim, and the
+#   sizes it names are expanded into aliases so a customer asking for one of
+#   them lands on it.
+# * **The names are written the way the list writes them**, in the mixed
+#   Russian-Uzbek of the trade. What a customer types instead ("sarik" for
+#   "sariq", "shurup" for "samorez") is handled once in the slang table, not
+#   duplicated here.
+_METIZ_CATEGORY = "mahkamlash-materiallari"
+_METIZ_SOURCE_REF = "metiz-prays"
+
+
+@dataclass(frozen=True)
+class MetizGroup:
+    """One titled block of the fastener price list.
+
+    `rows` are (size label, price in dollars) exactly as printed. `keywords`
+    are what a customer types for this family -- already transliterated and
+    de-slanged, because that is the form an alias has to be in to be found.
+    """
+
+    key: str
+    name_uz: str
+    name_uz_cyrl: str
+    name_ru: str
+    unit: str
+    keywords: tuple[str, ...]
+    rows: tuple[tuple[str, str], ...]
+    brand: str | None = None
+
+
+_METIZ: list[MetizGroup] = [
+    MetizGroup(
+        key="oq-anker",
+        name_uz="Oq anker",
+        name_uz_cyrl="Оқ анкер",
+        name_ru="Анкер белый",
+        unit="dona",
+        keywords=("oq anker", "ok anker", "anker oq"),
+        rows=(
+            ("10x72", "0.072"),
+            ("10x92", "0.084"),
+            ("10x112", "0.096"),
+            ("10x132", "0.108"),
+            ("10x152", "0.132"),
+            ("10x182", "0.156"),
+            ("10x202", "0.174"),
+        ),
+    ),
+    MetizGroup(
+        key="sariq-anker",
+        name_uz="Sariq anker",
+        name_uz_cyrl="Сариқ анкер",
+        name_ru="Анкер жёлтый",
+        unit="dona",
+        keywords=("sariq anker", "anker sariq"),
+        rows=(
+            ("8x40", "0.0396"),
+            ("8x60", "0.0636"),
+            ("8x80", "0.072"),
+            ("8x100", "0.0804"),
+            ("10x40", "0.078"),
+            ("10x60", "0.0936"),
+            ("10x80", "0.1056"),
+            ("10x100", "0.12"),
+            ("10x120", "0.156"),
+            ("10x150", "0.18"),
+            ("12x60", "0.15"),
+            ("12x80", "0.168"),
+            ("12x100", "0.18"),
+            ("12x120", "0.216"),
+            ("12x150", "0.288"),
+            ("12x200", "0.456"),
+            ("14x100", "0.288"),
+            ("14x120", "0.348"),
+            ("14x150", "0.456"),
+            ("14x200", "0.576"),
+            ("16x100", "0.42"),
+            ("16x120", "0.54"),
+            ("16x150", "0.648"),
+            ("16x200", "0.756"),
+            ("16x250", "1.104"),
+            ("20x100", "0.864"),
+            ("20x120", "0.912"),
+            ("20x150", "0.996"),
+            ("20x200", "1.26"),
+            ("20x250", "1.5"),
+            ("20x300", "2.22"),
+            ("24x150", "1.92"),
+            ("24x200", "2.4"),
+            ("24x250", "3"),
+        ),
+    ),
+    MetizGroup(
+        key="anker-klin",
+        name_uz="Anker klin",
+        name_uz_cyrl="Анкер клин",
+        name_ru="Анкер клин",
+        unit="dona",
+        keywords=("anker klin", "klin anker"),
+        rows=(
+            ("6x40", "0.0312"),
+            ("6x60", "0.0444"),
+        ),
+    ),
+    MetizGroup(
+        key="mufta-soedinitel",
+        name_uz="Mufta (biriktiruvchi)",
+        name_uz_cyrl="Муфта (бириктирувчи)",
+        name_ru="Муфта соединительная",
+        unit="dona",
+        keywords=("mufta", "mufta soedinitel", "soedinitel mufta"),
+        rows=(
+            ("6", "0.0324"),
+            ("8", "0.0528"),
+            ("10", "0.0684"),
+            ("12", "0.132"),
+        ),
+    ),
+    MetizGroup(
+        key="medved-montajniy",
+        name_uz="Medved montajniy",
+        name_uz_cyrl="Медведь монтажний",
+        name_ru="Медведь монтажный",
+        unit="kg",
+        keywords=("medved", "medved montajniy", "montajniy medved"),
+        rows=(("7.5x72-202", "2.34"),),
+    ),
+    MetizGroup(
+        key="krovelniy-samorez-rangli",
+        name_uz="Krovelniy samorez rangli",
+        name_uz_cyrl="Кровелний саморез рангли",
+        name_ru="Кровельный саморез цветной",
+        unit="quti",
+        keywords=("krovelniy samorez rangli", "rangli samorez", "krovelniy rangli"),
+        rows=(
+            ("4.8x25", "93.6"),
+            ("4.8x32", "99.6"),
+            ("4.8x40", "90"),
+            ("4.8x50", "73.2"),
+            ("4.8x60", "73.2"),
+            ("4.8x70", "73.2"),
+        ),
+    ),
+    MetizGroup(
+        key="krovelniy-sariq-metallga",
+        name_uz="Krovelniy sariq (metallga)",
+        name_uz_cyrl="Кровелний сариқ (металлга)",
+        name_ru="Кровельный жёлтый (по металлу)",
+        unit="kg",
+        keywords=("krovelniy sariq", "sariq krovelniy", "krovelniy metallga"),
+        rows=(("5.5x20-180", "2.34"),),
+    ),
+    MetizGroup(
+        key="krovelniy-samorez-oq-kg",
+        name_uz="Krovelniy samorez oq",
+        name_uz_cyrl="Кровелний саморез оқ",
+        name_ru="Кровельный саморез белый",
+        unit="kg",
+        keywords=(
+            "krovelniy samorez oq",
+            "krovelniy samorez ok",
+            "oq krovelniy samorez",
+            "samorez krovelniy oq",
+        ),
+        rows=(("6.3x25-200", "2.88"),),
+    ),
+    MetizGroup(
+        key="krovelniy-samorez-oq",
+        name_uz="Krovelniy samorez oq",
+        name_uz_cyrl="Кровелний саморез оқ",
+        name_ru="Кровельный саморез белый",
+        unit="quti",
+        keywords=(
+            "krovelniy samorez oq",
+            "krovelniy samorez ok",
+            "oq krovelniy samorez",
+            "samorez krovelniy oq",
+        ),
+        rows=(
+            ("4.8x25", "84"),
+            ("4.8x32", "93.6"),
+            ("4.8x40", "85.2"),
+            ("4.8x50", "67.2"),
+            ("4.8x60", "72"),
+            ("4.8x70", "69.6"),
+        ),
+    ),
+    MetizGroup(
+        key="qora-samorez-goldvalley",
+        name_uz="Qora samorez Goldvalley",
+        name_uz_cyrl="Қора саморез Голдваллей",
+        name_ru="Саморез чёрный Goldvalley",
+        unit="kg",
+        keywords=("samorez goldvalley", "qora samorez goldvalley", "goldvalley samorez"),
+        brand="Goldvalley",
+        rows=(
+            ("16-19", "2.4"),
+            ("25-100", "2.1"),
+        ),
+    ),
+    MetizGroup(
+        key="dyubel-gvozd",
+        name_uz="Dyubel-gvozd",
+        name_uz_cyrl="Дюбел-гвозд",
+        name_ru="Дюбель-гвоздь",
+        unit="kg",
+        keywords=("dyubel gvozd", "dyubel mix", "dyubel", "gvozd dyubel"),
+        rows=(
+            ("6x40", "2.22"),
+            ("6x60", "2.22"),
+            ("6x80", "2.22"),
+            ("8x60", "2.22"),
+            ("8x80", "2.22"),
+            ("8x100", "2.22"),
+            ("8x120", "2.52"),
+        ),
+    ),
+    MetizGroup(
+        key="sariq-samorez",
+        name_uz="Sariq samorez",
+        name_uz_cyrl="Сариқ саморез",
+        name_ru="Саморез жёлтый",
+        unit="kg",
+        keywords=("sariq samorez", "samorez sariq"),
+        rows=(
+            ("3x13-16-20-25", "3.24"),
+            ("4x16-6x150", "2.28"),
+        ),
+    ),
+    MetizGroup(
+        key="oq-samorez",
+        name_uz="Oq samorez",
+        name_uz_cyrl="Оқ саморез",
+        name_ru="Саморез белый",
+        unit="kg",
+        keywords=("oq samorez", "ok samorez", "samorez oq"),
+        rows=(
+            ("3x13-16-20-25", "3.24"),
+            # Printed "3,5/16 - 4x16": this list uses the slash where it
+            # elsewhere uses an x.
+            ("3.5x16-4x16", "2.76"),
+        ),
+    ),
+    MetizGroup(
+        key="press-shayba-ostriy",
+        name_uz="Press shayba (o'tkir)",
+        name_uz_cyrl="Пресс шайба (ўткир)",
+        name_ru="Пресс-шайба острая",
+        unit="kg",
+        keywords=("press shayba ostriy", "ostriy press shayba"),
+        rows=(("4.2x13-76", "2.16"),),
+    ),
+    MetizGroup(
+        key="press-shayba-sverlo",
+        name_uz="Press shayba (parmali)",
+        name_uz_cyrl="Пресс шайба (пармали)",
+        name_ru="Пресс-шайба со сверлом",
+        unit="kg",
+        keywords=("press shayba sverlo", "sverlo press shayba"),
+        rows=(("4.2x13-76", "2.22"),),
+    ),
+    MetizGroup(
+        key="potay-samorez",
+        name_uz="Potay samorez",
+        name_uz_cyrl="Потай саморез",
+        name_ru="Саморез потайной",
+        unit="kg",
+        keywords=("potay samorez", "samorez potay", "potay"),
+        rows=(
+            ("4.2x16;19;25;32", "2.22"),
+            ("4.2x40;50;60;70;80;100", "2.22"),
+        ),
+    ),
+    MetizGroup(
+        key="gribok-samorez",
+        name_uz="Gribok samorez",
+        name_uz_cyrl="Грибок саморез",
+        name_ru="Саморез грибок",
+        unit="kg",
+        keywords=("gribok samorez", "samorez gribok", "gribok"),
+        rows=(
+            ("4.8x16;19;25;32", "2.22"),
+            ("4.8x40;50;60;70;80;100", "2.22"),
+        ),
+    ),
+    MetizGroup(
+        key="mix",
+        name_uz="Mix",
+        name_uz_cyrl="Мих",
+        name_ru="Гвозди",
+        unit="kg",
+        keywords=("mix", "mix gvozd"),
+        rows=(
+            ("16-20", "1.74"),
+            ("25", "1.62"),
+            ("30-40", "1.5"),
+            ("50-60", "1.104"),
+            ("70-200", "0.912"),
+        ),
+    ),
+    MetizGroup(
+        key="dyubel",
+        name_uz="Dyubel",
+        name_uz_cyrl="Дюбел",
+        name_ru="Дюбель",
+        unit="kg",
+        keywords=("dyubel",),
+        rows=(("30-100", "2.04"),),
+    ),
+    MetizGroup(
+        key="zaklepka-orbita",
+        name_uz="Zaklepka Orbita",
+        name_uz_cyrl="Заклепка Орбита",
+        name_ru="Заклёпка Orbita",
+        unit="pachka",
+        keywords=("zaklepka orbita", "orbita zaklepka"),
+        brand="Orbita",
+        rows=(
+            ("3.2x11", "4.08"),
+            ("3.2x13", "4.68"),
+            ("3.2x17", "4.8"),
+            ("4x8", "5.52"),
+            ("4x10", "5.64"),
+            ("4x13", "6.36"),
+            ("4x16", "3.36"),
+            ("4x20", "3.6"),
+            ("5x11", "4.44"),
+            ("5x13", "4.68"),
+            ("5x16", "5.16"),
+            ("5x20", "5.88"),
+            ("5x25", "6.72"),
+            ("6x16", "4.92"),
+            ("6x20", "5.28"),
+            ("6x25", "6"),
+            ("5x16x16", "6.84"),
+            ("5x20x16", "6.84"),
+            ("5x25x16", "6.84"),
+        ),
+    ),
+    MetizGroup(
+        key="rezina-shayba",
+        name_uz="Rezina shayba",
+        name_uz_cyrl="Резина шайба",
+        name_ru="Резиновая шайба",
+        unit="kg",
+        keywords=("rezina shayba", "shayba rezina", "rezinali shayba"),
+        rows=(
+            ("4.8x14", "3"),
+            ("5.5x19", "2.64"),
+            ("6.3x25", "2.4"),
+        ),
+    ),
+    MetizGroup(
+        key="podves-agraf",
+        name_uz="Podves (agraf)",
+        name_uz_cyrl="Подвес (аграф)",
+        name_ru="Подвес (аграф)",
+        # The price list leaves this block's unit column occupied by the
+        # thickness ("Аграф | 0,7 | 38,4"), so the unit is not printed. 38.4 and
+        # 49.2 sit exactly in the band this list uses for a box (evro stashka
+        # 36, chopiq 38.4-80.4) and nowhere near its per-piece prices, so a box
+        # is what the numbers say. Worth a word with the supplier before the
+        # first order goes out on it.
+        unit="quti",
+        keywords=("podves agraf", "agraf", "podves"),
+        rows=(
+            ("0.7", "38.4"),
+            ("1", "49.2"),
+        ),
+    ),
+    MetizGroup(
+        key="chervyak-bolt",
+        name_uz="Chervyak bolt",
+        name_uz_cyrl="Червяк болт",
+        name_ru="Червячный болт",
+        unit="kg",
+        keywords=("chervyak bolt", "bolt chervyak", "chervyak"),
+        rows=(("8x80-10x120", "2.04"),),
+    ),
+    MetizGroup(
+        key="gluxar",
+        name_uz="Gluxar",
+        name_uz_cyrl="Глухар",
+        name_ru="Глухарь",
+        unit="kg",
+        keywords=("gluxar",),
+        rows=(("6x50-12x150", "2.04"),),
+    ),
+    MetizGroup(
+        key="shayba",
+        name_uz="Shayba (katta va kichik)",
+        name_uz_cyrl="Шайба (катта ва кичик)",
+        name_ru="Шайба (большая и малая)",
+        unit="kg",
+        keywords=("shayba", "katta shayba", "kichik shayba"),
+        rows=(
+            ("m4;m5", "2.04"),
+            ("m6-m24", "1.86"),
+        ),
+    ),
+    MetizGroup(
+        key="stashka-vint-mebel",
+        name_uz="Stashka vint (mebel)",
+        name_uz_cyrl="Сташка винт (мебел)",
+        name_ru="Стяжка винт мебельная",
+        unit="kg",
+        keywords=("stashka vint", "mebel stashka", "vint mebel", "stashka"),
+        rows=(("6x16-6x100", "1.8"),),
+    ),
+    MetizGroup(
+        key="evro-stashka",
+        name_uz="Yevro stashka",
+        name_uz_cyrl="Евро сташка",
+        name_ru="Евро стяжка",
+        unit="quti",
+        keywords=("yevro stashka", "evro stashka", "stashka"),
+        rows=(("6.3x50", "36"),),
+    ),
+    MetizGroup(
+        key="tsanga-orbita",
+        name_uz="Tsanga Orbita",
+        name_uz_cyrl="Цанга Орбита",
+        name_ru="Цанга Orbita",
+        unit="dona",
+        keywords=("tsanga orbita", "orbita tsanga"),
+        brand="Orbita",
+        rows=(
+            ("m6", "0.018"),
+            ("m8", "0.024"),
+            ("m10", "0.0444"),
+            ("m12", "0.132"),
+            ("m14", "0.168"),
+            ("m16", "0.204"),
+        ),
+    ),
+    MetizGroup(
+        key="tsanga-turk",
+        name_uz="Tsanga (turk)",
+        name_uz_cyrl="Цанга (турк)",
+        name_ru="Цанга турецкая",
+        unit="dona",
+        keywords=("tsanga turk", "turk tsanga"),
+        rows=(
+            ("m8", "0.0444"),
+            ("m10", "0.168"),
+        ),
+    ),
+    MetizGroup(
+        key="kryuchok-sariq",
+        name_uz="Kryuchok sariq (ilmoq)",
+        name_uz_cyrl="Крючок сариқ (илмоқ)",
+        name_ru="Крючок жёлтый",
+        unit="dona",
+        keywords=("kryuchok sariq", "sariq kryuchok", "ilmoq sariq"),
+        rows=(
+            ("m6x60", "0.18"),
+            ("m6x80", "0.204"),
+            ("m8x60", "0.324"),
+            ("m8x100", "0.372"),
+            ("m10x80", "0.564"),
+            ("m10x120", "0.636"),
+            ("m12x100", "0.924"),
+        ),
+    ),
+    MetizGroup(
+        key="kryuchok-yopiq",
+        name_uz="Kryuchok yopiq (ilmoq)",
+        name_uz_cyrl="Крючок ёпиқ (илмоқ)",
+        name_ru="Крючок закрытый",
+        unit="dona",
+        keywords=("kryuchok yopiq", "yopiq kryuchok", "ilmoq yopiq"),
+        rows=(
+            ("m6x60", "0.18"),
+            ("m8x60", "0.324"),
+            ("m10x80", "0.564"),
+        ),
+    ),
+    MetizGroup(
+        key="kryuchok-oq-yogochga",
+        name_uz="Kryuchok oq (yog'ochga)",
+        name_uz_cyrl="Крючок оқ (ёғочга)",
+        name_ru="Крючок белый по дереву",
+        unit="dona",
+        keywords=("kryuchok oq", "yogochga kryuchok", "ilmoq oq"),
+        rows=(
+            ("6", "0.0132"),
+            ("8", "0.0204"),
+            ("10", "0.0264"),
+            ("12", "0.0384"),
+            ("14", "0.06"),
+            ("16", "0.084"),
+        ),
+    ),
+    MetizGroup(
+        key="gayka-oq",
+        name_uz="Gayka oq",
+        name_uz_cyrl="Гайка оқ",
+        name_ru="Гайка белая",
+        unit="kg",
+        keywords=("gayka oq", "ok gayka"),
+        rows=(
+            ("3", "2.64"),
+            ("4", "2.28"),
+            ("5", "2.16"),
+            ("6-8-10-12-14", "1.86"),
+            ("16-18-20-24", "1.86"),
+        ),
+    ),
+    MetizGroup(
+        key="shpilka-097",
+        name_uz="Shpilka 0.97 m",
+        name_uz_cyrl="Шпилька 0,97 м",
+        name_ru="Шпилька 0,97 м",
+        unit="dona",
+        keywords=("shpilka 0.97", "shpilka 097"),
+        rows=(
+            ("6", "0.264"),
+            ("8", "0.456"),
+            ("10", "0.72"),
+            ("12", "1.02"),
+            ("14", "1.5"),
+            ("16", "2.04"),
+            ("18", "3.36"),
+            ("20", "4.2"),
+            ("24", "6.6"),
+        ),
+    ),
+    MetizGroup(
+        key="chopiq-kulrang",
+        name_uz="Chopiq kulrang (m/plast)",
+        name_uz_cyrl="Чопиқ кулранг (м/пласт)",
+        name_ru="Чопик серый (м/пласт)",
+        unit="quti",
+        keywords=("chopik kulrang", "kulrang chopik", "seriy chopik"),
+        rows=(
+            ("6x30", "68.4"),
+            ("6x40", "74.4"),
+            ("8x40", "61.2"),
+            ("10", "75.6"),
+            ("12", "68.4"),
+        ),
+    ),
+    MetizGroup(
+        key="chopiq-qizil",
+        name_uz="Chopiq qizil (m/plast)",
+        name_uz_cyrl="Чопиқ қизил (м/пласт)",
+        name_ru="Чопик красный (м/пласт)",
+        unit="quti",
+        keywords=("chopik qizil", "qizil chopik", "krasniy chopik"),
+        rows=(
+            ("6x30", "38.4"),
+            ("6x40", "45.6"),
+            ("8x40", "54"),
+            ("8x50", "64.8"),
+            ("8x60", "52.8"),
+            ("10", "75.6"),
+            ("12", "68.4"),
+            ("14", "80.4"),
+            ("babochka", "60"),
+            ("driva", "72"),
+            ("zontik shay", "60"),
+        ),
+    ),
+    MetizGroup(
+        key="bolt",
+        name_uz="Bolt",
+        name_uz_cyrl="Болт",
+        name_ru="Болт",
+        unit="kg",
+        keywords=("bolt",),
+        rows=(
+            ("6x16-6x100", "1.8"),
+            ("8x16-8x120", "1.8"),
+            ("10x20-10x150", "1.68"),
+            ("12x30-12x150", "1.68"),
+            ("14x30-14x200", "1.68"),
+            ("16x30-16x200", "1.68"),
+        ),
+    ),
+    MetizGroup(
+        key="zabivnoy-anker",
+        name_uz="Zabivnoy anker",
+        name_uz_cyrl="Забивной анкер",
+        name_ru="Забивной анкер",
+        unit="dona",
+        keywords=("zabivnoy anker", "anker zabivnoy"),
+        rows=(
+            ("8x100", "0.12"),
+            ("10x80", "0.144"),
+            ("10x100", "0.168"),
+            ("10x120", "0.216"),
+            ("10x150", "0.276"),
+            ("12x100", "0.264"),
+            ("12x120", "0.336"),
+            ("12x150", "0.42"),
+            ("14x100", "0.504"),
+            ("14x150", "0.696"),
+            ("16x120", "0.756"),
+            ("16x150", "0.936"),
+        ),
+    ),
+    MetizGroup(
+        key="anker-kryuchok",
+        name_uz="Anker kryuchok (ilmoq)",
+        name_uz_cyrl="Анкер крючок (илмоқ)",
+        name_ru="Анкер крючок",
+        unit="dona",
+        keywords=("anker kryuchok", "kryuchok anker"),
+        rows=(
+            ("m8x60", "0.156"),
+            ("m8x100", "0.204"),
+            ("m10x80", "0.324"),
+            ("m10x120", "0.444"),
+            ("m12x120", "0.864"),
+        ),
+    ),
+    MetizGroup(
+        key="anker-kryuchok-yopiq",
+        name_uz="Anker kryuchok yopiq",
+        name_uz_cyrl="Анкер крючок ёпиқ",
+        name_ru="Анкер крючок закрытый",
+        unit="dona",
+        keywords=("anker kryuchok yopiq", "yopiq anker kryuchok"),
+        rows=(
+            ("m8x60", "0.156"),
+            ("m10x80", "0.324"),
+            ("m12x120", "0.864"),
+        ),
+    ),
+    MetizGroup(
+        key="grover-shayba",
+        name_uz="Grover shayba",
+        name_uz_cyrl="Гровер шайба",
+        name_ru="Гровер шайба",
+        unit="kg",
+        keywords=("grover shayba", "grover", "shayba grover"),
+        rows=(("6-8-10-12", "1.92"),),
+    ),
+    MetizGroup(
+        key="shpilka-1m",
+        name_uz="Shpilka 1 m (original)",
+        name_uz_cyrl="Шпилька 1 м (оригинал)",
+        name_ru="Шпилька 1 м оригинал",
+        unit="dona",
+        keywords=("shpilka 1 m", "shpilka original", "shpilka 1m"),
+        rows=(
+            ("8", "0.624"),
+            ("10", "0.9"),
+            ("12", "1.248"),
+        ),
+    ),
+    MetizGroup(
+        key="shpilka-2m",
+        name_uz="Shpilka 2 m",
+        name_uz_cyrl="Шпилька 2 м",
+        name_ru="Шпилька 2 м",
+        unit="dona",
+        keywords=("shpilka 2 m", "shpilka 2m"),
+        rows=(
+            ("8", "1.32"),
+            ("10", "1.92"),
+            ("12", "3.12"),
+        ),
+    ),
+    MetizGroup(
+        key="zontik-mplast",
+        name_uz="Zontik (m/plast)",
+        name_uz_cyrl="Зонтик (м/пласт)",
+        name_ru="Зонтик (м/пласт)",
+        unit="pachka",
+        keywords=("zontik", "zontik mplast", "zontik dyubel"),
+        rows=(
+            ("80", "3.96"),
+            ("110", "5.28"),
+            ("120", "5.64"),
+            ("150", "3.24"),
+            ("termo 120", "36"),
+            ("termo 150", "33"),
+        ),
+    ),
+    MetizGroup(
+        key="qora-samorez-mexmash",
+        name_uz="Qora samorez Mexmash",
+        name_uz_cyrl="Қора саморез Мехмаш",
+        name_ru="Саморез чёрный Мехмаш",
+        unit="kg",
+        keywords=("qora samorez mexmash", "samorez mexmash", "mexmash samorez"),
+        brand="Mexmash",
+        rows=(
+            ("16-19", "2.604"),
+            ("25-100", "2.316"),
+        ),
+    ),
+    MetizGroup(
+        key="rezba-zaklepka",
+        name_uz="Rezbali zaklepka",
+        name_uz_cyrl="Резбали заклепка",
+        name_ru="Резьбовая заклёпка",
+        unit="dona",
+        keywords=("rezba zaklepka", "rezbali zaklepka", "zaklepka rezba"),
+        rows=(
+            ("4", "0.012"),
+            ("5", "0.018"),
+            ("6", "0.024"),
+            ("8", "0.0336"),
+            ("10", "0.0528"),
+            ("12", "0.102"),
+        ),
+    ),
+    MetizGroup(
+        key="kryuchok-armstrong",
+        name_uz="Kryuchok Armstrong",
+        name_uz_cyrl="Крючок Армстронг",
+        name_ru="Крючок Армстронг",
+        unit="dona",
+        keywords=("kryuchok armstrong", "armstrong kryuchok", "armstron kryuchok"),
+        brand="Armstrong",
+        rows=(("6x40", "0.024"),),
+    ),
+    MetizGroup(
+        key="krovelniy-samorez-oq-metallga",
+        name_uz="Krovelniy samorez oq (metallga)",
+        name_uz_cyrl="Кровелний саморез оқ (металлга)",
+        name_ru="Кровельный саморез белый (по металлу)",
+        unit="kg",
+        keywords=("krovelniy samorez oq metallga", "krovelniy samorez metallga"),
+        rows=(
+            ("5.5x25-150", "3.24"),
+            ("6.3x25-200", "3.24"),
+        ),
+    ),
+    MetizGroup(
+        key="gayka-shaybali",
+        name_uz="Gayka shaybali",
+        name_uz_cyrl="Гайка шайбали",
+        name_ru="Гайка с шайбой",
+        unit="kg",
+        keywords=("gayka shaybali", "shaybali gayka"),
+        rows=(("6-8-10-12", "2.64"),),
+    ),
+    MetizGroup(
+        key="gayka-samakontr",
+        name_uz="Gayka samakontr",
+        name_uz_cyrl="Гайка самаконтр",
+        name_ru="Гайка самоконтрящаяся",
+        unit="kg",
+        keywords=("gayka samakontr", "samakontr gayka"),
+        rows=(("6-8-10-12", "2.64"),),
+    ),
+    MetizGroup(
+        key="gayka-barashka",
+        name_uz="Gayka barashka",
+        name_uz_cyrl="Гайка барашка",
+        name_ru="Гайка-барашек",
+        unit="kg",
+        keywords=("gayka barashka", "barashka gayka"),
+        rows=(("m6-m8-m10", "3.12"),),
+    ),
+    MetizGroup(
+        key="gazoblok-probka",
+        name_uz="Gazoblok probka",
+        name_uz_cyrl="Газаблок пробка",
+        name_ru="Пробка для газоблока",
+        unit="dona",
+        keywords=("gazoblok probka", "probka gazoblok", "gazablok probka", "probka"),
+        rows=(
+            ("5x30", "0.0192"),
+            ("6x32", "0.0264"),
+            ("8x38", "0.048"),
+            ("10x60", "0.096"),
+        ),
+    ),
+    MetizGroup(
+        key="kryuchok-babochka",
+        name_uz="Kryuchok babochka",
+        name_uz_cyrl="Крючок бабочка",
+        name_ru="Крючок бабочка",
+        unit="dona",
+        keywords=("kryuchok babochka", "babochka kryuchok", "babochka"),
+        rows=(
+            ("m4", "0.132"),
+            ("m5", "0.192"),
+            ("m6", "0.264"),
+            ("m8", "0.396"),
+        ),
+    ),
+]
+
+
+# Row labels that are a word rather than a size, and how the list writes them
+# in Cyrillic. Only these few need it; every other label is digits and an x.
+_METIZ_LABEL_CYRL = {
+    "babochka": "бабочка",
+    "driva": "дрива",
+    "zontik shay": "зонтик шай",
+    "termo 120": "термо 120",
+    "termo 150": "термо 150",
+}
+
+_SIZE_PREFIX_REGEX = re.compile(r"^(\d+(?:\.\d+)?)x(.+)$")
+_LABEL_SEPARATORS = re.compile(r"[-;]")
+
+# Every whole number this price list prints as part of a size. A range is
+# expanded against this ladder rather than against every integer inside it: the
+# list is its own authority on which lengths the trade actually stocks, so
+# nothing here is a size we made up.
+_METIZ_SIZE_LADDER: tuple[int, ...] = tuple(
+    sorted(
+        {
+            int(number)
+            for group in _METIZ
+            for label, _price in group.rows
+            for number in re.findall(r"\d+", label)
+        }
+    )
+)
+
+
+_FULL_SIZE_REGEX = re.compile(r"^(\d+(?:\.\d+)?)x(\d+)$")
+
+
+def _ladder_between(low: str, high: str) -> list[str]:
+    """The sizes this price list names between two bounds, inclusive.
+
+    Empty when the bounds are equal or out of order, so a caller can tell "no
+    span" from "a span of one".
+    """
+    if low == high:
+        return [low]
+    try:
+        start, end = float(low), float(high)
+    except ValueError:
+        return []
+    if start >= end:
+        return []
+    return [str(step) for step in _METIZ_SIZE_LADDER if start <= step <= end]
+
+
+def expand_metiz_label(label: str) -> list[str]:
+    """The sizes a price-list label covers, as a customer would name one.
+
+    "4.2x13-76" is one price for every screw between 13 and 76 mm long; the
+    person ordering asks for "4.2x25" and never for the range. Splitting the
+    label back into the sizes it stands for is what lets that query find this
+    row -- and it cannot mis-price anything, because the supplier set one price
+    for the whole span.
+
+    Three shapes have to be told apart:
+
+    * two whole sizes -- "12x30-12x150", "4x16-6x150" -- a span over the
+      length, and over the diameter too when the ends disagree on it;
+    * two bare numbers after a shared diameter -- "4.2x13-76", "16-19" -- a
+      span over the length alone;
+    * three or more parts -- "3x13-16-20-25", "4.2x16;19;25;32" -- not a span
+      at all but a list of sizes the row spells out, taken as printed.
+
+    A span is filled from `_METIZ_SIZE_LADDER`, the sizes this same price list
+    names elsewhere, so nothing is offered that the supplier never mentioned.
+    """
+    if not _LABEL_SEPARATORS.search(label):
+        return [label]
+
+    whole = [p.strip() for p in _LABEL_SEPARATORS.split(label) if p.strip()]
+    sizes: list[str] = [label]
+
+    if len(whole) == 2:
+        ends = [_FULL_SIZE_REGEX.match(part) for part in whole]
+        low, high = ends[0], ends[1]
+        if low is not None and high is not None:
+            # The printed ends first: a fractional diameter such as 3.5 is a
+            # real size but never lands on the ladder of whole numbers.
+            sizes.extend(whole)
+            diameters = _ladder_between(low.group(1), high.group(1))
+            for diameter in diameters or [low.group(1)]:
+                for length in _ladder_between(low.group(2), high.group(2)):
+                    sizes.append(f"{diameter}x{length}")
+            if len(sizes) > 1:
+                return list(dict.fromkeys(sizes))
+
+    prefix = ""
+    rest = label
+    head = _SIZE_PREFIX_REGEX.match(label)
+    if head:
+        prefix, rest = head.group(1), head.group(2)
+
+    parts = [p.strip() for p in _LABEL_SEPARATORS.split(rest) if p.strip()]
+
+    if len(parts) == 2 and all(part.isdigit() for part in parts):
+        for step in _ladder_between(parts[0], parts[1]):
+            sizes.append(f"{prefix}x{step}" if prefix else step)
+        if len(sizes) > 1:
+            return list(dict.fromkeys(sizes))
+
+    for part in parts:
+        sizes.append(part if "x" in part or not prefix else f"{prefix}x{part}")
+    return list(dict.fromkeys(sizes))
+
+
+def _metiz_slug(group_key: str, label: str) -> str:
+    tail = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return f"{group_key}-{tail}"
+
+
+def _metiz_items() -> list[CatalogItem]:
+    """The fastener price list, one SKU per printed row."""
+    items: list[CatalogItem] = []
+    for group in _METIZ:
+        for label, price_usd in group.rows:
+            label_cyrl = _METIZ_LABEL_CYRL.get(label, label.replace("x", "х"))
+            attributes: dict[str, Any] = {"material": group.key.replace("-", "_")}
+            if "x" in label:
+                attributes["size"] = label
+            head = re.match(r"^m?(\d+(?:\.\d+)?)", label)
+            if head:
+                attributes["diameter_mm"] = _thickness(head.group(1))
+            if label.startswith("m") and re.fullmatch(r"m\d+", label):
+                attributes["grade"] = label
+
+            items.append(
+                CatalogItem(
+                    slug=_metiz_slug(group.key, label),
+                    name_uz=f"{group.name_uz} {label}",
+                    name_uz_cyrl=f"{group.name_uz_cyrl} {label_cyrl}",
+                    name_ru=f"{group.name_ru} {label_cyrl}",
+                    brand=group.brand,
+                    category_slug=_METIZ_CATEGORY,
+                    base_unit=group.unit,
+                    attributes=attributes,
+                    tier="standard",
+                    reference_price=_uzs(price_usd),
+                    pack_size=Decimal("1"),
+                    pack_unit=group.unit,
+                    source=SOURCE_SUPPLIER,
+                    source_ref=_METIZ_SOURCE_REF,
+                )
+            )
+    return items
+
+
+def generate_metiz_aliases(group: MetizGroup, label: str) -> list[str]:
+    """Every phrasing that should land on one fastener row.
+
+    Built by crossing the family words a customer types with the sizes the
+    label names, then run through the same normalizer a query goes through --
+    an alias only earns its keep if it is in the exact form Stage 1 hashes.
+    """
+    forms: list[str] = [f"{group.name_uz} {label}"]
+    # The list titles these blocks "ОК" and "САРИК"; the words are oq and
+    # sariq. Both spellings reach us, and "ok" is too common a word to put in
+    # the slang table, so it is carried here where it can only mean the colour.
+    keywords = list(group.keywords)
+    keywords.extend(k.replace("oq", "ok") for k in group.keywords if "oq" in k)
+    for keyword in keywords:
+        for size in expand_metiz_label(label):
+            forms.append(f"{keyword} {size}")
+            if size.startswith("m") and re.match(r"^m\d", size):
+                # "kryuchok 6x60" for a row printed "m6x60": the thread letter
+                # is on the price list, not in the message.
+                forms.append(f"{keyword} {size[1:]}")
+    if group.brand:
+        forms.append(f"{group.brand} {label}")
+    return forms
+
+
+_METIZ_ROWS_BY_SLUG: dict[str, tuple[MetizGroup, str]] = {
+    _metiz_slug(group.key, label): (group, label)
+    for group in _METIZ
+    for label, _price in group.rows
+}
+
+
+def _metiz_alias_rows(item: CatalogItem) -> list[dict[str, Any]]:
+    """Alias rows for one fastener SKU, in the form Stage 1 looks them up by.
+
+    Normalized here rather than lower-cased, unlike the sheet-goods aliases
+    above. A metiz query arrives transliterated, de-slanged and with its
+    decimal comma repaired ("саморез 4,2х25" -> "samorez 4.2x25"); an alias
+    stored any other way is a row that can never be hit.
+    """
+    group, label = _METIZ_ROWS_BY_SLUG[item.slug]
+    aliases: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in generate_metiz_aliases(group, label):
+        norm = normalize_query(raw).text_norm
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        aliases.append(
+            {
+                "alias_norm": norm,
+                "alias_raw": raw,
+                "source": "seed",
+                "is_approved": True,
+            }
+        )
+    return aliases
+
+
 def generate_catalog_data() -> list[CatalogItem]:
     """The whole catalogue, in price-list order."""
     items: list[CatalogItem] = []
@@ -1150,6 +2170,7 @@ def generate_catalog_data() -> list[CatalogItem]:
     items.extend(_timber_items())
     items.extend(_hardboard_items())
     items.extend(_osb3_items())
+    items.extend(_metiz_items())
     return items
 
 
@@ -1195,6 +2216,9 @@ def generate_aliases_for_product(item: CatalogItem) -> list[dict[str, Any]]:
     therefore matters: the most specific forms come first, and the bare
     "material + thickness" shorthands last, where a collision costs least.
     """
+    if item.category_slug == _METIZ_CATEGORY:
+        return _metiz_alias_rows(item)
+
     raw_forms: list[str] = [item.name_uz, item.name_uz_cyrl, item.name_ru]
     raw_forms.append(item.slug.replace("-", " "))
 
@@ -1288,14 +2312,34 @@ _OUR_PLYWOOD_PRICES: list[tuple[str, str, str, str, str, int]] = [
 ]
 
 
-# Exposed so tests can assert "our own offers and no others" without
-# repeating the number.
-OUR_PLYWOOD_PRICE_COUNT = _OUR_PLYWOOD_PRICES
-
-
 def _uzs(usd: str) -> Decimal:
     """Dollars to so'm, rounded to whole so'm -- nobody quotes tiyin."""
     return (Decimal(usd) * USD_TO_UZS).quantize(Decimal("1"))
+
+
+def our_priced_rows() -> list[tuple[str, str, str | None, int | None]]:
+    """Every product we quote a price on ourselves.
+
+    (product slug, retail $, wholesale $ or None, wholesale from N or None).
+    The plywood list steps down at a quantity; the fastener list is one price
+    per row. Exposed so tests can assert "our own offers and no others"
+    without repeating the number.
+    """
+    rows: list[tuple[str, str, str | None, int | None]] = [
+        (
+            f"fanera-bereza-{grade}-{_slug_num(thickness)}mm-{size}",
+            retail_usd,
+            wholesale_usd,
+            from_qty,
+        )
+        for size, grade, thickness, retail_usd, wholesale_usd, from_qty in _OUR_PLYWOOD_PRICES
+    ]
+    rows.extend(
+        (_metiz_slug(group.key, label), price_usd, None, None)
+        for group in _METIZ
+        for label, price_usd in group.rows
+    )
+    return rows
 
 
 async def seed_own_offers(session: AsyncSession) -> int:
@@ -1325,8 +2369,7 @@ async def seed_own_offers(session: AsyncSession) -> int:
         await session.flush()
 
     written = 0
-    for size, grade, thickness, retail_usd, wholesale_usd, from_qty in _OUR_PLYWOOD_PRICES:
-        slug = f"fanera-bereza-{grade}-{_slug_num(thickness)}mm-{size}"
+    for slug, retail_usd, wholesale_usd, from_qty in our_priced_rows():
         canonical = (
             (await session.execute(select(CanonicalProduct).where(CanonicalProduct.slug == slug)))
             .scalars()
@@ -1347,9 +2390,9 @@ async def seed_own_offers(session: AsyncSession) -> int:
                 shop_id=shop.id,
                 canonical_id=canonical.id,
                 raw_name=canonical.name_uz,
-                raw_unit="dona",
+                raw_unit=canonical.base_unit_code,
                 pack_size=Decimal("1"),
-                pack_unit_code="dona",
+                pack_unit_code=canonical.base_unit_code,
                 price_per_pack=price,
                 price_per_base_unit=price,
                 stock_status="in_stock",
@@ -1365,6 +2408,10 @@ async def seed_own_offers(session: AsyncSession) -> int:
             offer.stock_status = "in_stock"
             offer.staleness_state = "fresh"
             offer.is_active = True
+
+        written += 1
+        if wholesale_usd is None or from_qty is None:
+            continue
 
         wholesale = _uzs(wholesale_usd)
         tier_stmt = select(ShopProductPriceTier).where(
@@ -1382,7 +2429,6 @@ async def seed_own_offers(session: AsyncSession) -> int:
             )
         else:
             tier.price_per_pack = wholesale
-        written += 1
 
     await session.flush()
     logger.info("Seeded %d own offers with wholesale tiers.", written)

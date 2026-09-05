@@ -9,6 +9,18 @@ from app.domain.normalize.translit import (
     normalize_apostrophes,
 )
 
+# A decimal comma is how half this country writes a fraction, and the whole
+# fastener price list is written that way: "4,2x25", "5,5x19". It is repaired
+# here, before punctuation is stripped, or the number breaks in two and takes
+# the size with it -- "samorez 4 2x25" matches nothing.
+DECIMAL_COMMA_REGEX = re.compile(r"(\d+),(\d+)")
+
+
+def protect_decimal_commas(text: str) -> str:
+    """Turn "12,5" into "12.5", leaving list commas alone."""
+    return DECIMAL_COMMA_REGEX.sub(r"\1.\2", text)
+
+
 # Common construction stopwords in Uzbek & Russian
 STOPWORDS = {
     "sifatli",
@@ -80,6 +92,19 @@ UNIT_MAP = {
     "рулон": "rulon",
     "quti": "quti",
     "коробка": "quti",
+    # The fastener list abbreviates its two packaging units to "кор" and "пач",
+    # and that is what gets copied into an order. Left unrecognised they were
+    # not read as a unit at all -- "4 pachka zaklepka" carried the word into
+    # the product name and matched nothing.
+    "кор": "quti",
+    "kor": "quti",
+    "korobka": "quti",
+    "pachka": "pachka",
+    "пачка": "pachka",
+    "пач": "pachka",
+    "pach": "pachka",
+    "upakovka": "pachka",
+    "упаковка": "pachka",
     "metr": "metr",
     "метр": "metr",
     "m": "metr",
@@ -112,8 +137,12 @@ GRADE_REGEX = re.compile(
 SIZE_REGEX = re.compile(
     r"\b(\d+(?:\.\d+)?)\s*[xXхХ*×]\s*(\d+(?:\.\d+)?)(?:\s*[xXхХ*×]\s*(\d+(?:\.\d+)?))?\b"
 )
+# The bare "d" needs a word boundary in front of it. Without one it also reads
+# the last letter of the preceding word: "medved 7,5x72-202" -- a real line off
+# the fastener price list -- came out as "medved7.5x72", the product name and
+# its size welded into one token that matches nothing.
 DIAMETER_REGEX = re.compile(
-    r"(?:Ø|диаметр\s*|diametr\s*|d\s*)(\d{1,2})(?:\s*мм|\s*mm)?", re.IGNORECASE
+    r"(?:Ø|диаметр\s*|diametr\s*|\bd\s*)(\d{1,2})(?:\s*мм|\s*mm)?", re.IGNORECASE
 )
 NUMBER_REGEX = re.compile(r"\b\d+(?:[.,]\d+)?\b")
 
@@ -226,9 +255,12 @@ def normalize_text(raw: str) -> str:
     if not raw:
         return ""
 
-    # 1. NFKC & apostrophes
+    # 1. NFKC, apostrophes, and the decimal comma. The comma is repaired here
+    # rather than only in the parser so that anything normalizing raw wording
+    # directly -- an alias learned from a customer's own phrasing, a catalogue
+    # search -- reads "4,2x25" as the one size it is.
     nfkc = unicodedata.normalize("NFKC", raw)
-    text = normalize_apostrophes(nfkc).lower().strip()
+    text = protect_decimal_commas(normalize_apostrophes(nfkc).lower().strip())
 
     # 2. Transliterate Cyrillic to Latin, then rewrite street vocabulary.
     # Slang runs after transliteration on purpose: one entry then covers both
