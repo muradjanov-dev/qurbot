@@ -4,6 +4,8 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Lets deploy.yml gate on the exact same checks instead of duplicating them.
+  workflow_call:
 
 jobs:
   check:
