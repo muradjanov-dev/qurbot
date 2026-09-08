@@ -106,6 +106,7 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     select_cb = AsyncMock(spec=CallbackQuery)
     select_cb.data = "select_quote:0"
     select_cb.message = fake_status_msg
+    select_cb.answer = AsyncMock()
 
     await callback_select_quote(
         callback=select_cb,
@@ -114,6 +115,7 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
         session=test_session,
         lang="uz_latn",
     )
+    select_cb.answer.assert_awaited_once()
 
     # 6. Simulate entering delivery address
     addr_msg = AsyncMock(spec=Message)

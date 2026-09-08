@@ -1,3 +1,5 @@
+import secrets
+
 from aiogram.types import Update
 from fastapi import APIRouter, Header, HTTPException, Request
 
@@ -15,9 +17,9 @@ async def telegram_webhook(
     request: Request,
     x_telegram_bot_api_secret_token: str | None = Header(default=None, alias=SECRET_HEADER),
 ) -> dict[str, bool]:
-    if (
-        x_telegram_bot_api_secret_token is not None
-        and x_telegram_bot_api_secret_token != settings.webhook_secret
+    if x_telegram_bot_api_secret_token is None or not secrets.compare_digest(
+        x_telegram_bot_api_secret_token,
+        settings.webhook_secret,
     ):
         raise HTTPException(status_code=403, detail="invalid secret token")
 

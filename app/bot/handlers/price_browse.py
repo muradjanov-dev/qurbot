@@ -14,7 +14,7 @@ from typing import Any
 from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile, CallbackQuery, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import esc, format_catalog_price, format_qty
@@ -38,6 +38,35 @@ logger = logging.getLogger(__name__)
 router = Router(name="price_browse")
 
 _MAX_PRODUCTS = 30
+
+
+async def _replace_catalog_screen(
+    message: Message,
+    text: str,
+    reply_markup: InlineKeyboardMarkup,
+) -> None:
+    """Replace a catalogue screen even when the current message is media.
+
+    Telegram cannot turn a photo/caption message into a text message with
+    ``edit_text``. Product cards with photos therefore need to be removed and
+    followed by a fresh text screen when the customer navigates back.
+    """
+    if message.text is not None:
+        try:
+            await message.edit_text(text, reply_markup=reply_markup)
+            return
+        except TelegramAPIError as exc:
+            if "message is not modified" in str(exc).lower():
+                return
+            logger.warning("catalog_screen_edit_failed", exc_info=True)
+
+    try:
+        await message.delete()
+    except TelegramAPIError:
+        # An old message may already be gone or no longer deletable. Navigation
+        # must still work, so send the destination screen regardless.
+        logger.warning("catalog_screen_delete_failed", exc_info=True)
+    await message.answer(text, reply_markup=reply_markup)
 
 
 @router.message(
@@ -77,9 +106,10 @@ async def callback_price_category(
 
     children = await catalog_repo.list_child_categories(category_id)
     if children:
-        await callback.message.edit_text(
+        await _replace_catalog_screen(
+            callback.message,
             t("price_browse_choose_category", lang=lang),
-            reply_markup=get_price_category_keyboard(children, lang=lang, parent_id=category_id),
+            get_price_category_keyboard(children, lang=lang, parent_id=category_id),
         )
         await callback.answer()
         return
@@ -89,8 +119,10 @@ async def callback_price_category(
         "", limit=_MAX_PRODUCTS, category_ids=subtree_ids
     )
     if not products:
-        await callback.message.edit_text(
-            t("price_browse_empty", lang=lang, phone=settings.support_phone)
+        await _replace_catalog_screen(
+            callback.message,
+            t("price_browse_empty", lang=lang, phone=settings.support_phone),
+            get_price_category_keyboard([], lang=lang, parent_id=category_id),
         )
         await callback.answer()
         return
@@ -106,9 +138,10 @@ async def callback_price_category(
     ]
 
     category_name = category.name_ru if lang == "ru" else category.name_uz
-    await callback.message.edit_text(
+    await _replace_catalog_screen(
+        callback.message,
         t("price_browse_header", lang=lang, category=category_name),
-        reply_markup=get_product_picker_keyboard(listed, lang=lang),
+        get_product_picker_keyboard(listed, lang=lang),
     )
     await callback.answer()
 
@@ -137,8 +170,10 @@ async def callback_all_products(
     catalog_repo = CatalogRepository(session)
     rows, total = await catalog_repo.list_catalog_page(offset=page * page_size, limit=page_size)
     if not rows:
-        await callback.message.edit_text(
-            t("price_browse_empty", lang=lang, phone=settings.support_phone)
+        await _replace_catalog_screen(
+            callback.message,
+            t("price_browse_empty", lang=lang, phone=settings.support_phone),
+            get_price_category_keyboard([], lang=lang),
         )
         await callback.answer()
         return
@@ -149,10 +184,11 @@ async def callback_all_products(
         for product, live_price in rows
     ]
 
-    await callback.message.edit_text(
+    await _replace_catalog_screen(
+        callback.message,
         f"{t('all_products_header', lang=lang, count=total)}\n"
         f"{t('price_reference_hint', lang=lang)}",
-        reply_markup=get_all_products_keyboard(listed, page=page, pages=pages, lang=lang),
+        get_all_products_keyboard(listed, page=page, pages=pages, lang=lang),
     )
     await callback.answer()
 
@@ -236,9 +272,10 @@ async def callback_price_category_root(
     catalog_repo = CatalogRepository(session)
     roots = await catalog_repo.list_root_categories()
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(
+        await _replace_catalog_screen(
+            callback.message,
             t("price_browse_choose_category", lang=lang),
-            reply_markup=get_price_category_keyboard(roots, lang=lang),
+            get_price_category_keyboard(roots, lang=lang),
         )
     await callback.answer()
 

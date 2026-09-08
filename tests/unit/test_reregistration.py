@@ -143,6 +143,7 @@ async def test_reregistration_flow_complete(test_session: AsyncSession) -> None:
     assert user.district_id == district2.id
     final_state = await state.get_state()
     assert final_state is None
+    cb_set_dist.answer.assert_awaited_once()
 
 
 @pytest.mark.asyncio

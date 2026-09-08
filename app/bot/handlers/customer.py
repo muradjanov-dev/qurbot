@@ -570,6 +570,7 @@ async def callback_calculate_quotes(
     if not lines:
         if isinstance(callback.message, Message):
             await callback.message.answer(t("prompt_send_basket", lang=lang))
+        await callback.answer()
         return
 
     # Build basket items from accepted lines
@@ -589,6 +590,7 @@ async def callback_calculate_quotes(
     if not basket_items:
         if isinstance(callback.message, Message):
             await callback.message.answer("Hech qanday mahsulot tasdiqlanmagan.")
+        await callback.answer()
         return
 
     shop_repo = ShopRepository(session)
@@ -603,6 +605,7 @@ async def callback_calculate_quotes(
     if not result.deduplicated_variants:
         if isinstance(callback.message, Message):
             await callback.message.answer("Do'konlarda ushbu mahsulotlar topilmadi.")
+        await callback.answer()
         return
 
     # Cache variants in state
@@ -690,12 +693,14 @@ async def callback_nav_quote(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     idx = int(callback.data.split(":")[1])
 
     data = await state.get_data()
     raw_quotes: list[dict[str, Any]] = data.get("quotes", [])
     if not raw_quotes or idx >= len(raw_quotes):
+        await callback.answer()
         return
 
     await state.update_data(current_quote_idx=idx)
@@ -724,6 +729,7 @@ async def callback_pdf_quote(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     idx = int(callback.data.split(":")[1])
 
@@ -752,6 +758,7 @@ async def callback_select_quote(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     idx = int(callback.data.split(":")[1])
 
@@ -780,6 +787,7 @@ async def callback_select_quote(
             await callback.message.answer(t("prompt_checkout_phone", lang=lang))
     elif isinstance(callback.message, Message):
         await _ask_delivery_address(callback.message, state, user, session, lang)
+    await callback.answer()
 
 
 @router.message(OrderCheckoutStates.confirming_phone)

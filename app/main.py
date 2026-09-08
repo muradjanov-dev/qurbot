@@ -42,7 +42,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await bot.set_webhook(
                 url=settings.webhook_url,
                 secret_token=settings.webhook_secret,
-                drop_pending_updates=True,
+                # Messages queued during a restart may contain real orders.
+                # Registration is idempotent, so never discard them here.
+                drop_pending_updates=False,
             )
             logger.info("webhook_set", url=settings.webhook_url)
         except TelegramAPIError as exc:

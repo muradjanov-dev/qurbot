@@ -64,6 +64,7 @@ async def callback_set_lang(
     session: AsyncSession,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     new_lang = callback.data.split(":")[1]
     user.lang = new_lang
@@ -322,6 +323,7 @@ async def callback_set_district(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     dist_id = int(callback.data.split(":")[1])
     user.district_id = dist_id
@@ -333,6 +335,7 @@ async def callback_set_district(
     if isinstance(callback.message, Message):
         await callback.message.delete()
         await _finish_registration(callback.message, user, lang)
+    await callback.answer()
 
 
 @router.message(F.contact, RegistrationStates.waiting_for_phone)

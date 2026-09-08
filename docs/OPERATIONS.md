@@ -2,6 +2,14 @@
 
 Phase 8 ops surface: scheduled jobs, admin web panel, `/metrics`, and Railway deploy.
 
+## Health and readiness
+
+`GET /health` is a liveness probe and confirms that the web process can answer HTTP.
+`GET /ready` probes PostgreSQL and Redis concurrently and returns `503` if either is
+unavailable. Container orchestration and deployment gates must use `/ready`; external
+uptime monitoring may keep using `/health` to distinguish a dead process from a failed
+dependency.
+
 ## Migrations
 
 Migrations run automatically on every deploy via the web service's `preDeployCommand`

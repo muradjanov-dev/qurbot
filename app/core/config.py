@@ -1,6 +1,8 @@
 import hashlib
 from decimal import Decimal
+from typing import Self
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,6 +32,7 @@ class Settings(BaseSettings):
     database_echo: bool = False
     database_pool_size: int = 20
     database_max_overflow: int = 10
+    readiness_timeout_seconds: float = 2.0
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
@@ -212,6 +215,28 @@ class Settings(BaseSettings):
     web_shop_products_page_size: int = 20
     # Largest price file the web upload accepts, mirroring what the bot takes.
     web_max_upload_bytes: int = 5 * 1024 * 1024
+
+    @model_validator(mode="after")
+    def reject_unsafe_production_defaults(self) -> Self:
+        """Refuse configurations that expose a live service with demo credentials."""
+        if self.app_env.lower() not in {"production", "prod"}:
+            return self
+
+        unsafe: list[str] = []
+        if self.bot_token in {"placeholder_token", "changeme"}:
+            unsafe.append("BOT_TOKEN")
+        if self.webhook_secret in {"placeholder_secret", "changeme"}:
+            unsafe.append("WEBHOOK_SECRET")
+        if self.admin_basic_auth_password in {"placeholder_admin_password", "changeme"}:
+            unsafe.append("ADMIN_BASIC_AUTH_PASSWORD")
+        if not self.webhook_url_is_public:
+            unsafe.append("WEBHOOK_BASE_URL")
+        if self.web_dev_login_enabled:
+            unsafe.append("WEB_DEV_LOGIN_ENABLED")
+        if unsafe:
+            fields = ", ".join(unsafe)
+            raise ValueError(f"unsafe production settings: {fields}")
+        return self
 
     @property
     def web_session_key(self) -> bytes:

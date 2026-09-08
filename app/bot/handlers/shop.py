@@ -271,6 +271,7 @@ async def callback_shop_order_decision(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     parts = callback.data.split(":")
     action = parts[1]  # accept or reject
@@ -888,11 +889,13 @@ async def callback_products_page(
     lang: str,
 ) -> None:
     if not callback.data:
+        await callback.answer()
         return
     page = int(callback.data.split(":")[1])
 
     shop = await _get_user_shop(user, session, state)
     if not shop:
+        await callback.answer()
         return
 
     shop_repo = ShopRepository(session)
@@ -909,6 +912,7 @@ async def callback_products_page(
                 page=page, total_pages=total_pages, lang=lang, products=products
             ),
         )
+    await callback.answer()
 
 
 def _format_product_list(

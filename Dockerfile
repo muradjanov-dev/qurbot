@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1
 FROM python:3.12-slim AS builder
 
+ARG PIP_VERSION=26.2.1
+
 WORKDIR /build
-RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir --upgrade "pip==${PIP_VERSION}"
 
 COPY pyproject.toml ./
 COPY app ./app
@@ -11,6 +13,10 @@ RUN pip install --no-cache-dir --prefix=/install .
 
 
 FROM python:3.12-slim AS runtime
+
+ARG PIP_VERSION=26.2.1
+
+RUN pip install --no-cache-dir --upgrade "pip==${PIP_VERSION}"
 
 RUN groupadd --gid 1000 qurbot && \
     useradd --uid 1000 --gid qurbot --create-home --shell /usr/sbin/nologin qurbot

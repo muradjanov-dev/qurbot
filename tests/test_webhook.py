@@ -27,7 +27,11 @@ def test_webhook_accepts_valid_update() -> None:
     with patch("aiogram.Bot.__call__", new_callable=AsyncMock) as mock_call:
         mock_call.return_value = True
         with TestClient(app) as client:
-            response = client.post(settings.webhook_path, json=START_UPDATE)
+            response = client.post(
+                settings.webhook_path,
+                json=START_UPDATE,
+                headers={"x-telegram-bot-api-secret-token": settings.webhook_secret},
+            )
 
     assert response.status_code == 200
     assert response.json() == {"ok": True}
@@ -40,6 +44,13 @@ def test_webhook_rejects_bad_secret_header() -> None:
             json=START_UPDATE,
             headers={"x-telegram-bot-api-secret-token": "wrong"},
         )
+
+    assert response.status_code == 403
+
+
+def test_webhook_rejects_missing_secret_header() -> None:
+    with TestClient(app) as client:
+        response = client.post(settings.webhook_path, json=START_UPDATE)
 
     assert response.status_code == 403
 

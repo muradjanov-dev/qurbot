@@ -20,6 +20,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.shop import (
+    callback_products_page,
     cb_shop_delivery,
     cb_shop_orders,
     cb_shop_products,
@@ -47,6 +48,7 @@ async def _owner_with_shop(session: AsyncSession) -> User:
 def _fake_callback() -> CallbackQuery:
     msg = AsyncMock(spec=Message)
     msg.answer = AsyncMock()
+    msg.edit_text = AsyncMock()
     msg.chat = SimpleNamespace(id=1)
     msg.message_id = 1
     cb = AsyncMock(spec=CallbackQuery)
@@ -82,3 +84,21 @@ async def test_shop_portal_opens_for_an_owner(test_session: AsyncSession) -> Non
 
     message.answer.assert_awaited()
     assert "Ark buloq" in message.answer.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_shop_product_page_acknowledges_the_callback(test_session: AsyncSession) -> None:
+    user = await _owner_with_shop(test_session)
+    state = FSMContext(storage=MemoryStorage(), key=StorageKey(bot_id=1, chat_id=1, user_id=4242))
+    callback = _fake_callback()
+    callback.data = "products_page:1"
+
+    await callback_products_page(
+        callback=callback,
+        user=user,
+        session=test_session,
+        state=state,
+        lang="uz_latn",
+    )
+
+    callback.answer.assert_awaited_once()

@@ -9,7 +9,7 @@ Full product/technical spec: [`SPEC.md`](SPEC.md). Operating a live deployment:
 
 ```
 app/
-  api/          FastAPI routers: /health, /webhook, /metrics
+  api/          FastAPI routers: /health, /ready, /webhook, /metrics
   bot/          aiogram dispatcher, handlers, middlewares, keyboards, i18n strings
   core/         config, logging, i18n, exceptions, metrics
   db/           SQLAlchemy models + repositories (all DB access goes through these)
@@ -137,7 +137,8 @@ make worker                 # in a second terminal: arq app.workers.main.WorkerS
 
 `REGISTER_WEBHOOK=false` (the `.env.example` default reversed for pure local dev,
 see comments there) lets `/health` and a synthetic POST to the webhook route work
-without a public URL or a real bot token.
+without a public URL or a real bot token. `/health` is process liveness; `/ready`
+returns 200 only while both PostgreSQL and Redis answer their probes.
 
 ## Tests
 
