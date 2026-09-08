@@ -24,9 +24,11 @@ async def test_startup_registration_keeps_pending_updates(
         patch("app.main.setup_bot_commands", new=AsyncMock()),
         patch("app.main.notify_admins_of_deploy", new=AsyncMock()),
         patch("app.main.watch_webhook", new=AsyncMock()),
+        patch("app.main.logger") as logger,
     ):
         async with lifespan(FastAPI()):
             pass
 
     bot.set_webhook.assert_awaited_once()
     assert bot.set_webhook.await_args.kwargs["drop_pending_updates"] is False
+    logger.info.assert_any_call("webhook_set")

@@ -27,7 +27,10 @@ def get_main_menu_keyboard(
         extra_rows.append(1)
 
     builder.adjust(1, 2, *extra_rows)
-    return builder.as_markup(resize_keyboard=True, is_persistent=True)
+    # A persistent reply keyboard asks Telegram clients to reopen it whenever
+    # it is hidden. On Android that can consume the system Back action instead
+    # of leaving the bot chat, so keep the menu available but user-hideable.
+    return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
 def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
@@ -39,7 +42,7 @@ def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     builder.button(text=t("btn_reregister", lang=lang))
     builder.button(text=t("btn_main_menu", lang=lang))
     builder.adjust(2, 2, 1)
-    return builder.as_markup(resize_keyboard=True, is_persistent=True)
+    return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
 def get_shop_panel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
@@ -52,7 +55,7 @@ def get_shop_panel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     builder.button(text=t("menu_add_product", lang=lang))
     builder.button(text=t("btn_main_menu", lang=lang))
     builder.adjust(1, 1)
-    return builder.as_markup(resize_keyboard=True, is_persistent=True)
+    return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
 def get_phone_request_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:

@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 # Registration is idempotent, so never discard them here.
                 drop_pending_updates=False,
             )
-            logger.info("webhook_set", url=settings.webhook_url)
+            # The webhook URL contains the secret path; never write it to logs.
+            logger.info("webhook_set")
         except TelegramAPIError as exc:
             # Expected in local dev with a placeholder BOT_TOKEN / non-public URL.
             # /health and a synthetic POST to the webhook route still work without this.

@@ -13,6 +13,7 @@ from app.bot.keyboards.reply import (
     get_cancel_keyboard,
     get_main_menu_keyboard,
     get_phone_request_keyboard,
+    get_shop_panel_keyboard,
 )
 from app.db.models.shop import District
 from app.domain.matching.models import CandidateMatch
@@ -145,6 +146,7 @@ def test_shop_order_decision_keyboard() -> None:
 def test_main_menu_keyboard() -> None:
     kb_cust = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=False)
     assert len(kb_cust.keyboard) == 2
+    assert kb_cust.is_persistent is False
 
     kb_shop = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=True)
     assert len(kb_shop.keyboard) == 3
@@ -163,9 +165,15 @@ def test_cancel_keyboard() -> None:
 
 def test_cabinet_keyboard() -> None:
     kb = get_cabinet_keyboard(lang="uz_latn")
+    assert kb.is_persistent is False
     assert len(kb.keyboard) == 3
     assert kb.keyboard[0][0].text == "📦 Buyurtmalarim"
     assert kb.keyboard[0][1].text == "📍 Manzillarim"
     assert kb.keyboard[1][0].text == "⚙️ Sozlamalar"
     assert kb.keyboard[1][1].text == "🔄 0 dan qayta ro'yxatdan o'tish"
     assert kb.keyboard[2][0].text == "⬅️ Asosiy menyu"
+
+
+def test_shop_panel_keyboard_can_be_hidden() -> None:
+    kb = get_shop_panel_keyboard(lang="uz_latn")
+    assert kb.is_persistent is False
