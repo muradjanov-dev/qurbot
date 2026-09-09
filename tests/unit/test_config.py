@@ -42,11 +42,7 @@ def test_production_accepts_explicit_safe_settings() -> None:
     assert settings.app_env == "production"
 
 
-def test_support_contacts_have_all_three_phone_numbers() -> None:
+def test_support_contacts_have_only_current_phone_number() -> None:
     settings = Settings(_env_file=None)
-    assert settings.support_phones == [
-        "+998993416994",
-        "+998935394994",
-        "+998983038909",
-    ]
-    assert settings.support_phone_text == "+998993416994\n+998935394994\n+998983038909"
+    assert settings.support_phones == ["+998983038909"]
+    assert settings.support_phone_text == "+998983038909"

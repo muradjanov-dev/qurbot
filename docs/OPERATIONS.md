@@ -88,6 +88,11 @@ confirm/cancel buttons move the order out of `new`, stop reminders, and notify
 the customer. Public contact numbers come from the `SUPPORT_PHONES` JSON list
 and are shown together without contact names.
 
+The public delivery policy is 50,000 UZS for a shop subtotal up to and
+including 5,000,000 UZS, and free only when that subtotal is strictly above
+5,000,000 UZS. Migration `0013_delivery_policy` applies the policy to existing
+rules; shops without a rule use the same values as a safe fallback.
+
 ## Admin web panel (SPEC §11)
 
 Served from the same web service at `/admin`, behind HTTP Basic Auth

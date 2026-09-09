@@ -163,11 +163,7 @@ class Settings(BaseSettings):
     # Where a customer is sent when the catalog cannot help: an out-of-stock
     # product or an empty category. Kept here rather than in the string
     # catalogue so it changes in one place across all three languages.
-    support_phones: list[str] = [
-        "+998993416994",
-        "+998935394994",
-        "+998983038909",
-    ]
+    support_phones: list[str] = ["+998983038909"]
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5

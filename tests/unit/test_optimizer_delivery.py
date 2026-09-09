@@ -6,9 +6,39 @@ from app.domain.optimizer.models import DeliveryTier
 
 def test_delivery_fee_default_rule() -> None:
     fee, is_free, is_eligible = calculate_shop_delivery_fee(None, Decimal("100000"))
-    assert fee == Decimal("0")
-    assert is_free is True
+    assert fee == Decimal("50000")
+    assert is_free is False
     assert is_eligible is True
+
+
+def test_default_delivery_policy_boundary() -> None:
+    at_threshold = calculate_shop_delivery_fee(None, Decimal("5000000"))
+    above_threshold = calculate_shop_delivery_fee(None, Decimal("5000001"))
+
+    assert at_threshold == (Decimal("50000"), False, True)
+    assert above_threshold == (Decimal("0"), True, True)
+
+
+def test_configured_delivery_threshold_is_strictly_above() -> None:
+    rule = DeliveryTier(
+        shop_id=1,
+        district_id=10,
+        base_fee_uzs=Decimal("50000"),
+        free_above_uzs=Decimal("5000000"),
+        min_order_uzs=Decimal("0"),
+        eta_hours=24,
+    )
+
+    assert calculate_shop_delivery_fee(rule, Decimal("5000000")) == (
+        Decimal("50000"),
+        False,
+        True,
+    )
+    assert calculate_shop_delivery_fee(rule, Decimal("5000001")) == (
+        Decimal("0"),
+        True,
+        True,
+    )
 
 
 def test_delivery_fee_standard() -> None:

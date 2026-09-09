@@ -2672,7 +2672,7 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
                 shop_id=shop.id,
                 district_id=None,
                 fee=Decimal("50000.00"),
-                free_above=Decimal("2000000.00"),
+                free_above=Decimal("5000000.00"),
                 min_order=Decimal("100000.00"),
                 eta_hours=24,
             )
@@ -2682,8 +2682,8 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
             rule_local = ShopDeliveryRule(
                 shop_id=shop.id,
                 district_id=dist.id,
-                fee=Decimal("30000.00"),
-                free_above=Decimal("1000000.00"),
+                fee=Decimal("50000.00"),
+                free_above=Decimal("5000000.00"),
                 min_order=Decimal("50000.00"),
                 eta_hours=12,
             )
