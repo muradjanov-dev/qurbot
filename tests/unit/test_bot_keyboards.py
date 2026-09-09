@@ -1,4 +1,5 @@
 from app.bot.keyboards.inline import (
+    get_admin_order_decision_keyboard,
     get_basket_actions_keyboard,
     get_candidate_picker_keyboard,
     get_district_keyboard,
@@ -143,13 +144,21 @@ def test_shop_order_decision_keyboard() -> None:
     assert kb.inline_keyboard[0][1].callback_data == "shop_order:reject:42"
 
 
+def test_admin_order_decision_keyboard() -> None:
+    kb = get_admin_order_decision_keyboard(order_id=42)
+    assert len(kb.inline_keyboard) == 1
+    assert kb.inline_keyboard[0][0].callback_data == "admin_order:confirm:42"
+    assert kb.inline_keyboard[0][1].callback_data == "admin_order:cancel:42"
+
+
 def test_main_menu_keyboard() -> None:
     kb_cust = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=False)
-    assert len(kb_cust.keyboard) == 2
+    assert len(kb_cust.keyboard) == 3
+    assert kb_cust.keyboard[2][0].text == "☎️ Bog'lanish"
     assert kb_cust.is_persistent is False
 
     kb_shop = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=True)
-    assert len(kb_shop.keyboard) == 3
+    assert len(kb_shop.keyboard) == 4
 
 
 def test_phone_request_keyboard() -> None:

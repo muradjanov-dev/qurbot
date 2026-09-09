@@ -17,7 +17,7 @@ from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.keyboards.inline import get_price_nudge_keyboard
+from app.bot.keyboards.inline import get_admin_order_decision_keyboard, get_price_nudge_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models.ops import DailyMetrics, Event
@@ -300,7 +300,11 @@ async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutof
         )
         for admin_id in settings.admin_tg_ids:
             try:
-                await bot.send_message(admin_id, text)
+                await bot.send_message(
+                    admin_id,
+                    text,
+                    reply_markup=get_admin_order_decision_keyboard(order.id),
+                )
             except TelegramAPIError as exc:
                 logger.warning("order_reminder_send_failed", admin_id=admin_id, error=str(exc))
         await ops_repo.log_event(name=ORDER_REMINDER_EVENT, props={"order_id": order.id})

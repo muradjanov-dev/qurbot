@@ -36,9 +36,11 @@ class FakeBot:
 
     def __init__(self) -> None:
         self.sent: list[tuple[int, str]] = []
+        self.markups: list[object | None] = []
 
     async def send_message(self, chat_id: int, text: str, **kwargs: object) -> None:
         self.sent.append((chat_id, text))
+        self.markups.append(kwargs.get("reply_markup"))
 
 
 async def _make_district(session: AsyncSession) -> District:
@@ -407,6 +409,11 @@ async def test_an_order_left_unconfirmed_reminds_the_admins(test_session: AsyncS
     assert sent == 1
     assert len(bot.sent) == len(settings.admin_tg_ids)
     assert f"#{order.id}" in bot.sent[0][1]
+    callbacks = [button.callback_data for row in bot.markups[0].inline_keyboard for button in row]
+    assert callbacks == [
+        f"admin_order:confirm:{order.id}",
+        f"admin_order:cancel:{order.id}",
+    ]
 
 
 @pytest.mark.asyncio

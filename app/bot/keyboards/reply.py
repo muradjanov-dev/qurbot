@@ -17,6 +17,7 @@ def get_main_menu_keyboard(
     builder.button(text=t("menu_send_list", lang=lang))
     builder.button(text=t("menu_price_check", lang=lang))
     builder.button(text=t("menu_cabinet", lang=lang))
+    builder.button(text=t("menu_contact", lang=lang))
 
     extra_rows = []
     if is_shop_owner:
@@ -26,7 +27,7 @@ def get_main_menu_keyboard(
         builder.button(text=t("menu_admin_panel", lang=lang))
         extra_rows.append(1)
 
-    builder.adjust(1, 2, *extra_rows)
+    builder.adjust(1, 2, 1, *extra_rows)
     # A persistent reply keyboard asks Telegram clients to reopen it whenever
     # it is hidden. On Android that can consume the system Back action instead
     # of leaving the bot chat, so keep the menu available but user-hideable.

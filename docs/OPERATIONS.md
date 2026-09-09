@@ -27,7 +27,7 @@ against each other.
 
 ## Scheduled jobs (`arq`, SPEC §10)
 
-The worker process (`arq app.workers.main.WorkerSettings`) runs six cron jobs, defined
+The worker process (`arq app.workers.main.WorkerSettings`) runs seven cron jobs, defined
 in `app/workers/schedules.py` and implemented in `app/workers/tasks.py`:
 
 | Job | Schedule | What it does |
@@ -38,6 +38,7 @@ in `app/workers/schedules.py` and implemented in `app/workers/tasks.py`:
 | `rollup_metrics` | daily 04:00 | Writes yesterday's funnel into `daily_metrics` (idempotent — safe to re-run for the same day). |
 | `admin_digest` | daily 08:00 | DMs every `admin_tg_ids` entry a summary: unmatched queries, stale shop count, orders, GMV. |
 | `abandon_baskets` | every 30 min | Baskets stuck in `awaiting_confirmation` for over `basket_abandon_hours` (default 24) become `abandoned`. |
+| `remind_unconfirmed_orders` | every 5 min | Reminds admins about old `new` orders and includes the same confirm/cancel buttons as the original notification. |
 
 Each job takes a Postgres advisory lock (`pg_try_advisory_xact_lock`, released
 automatically on commit) so overlapping runs are safe no-ops, not double-processing.
@@ -82,7 +83,10 @@ replicas the effective limit multiplies -- move them to Redis if that becomes
 a problem.
 
 Orders placed on the site notify shops and admins through the same Telegram
-messages the bot sends, and are marked `(sayt)` in the admin message.
+messages the bot sends, and are marked `(sayt)` in the admin message. Admin
+confirm/cancel buttons move the order out of `new`, stop reminders, and notify
+the customer. Public contact numbers come from the `SUPPORT_PHONES` JSON list
+and are shown together without contact names.
 
 ## Admin web panel (SPEC §11)
 

@@ -25,7 +25,7 @@ async def test_a_voice_note_gets_an_answer() -> None:
     await msg_voice_not_supported(message, lang="uz_latn")
 
     sent = message.answer.call_args[0][0]
-    assert settings.support_phone in sent, "give them the way that does work"
+    assert settings.support_phone_text in sent, "give them the way that does work"
     assert "10 dona fanera 12mm" in sent, "and the format that does work"
 
 
@@ -38,7 +38,7 @@ async def test_every_language_has_something_to_say(lang: str) -> None:
 
     sent = message.answer.call_args[0][0]
     assert sent.strip()
-    assert settings.support_phone in sent
+    assert settings.support_phone_text in sent
 
 
 def test_the_fallback_router_is_registered_last() -> None:

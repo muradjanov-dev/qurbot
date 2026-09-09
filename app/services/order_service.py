@@ -25,6 +25,7 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.keyboards.inline import get_admin_order_decision_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models.order import Basket, Order, OrderItem, OrderShopPart, Quote
@@ -235,6 +236,10 @@ async def notify_order(
     )
     for admin_id in settings.admin_tg_ids:
         try:
-            await bot.send_message(admin_id, admin_text)
+            await bot.send_message(
+                admin_id,
+                admin_text,
+                reply_markup=get_admin_order_decision_keyboard(order.id),
+            )
         except TelegramAPIError as exc:
             logger.warning("admin_order_notify_failed", admin_id=admin_id, error=str(exc))

@@ -27,13 +27,13 @@ async def msg_voice_not_supported(message: Message, lang: str) -> None:
     matters -- so silence here is the worst possible answer. Until the bot can
     listen, it says so plainly and offers the two ways that do work.
     """
-    await message.answer(t("fallback_voice", lang=lang, phone=settings.support_phone))
+    await message.answer(t("fallback_voice", lang=lang, phone=settings.support_phone_text))
 
 
 @router.message()
 async def msg_unhandled(message: Message, lang: str) -> None:
     """Anything else nobody claimed: a photo, a video, a forwarded card."""
-    await message.answer(t("fallback_unknown", lang=lang, phone=settings.support_phone))
+    await message.answer(t("fallback_unknown", lang=lang, phone=settings.support_phone_text))
 
 
 @router.callback_query()

@@ -1285,7 +1285,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     if not variant.is_orderable:
         return (
             f"{t('quote_nothing_found', lang=lang)}\n\n"
-            f"{t('quote_call_us', lang=lang, phone=settings.support_phone)}"
+            f"{t('quote_call_us', lang=lang, phone=settings.support_phone_text)}"
         )
 
     # Header badge
@@ -1355,7 +1355,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
         missing_names = "\n".join(f"\u2022 {esc(item.name_uz)}" for item in variant.missing_lines)
         missing_block = (
             f"\n\n{t('quote_missing_items', lang=lang)}\n{missing_names}\n"
-            f"{t('quote_call_us', lang=lang, phone=settings.support_phone)}"
+            f"{t('quote_call_us', lang=lang, phone=settings.support_phone_text)}"
         )
 
     return f"{header}\n\n{items_block}\n\n{summary}{missing_block}"

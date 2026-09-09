@@ -121,7 +121,7 @@ async def callback_price_category(
     if not products:
         await _replace_catalog_screen(
             callback.message,
-            t("price_browse_empty", lang=lang, phone=settings.support_phone),
+            t("price_browse_empty", lang=lang, phone=settings.support_phone_text),
             get_price_category_keyboard([], lang=lang, parent_id=category_id),
         )
         await callback.answer()
@@ -172,7 +172,7 @@ async def callback_all_products(
     if not rows:
         await _replace_catalog_screen(
             callback.message,
-            t("price_browse_empty", lang=lang, phone=settings.support_phone),
+            t("price_browse_empty", lang=lang, phone=settings.support_phone_text),
             get_price_category_keyboard([], lang=lang),
         )
         await callback.answer()
@@ -233,7 +233,7 @@ async def callback_product_detail(
             "product_card_no_offers",
             lang=lang,
             name=esc(product.name_uz),
-            phone=settings.support_phone,
+            phone=settings.support_phone_text,
         )
 
     photo = await shop_repo.get_photo_for_canonical(canonical_id)

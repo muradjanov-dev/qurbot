@@ -191,6 +191,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "👤 Кабинет",
         "ru": "👤 Кабинет",
     },
+    "menu_contact": {
+        "uz_latn": "☎️ Bog'lanish",
+        "uz_cyrl": "☎️ Боғланиш",
+        "ru": "☎️ Связаться",
+    },
+    "support_contacts": {
+        "uz_latn": "☎️ <b>Bog'lanish uchun telefon raqamlari:</b>\n\n{phones}",
+        "uz_cyrl": "☎️ <b>Боғланиш учун телефон рақамлари:</b>\n\n{phones}",
+        "ru": "☎️ <b>Контактные телефоны:</b>\n\n{phones}",
+    },
     "pebbles_earned": {
         "uz_latn": "🪨 Siz <b>{pebbles} toshcha</b> yutdingiz!",
         "uz_cyrl": "🪨 Сиз <b>{pebbles} тошча</b> ютдингиз!",
@@ -757,6 +767,16 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Сумма к оплате: <b>{total} сум</b>\n\n"
             "Ваш заказ собирается, мы скоро свяжемся с вами."
         ),
+    },
+    "order_admin_confirmed_customer": {
+        "uz_latn": "✅ Buyurtma <b>#{order_id}</b> operator tomonidan tasdiqlandi.",
+        "uz_cyrl": "✅ Буюртма <b>#{order_id}</b> оператор томонидан тасдиқланди.",
+        "ru": "✅ Заказ <b>#{order_id}</b> подтверждён оператором.",
+    },
+    "order_admin_cancelled_customer": {
+        "uz_latn": "❌ Buyurtma <b>#{order_id}</b> operator tomonidan bekor qilindi.",
+        "uz_cyrl": "❌ Буюртма <b>#{order_id}</b> оператор томонидан бекор қилинди.",
+        "ru": "❌ Заказ <b>#{order_id}</b> отменён оператором.",
     },
     # Shop Owner Flow
     "shop_panel_title": {

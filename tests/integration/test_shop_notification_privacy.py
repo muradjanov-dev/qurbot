@@ -32,9 +32,11 @@ OWNER_TG_ID = 5550001
 class FakeBot:
     def __init__(self) -> None:
         self.sent: list[tuple[int, str]] = []
+        self.markups: list[object | None] = []
 
     async def send_message(self, chat_id: int, text: str, **kwargs: object) -> None:
         self.sent.append((chat_id, text))
+        self.markups.append(kwargs.get("reply_markup"))
 
 
 async def _placed_order(session: AsyncSession) -> tuple[PlacedOrder, User]:
@@ -157,3 +159,15 @@ async def test_the_admins_still_get_the_whole_picture(test_session: AsyncSession
     assert CUSTOMER_PHONE in joined
     assert CUSTOMER_ADDRESS in joined
     assert "Ark buloq" in joined
+
+    admin_markups = [
+        markup
+        for (chat_id, _text), markup in zip(bot.sent, bot.markups, strict=True)
+        if chat_id in settings.admin_tg_ids
+    ]
+    assert admin_markups
+    callbacks = [button.callback_data for row in admin_markups[0].inline_keyboard for button in row]
+    assert callbacks == [
+        f"admin_order:confirm:{placed.order.id}",
+        f"admin_order:cancel:{placed.order.id}",
+    ]

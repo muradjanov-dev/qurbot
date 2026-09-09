@@ -404,6 +404,11 @@ async def menu_cabinet(message: Message, user: User, session: AsyncSession, lang
     )
 
 
+@router.message(F.text.in_(["☎️ Bog'lanish", "☎️ Боғланиш", "☎️ Связаться"]))
+async def menu_contact(message: Message, lang: str) -> None:
+    await message.answer(t("support_contacts", lang=lang, phones=settings.support_phone_text))
+
+
 @router.message(F.text.in_(["⬅️ Asosiy menyu", "⬅️ Асосий меню", "⬅️ Главное меню"]))
 async def menu_back_to_main(message: Message, user: User, state: FSMContext, lang: str) -> None:
     await state.clear()

@@ -402,6 +402,21 @@ def get_shop_order_decision_keyboard(order_part_id: int) -> InlineKeyboardMarkup
     return builder.as_markup()
 
 
+def get_admin_order_decision_keyboard(order_id: int) -> InlineKeyboardMarkup:
+    """Let an operator close the order after calling the customer."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="✅ Buyurtmani tasdiqlash",
+        callback_data=f"admin_order:confirm:{order_id}",
+    )
+    builder.button(
+        text="❌ Buyurtmani bekor qilish",
+        callback_data=f"admin_order:cancel:{order_id}",
+    )
+    builder.adjust(2)
+    return builder.as_markup()
+
+
 def get_product_edit_keyboard(
     product_id: int, is_active: bool, lang: str = "uz_latn"
 ) -> InlineKeyboardMarkup:

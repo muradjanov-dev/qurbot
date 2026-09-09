@@ -163,7 +163,11 @@ class Settings(BaseSettings):
     # Where a customer is sent when the catalog cannot help: an out-of-stock
     # product or an empty category. Kept here rather than in the string
     # catalogue so it changes in one place across all three languages.
-    support_phone: str = "+998935394994"
+    support_phones: list[str] = [
+        "+998993416994",
+        "+998935394994",
+        "+998983038909",
+    ]
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5
@@ -244,6 +248,11 @@ class Settings(BaseSettings):
         if self.web_session_secret:
             return self.web_session_secret.encode()
         return hashlib.sha256(f"qurbot-web-session:{self.bot_token}".encode()).digest()
+
+    @property
+    def support_phone_text(self) -> str:
+        """All public support numbers, formatted for a Telegram message."""
+        return "\n".join(self.support_phones)
 
     @property
     def webhook_path(self) -> str:
