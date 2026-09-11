@@ -58,6 +58,9 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         latency_ms: int,
         cache_hit: bool = False,
         raw_response: str | None = None,
+        model: str | None = None,
+        outcome: str | None = None,
+        attempt_count: int | None = None,
     ) -> LLMCall:
         call = LLMCall(
             purpose=purpose,
@@ -69,6 +72,9 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
             latency_ms=latency_ms,
             cache_hit=cache_hit,
             raw_response=raw_response,
+            model=model,
+            outcome=outcome,
+            attempt_count=attempt_count,
         )
         self.session.add(call)
         await self.session.flush()

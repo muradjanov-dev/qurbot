@@ -137,8 +137,12 @@ class Settings(BaseSettings):
     # teaching the client the Responses API, for a model that is slower and
     # that nothing in the measurements suggests would answer better.
     llm_model: str = "gpt-5.6-terra"
-    llm_timeout_seconds: float = 30.0
-    llm_max_retries: int = 2
+    # A customer must get deterministic candidates instead of waiting through
+    # several long network timeouts.  The basket-level deadline is enforced by
+    # CatalogService; this is the limit for one HTTP attempt.
+    llm_timeout_seconds: float = 8.0
+    llm_total_deadline_seconds: float = 12.0
+    llm_max_retries: int = 1
     # Reasoning models spend part of this budget on hidden reasoning tokens
     # before emitting any answer, so a 300-token cap can be consumed entirely
     # by reasoning and return an empty completion.

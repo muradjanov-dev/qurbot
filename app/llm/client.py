@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import random
 import time
 from datetime import UTC, datetime, timedelta
@@ -91,7 +92,7 @@ class LLMClient:
 
         prompt_version = settings.llm_prompt_version
         user_prompt = format_disambiguation_prompt(raw_query, normalized_query, candidates)
-        input_hash = compute_llm_input_hash("disambiguation", prompt_version, user_prompt)
+        input_hash = self._cache_hash("disambiguation", prompt_version, user_prompt)
 
         # 1. Check cache in database
         cached_result = await self._get_cached_call(input_hash)
@@ -185,12 +186,14 @@ class LLMClient:
 
         prompt_version = settings.llm_prompt_version
         user_prompt = format_batch_disambiguation_prompt(lines, lang)
-        input_hash = compute_llm_input_hash("batch_disambiguation", prompt_version, user_prompt)
+        input_hash = self._cache_hash(
+            "batch_disambiguation", prompt_version, user_prompt, lang=lang
+        )
 
         cached_result = await self._get_cached_call(input_hash)
         if cached_result:
             try:
-                return self._deserialize_batch(json.loads(cached_result))
+                return self._deserialize_batch(json.loads(cached_result), lines)
             except (json.JSONDecodeError, TypeError, ValueError):
                 logger.warning("Cached batch disambiguation payload was unreadable; recomputing")
 
@@ -211,7 +214,7 @@ class LLMClient:
                 cache_hit=False,
                 raw_response=json.dumps(data),
             )
-            return self._deserialize_batch(data)
+            return self._deserialize_batch(data, lines)
 
         start_time = time.monotonic()
         response_dict, in_toks, out_toks = await self._call_chat_completions(
@@ -235,7 +238,7 @@ class LLMClient:
         if not response_dict:
             return BatchDisambiguationResult()
 
-        return self._deserialize_batch(response_dict)
+        return self._deserialize_batch(response_dict, lines)
 
     async def parse_whole_message(self, message_text: str) -> LLMParseResult:
         """Whole message parsing fallback when structured parser yields < 50% lines."""
@@ -244,7 +247,7 @@ class LLMClient:
 
         prompt_version = settings.llm_prompt_version
         user_prompt = format_whole_message_prompt(message_text)
-        input_hash = compute_llm_input_hash("whole_message_parse", prompt_version, user_prompt)
+        input_hash = self._cache_hash("whole_message_parse", prompt_version, user_prompt)
 
         cached_result = await self._get_cached_call(input_hash)
         if cached_result:
@@ -315,7 +318,7 @@ class LLMClient:
 
         prompt_version = settings.llm_prompt_version
         user_prompt = format_customer_guide_prompt(message_text, lang)
-        input_hash = compute_llm_input_hash("customer_guide", prompt_version, user_prompt)
+        input_hash = self._cache_hash("customer_guide", prompt_version, user_prompt, lang=lang)
 
         cached_result = await self._get_cached_call(input_hash)
         if cached_result:
@@ -430,6 +433,11 @@ class LLMClient:
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.post(url, headers=headers, json=payload)
+                    # Authentication, validation and malformed requests cannot
+                    # improve on retry.  Only transient upstream failures do.
+                    if resp.status_code in (400, 401, 403):
+                        logger.warning("LLM request rejected with HTTP %s", resp.status_code)
+                        return None, 0, 0
                     resp.raise_for_status()
                     data = resp.json()
 
@@ -443,12 +451,22 @@ class LLMClient:
                         parsed = json.loads(content_str)
                         return parsed, in_tokens, out_tokens
                     return None, in_tokens, out_tokens
-            except Exception as e:
-                if attempt < self.max_retries:
+            except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as e:
+                retryable = not isinstance(e, httpx.HTTPStatusError) or (
+                    e.response.status_code == 429 or e.response.status_code >= 500
+                )
+                if retryable and attempt < self.max_retries:
                     backoff = (0.5 * (2**attempt)) + random.uniform(0.1, 0.4)
                     await asyncio.sleep(backoff)
                 else:
-                    logger.error("LLM call failed after %d retries: %s", self.max_retries, e)
+                    logger.warning(
+                        "LLM call unavailable after %d retries: %s",
+                        self.max_retries,
+                        type(e).__name__,
+                    )
+            except (ValueError, json.JSONDecodeError):
+                logger.warning("LLM returned invalid JSON; not retrying")
+                return None, 0, 0
 
         return None, 0, 0
 
@@ -462,7 +480,10 @@ class LLMClient:
         try:
             stmt = (
                 select(LLMCall)
-                .where(LLMCall.input_hash == input_hash)
+                .where(
+                    LLMCall.input_hash == input_hash,
+                    LLMCall.created_at >= datetime.now(UTC) - timedelta(hours=24),
+                )
                 .order_by(LLMCall.id.desc())
                 .limit(1)
             )
@@ -526,6 +547,8 @@ class LLMClient:
         latency_ms: int,
         cache_hit: bool,
         raw_response: str | None = None,
+        outcome: str | None = None,
+        attempt_count: int | None = None,
     ) -> None:
         if not self.session:
             return
@@ -541,10 +564,23 @@ class LLMClient:
                 latency_ms=latency_ms,
                 cache_hit=cache_hit,
                 raw_response=raw_response,
+                model=self.model,
+                outcome=outcome or ("cache_hit" if cache_hit else "success"),
+                attempt_count=attempt_count or (0 if cache_hit else 1),
             )
             llm_cost_usd_total.inc(float(cost_usd))
         except Exception:
             logger.exception("Failed to record LLM call in DB")
+
+    def _cache_hash(
+        self, purpose: str, prompt_version: str, payload: str, *, lang: str | None = None
+    ) -> str:
+        """Cache keys cannot cross models, prompt languages or candidate order."""
+        return compute_llm_input_hash(purpose, prompt_version, {
+            "model": self.model,
+            "language": lang,
+            "payload": payload,
+        })
 
     def _estimate_cost(self, in_tokens: int, out_tokens: int) -> Decimal:
         """Cost estimate for gpt-5.6-terra / modern fast models ($2.5 / 1M in, $10 / 1M out)."""
@@ -553,7 +589,9 @@ class LLMClient:
         )
         return cost.quantize(Decimal("0.000001"))
 
-    def _deserialize_batch(self, data: dict[str, Any]) -> BatchDisambiguationResult:
+    def _deserialize_batch(
+        self, data: dict[str, Any], requested_lines: list[BatchLineInput] | None = None
+    ) -> BatchDisambiguationResult:
         """Read the model's per-line answers, discarding anything malformed.
 
         A line whose payload cannot be trusted is dropped rather than defaulted:
@@ -562,6 +600,10 @@ class LLMClient:
         customer never asked for into their basket.
         """
         decisions: dict[int, BatchLineDecision] = {}
+        allowed_ids = {
+            line.line_no: {candidate.canonical_id for candidate in line.candidates}
+            for line in requested_lines or []
+        }
         for raw in data.get("lines", []):
             if not isinstance(raw, dict):
                 continue
@@ -575,6 +617,17 @@ class LLMClient:
                 canonical_id = int(raw_canonical) if raw_canonical is not None else None
                 confidence = float(raw.get("confidence", 0.0))
             except (TypeError, ValueError):
+                continue
+
+            if line_no in decisions or (requested_lines is not None and line_no not in allowed_ids):
+                continue
+            if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+                continue
+            if (
+                canonical_id is not None
+                and requested_lines is not None
+                and canonical_id not in allowed_ids.get(line_no, set())
+            ):
                 continue
 
             question = raw.get("question")

@@ -66,6 +66,10 @@ class LLMCall(Base, TimestampMixin):
     latency_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cache_hit: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     raw_response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Nullable for rows created before the matching observability rollout.
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    outcome: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    attempt_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Event(Base, TimestampMixin):
