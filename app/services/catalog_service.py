@@ -282,8 +282,9 @@ class CatalogService:
             return current
 
         retried = await self._match_deterministic(
-            replace(match.parsed_line, parsed_name=term), match.category_ids,
-            require_offers=require_offers
+            replace(match.parsed_line, parsed_name=term),
+            match.category_ids,
+            require_offers=require_offers,
         )
         if retried.decision.canonical_id is None:
             return current

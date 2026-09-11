@@ -144,12 +144,14 @@ def test_batch_response_keeps_the_question_and_drops_broken_rows() -> None:
 def test_batch_response_cannot_choose_an_id_or_line_it_was_not_given() -> None:
     lines = _batch_lines()
     result = LLMClient()._deserialize_batch(
-        {"lines": [
-            {"line_no": 1, "canonical_id": 999, "confidence": 0.9},
-            {"line_no": 99, "canonical_id": 10, "confidence": 0.9},
-            {"line_no": 1, "canonical_id": 10, "confidence": float("nan")},
-            {"line_no": 1, "canonical_id": 10, "confidence": 0.9},
-        ]},
+        {
+            "lines": [
+                {"line_no": 1, "canonical_id": 999, "confidence": 0.9},
+                {"line_no": 99, "canonical_id": 10, "confidence": 0.9},
+                {"line_no": 1, "canonical_id": 10, "confidence": float("nan")},
+                {"line_no": 1, "canonical_id": 10, "confidence": 0.9},
+            ]
+        },
         lines,
     )
     assert set(result.lines) == {1}

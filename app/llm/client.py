@@ -576,11 +576,15 @@ class LLMClient:
         self, purpose: str, prompt_version: str, payload: str, *, lang: str | None = None
     ) -> str:
         """Cache keys cannot cross models, prompt languages or candidate order."""
-        return compute_llm_input_hash(purpose, prompt_version, {
-            "model": self.model,
-            "language": lang,
-            "payload": payload,
-        })
+        return compute_llm_input_hash(
+            purpose,
+            prompt_version,
+            {
+                "model": self.model,
+                "language": lang,
+                "payload": payload,
+            },
+        )
 
     def _estimate_cost(self, in_tokens: int, out_tokens: int) -> Decimal:
         """Cost estimate for gpt-5.6-terra / modern fast models ($2.5 / 1M in, $10 / 1M out)."""

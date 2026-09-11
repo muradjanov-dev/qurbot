@@ -131,16 +131,32 @@ def score_and_rank_candidates(
     ambiguous_variants = _has_unspecified_variant(query, scored_candidates)
     if not ambiguous_variants and top.score >= auto_accept_threshold and margin >= margin_threshold:
         return MatchDecision(
-            canonical_id=top.canonical_id, status="auto_accept", confidence=top.score,
-            candidates=scored_candidates[:3], method="trgm", needs_review=False,
+            canonical_id=top.canonical_id,
+            status="auto_accept",
+            confidence=top.score,
+            candidates=scored_candidates[:3],
+            method="trgm",
+            needs_review=False,
         )
     if top.score >= ask_user_threshold:
         question = "Qalinligi yoki o'lchamini tanlang." if ambiguous_variants else None
-        return MatchDecision(canonical_id=top.canonical_id, status="ask_user", confidence=top.score,
-                             candidates=scored_candidates[:3], method="trgm", needs_review=True,
-                             clarify_question=question)
-    return MatchDecision(canonical_id=None, status="unresolved", confidence=top.score,
-                         candidates=scored_candidates[:3], method="trgm", needs_review=True)
+        return MatchDecision(
+            canonical_id=top.canonical_id,
+            status="ask_user",
+            confidence=top.score,
+            candidates=scored_candidates[:3],
+            method="trgm",
+            needs_review=True,
+            clarify_question=question,
+        )
+    return MatchDecision(
+        canonical_id=None,
+        status="unresolved",
+        confidence=top.score,
+        candidates=scored_candidates[:3],
+        method="trgm",
+        needs_review=True,
+    )
 
 
 def rank_candidates(
