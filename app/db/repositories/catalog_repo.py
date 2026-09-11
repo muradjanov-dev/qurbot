@@ -154,6 +154,25 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def is_matchable(
+        self,
+        canonical_id: int,
+        category_ids: Sequence[int] | None = None,
+        *,
+        require_offers: bool = False,
+    ) -> bool:
+        """Check alias/AI targets against the same customer-visible scope."""
+        scoped = await self._scoped_category_ids(category_ids)
+        if scoped is not None and not scoped:
+            return False
+        filters = [CanonicalProduct.id == canonical_id, CanonicalProduct.is_active.is_(True)]
+        if scoped:
+            filters.append(CanonicalProduct.category_id.in_(list(scoped)))
+        if require_offers:
+            filters.append(_is_orderable())
+        result = await self.session.execute(select(CanonicalProduct.id).where(*filters))
+        return result.scalar_one_or_none() is not None
+
     async def record_alias_hit(self, alias_id: int) -> None:
         now = datetime.now(UTC)
         stmt = (
@@ -200,18 +219,31 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         if require_offers:
             base_filters.append(_is_orderable())
 
+        # Search sources are deliberately independent.  A partial token hit is
+        # not proof that it is the best hit ("faner 3mm" can also need the
+        # trigram result for a misspelt brand), so never short-circuit fuzzy
+        # search merely because ILIKE found something.
+        source_limit = max(40, limit)
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
-            stmt = select(CanonicalProduct).where(*base_filters).limit(limit)
+            stmt = (
+                select(CanonicalProduct)
+                .where(*base_filters)
+                .order_by(CanonicalProduct.id)
+                .limit(limit)
+            )
             result = await self.session.execute(stmt)
             return result.scalars().all()
 
         token_filters = [CanonicalProduct.search_doc.ilike(f"%{token}%") for token in tokens]
-        stmt = select(CanonicalProduct).where(*base_filters, or_(*token_filters)).limit(limit)
+        stmt = (
+            select(CanonicalProduct)
+            .where(*base_filters, or_(*token_filters))
+            .order_by(CanonicalProduct.id)
+            .limit(source_limit)
+        )
         result = await self.session.execute(stmt)
-        rows = list(result.scalars().all())
-        if rows:
-            return rows
+        token_rows = list(result.scalars().all())
 
         # Substring matching finds nothing for a misspelling that shares no
         # whole token with the catalog ("paner" vs "fanera", "smnt" vs
@@ -219,9 +251,15 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         # this; falling back to it here keeps those queries inside the pipeline
         # instead of reaching Stage 4 with an empty candidate list -- which also
         # meant Stage 3 (LLM) was skipped entirely, since it requires candidates.
-        return await self._search_by_trigram_similarity(
-            query, limit, category_ids, require_offers=require_offers
+        trigram_rows = await self._search_by_trigram_similarity(
+            query, source_limit, category_ids, require_offers=require_offers
         )
+        # The service applies the semantic score.  This stable merge only
+        # prevents database row order from changing which candidates survive.
+        merged: dict[int, CanonicalProduct] = {}
+        for row in [*token_rows, *trigram_rows]:
+            merged.setdefault(row.id, row)
+        return [merged[key] for key in sorted(merged)][:limit]
 
     async def _search_by_trigram_similarity(
         self,

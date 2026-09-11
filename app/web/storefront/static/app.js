@@ -258,6 +258,9 @@
     wrap.appendChild(actions);
 
     if (line.status === "choose" && line.candidates && line.candidates.length) {
+      if (line.clarify_question) {
+        wrap.appendChild(el("p", "muted tiny", line.clarify_question));
+      }
       var options = el("div", "chips");
       line.candidates.forEach(function (candidate) {
         var chip = el("button", "chip", candidate.price ? candidate.name + " · " + candidate.price : candidate.name);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from decimal import Decimal
@@ -9,7 +10,7 @@ from app.core.metrics import match_method_total
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.matching.models import CandidateMatch, MatchDecision, MatchStatus
-from app.domain.matching.scorer import score_and_rank_candidates
+from app.domain.matching.scorer import rank_candidates, score_and_rank_candidates
 from app.domain.models import NormalizedQuery
 from app.domain.normalize.text import normalize_query
 from app.domain.parsing.models import ParsedLine
@@ -35,6 +36,7 @@ class _DeterministicMatch:
     query: NormalizedQuery
     decision: MatchDecision
     candidates: list[CandidateMatch]
+    category_ids: tuple[int, ...] | None = None
 
 
 class CatalogService:
@@ -77,9 +79,13 @@ class CatalogService:
         # Stage 1: Exact alias hash lookup
         alias = await self.catalog_repo.get_approved_alias(query.text_norm)
         if alias:
-            await self.catalog_repo.record_alias_hit(alias.id)
             canonical = await self.catalog_repo.get(alias.canonical_id)
-            if canonical:
+            is_matchable = await self.catalog_repo.is_matchable(
+                alias.canonical_id, category_ids, require_offers=require_offers
+            )
+            if is_matchable:
+                await self.catalog_repo.record_alias_hit(alias.id)
+            if canonical and is_matchable:
                 cand = CandidateMatch(
                     canonical_id=canonical.id,
                     slug=canonical.slug,
@@ -108,14 +114,14 @@ class CatalogService:
 
         # Stage 2: Candidate search + multi-factor re-ranking
         raw_candidates = await self.catalog_repo.search_canonical_products(
-            query.text_norm, limit=20, category_ids=category_ids, require_offers=require_offers
+            query.text_norm, limit=40, category_ids=category_ids, require_offers=require_offers
         )
         if not raw_candidates and category_ids:
             # The owner may have filed the product under the wrong category.
             # Retrying unscoped keeps a mis-categorised listing matchable
             # instead of dropping it into the unmatched queue.
             raw_candidates = await self.catalog_repo.search_canonical_products(
-                query.text_norm, limit=20, require_offers=require_offers
+                query.text_norm, limit=40, require_offers=require_offers
             )
 
         candidate_matches: list[CandidateMatch] = [
@@ -132,9 +138,10 @@ class CatalogService:
             for c in raw_candidates
         ]
 
+        ranked_candidates = rank_candidates(query, candidate_matches)[:20]
         decision = score_and_rank_candidates(
             query=query,
-            candidates=candidate_matches,
+            candidates=ranked_candidates,
             auto_accept_threshold=settings.match_auto_accept_threshold,
             margin_threshold=settings.match_margin_threshold,
             ask_user_threshold=settings.match_ask_user_threshold,
@@ -144,7 +151,8 @@ class CatalogService:
             parsed_line=parsed_line,
             query=query,
             decision=decision,
-            candidates=candidate_matches,
+            candidates=ranked_candidates,
+            category_ids=tuple(category_ids) if category_ids is not None else None,
         )
 
     @staticmethod
@@ -197,6 +205,10 @@ class CatalogService:
     ) -> MatchDecision:
         """Fold one model answer into the deterministic decision for that line."""
         canonical_id = answer.canonical_id
+        allowed_ids = {candidate.canonical_id for candidate in match.candidates[:8]}
+        if canonical_id is not None and canonical_id not in allowed_ids:
+            # A model is never allowed to invent an ID it was not shown.
+            return match.decision
         if canonical_id is None or answer.confidence < settings.llm_alias_writeback_min_confidence:
             # Not strong enough to move the match. The question is still worth
             # keeping: it is the one thing that can resolve the line, and it
@@ -270,7 +282,8 @@ class CatalogService:
             return current
 
         retried = await self._match_deterministic(
-            replace(match.parsed_line, parsed_name=term), require_offers=require_offers
+            replace(match.parsed_line, parsed_name=term), match.category_ids,
+            require_offers=require_offers
         )
         if retried.decision.canonical_id is None:
             return current
@@ -390,8 +403,12 @@ class CatalogService:
             )
             qty_ratio = lines_with_qty / len(parsed_lines)
             if qty_ratio < 0.5 and settings.llm_enabled:
-                llm_parsed = await self.llm_client.parse_whole_message(raw_text)
-                if llm_parsed.lines:
+                try:
+                    async with asyncio.timeout(settings.llm_total_deadline_seconds):
+                        llm_parsed = await self.llm_client.parse_whole_message(raw_text)
+                except TimeoutError:
+                    llm_parsed = None
+                if llm_parsed and llm_parsed.lines:
                     parsed_lines = [
                         ParsedLine(
                             line_no=idx + 1,
@@ -437,19 +454,25 @@ class CatalogService:
                 pending.append((index, match))
 
         if pending:
-            batch = await self.llm_client.disambiguate_batch(
-                [self._to_batch_input(match, index) for index, match in pending], lang=lang
-            )
-            for index, match in pending:
-                answer = batch.lines.get(index)
-                if answer is None:
-                    # The model skipped this line; its deterministic decision
-                    # stands rather than being replaced by a guess.
-                    continue
-                results[index] = (
-                    results[index][0],
-                    await self._settle_with_model(match, answer, require_offers=require_offers),
-                )
+            try:
+                async with asyncio.timeout(settings.llm_total_deadline_seconds):
+                    batch = await self.llm_client.disambiguate_batch(
+                        [self._to_batch_input(match, index) for index, match in pending], lang=lang
+                    )
+            except TimeoutError:
+                # Deterministic candidates are a safe, useful fallback.
+                batch = None
+            if batch is not None:
+                for index, match in pending:
+                    answer = batch.lines.get(index)
+                    if answer is None:
+                        # The model skipped this line; its deterministic decision
+                        # stands rather than being replaced by a guess.
+                        continue
+                    results[index] = (
+                        results[index][0],
+                        await self._settle_with_model(match, answer, require_offers=require_offers),
+                    )
 
         for index, match in matched:
             await self._finalize(

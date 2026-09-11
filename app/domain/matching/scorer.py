@@ -120,6 +120,33 @@ def score_and_rank_candidates(
             needs_review=False,
         )
 
+    scored_candidates = rank_candidates(query, candidates)
+    top = scored_candidates[0]
+    runner_up = scored_candidates[1] if len(scored_candidates) > 1 else None
+    margin = (top.score - runner_up.score) if runner_up else 1.0
+
+    # A family-only request must not silently choose a thickness/diameter from
+    # several viable variants.  Name similarity and order specificity are two
+    # different facts.
+    ambiguous_variants = _has_unspecified_variant(query, scored_candidates)
+    if not ambiguous_variants and top.score >= auto_accept_threshold and margin >= margin_threshold:
+        return MatchDecision(
+            canonical_id=top.canonical_id, status="auto_accept", confidence=top.score,
+            candidates=scored_candidates[:3], method="trgm", needs_review=False,
+        )
+    if top.score >= ask_user_threshold:
+        question = "Qalinligi yoki o'lchamini tanlang." if ambiguous_variants else None
+        return MatchDecision(canonical_id=top.canonical_id, status="ask_user", confidence=top.score,
+                             candidates=scored_candidates[:3], method="trgm", needs_review=True,
+                             clarify_question=question)
+    return MatchDecision(canonical_id=None, status="unresolved", confidence=top.score,
+                         candidates=scored_candidates[:3], method="trgm", needs_review=True)
+
+
+def rank_candidates(
+    query: NormalizedQuery, candidates: list[CandidateMatch]
+) -> list[CandidateMatch]:
+    """Return all candidates in stable semantic-score order for the LLM too."""
     # Stage 2: Multi-factor scoring
     scored_candidates: list[CandidateMatch] = []
     for cand in candidates:
@@ -151,39 +178,34 @@ def score_and_rank_candidates(
             )
         )
 
-    # Sort descending by score
-    scored_candidates.sort(key=lambda x: x.score, reverse=True)
-    top = scored_candidates[0]
-    runner_up = scored_candidates[1] if len(scored_candidates) > 1 else None
+    scored_candidates.sort(key=lambda x: (-x.score, x.canonical_id))
+    return scored_candidates
 
-    margin = (top.score - runner_up.score) if runner_up else 1.0
 
-    # Decision thresholds
-    if top.score >= auto_accept_threshold and margin >= margin_threshold:
-        return MatchDecision(
-            canonical_id=top.canonical_id,
-            status="auto_accept",
-            confidence=top.score,
-            candidates=scored_candidates[:3],
-            method="trgm",
-            needs_review=False,
-        )
-
-    if top.score >= ask_user_threshold:
-        return MatchDecision(
-            canonical_id=top.canonical_id,
-            status="ask_user",
-            confidence=top.score,
-            candidates=scored_candidates[:3],
-            method="trgm",
-            needs_review=True,
-        )
-
-    return MatchDecision(
-        canonical_id=None,
-        status="unresolved",
-        confidence=top.score,
-        candidates=scored_candidates[:3],
-        method="trgm",
-        needs_review=True,
+def _has_unspecified_variant(query: NormalizedQuery, candidates: list[CandidateMatch]) -> bool:
+    """Whether similarly named candidates differ on an unstated safety field."""
+    if len(candidates) < 2:
+        return False
+    stated_thickness = any("mm" in token for token in query.tokens)
+    stated_size = bool(_true_sizes(query))
+    stated_grade = bool(query.grades or _grade_like_sizes(query))
+    fields = (
+        ("thickness_mm", stated_thickness),
+        ("diameter_mm", stated_thickness),
+        ("size", stated_size),
+        ("dimensions", stated_size),
+        ("grade", stated_grade),
     )
+    # Only compare plausible alternatives, not an unrelated low-score tail.
+    plausible = [c for c in candidates[:8] if c.score >= max(0.55, candidates[0].score - 0.12)]
+    for field, stated in fields:
+        if stated:
+            continue
+        values = {
+            str(c.attributes.get(field)).strip().lower()
+            for c in plausible
+            if c.attributes.get(field) not in (None, "")
+        }
+        if len(values) > 1:
+            return True
+    return False
