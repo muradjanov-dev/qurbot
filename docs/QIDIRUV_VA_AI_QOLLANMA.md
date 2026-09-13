@@ -13,7 +13,7 @@
 
 ## Qidiruv qanday qaror qiladi
 
-Avval lotin/kirill va yozilish variantlari normallanadi. Tasdiqlangan alias aniq topilsa u darhol ishlatiladi. Keyin token va `pg_trgm` typo qidiruvi birga olinadi, ID bo'yicha birlashtiriladi va nom, o'lcham, qalinlik, marka bilan qayta saralanadi. Eng yaxshi 20 saqlanadi; AI faqat saralangan top-8 ni ko'radi.
+Avval lotin/kirill va yozilish variantlari normallanadi. Tasdiqlangan alias ham faol katalog, kategoriya, taklif va fizik atribut tekshiruvidan o'tadi. Umumiy nom bitta qalinlikka avtomatik bog'lanmaydi. Token va `pg_trgm` qidiruvidan 40 tadan nomzod olinadi; ular ID bo'yicha birlashtirilgach, limit qo'llashdan oldin saralanadi. Eng yaxshi 20 saqlanadi; AI saralangan top-8 ni ko'radi.
 
 Aniq moslik avtomatik tanlanadi. Masalan, `fanera` bir necha qalinlikda bo'lsa bot tanlab yubormaydi: 2–3 variant va aniqlashtirish savolini ko'rsatadi. `0.3mm` ni `3mm` ga avtomatik o'zgartirish taqiqlangan. Mijoz miqdor yozmasa parser buni buyurtmaga o'tkazmaydi.
 
@@ -33,13 +33,20 @@ docker run --rm -v "$PWD:/app" -w /app qurbot-test:dev ruff check app tests
 docker run --rm -v "$PWD:/app" -w /app qurbot-test:dev mypy app
 ```
 
-Model solishtiruvi yozuv yaratmaydigan alohida SQLite muhitida bajariladi:
+Release eval'i alohida PostgreSQL bazasida bajariladi. `scripts/eval_models.py` eski SQLite tajribasi bo'lib, release mezoni emas. Yangi runner faqat `qurbot_matching_eval` nomli PostgreSQL bazasini qabul qiladi, unga anonim katalog snapshotini yuklaydi. Prod DBga ulanmaydi, order yoki Telegram xabari yaratmaydi:
 
 ```bash
-python -m scripts.eval_models gpt-5.6-luna gpt-5.6-terra
+export EVAL_DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@localhost:55439/qurbot_matching_eval
+python -m scripts.eval_matching --split development --output docs/eval_deterministic.json
+# Jonli API uchun alohida kalit va tasdiqlangan budjet kerak:
+python -m scripts.eval_matching --split all --models gpt-5.6-luna gpt-5.6-terra --output docs/eval_final.json
 ```
 
 U faqat anonim test so'rovlaridan foydalanishi kerak. Telefon, manzil, Telegram ID, username, token yoki xom chatni eval/log/gitga qo'shmang. `llm_calls`da model, outcome va retry soni kuzatiladi; eski qatorlar `unknown` deb talqin qilinadi.
+
+100 ta holat `tests/fixtures/matching_eval.json`da: 75 development, 25 holdout. Holdout threshold sozlash uchun ishlatilmaydi. Har API urinishdan oldin eng ko'p token xarajati rezerv qilinadi, timeout bo'lsa ham rezerv bo'shatilmaydi. `.pytest_cache/llm-eval-budget.json` budjetni restartlar orasida saqlaydi; davom etayotgan tajribada bu faylni o'chirmang. Bu runner bir vaqtda bitta jarayonda bajariladi.
+
+Natijalar va cheklovlar: [AI release hisoboti](AI_RELEASE_REPORT.md).
 
 ## Deploy
 

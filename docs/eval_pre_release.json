@@ -1,0 +1,2645 @@
+{
+  "split": "all",
+  "catalog_rows": 322,
+  "models": {
+    "gpt-5.6-luna": {
+      "count": 100,
+      "accuracy": 1.0,
+      "unsafe_auto": 0,
+      "top8_recall": 1.0,
+      "p50_ms": 143.3,
+      "p95_ms": 2934.6,
+      "records": [
+        {
+          "id": "q001",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 245.2,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 108.48
+        },
+        {
+          "id": "q002",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 174.91,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.52
+        },
+        {
+          "id": "q003",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 224.56,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 113.23
+        },
+        {
+          "id": "q004",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 182.02,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 98.18
+        },
+        {
+          "id": "q005",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 216.7,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 110.38
+        },
+        {
+          "id": "q006",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 183.2,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.31
+        },
+        {
+          "id": "q007",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 176.76,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 132.71
+        },
+        {
+          "id": "q008",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 151.16,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.9
+        },
+        {
+          "id": "q009",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 177.14,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 87.0
+        },
+        {
+          "id": "q010",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 153.99,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 75.33
+        },
+        {
+          "id": "q011",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 179.01,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 88.47
+        },
+        {
+          "id": "q012",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 146.23,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 72.66
+        },
+        {
+          "id": "q013",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 173.34,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.96
+        },
+        {
+          "id": "q014",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 143.24,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.99
+        },
+        {
+          "id": "q015",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 170.6,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.8
+        },
+        {
+          "id": "q016",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 142.1,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.64
+        },
+        {
+          "id": "q017",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 184.79,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 88.38
+        },
+        {
+          "id": "q018",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 145.92,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.48
+        },
+        {
+          "id": "q019",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 174.42,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 84.26
+        },
+        {
+          "id": "q020",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 143.3,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.72
+        },
+        {
+          "id": "q021",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 187.57,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 92.73
+        },
+        {
+          "id": "q022",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 142.75,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.45
+        },
+        {
+          "id": "q023",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 187.63,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 94.18
+        },
+        {
+          "id": "q024",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 146.21,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.03
+        },
+        {
+          "id": "q025",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 188.69,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 95.17
+        },
+        {
+          "id": "q026",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.88,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.77
+        },
+        {
+          "id": "q027",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 184.73,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 90.09
+        },
+        {
+          "id": "q028",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.3,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 72.82
+        },
+        {
+          "id": "q029",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 176.67,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 86.16
+        },
+        {
+          "id": "q030",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.31,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.5
+        },
+        {
+          "id": "q031",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 170.16,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 84.27
+        },
+        {
+          "id": "q032",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 141.32,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.57
+        },
+        {
+          "id": "q033",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 170.08,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.82
+        },
+        {
+          "id": "q034",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.43,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.59
+        },
+        {
+          "id": "q035",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 191.01,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 95.6
+        },
+        {
+          "id": "q036",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.71,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 72.54
+        },
+        {
+          "id": "q037",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 180.62,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 90.18
+        },
+        {
+          "id": "q038",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 151.02,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 75.61
+        },
+        {
+          "id": "q039",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 180.2,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 91.05
+        },
+        {
+          "id": "q040",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 149.6,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.08
+        },
+        {
+          "id": "q041",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.06,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.24
+        },
+        {
+          "id": "q042",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.47,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.8
+        },
+        {
+          "id": "q043",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.28,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.34
+        },
+        {
+          "id": "q044",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.47,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.36
+        },
+        {
+          "id": "q045",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.5,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 50.06
+        },
+        {
+          "id": "q046",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.1,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.02
+        },
+        {
+          "id": "q047",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.68,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.66
+        },
+        {
+          "id": "q048",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.29,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.12
+        },
+        {
+          "id": "q049",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.59,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.86
+        },
+        {
+          "id": "q050",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.68,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.43
+        },
+        {
+          "id": "q051",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.04,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 50.03
+        },
+        {
+          "id": "q052",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 99.02,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.87
+        },
+        {
+          "id": "q053",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.67,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.96
+        },
+        {
+          "id": "q054",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.01,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 50.12
+        },
+        {
+          "id": "q055",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.06,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.66
+        },
+        {
+          "id": "q056",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.07,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.47
+        },
+        {
+          "id": "q057",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.37,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.73
+        },
+        {
+          "id": "q058",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.45,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.8
+        },
+        {
+          "id": "q059",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.22,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.37
+        },
+        {
+          "id": "q060",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.85,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.72
+        },
+        {
+          "id": "q061",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.44,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.04
+        },
+        {
+          "id": "q062",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.28,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.51
+        },
+        {
+          "id": "q063",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.13,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.17
+        },
+        {
+          "id": "q064",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.07,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.59
+        },
+        {
+          "id": "q065",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.09,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.07
+        },
+        {
+          "id": "q066",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.08,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.14
+        },
+        {
+          "id": "q067",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.17,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.64
+        },
+        {
+          "id": "q068",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.02,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.35
+        },
+        {
+          "id": "q069",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.84,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.09
+        },
+        {
+          "id": "q070",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.97,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 54.58
+        },
+        {
+          "id": "q071",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.95,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.31
+        },
+        {
+          "id": "q072",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.91,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.72
+        },
+        {
+          "id": "q073",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.84,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.47
+        },
+        {
+          "id": "q074",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.23,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.04
+        },
+        {
+          "id": "q075",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.89,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.55
+        },
+        {
+          "id": "q076",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.41,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.7
+        },
+        {
+          "id": "q077",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 99.28,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.83
+        },
+        {
+          "id": "q078",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.58,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.87
+        },
+        {
+          "id": "q079",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 100.38,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 50.28
+        },
+        {
+          "id": "q080",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 102.0,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.55
+        },
+        {
+          "id": "q081",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 4505.16,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 29.79
+        },
+        {
+          "id": "q082",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2934.6,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 46.61
+        },
+        {
+          "id": "q083",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 3335.47,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 43.02
+        },
+        {
+          "id": "q084",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2410.26,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 18.84
+        },
+        {
+          "id": "q085",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2647.01,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 55.94
+        },
+        {
+          "id": "q086",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2809.26,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 51.25
+        },
+        {
+          "id": "q087",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 3940.8,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 49.75
+        },
+        {
+          "id": "q088",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 15.36,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.06
+        },
+        {
+          "id": "q089",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 23.0,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.06
+        },
+        {
+          "id": "q090",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 15.25,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.05
+        },
+        {
+          "id": "q091",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 22.62,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.04
+        },
+        {
+          "id": "q092",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 22.43,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.06
+        },
+        {
+          "id": "q093",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1689.62,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 5.76
+        },
+        {
+          "id": "q094",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 3169.54,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 5.92
+        },
+        {
+          "id": "q095",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2575.94,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 26.74
+        },
+        {
+          "id": "q096",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2624.22,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 39.32
+        },
+        {
+          "id": "q097",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2823.27,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 28.84
+        },
+        {
+          "id": "q098",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2223.53,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 20.7
+        },
+        {
+          "id": "q099",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2436.16,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 58.89
+        },
+        {
+          "id": "q100",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 3836.46,
+          "status": [
+            "ask_user",
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 45.0
+        }
+      ],
+      "llm_calls": [
+        {
+          "input_tokens": 1412,
+          "output_tokens": 190,
+          "estimated_cost": "0.000510",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 196,
+          "estimated_cost": "0.000518",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 230,
+          "estimated_cost": "0.000558",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1166,
+          "output_tokens": 134,
+          "estimated_cost": "0.000394",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1422,
+          "output_tokens": 175,
+          "estimated_cost": "0.000494",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1418,
+          "output_tokens": 178,
+          "estimated_cost": "0.000497",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1418,
+          "output_tokens": 311,
+          "estimated_cost": "0.000657",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 738,
+          "output_tokens": 98,
+          "estimated_cost": "0.000265",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 741,
+          "output_tokens": 271,
+          "estimated_cost": "0.000473",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1335,
+          "output_tokens": 167,
+          "estimated_cost": "0.000467",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1235,
+          "output_tokens": 184,
+          "estimated_cost": "0.000468",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 188,
+          "estimated_cost": "0.000508",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1166,
+          "output_tokens": 146,
+          "estimated_cost": "0.000408",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1420,
+          "output_tokens": 167,
+          "estimated_cost": "0.000484",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1877,
+          "output_tokens": 283,
+          "estimated_cost": "0.000715",
+          "outcome": "success",
+          "attempts": 1
+        }
+      ],
+      "cache_hits": 15
+    },
+    "gpt-5.6-terra": {
+      "count": 100,
+      "accuracy": 1.0,
+      "unsafe_auto": 0,
+      "top8_recall": 1.0,
+      "p50_ms": 142.55,
+      "p95_ms": 2204.35,
+      "records": [
+        {
+          "id": "q001",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 206.63,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 102.73
+        },
+        {
+          "id": "q002",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 162.64,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 81.88
+        },
+        {
+          "id": "q003",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 219.46,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 109.02
+        },
+        {
+          "id": "q004",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 173.27,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 86.7
+        },
+        {
+          "id": "q005",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 209.96,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 104.09
+        },
+        {
+          "id": "q006",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 165.4,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 83.43
+        },
+        {
+          "id": "q007",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 176.0,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 86.43
+        },
+        {
+          "id": "q008",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 145.06,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 73.28
+        },
+        {
+          "id": "q009",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 176.47,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.42
+        },
+        {
+          "id": "q010",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 147.09,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 78.24
+        },
+        {
+          "id": "q011",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 175.68,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 83.91
+        },
+        {
+          "id": "q012",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 141.29,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 72.13
+        },
+        {
+          "id": "q013",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 166.7,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 83.0
+        },
+        {
+          "id": "q014",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 142.24,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.02
+        },
+        {
+          "id": "q015",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 168.68,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 85.33
+        },
+        {
+          "id": "q016",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 143.28,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 72.58
+        },
+        {
+          "id": "q017",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 169.58,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 86.52
+        },
+        {
+          "id": "q018",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.08,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.07
+        },
+        {
+          "id": "q019",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 175.47,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 87.44
+        },
+        {
+          "id": "q020",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 146.51,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 80.82
+        },
+        {
+          "id": "q021",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 197.11,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 93.11
+        },
+        {
+          "id": "q022",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 145.28,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.06
+        },
+        {
+          "id": "q023",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 222.16,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 93.46
+        },
+        {
+          "id": "q024",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.15,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.84
+        },
+        {
+          "id": "q025",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 184.92,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 93.96
+        },
+        {
+          "id": "q026",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 144.99,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.78
+        },
+        {
+          "id": "q027",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 181.81,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 93.81
+        },
+        {
+          "id": "q028",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 145.25,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.84
+        },
+        {
+          "id": "q029",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 172.93,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 87.54
+        },
+        {
+          "id": "q030",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 145.13,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.88
+        },
+        {
+          "id": "q031",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 174.72,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 84.65
+        },
+        {
+          "id": "q032",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 142.55,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 70.53
+        },
+        {
+          "id": "q033",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 173.42,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 84.36
+        },
+        {
+          "id": "q034",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 140.13,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 71.54
+        },
+        {
+          "id": "q035",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 188.89,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 93.37
+        },
+        {
+          "id": "q036",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 141.47,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.06
+        },
+        {
+          "id": "q037",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 175.39,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 88.7
+        },
+        {
+          "id": "q038",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 149.79,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.74
+        },
+        {
+          "id": "q039",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 178.95,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 90.76
+        },
+        {
+          "id": "q040",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 152.35,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 74.73
+        },
+        {
+          "id": "q041",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.38,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.46
+        },
+        {
+          "id": "q042",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.58,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.62
+        },
+        {
+          "id": "q043",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.14,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.92
+        },
+        {
+          "id": "q044",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.01,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.9
+        },
+        {
+          "id": "q045",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.66,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 50.79
+        },
+        {
+          "id": "q046",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.85,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.61
+        },
+        {
+          "id": "q047",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.73,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.82
+        },
+        {
+          "id": "q048",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 103.22,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 52.44
+        },
+        {
+          "id": "q049",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.56,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.06
+        },
+        {
+          "id": "q050",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.37,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.08
+        },
+        {
+          "id": "q051",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.14,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.33
+        },
+        {
+          "id": "q052",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.57,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.9
+        },
+        {
+          "id": "q053",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.88,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 51.43
+        },
+        {
+          "id": "q054",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.6,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.92
+        },
+        {
+          "id": "q055",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.96,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 45.98
+        },
+        {
+          "id": "q056",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.31,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.16
+        },
+        {
+          "id": "q057",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.14,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.02
+        },
+        {
+          "id": "q058",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.24,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.35
+        },
+        {
+          "id": "q059",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.69,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.27
+        },
+        {
+          "id": "q060",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.6,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 45.24
+        },
+        {
+          "id": "q061",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.88,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.59
+        },
+        {
+          "id": "q062",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 98.03,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.62
+        },
+        {
+          "id": "q063",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.02,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.52
+        },
+        {
+          "id": "q064",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.9,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 45.82
+        },
+        {
+          "id": "q065",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.23,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.66
+        },
+        {
+          "id": "q066",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 93.59,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.02
+        },
+        {
+          "id": "q067",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.6,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.36
+        },
+        {
+          "id": "q068",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 92.63,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 46.38
+        },
+        {
+          "id": "q069",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.32,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.75
+        },
+        {
+          "id": "q070",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.43,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.41
+        },
+        {
+          "id": "q071",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.52,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.97
+        },
+        {
+          "id": "q072",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.62,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.11
+        },
+        {
+          "id": "q073",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.49,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.55
+        },
+        {
+          "id": "q074",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.66,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.84
+        },
+        {
+          "id": "q075",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 95.49,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.36
+        },
+        {
+          "id": "q076",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 96.4,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.95
+        },
+        {
+          "id": "q077",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.9,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.29
+        },
+        {
+          "id": "q078",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 94.63,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 47.58
+        },
+        {
+          "id": "q079",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.76,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 48.74
+        },
+        {
+          "id": "q080",
+          "correct": true,
+          "unsafe": false,
+          "top8": true,
+          "ms": 97.56,
+          "status": [
+            "auto_accept"
+          ],
+          "outcome": "unknown",
+          "warm_ms": 49.7
+        },
+        {
+          "id": "q081",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2378.01,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 27.28
+        },
+        {
+          "id": "q082",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2119.07,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 45.69
+        },
+        {
+          "id": "q083",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2204.35,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 43.64
+        },
+        {
+          "id": "q084",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2215.65,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 19.32
+        },
+        {
+          "id": "q085",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1710.54,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 50.76
+        },
+        {
+          "id": "q086",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2004.22,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 50.93
+        },
+        {
+          "id": "q087",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2502.55,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 49.5
+        },
+        {
+          "id": "q088",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 16.06,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.05
+        },
+        {
+          "id": "q089",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 22.42,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.05
+        },
+        {
+          "id": "q090",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 15.76,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.08
+        },
+        {
+          "id": "q091",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 23.28,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.04
+        },
+        {
+          "id": "q092",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 22.94,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 0.04
+        },
+        {
+          "id": "q093",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1297.73,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 5.81
+        },
+        {
+          "id": "q094",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1509.35,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 6.76
+        },
+        {
+          "id": "q095",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1867.04,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 26.72
+        },
+        {
+          "id": "q096",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1696.68,
+          "status": [
+            "unresolved"
+          ],
+          "outcome": "success",
+          "warm_ms": 39.47
+        },
+        {
+          "id": "q097",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1803.51,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 28.04
+        },
+        {
+          "id": "q098",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 1867.31,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 20.76
+        },
+        {
+          "id": "q099",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2791.68,
+          "status": [
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 56.36
+        },
+        {
+          "id": "q100",
+          "correct": true,
+          "unsafe": false,
+          "top8": null,
+          "ms": 2207.06,
+          "status": [
+            "ask_user",
+            "ask_user"
+          ],
+          "outcome": "success",
+          "warm_ms": 50.65
+        }
+      ],
+      "llm_calls": [
+        {
+          "input_tokens": 1412,
+          "output_tokens": 82,
+          "estimated_cost": "0.003808",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 82,
+          "estimated_cost": "0.003808",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 83,
+          "estimated_cost": "0.003820",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1166,
+          "output_tokens": 82,
+          "estimated_cost": "0.003316",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1422,
+          "output_tokens": 72,
+          "estimated_cost": "0.003708",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1418,
+          "output_tokens": 72,
+          "estimated_cost": "0.003700",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1418,
+          "output_tokens": 171,
+          "estimated_cost": "0.004888",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 738,
+          "output_tokens": 48,
+          "estimated_cost": "0.002052",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 741,
+          "output_tokens": 52,
+          "estimated_cost": "0.002106",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1335,
+          "output_tokens": 92,
+          "estimated_cost": "0.003774",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1235,
+          "output_tokens": 74,
+          "estimated_cost": "0.003358",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1412,
+          "output_tokens": 78,
+          "estimated_cost": "0.003760",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1166,
+          "output_tokens": 76,
+          "estimated_cost": "0.003244",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1420,
+          "output_tokens": 133,
+          "estimated_cost": "0.004436",
+          "outcome": "success",
+          "attempts": 1
+        },
+        {
+          "input_tokens": 1877,
+          "output_tokens": 120,
+          "estimated_cost": "0.005194",
+          "outcome": "success",
+          "attempts": 1
+        }
+      ],
+      "cache_hits": 15
+    }
+  },
+  "reserved_cost_upper_bound_usd": "1.047242"
+}
