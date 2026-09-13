@@ -1,0 +1,5708 @@
+{
+  "units": [
+    {
+      "code": "kg",
+      "name_uz": "Kilogramm",
+      "name_ru": "Килограмм",
+      "dimension": "mass",
+      "base_code": null,
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "dona",
+      "name_uz": "Dona",
+      "name_ru": "Штука",
+      "dimension": "count",
+      "base_code": null,
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "m2",
+      "name_uz": "Kvadrat metr",
+      "name_ru": "Квадратный метр",
+      "dimension": "area",
+      "base_code": null,
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "m3",
+      "name_uz": "Kub metr",
+      "name_ru": "Кубический метр",
+      "dimension": "volume",
+      "base_code": null,
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "litr",
+      "name_uz": "Litr",
+      "name_ru": "Литр",
+      "dimension": "volume",
+      "base_code": "m3",
+      "factor_to_base": "0.0010"
+    },
+    {
+      "code": "qop",
+      "name_uz": "Qop",
+      "name_ru": "Мешок",
+      "dimension": "count",
+      "base_code": "dona",
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "quti",
+      "name_uz": "Quti",
+      "name_ru": "Коробка",
+      "dimension": "count",
+      "base_code": "dona",
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "rulon",
+      "name_uz": "Rulon",
+      "name_ru": "Рулон",
+      "dimension": "count",
+      "base_code": "dona",
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "metr",
+      "name_uz": "Metr",
+      "name_ru": "Метр",
+      "dimension": "length",
+      "base_code": null,
+      "factor_to_base": "1.0000"
+    },
+    {
+      "code": "pachka",
+      "name_uz": "Pachka",
+      "name_ru": "Пачка",
+      "dimension": "count",
+      "base_code": "dona",
+      "factor_to_base": "1.0000"
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "parent_id": null,
+      "slug": "sement-va-qorishmalar",
+      "name_uz": "Sement va qorishmalar",
+      "name_ru": "Цемент и смеси",
+      "sort_order": 1
+    },
+    {
+      "id": 3,
+      "parent_id": null,
+      "slug": "metall-va-armatura",
+      "name_uz": "Metall va armatura",
+      "name_ru": "Металл и арматура",
+      "sort_order": 3
+    },
+    {
+      "id": 4,
+      "parent_id": null,
+      "slug": "yogoch",
+      "name_uz": "Yog'och va taxta",
+      "name_ru": "Дерево и пиломатериалы",
+      "sort_order": 4
+    },
+    {
+      "id": 5,
+      "parent_id": null,
+      "slug": "boyoq-va-lak",
+      "name_uz": "Bo'yoq va lak",
+      "name_ru": "Краски и лаки",
+      "sort_order": 5
+    },
+    {
+      "id": 8,
+      "parent_id": null,
+      "slug": "elektr",
+      "name_uz": "Elektr jihozlari",
+      "name_ru": "Электрика",
+      "sort_order": 8
+    },
+    {
+      "id": 9,
+      "parent_id": null,
+      "slug": "izolyatsiya",
+      "name_uz": "Izolyatsiya",
+      "name_ru": "Изоляция",
+      "sort_order": 9
+    },
+    {
+      "id": 10,
+      "parent_id": null,
+      "slug": "gipsokarton",
+      "name_uz": "Gipsokarton va profillar",
+      "name_ru": "Гипсокартон и профили",
+      "sort_order": 10
+    },
+    {
+      "id": 11,
+      "parent_id": null,
+      "slug": "tom-yopish",
+      "name_uz": "Tom yopish materiallari",
+      "name_ru": "Кровельные материалы",
+      "sort_order": 11
+    },
+    {
+      "id": 2,
+      "parent_id": null,
+      "slug": "gisht-va-bloklar",
+      "name_uz": "G'isht va bloklar",
+      "name_ru": "Кирпич и блоки",
+      "sort_order": 2
+    },
+    {
+      "id": 6,
+      "parent_id": null,
+      "slug": "plitka",
+      "name_uz": "Plitka va kafel",
+      "name_ru": "Плитка и кафель",
+      "sort_order": 6
+    },
+    {
+      "id": 7,
+      "parent_id": null,
+      "slug": "santexnika",
+      "name_uz": "Santexnika va quvurlar",
+      "name_ru": "Сантехника и трубы",
+      "sort_order": 7
+    },
+    {
+      "id": 21,
+      "parent_id": null,
+      "slug": "eshik-va-derazalar",
+      "name_uz": "Eshik va derazalar",
+      "name_ru": "Двери и окна",
+      "sort_order": 12
+    },
+    {
+      "id": 22,
+      "parent_id": null,
+      "slug": "quruq-aralashmalar",
+      "name_uz": "Quruq aralashmalar",
+      "name_ru": "Сухие смеси",
+      "sort_order": 13
+    },
+    {
+      "id": 23,
+      "parent_id": null,
+      "slug": "gidroizolyatsiya",
+      "name_uz": "Gidroizolyatsiya",
+      "name_ru": "Гидроизоляция",
+      "sort_order": 14
+    },
+    {
+      "id": 24,
+      "parent_id": null,
+      "slug": "pol-materiallari",
+      "name_uz": "Pol materiallari",
+      "name_ru": "Напольные покрытия",
+      "sort_order": 15
+    },
+    {
+      "id": 25,
+      "parent_id": null,
+      "slug": "fasad-materiallari",
+      "name_uz": "Fasad materiallari",
+      "name_ru": "Фасадные материалы",
+      "sort_order": 16
+    },
+    {
+      "id": 26,
+      "parent_id": null,
+      "slug": "mahkamlash-materiallari",
+      "name_uz": "Mahkamlash materiallari",
+      "name_ru": "Крепёж",
+      "sort_order": 17
+    },
+    {
+      "id": 27,
+      "parent_id": null,
+      "slug": "isitish-va-ventilyatsiya",
+      "name_uz": "Isitish va ventilyatsiya",
+      "name_ru": "Отопление и вентиляция",
+      "sort_order": 18
+    },
+    {
+      "id": 12,
+      "parent_id": null,
+      "slug": "asboblar",
+      "name_uz": "Qurilish asboblari",
+      "name_ru": "Строительные инструменты",
+      "sort_order": 19
+    },
+    {
+      "id": 28,
+      "parent_id": null,
+      "slug": "sarf-materiallari",
+      "name_uz": "Sarf materiallari",
+      "name_ru": "Расходные материалы",
+      "sort_order": 20
+    },
+    {
+      "id": 29,
+      "parent_id": null,
+      "slug": "plita-va-fanera",
+      "name_uz": "Fanera, MDF, DSP va boshqa plitalar",
+      "name_ru": "Фанера, МДФ, ДСП и другие плиты",
+      "sort_order": 21
+    }
+  ],
+  "canonical_products": [
+    {
+      "id": 1,
+      "slug": "qizilqum-sement-m400-50kg",
+      "name_uz": "Qizilqum Sement M400 (50 kg)",
+      "name_uz_cyrl": "Қизилқум Цемент М400 (50 кг)",
+      "name_ru": "Цемент Кызылкум М400 (50 кг)",
+      "brand": "Qizilqumsement",
+      "category_id": 1,
+      "base_unit_code": "kg",
+      "attributes": {
+        "grade": "M400"
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Qizilqum Sement M400 (50 kg) Цемент Кызылкум М400 (50 кг) Қизилқум Цемент М400 (50 кг) Qizilqumsement"
+    },
+    {
+      "id": 260,
+      "slug": "hdf-kronospan-oq-3-2mm-2800x2071",
+      "name_uz": "HDF plita Kronospan oq 3.2 mm (2800x2071)",
+      "name_uz_cyrl": "ХДФ плита Kronospan оқ 3.2 мм (2800х2071)",
+      "name_ru": "ХДФ плита Kronospan белая 3.2 мм (2800х2071)",
+      "brand": "Kronospan",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2800x2071",
+        "thickness_mm": 3.2
+      },
+      "reference_price": null,
+      "is_active": false,
+      "search_doc": "HDF plita Kronospan oq 3.2 mm (2800x2071) ХДФ плита Kronospan белая 3.2 мм (2800х2071) ХДФ плита Kronospan оқ 3.2 мм (2800х2071) Kronospan"
+    },
+    {
+      "id": 270,
+      "slug": "dsp-kronospan-1-6mm-2750x1830",
+      "name_uz": "DSP plita Kronospan 1.6 mm (2750x1830)",
+      "name_uz_cyrl": "ДСП плита Kronospan 1.6 мм (2750х1830)",
+      "name_ru": "ДСП плита Kronospan 1.6 мм (2750х1830)",
+      "brand": "Kronospan",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2750x1830",
+        "thickness_mm": 1.6
+      },
+      "reference_price": "260000.00",
+      "is_active": false,
+      "search_doc": "DSP plita Kronospan 1.6 mm (2750x1830) ДСП плита Kronospan 1.6 мм (2750х1830) ДСП плита Kronospan 1.6 мм (2750х1830) Kronospan"
+    },
+    {
+      "id": 271,
+      "slug": "dsp-yekaterinburg-1-6mm-3500x1750",
+      "name_uz": "DSP plita Yekaterinburg 1.6 mm (3500x1750)",
+      "name_uz_cyrl": "ДСП плита Екатеринбург 1.6 мм (3500х1750)",
+      "name_ru": "ДСП плита Екатеринбург 1.6 мм (3500х1750)",
+      "brand": "Yekaterinburg",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "3500x1750",
+        "thickness_mm": 1.6
+      },
+      "reference_price": "302000.00",
+      "is_active": false,
+      "search_doc": "DSP plita Yekaterinburg 1.6 mm (3500x1750) ДСП плита Екатеринбург 1.6 мм (3500х1750) ДСП плита Екатеринбург 1.6 мм (3500х1750) Yekaterinburg"
+    },
+    {
+      "id": 272,
+      "slug": "dsp-murim-1-6mm-3500x1750",
+      "name_uz": "DSP plita Murim 1.6 mm (3500x1750)",
+      "name_uz_cyrl": "ДСП плита Мурим 1.6 мм (3500х1750)",
+      "name_ru": "ДСП плита Мурим 1.6 мм (3500х1750)",
+      "brand": "Murim",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "3500x1750",
+        "thickness_mm": 1.6
+      },
+      "reference_price": "321000.00",
+      "is_active": false,
+      "search_doc": "DSP plita Murim 1.6 mm (3500x1750) ДСП плита Мурим 1.6 мм (3500х1750) ДСП плита Мурим 1.6 мм (3500х1750) Murim"
+    },
+    {
+      "id": 223,
+      "slug": "fanera-laminat-sibply-18mm-2440x1220",
+      "name_uz": "Fanera laminatsiyalangan SibPly 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера ламинатсияланган SibPly 18 мм (2440х1220)",
+      "name_ru": "Фанера ламинированная SibPly 18 мм (2440х1220)",
+      "brand": "SibPly",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "thickness_mm": 18
+      },
+      "reference_price": "423000.00",
+      "is_active": true,
+      "search_doc": "Fanera laminatsiyalangan SibPly 18 mm (2440x1220) Фанера ламинированная SibPly 18 мм (2440х1220) Фанера ламинатсияланган SibPly 18 мм (2440х1220) SibPly"
+    },
+    {
+      "id": 224,
+      "slug": "fanera-laminat-siyply-18mm-2440x1220",
+      "name_uz": "Fanera laminatsiyalangan SiyPly 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера ламинатсияланган SiyPly 18 мм (2440х1220)",
+      "name_ru": "Фанера ламинированная SiyPly 18 мм (2440х1220)",
+      "brand": "SiyPly",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "thickness_mm": 18
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera laminatsiyalangan SiyPly 18 mm (2440x1220) Фанера ламинированная SiyPly 18 мм (2440х1220) Фанера ламинатсияланган SiyPly 18 мм (2440х1220) SiyPly"
+    },
+    {
+      "id": 225,
+      "slug": "fanera-laminat-murashinsky-18mm-2440x1220",
+      "name_uz": "Fanera laminatsiyalangan Murashinsky 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера ламинатсияланган Murashinsky 18 мм (2440х1220)",
+      "name_ru": "Фанера ламинированная Murashinsky 18 мм (2440х1220)",
+      "brand": "Murashinsky",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "thickness_mm": 18
+      },
+      "reference_price": "435000.00",
+      "is_active": true,
+      "search_doc": "Fanera laminatsiyalangan Murashinsky 18 mm (2440x1220) Фанера ламинированная Murashinsky 18 мм (2440х1220) Фанера ламинатсияланган Murashinsky 18 мм (2440х1220) Murashinsky"
+    },
+    {
+      "id": 226,
+      "slug": "fanera-laminat-segezha-18mm-2440x1220",
+      "name_uz": "Fanera laminatsiyalangan SEGEZHA 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера ламинатсияланган SEGEZHA 18 мм (2440х1220)",
+      "name_ru": "Фанера ламинированная SEGEZHA 18 мм (2440х1220)",
+      "brand": "SEGEZHA",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "thickness_mm": 18
+      },
+      "reference_price": "423000.00",
+      "is_active": true,
+      "search_doc": "Fanera laminatsiyalangan SEGEZHA 18 mm (2440x1220) Фанера ламинированная SEGEZHA 18 мм (2440х1220) Фанера ламинатсияланган SEGEZHA 18 мм (2440х1220) SEGEZHA"
+    },
+    {
+      "id": 227,
+      "slug": "fanera-laminat-xitoy-18mm-2440x1220",
+      "name_uz": "Fanera laminatsiyalangan (Xitoy) 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера ламинатсияланган (Китай) 18 мм (2440х1220)",
+      "name_ru": "Фанера ламинированная (Китай) 18 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "thickness_mm": 18
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera laminatsiyalangan (Xitoy) 18 mm (2440x1220) Фанера ламинированная (Китай) 18 мм (2440х1220) Фанера ламинатсияланган (Китай) 18 мм (2440х1220) "
+    },
+    {
+      "id": 228,
+      "slug": "fanera-bereza-2x4-3mm-1525x1525",
+      "name_uz": "Fanera berezovaya 2x4 3 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 2х4 3 мм (1525х1525)",
+      "name_ru": "Фанера березовая 2х4 3 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "2x4",
+        "thickness_mm": 3
+      },
+      "reference_price": "54000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 3 mm (1525x1525) Фанера березовая 2х4 3 мм (1525х1525) Фанера березовая 2х4 3 мм (1525х1525) "
+    },
+    {
+      "id": 321,
+      "slug": "sariq-anker-10x100",
+      "name_uz": "Sariq anker 10x100",
+      "name_uz_cyrl": "Сариқ анкер 10х100",
+      "name_ru": "Анкер жёлтый 10х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x100",
+        "diameter_mm": 10
+      },
+      "reference_price": "1418.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x100 Анкер жёлтый 10х100 Сариқ анкер 10х100 "
+    },
+    {
+      "id": 15,
+      "slug": "pishgan-gisht-m100",
+      "name_uz": "Pishgan qizil g'isht M100",
+      "name_uz_cyrl": "Пишган қизил ғишт М100",
+      "name_ru": "Кирпич жженый красный М100",
+      "brand": "Yangiyo'l",
+      "category_id": 2,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "M100"
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Pishgan qizil g'isht M100 Кирпич жженый красный М100 Пишган қизил ғишт М100 Yangiyo'l"
+    },
+    {
+      "id": 229,
+      "slug": "fanera-bereza-2x4-4mm-1525x1525",
+      "name_uz": "Fanera berezovaya 2x4 4 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 2х4 4 мм (1525х1525)",
+      "name_ru": "Фанера березовая 2х4 4 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "2x4",
+        "thickness_mm": 4
+      },
+      "reference_price": "68000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 4 mm (1525x1525) Фанера березовая 2х4 4 мм (1525х1525) Фанера березовая 2х4 4 мм (1525х1525) "
+    },
+    {
+      "id": 230,
+      "slug": "fanera-bereza-3x3-3mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 3 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 3 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 3 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 3
+      },
+      "reference_price": "52000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 3 mm (1525x1525) Фанера березовая 3х3 3 мм (1525х1525) Фанера березовая 3х3 3 мм (1525х1525) "
+    },
+    {
+      "id": 231,
+      "slug": "fanera-bereza-3x3-4mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 4 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 4 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 4 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 4
+      },
+      "reference_price": "65000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 4 mm (1525x1525) Фанера березовая 3х3 4 мм (1525х1525) Фанера березовая 3х3 4 мм (1525х1525) "
+    },
+    {
+      "id": 232,
+      "slug": "fanera-bereza-3x3-5mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 5 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 5 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 5 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 5
+      },
+      "reference_price": "82000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 5 mm (1525x1525) Фанера березовая 3х3 5 мм (1525х1525) Фанера березовая 3х3 5 мм (1525х1525) "
+    },
+    {
+      "id": 233,
+      "slug": "fanera-bereza-3x3-6mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 6 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 6 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 6 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 6
+      },
+      "reference_price": "97000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 6 mm (1525x1525) Фанера березовая 3х3 6 мм (1525х1525) Фанера березовая 3х3 6 мм (1525х1525) "
+    },
+    {
+      "id": 234,
+      "slug": "fanera-bereza-3x3-8mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 8 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 8 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 8 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 8
+      },
+      "reference_price": "121000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 8 mm (1525x1525) Фанера березовая 3х3 8 мм (1525х1525) Фанера березовая 3х3 8 мм (1525х1525) "
+    },
+    {
+      "id": 235,
+      "slug": "fanera-bereza-3x3-10mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 10 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 10 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 10 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 10
+      },
+      "reference_price": "151000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 10 mm (1525x1525) Фанера березовая 3х3 10 мм (1525х1525) Фанера березовая 3х3 10 мм (1525х1525) "
+    },
+    {
+      "id": 236,
+      "slug": "fanera-bereza-3x3-12mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 12 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 12 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 12 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 12
+      },
+      "reference_price": "157000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 12 mm (1525x1525) Фанера березовая 3х3 12 мм (1525х1525) Фанера березовая 3х3 12 мм (1525х1525) "
+    },
+    {
+      "id": 237,
+      "slug": "fanera-bereza-3x3-15mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 15 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 15 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 15 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 15
+      },
+      "reference_price": "212000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 15 mm (1525x1525) Фанера березовая 3х3 15 мм (1525х1525) Фанера березовая 3х3 15 мм (1525х1525) "
+    },
+    {
+      "id": 238,
+      "slug": "fanera-bereza-3x3-18mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 18 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 18 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 18 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 18
+      },
+      "reference_price": "254000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 18 mm (1525x1525) Фанера березовая 3х3 18 мм (1525х1525) Фанера березовая 3х3 18 мм (1525х1525) "
+    },
+    {
+      "id": 239,
+      "slug": "fanera-bereza-3x3-21mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 21 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 21 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 21 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 21
+      },
+      "reference_price": "296000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 21 mm (1525x1525) Фанера березовая 3х3 21 мм (1525х1525) Фанера березовая 3х3 21 мм (1525х1525) "
+    },
+    {
+      "id": 240,
+      "slug": "fanera-bereza-4x4-3mm-1525x1525",
+      "name_uz": "Fanera berezovaya 4x4 3 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 4х4 3 мм (1525х1525)",
+      "name_ru": "Фанера березовая 4х4 3 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "4x4",
+        "thickness_mm": 3
+      },
+      "reference_price": "48000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 4x4 3 mm (1525x1525) Фанера березовая 4х4 3 мм (1525х1525) Фанера березовая 4х4 3 мм (1525х1525) "
+    },
+    {
+      "id": 241,
+      "slug": "fanera-bereza-4x4-4mm-1525x1525",
+      "name_uz": "Fanera berezovaya 4x4 4 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 4х4 4 мм (1525х1525)",
+      "name_ru": "Фанера березовая 4х4 4 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "4x4",
+        "thickness_mm": 4
+      },
+      "reference_price": "60000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 4x4 4 mm (1525x1525) Фанера березовая 4х4 4 мм (1525х1525) Фанера березовая 4х4 4 мм (1525х1525) "
+    },
+    {
+      "id": 242,
+      "slug": "fanera-bereza-4x4-14mm-1525x1525",
+      "name_uz": "Fanera berezovaya 4x4 14 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 4х4 14 мм (1525х1525)",
+      "name_ru": "Фанера березовая 4х4 14 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "4x4",
+        "thickness_mm": 14
+      },
+      "reference_price": "194000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 4x4 14 mm (1525x1525) Фанера березовая 4х4 14 мм (1525х1525) Фанера березовая 4х4 14 мм (1525х1525) "
+    },
+    {
+      "id": 243,
+      "slug": "fanera-bereza-2x4-3mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 3 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 3 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 3 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 3
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 3 mm (2440x1220) Фанера березовая 2х4 3 мм (2440х1220) Фанера березовая 2х4 3 мм (2440х1220) "
+    },
+    {
+      "id": 244,
+      "slug": "fanera-bereza-2x4-4mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 4 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 4 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 4 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 4
+      },
+      "reference_price": "121000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 4 mm (2440x1220) Фанера березовая 2х4 4 мм (2440х1220) Фанера березовая 2х4 4 мм (2440х1220) "
+    },
+    {
+      "id": 245,
+      "slug": "fanera-bereza-2x4-5mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 5 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 5 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 5 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 5
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 5 mm (2440x1220) Фанера березовая 2х4 5 мм (2440х1220) Фанера березовая 2х4 5 мм (2440х1220) "
+    },
+    {
+      "id": 40,
+      "slug": "taxta-25x150x6000",
+      "name_uz": "Taxta 25x150x6000 mm",
+      "name_uz_cyrl": "Тахта 25x150x6000 мм",
+      "name_ru": "Доска обрезная 25х150х6000 мм",
+      "brand": "Sibir Les",
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {},
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 25x150x6000 mm Доска обрезная 25х150х6000 мм Тахта 25x150x6000 мм Sibir Les"
+    },
+    {
+      "id": 246,
+      "slug": "fanera-bereza-2x4-6mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 6 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 6 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 6 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 6
+      },
+      "reference_price": "163000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 6 mm (2440x1220) Фанера березовая 2х4 6 мм (2440х1220) Фанера березовая 2х4 6 мм (2440х1220) "
+    },
+    {
+      "id": 247,
+      "slug": "fanera-bereza-2x4-6-5mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 6.5 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 6.5 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 6.5 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 6.5
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 6.5 mm (2440x1220) Фанера березовая 2х4 6.5 мм (2440х1220) Фанера березовая 2х4 6.5 мм (2440х1220) "
+    },
+    {
+      "id": 248,
+      "slug": "fanera-bereza-2x4-8mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 8 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 8 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 8 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 8
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 8 mm (2440x1220) Фанера березовая 2х4 8 мм (2440х1220) Фанера березовая 2х4 8 мм (2440х1220) "
+    },
+    {
+      "id": 249,
+      "slug": "fanera-bereza-2x4-9mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 9 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 9 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 9 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 9
+      },
+      "reference_price": "230000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 9 mm (2440x1220) Фанера березовая 2х4 9 мм (2440х1220) Фанера березовая 2х4 9 мм (2440х1220) "
+    },
+    {
+      "id": 250,
+      "slug": "fanera-bereza-2x4-10mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 10 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 10 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 10 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 10
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 10 mm (2440x1220) Фанера березовая 2х4 10 мм (2440х1220) Фанера березовая 2х4 10 мм (2440х1220) "
+    },
+    {
+      "id": 251,
+      "slug": "fanera-bereza-2x4-12mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 12 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 12 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 12 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 12
+      },
+      "reference_price": "278000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 12 mm (2440x1220) Фанера березовая 2х4 12 мм (2440х1220) Фанера березовая 2х4 12 мм (2440х1220) "
+    },
+    {
+      "id": 252,
+      "slug": "fanera-bereza-2x4-15mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 15 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 15 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 15 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 15
+      },
+      "reference_price": "315000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 15 mm (2440x1220) Фанера березовая 2х4 15 мм (2440х1220) Фанера березовая 2х4 15 мм (2440х1220) "
+    },
+    {
+      "id": 253,
+      "slug": "fanera-bereza-2x4-18mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 18 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 18 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 18 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 18
+      },
+      "reference_price": "363000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 18 mm (2440x1220) Фанера березовая 2х4 18 мм (2440х1220) Фанера березовая 2х4 18 мм (2440х1220) "
+    },
+    {
+      "id": 322,
+      "slug": "sariq-anker-10x120",
+      "name_uz": "Sariq anker 10x120",
+      "name_uz_cyrl": "Сариқ анкер 10х120",
+      "name_ru": "Анкер жёлтый 10х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x120",
+        "diameter_mm": 10
+      },
+      "reference_price": "1844.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x120 Анкер жёлтый 10х120 Сариқ анкер 10х120 "
+    },
+    {
+      "id": 254,
+      "slug": "fanera-bereza-2x4-21mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 21 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 21 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 21 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 21
+      },
+      "reference_price": "448000.00",
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 21 mm (2440x1220) Фанера березовая 2х4 21 мм (2440х1220) Фанера березовая 2х4 21 мм (2440х1220) "
+    },
+    {
+      "id": 255,
+      "slug": "fanera-bereza-2x4-24mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 24 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 24 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 24 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 24
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 24 mm (2440x1220) Фанера березовая 2х4 24 мм (2440х1220) Фанера березовая 2х4 24 мм (2440х1220) "
+    },
+    {
+      "id": 256,
+      "slug": "fanera-bereza-2x4-27mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 27 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 27 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 27 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 27
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 27 mm (2440x1220) Фанера березовая 2х4 27 мм (2440х1220) Фанера березовая 2х4 27 мм (2440х1220) "
+    },
+    {
+      "id": 257,
+      "slug": "fanera-bereza-2x4-30mm-2440x1220",
+      "name_uz": "Fanera berezovaya 2x4 30 mm (2440x1220)",
+      "name_uz_cyrl": "Фанера березовая 2х4 30 мм (2440х1220)",
+      "name_ru": "Фанера березовая 2х4 30 мм (2440х1220)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1220",
+        "grade": "2x4",
+        "thickness_mm": 30
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 2x4 30 mm (2440x1220) Фанера березовая 2х4 30 мм (2440х1220) Фанера березовая 2х4 30 мм (2440х1220) "
+    },
+    {
+      "id": 258,
+      "slug": "hdf-kronospan-2-5mm-2440x1830",
+      "name_uz": "HDF plita Kronospan 2.5 mm (2440x1830)",
+      "name_uz_cyrl": "ХДФ плита Kronospan 2.5 мм (2440х1830)",
+      "name_ru": "ХДФ плита Kronospan 2.5 мм (2440х1830)",
+      "brand": "Kronospan",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2440x1830",
+        "thickness_mm": 2.5
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "HDF plita Kronospan 2.5 mm (2440x1830) ХДФ плита Kronospan 2.5 мм (2440х1830) ХДФ плита Kronospan 2.5 мм (2440х1830) Kronospan"
+    },
+    {
+      "id": 61,
+      "slug": "keramik-plitka-30x30",
+      "name_uz": "Keramik Plitka 30x30",
+      "name_uz_cyrl": "Керамик Плитка 30x30",
+      "name_ru": "Плитка керамическая 30х30",
+      "brand": "Orient Ceramic",
+      "category_id": 6,
+      "base_unit_code": "m2",
+      "attributes": {
+        "size": "30x30"
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Keramik Plitka 30x30 Плитка керамическая 30х30 Керамик Плитка 30x30 Orient Ceramic"
+    },
+    {
+      "id": 265,
+      "slug": "osb3-9mm-2500x1250",
+      "name_uz": "OSB-3 plita 9 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 9 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 9 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 9
+      },
+      "reference_price": "118000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 9 mm (2500x1250) ОСБ-3 плита 9 мм (2500х1250) ОСБ-3 плита 9 мм (2500х1250) "
+    },
+    {
+      "id": 266,
+      "slug": "osb3-12mm-2500x1250",
+      "name_uz": "OSB-3 plita 12 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 12 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 12 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 12
+      },
+      "reference_price": "155000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 12 mm (2500x1250) ОСБ-3 плита 12 мм (2500х1250) ОСБ-3 плита 12 мм (2500х1250) "
+    },
+    {
+      "id": 267,
+      "slug": "osb3-15mm-2500x1250",
+      "name_uz": "OSB-3 plita 15 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 15 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 15 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 15
+      },
+      "reference_price": "194000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 15 mm (2500x1250) ОСБ-3 плита 15 мм (2500х1250) ОСБ-3 плита 15 мм (2500х1250) "
+    },
+    {
+      "id": 268,
+      "slug": "osb3-18mm-2500x1250",
+      "name_uz": "OSB-3 plita 18 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 18 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 18 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 18
+      },
+      "reference_price": "230000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 18 mm (2500x1250) ОСБ-3 плита 18 мм (2500х1250) ОСБ-3 плита 18 мм (2500х1250) "
+    },
+    {
+      "id": 269,
+      "slug": "osb3-21mm-2500x1250",
+      "name_uz": "OSB-3 plita 21 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 21 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 21 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 21
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "OSB-3 plita 21 mm (2500x1250) ОСБ-3 плита 21 мм (2500х1250) ОСБ-3 плита 21 мм (2500х1250) "
+    },
+    {
+      "id": 323,
+      "slug": "sariq-anker-10x150",
+      "name_uz": "Sariq anker 10x150",
+      "name_uz_cyrl": "Сариқ анкер 10х150",
+      "name_ru": "Анкер жёлтый 10х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x150",
+        "diameter_mm": 10
+      },
+      "reference_price": "2128.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x150 Анкер жёлтый 10х150 Сариқ анкер 10х150 "
+    },
+    {
+      "id": 324,
+      "slug": "sariq-anker-12x60",
+      "name_uz": "Sariq anker 12x60",
+      "name_uz_cyrl": "Сариқ анкер 12х60",
+      "name_ru": "Анкер жёлтый 12х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x60",
+        "diameter_mm": 12
+      },
+      "reference_price": "1773.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x60 Анкер жёлтый 12х60 Сариқ анкер 12х60 "
+    },
+    {
+      "id": 325,
+      "slug": "sariq-anker-12x80",
+      "name_uz": "Sariq anker 12x80",
+      "name_uz_cyrl": "Сариқ анкер 12х80",
+      "name_ru": "Анкер жёлтый 12х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x80",
+        "diameter_mm": 12
+      },
+      "reference_price": "1986.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x80 Анкер жёлтый 12х80 Сариқ анкер 12х80 "
+    },
+    {
+      "id": 326,
+      "slug": "sariq-anker-12x100",
+      "name_uz": "Sariq anker 12x100",
+      "name_uz_cyrl": "Сариқ анкер 12х100",
+      "name_ru": "Анкер жёлтый 12х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x100",
+        "diameter_mm": 12
+      },
+      "reference_price": "2128.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x100 Анкер жёлтый 12х100 Сариқ анкер 12х100 "
+    },
+    {
+      "id": 327,
+      "slug": "sariq-anker-12x120",
+      "name_uz": "Sariq anker 12x120",
+      "name_uz_cyrl": "Сариқ анкер 12х120",
+      "name_ru": "Анкер жёлтый 12х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x120",
+        "diameter_mm": 12
+      },
+      "reference_price": "2553.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x120 Анкер жёлтый 12х120 Сариқ анкер 12х120 "
+    },
+    {
+      "id": 274,
+      "slug": "fanera-bereza-3x3-14mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 14 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 14 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 14 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 14
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 14 mm (1525x1525) Фанера березовая 3х3 14 мм (1525х1525) Фанера березовая 3х3 14 мм (1525х1525) "
+    },
+    {
+      "id": 275,
+      "slug": "fanera-bereza-3x3-30mm-1525x1525",
+      "name_uz": "Fanera berezovaya 3x3 30 mm (1525x1525)",
+      "name_uz_cyrl": "Фанера березовая 3х3 30 мм (1525х1525)",
+      "name_ru": "Фанера березовая 3х3 30 мм (1525х1525)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "1525x1525",
+        "grade": "3x3",
+        "thickness_mm": 30
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Fanera berezovaya 3x3 30 mm (1525x1525) Фанера березовая 3х3 30 мм (1525х1525) Фанера березовая 3х3 30 мм (1525х1525) "
+    },
+    {
+      "id": 276,
+      "slug": "taxta-3-4-17x110x6000",
+      "name_uz": "Taxta 17x110x6000 mm 3/4 sort",
+      "name_uz_cyrl": "Тахта 17x110x6000 mm 3/4 sort",
+      "name_ru": "Доска 17x110x6000 mm 3/4 сорт",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "3/4",
+        "width_mm": 110,
+        "length_mm": 6000,
+        "thickness_mm": 17
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 17x110x6000 mm 3/4 sort Доска 17x110x6000 mm 3/4 сорт Тахта 17x110x6000 mm 3/4 sort "
+    },
+    {
+      "id": 277,
+      "slug": "taxta-3-4-17x140x6000",
+      "name_uz": "Taxta 17x140x6000 mm 3/4 sort",
+      "name_uz_cyrl": "Тахта 17x140x6000 mm 3/4 sort",
+      "name_ru": "Доска 17x140x6000 mm 3/4 сорт",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "3/4",
+        "width_mm": 140,
+        "length_mm": 6000,
+        "thickness_mm": 17
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 17x140x6000 mm 3/4 sort Доска 17x140x6000 mm 3/4 сорт Тахта 17x140x6000 mm 3/4 sort "
+    },
+    {
+      "id": 278,
+      "slug": "taxta-20x90x6000",
+      "name_uz": "Taxta 20x90x6000 mm",
+      "name_uz_cyrl": "Тахта 20x90x6000 mm",
+      "name_ru": "Доска 20x90x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 90,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x90x6000 mm Доска 20x90x6000 mm Тахта 20x90x6000 mm "
+    },
+    {
+      "id": 279,
+      "slug": "taxta-20x108x6000",
+      "name_uz": "Taxta 20x108x6000 mm",
+      "name_uz_cyrl": "Тахта 20x108x6000 mm",
+      "name_ru": "Доска 20x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x108x6000 mm Доска 20x108x6000 mm Тахта 20x108x6000 mm "
+    },
+    {
+      "id": 280,
+      "slug": "taxta-20x110x6000",
+      "name_uz": "Taxta 20x110x6000 mm",
+      "name_uz_cyrl": "Тахта 20x110x6000 mm",
+      "name_ru": "Доска 20x110x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 110,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x110x6000 mm Доска 20x110x6000 mm Тахта 20x110x6000 mm "
+    },
+    {
+      "id": 281,
+      "slug": "taxta-20x135x6000",
+      "name_uz": "Taxta 20x135x6000 mm",
+      "name_uz_cyrl": "Тахта 20x135x6000 mm",
+      "name_ru": "Доска 20x135x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 135,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x135x6000 mm Доска 20x135x6000 mm Тахта 20x135x6000 mm "
+    },
+    {
+      "id": 282,
+      "slug": "taxta-20x140x6000",
+      "name_uz": "Taxta 20x140x6000 mm",
+      "name_uz_cyrl": "Тахта 20x140x6000 mm",
+      "name_ru": "Доска 20x140x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 140,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x140x6000 mm Доска 20x140x6000 mm Тахта 20x140x6000 mm "
+    },
+    {
+      "id": 283,
+      "slug": "taxta-20x170x6000",
+      "name_uz": "Taxta 20x170x6000 mm",
+      "name_uz_cyrl": "Тахта 20x170x6000 mm",
+      "name_ru": "Доска 20x170x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 170,
+        "length_mm": 6000,
+        "thickness_mm": 20
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 20x170x6000 mm Доска 20x170x6000 mm Тахта 20x170x6000 mm "
+    },
+    {
+      "id": 284,
+      "slug": "taxta-31x108x6000",
+      "name_uz": "Taxta 31x108x6000 mm",
+      "name_uz_cyrl": "Тахта 31x108x6000 mm",
+      "name_ru": "Доска 31x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 31
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 31x108x6000 mm Доска 31x108x6000 mm Тахта 31x108x6000 mm "
+    },
+    {
+      "id": 285,
+      "slug": "taxta-31x135x6000",
+      "name_uz": "Taxta 31x135x6000 mm",
+      "name_uz_cyrl": "Тахта 31x135x6000 mm",
+      "name_ru": "Доска 31x135x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 135,
+        "length_mm": 6000,
+        "thickness_mm": 31
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 31x135x6000 mm Доска 31x135x6000 mm Тахта 31x135x6000 mm "
+    },
+    {
+      "id": 84,
+      "slug": "gipsokarton-knauf-devor-12-5mm",
+      "name_uz": "Knauf Gipsokarton devoriy 12.5 mm 2500x1200",
+      "name_uz_cyrl": "Кнауф Гипсокартон деворий 12.5 мм 2500x1200",
+      "name_ru": "Гипсокартон Knauf стеновой 12.5 мм 2500х1200",
+      "brand": "Knauf",
+      "category_id": 10,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1200",
+        "thickness_mm": 12.5
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Knauf Gipsokarton devoriy 12.5 mm 2500x1200 Гипсокартон Knauf стеновой 12.5 мм 2500х1200 Кнауф Гипсокартон деворий 12.5 мм 2500x1200 Knauf"
+    },
+    {
+      "id": 286,
+      "slug": "taxta-31x165x6000",
+      "name_uz": "Taxta 31x165x6000 mm",
+      "name_uz_cyrl": "Тахта 31x165x6000 mm",
+      "name_ru": "Доска 31x165x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 165,
+        "length_mm": 6000,
+        "thickness_mm": 31
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 31x165x6000 mm Доска 31x165x6000 mm Тахта 31x165x6000 mm "
+    },
+    {
+      "id": 287,
+      "slug": "taxta-31x185x6000",
+      "name_uz": "Taxta 31x185x6000 mm",
+      "name_uz_cyrl": "Тахта 31x185x6000 mm",
+      "name_ru": "Доска 31x185x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 185,
+        "length_mm": 6000,
+        "thickness_mm": 31
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 31x185x6000 mm Доска 31x185x6000 mm Тахта 31x185x6000 mm "
+    },
+    {
+      "id": 288,
+      "slug": "taxta-35x108x6000",
+      "name_uz": "Taxta 35x108x6000 mm",
+      "name_uz_cyrl": "Тахта 35x108x6000 mm",
+      "name_ru": "Доска 35x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 35
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 35x108x6000 mm Доска 35x108x6000 mm Тахта 35x108x6000 mm "
+    },
+    {
+      "id": 289,
+      "slug": "taxta-35x135x6000",
+      "name_uz": "Taxta 35x135x6000 mm",
+      "name_uz_cyrl": "Тахта 35x135x6000 mm",
+      "name_ru": "Доска 35x135x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 135,
+        "length_mm": 6000,
+        "thickness_mm": 35
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 35x135x6000 mm Доска 35x135x6000 mm Тахта 35x135x6000 mm "
+    },
+    {
+      "id": 290,
+      "slug": "taxta-35x165x6000",
+      "name_uz": "Taxta 35x165x6000 mm",
+      "name_uz_cyrl": "Тахта 35x165x6000 mm",
+      "name_ru": "Доска 35x165x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 165,
+        "length_mm": 6000,
+        "thickness_mm": 35
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 35x165x6000 mm Доска 35x165x6000 mm Тахта 35x165x6000 mm "
+    },
+    {
+      "id": 291,
+      "slug": "taxta-35x185x6000",
+      "name_uz": "Taxta 35x185x6000 mm",
+      "name_uz_cyrl": "Тахта 35x185x6000 mm",
+      "name_ru": "Доска 35x185x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 185,
+        "length_mm": 6000,
+        "thickness_mm": 35
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 35x185x6000 mm Доска 35x185x6000 mm Тахта 35x185x6000 mm "
+    },
+    {
+      "id": 292,
+      "slug": "taxta-37x108x6000",
+      "name_uz": "Taxta 37x108x6000 mm",
+      "name_uz_cyrl": "Тахта 37x108x6000 mm",
+      "name_ru": "Доска 37x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 37
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 37x108x6000 mm Доска 37x108x6000 mm Тахта 37x108x6000 mm "
+    },
+    {
+      "id": 293,
+      "slug": "taxta-37x135x6000",
+      "name_uz": "Taxta 37x135x6000 mm",
+      "name_uz_cyrl": "Тахта 37x135x6000 mm",
+      "name_ru": "Доска 37x135x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 135,
+        "length_mm": 6000,
+        "thickness_mm": 37
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 37x135x6000 mm Доска 37x135x6000 mm Тахта 37x135x6000 mm "
+    },
+    {
+      "id": 294,
+      "slug": "taxta-37x165x6000",
+      "name_uz": "Taxta 37x165x6000 mm",
+      "name_uz_cyrl": "Тахта 37x165x6000 mm",
+      "name_ru": "Доска 37x165x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 165,
+        "length_mm": 6000,
+        "thickness_mm": 37
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 37x165x6000 mm Доска 37x165x6000 mm Тахта 37x165x6000 mm "
+    },
+    {
+      "id": 295,
+      "slug": "taxta-37x185x6000",
+      "name_uz": "Taxta 37x185x6000 mm",
+      "name_uz_cyrl": "Тахта 37x185x6000 mm",
+      "name_ru": "Доска 37x185x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 185,
+        "length_mm": 6000,
+        "thickness_mm": 37
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 37x185x6000 mm Доска 37x185x6000 mm Тахта 37x185x6000 mm "
+    },
+    {
+      "id": 296,
+      "slug": "taxta-38x108x6000",
+      "name_uz": "Taxta 38x108x6000 mm",
+      "name_uz_cyrl": "Тахта 38x108x6000 mm",
+      "name_ru": "Доска 38x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 38
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 38x108x6000 mm Доска 38x108x6000 mm Тахта 38x108x6000 mm "
+    },
+    {
+      "id": 297,
+      "slug": "taxta-38x138x6000",
+      "name_uz": "Taxta 38x138x6000 mm",
+      "name_uz_cyrl": "Тахта 38x138x6000 mm",
+      "name_ru": "Доска 38x138x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 138,
+        "length_mm": 6000,
+        "thickness_mm": 38
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 38x138x6000 mm Доска 38x138x6000 mm Тахта 38x138x6000 mm "
+    },
+    {
+      "id": 298,
+      "slug": "taxta-38x168x6000",
+      "name_uz": "Taxta 38x168x6000 mm",
+      "name_uz_cyrl": "Тахта 38x168x6000 mm",
+      "name_ru": "Доска 38x168x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 168,
+        "length_mm": 6000,
+        "thickness_mm": 38
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 38x168x6000 mm Доска 38x168x6000 mm Тахта 38x168x6000 mm "
+    },
+    {
+      "id": 299,
+      "slug": "taxta-38x188x6000",
+      "name_uz": "Taxta 38x188x6000 mm",
+      "name_uz_cyrl": "Тахта 38x188x6000 mm",
+      "name_ru": "Доска 38x188x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 188,
+        "length_mm": 6000,
+        "thickness_mm": 38
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 38x188x6000 mm Доска 38x188x6000 mm Тахта 38x188x6000 mm "
+    },
+    {
+      "id": 300,
+      "slug": "taxta-42x108x6000",
+      "name_uz": "Taxta 42x108x6000 mm",
+      "name_uz_cyrl": "Тахта 42x108x6000 mm",
+      "name_ru": "Доска 42x108x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 108,
+        "length_mm": 6000,
+        "thickness_mm": 42
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 42x108x6000 mm Доска 42x108x6000 mm Тахта 42x108x6000 mm "
+    },
+    {
+      "id": 301,
+      "slug": "taxta-42x135x6000",
+      "name_uz": "Taxta 42x135x6000 mm",
+      "name_uz_cyrl": "Тахта 42x135x6000 mm",
+      "name_ru": "Доска 42x135x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 135,
+        "length_mm": 6000,
+        "thickness_mm": 42
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 42x135x6000 mm Доска 42x135x6000 mm Тахта 42x135x6000 mm "
+    },
+    {
+      "id": 302,
+      "slug": "taxta-42x165x6000",
+      "name_uz": "Taxta 42x165x6000 mm",
+      "name_uz_cyrl": "Тахта 42x165x6000 mm",
+      "name_ru": "Доска 42x165x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 165,
+        "length_mm": 6000,
+        "thickness_mm": 42
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 42x165x6000 mm Доска 42x165x6000 mm Тахта 42x165x6000 mm "
+    },
+    {
+      "id": 303,
+      "slug": "taxta-42x185x6000",
+      "name_uz": "Taxta 42x185x6000 mm",
+      "name_uz_cyrl": "Тахта 42x185x6000 mm",
+      "name_ru": "Доска 42x185x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 185,
+        "length_mm": 6000,
+        "thickness_mm": 42
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta 42x185x6000 mm Доска 42x185x6000 mm Тахта 42x185x6000 mm "
+    },
+    {
+      "id": 304,
+      "slug": "taxta-listvennitsa-45x140x6000",
+      "name_uz": "Taxta listvennitsa 45x140x6000 mm",
+      "name_uz_cyrl": "Тахта listvennitsa 45x140x6000 mm",
+      "name_ru": "Доска лиственница 45x140x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 140,
+        "length_mm": 6000,
+        "thickness_mm": 45
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta listvennitsa 45x140x6000 mm Доска лиственница 45x140x6000 mm Тахта listvennitsa 45x140x6000 mm "
+    },
+    {
+      "id": 305,
+      "slug": "taxta-listvennitsa-45x170x6000",
+      "name_uz": "Taxta listvennitsa 45x170x6000 mm",
+      "name_uz_cyrl": "Тахта listvennitsa 45x170x6000 mm",
+      "name_ru": "Доска лиственница 45x170x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 170,
+        "length_mm": 6000,
+        "thickness_mm": 45
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta listvennitsa 45x170x6000 mm Доска лиственница 45x170x6000 mm Тахта listvennitsa 45x170x6000 mm "
+    },
+    {
+      "id": 306,
+      "slug": "taxta-listvennitsa-45x190x6000",
+      "name_uz": "Taxta listvennitsa 45x190x6000 mm",
+      "name_uz_cyrl": "Тахта listvennitsa 45x190x6000 mm",
+      "name_ru": "Доска лиственница 45x190x6000 mm",
+      "brand": null,
+      "category_id": 4,
+      "base_unit_code": "dona",
+      "attributes": {
+        "width_mm": 190,
+        "length_mm": 6000,
+        "thickness_mm": 45
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Taxta listvennitsa 45x190x6000 mm Доска лиственница 45x190x6000 mm Тахта listvennitsa 45x190x6000 mm "
+    },
+    {
+      "id": 328,
+      "slug": "sariq-anker-12x150",
+      "name_uz": "Sariq anker 12x150",
+      "name_uz_cyrl": "Сариқ анкер 12х150",
+      "name_ru": "Анкер жёлтый 12х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x150",
+        "diameter_mm": 12
+      },
+      "reference_price": "3404.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x150 Анкер жёлтый 12х150 Сариқ анкер 12х150 "
+    },
+    {
+      "id": 307,
+      "slug": "oq-anker-10x72",
+      "name_uz": "Oq anker 10x72",
+      "name_uz_cyrl": "Оқ анкер 10х72",
+      "name_ru": "Анкер белый 10х72",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x72",
+        "diameter_mm": 10
+      },
+      "reference_price": "851.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x72 Анкер белый 10х72 Оқ анкер 10х72 "
+    },
+    {
+      "id": 329,
+      "slug": "sariq-anker-12x200",
+      "name_uz": "Sariq anker 12x200",
+      "name_uz_cyrl": "Сариқ анкер 12х200",
+      "name_ru": "Анкер жёлтый 12х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x200",
+        "diameter_mm": 12
+      },
+      "reference_price": "5390.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 12x200 Анкер жёлтый 12х200 Сариқ анкер 12х200 "
+    },
+    {
+      "id": 330,
+      "slug": "sariq-anker-14x100",
+      "name_uz": "Sariq anker 14x100",
+      "name_uz_cyrl": "Сариқ анкер 14х100",
+      "name_ru": "Анкер жёлтый 14х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x100",
+        "diameter_mm": 14
+      },
+      "reference_price": "3404.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 14x100 Анкер жёлтый 14х100 Сариқ анкер 14х100 "
+    },
+    {
+      "id": 331,
+      "slug": "sariq-anker-14x120",
+      "name_uz": "Sariq anker 14x120",
+      "name_uz_cyrl": "Сариқ анкер 14х120",
+      "name_ru": "Анкер жёлтый 14х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x120",
+        "diameter_mm": 14
+      },
+      "reference_price": "4114.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 14x120 Анкер жёлтый 14х120 Сариқ анкер 14х120 "
+    },
+    {
+      "id": 332,
+      "slug": "sariq-anker-14x150",
+      "name_uz": "Sariq anker 14x150",
+      "name_uz_cyrl": "Сариқ анкер 14х150",
+      "name_ru": "Анкер жёлтый 14х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x150",
+        "diameter_mm": 14
+      },
+      "reference_price": "5390.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 14x150 Анкер жёлтый 14х150 Сариқ анкер 14х150 "
+    },
+    {
+      "id": 333,
+      "slug": "sariq-anker-14x200",
+      "name_uz": "Sariq anker 14x200",
+      "name_uz_cyrl": "Сариқ анкер 14х200",
+      "name_ru": "Анкер жёлтый 14х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x200",
+        "diameter_mm": 14
+      },
+      "reference_price": "6809.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 14x200 Анкер жёлтый 14х200 Сариқ анкер 14х200 "
+    },
+    {
+      "id": 334,
+      "slug": "sariq-anker-16x100",
+      "name_uz": "Sariq anker 16x100",
+      "name_uz_cyrl": "Сариқ анкер 16х100",
+      "name_ru": "Анкер жёлтый 16х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x100",
+        "diameter_mm": 16
+      },
+      "reference_price": "4965.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 16x100 Анкер жёлтый 16х100 Сариқ анкер 16х100 "
+    },
+    {
+      "id": 335,
+      "slug": "sariq-anker-16x120",
+      "name_uz": "Sariq anker 16x120",
+      "name_uz_cyrl": "Сариқ анкер 16х120",
+      "name_ru": "Анкер жёлтый 16х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x120",
+        "diameter_mm": 16
+      },
+      "reference_price": "6383.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 16x120 Анкер жёлтый 16х120 Сариқ анкер 16х120 "
+    },
+    {
+      "id": 336,
+      "slug": "sariq-anker-16x150",
+      "name_uz": "Sariq anker 16x150",
+      "name_uz_cyrl": "Сариқ анкер 16х150",
+      "name_ru": "Анкер жёлтый 16х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x150",
+        "diameter_mm": 16
+      },
+      "reference_price": "7660.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 16x150 Анкер жёлтый 16х150 Сариқ анкер 16х150 "
+    },
+    {
+      "id": 337,
+      "slug": "sariq-anker-16x200",
+      "name_uz": "Sariq anker 16x200",
+      "name_uz_cyrl": "Сариқ анкер 16х200",
+      "name_ru": "Анкер жёлтый 16х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x200",
+        "diameter_mm": 16
+      },
+      "reference_price": "8936.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 16x200 Анкер жёлтый 16х200 Сариқ анкер 16х200 "
+    },
+    {
+      "id": 338,
+      "slug": "sariq-anker-16x250",
+      "name_uz": "Sariq anker 16x250",
+      "name_uz_cyrl": "Сариқ анкер 16х250",
+      "name_ru": "Анкер жёлтый 16х250",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x250",
+        "diameter_mm": 16
+      },
+      "reference_price": "13050.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 16x250 Анкер жёлтый 16х250 Сариқ анкер 16х250 "
+    },
+    {
+      "id": 339,
+      "slug": "sariq-anker-20x100",
+      "name_uz": "Sariq anker 20x100",
+      "name_uz_cyrl": "Сариқ анкер 20х100",
+      "name_ru": "Анкер жёлтый 20х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x100",
+        "diameter_mm": 20
+      },
+      "reference_price": "10213.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x100 Анкер жёлтый 20х100 Сариқ анкер 20х100 "
+    },
+    {
+      "id": 340,
+      "slug": "sariq-anker-20x120",
+      "name_uz": "Sariq anker 20x120",
+      "name_uz_cyrl": "Сариқ анкер 20х120",
+      "name_ru": "Анкер жёлтый 20х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x120",
+        "diameter_mm": 20
+      },
+      "reference_price": "10780.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x120 Анкер жёлтый 20х120 Сариқ анкер 20х120 "
+    },
+    {
+      "id": 342,
+      "slug": "sariq-anker-20x200",
+      "name_uz": "Sariq anker 20x200",
+      "name_uz_cyrl": "Сариқ анкер 20х200",
+      "name_ru": "Анкер жёлтый 20х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x200",
+        "diameter_mm": 20
+      },
+      "reference_price": "14894.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x200 Анкер жёлтый 20х200 Сариқ анкер 20х200 "
+    },
+    {
+      "id": 343,
+      "slug": "sariq-anker-20x250",
+      "name_uz": "Sariq anker 20x250",
+      "name_uz_cyrl": "Сариқ анкер 20х250",
+      "name_ru": "Анкер жёлтый 20х250",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x250",
+        "diameter_mm": 20
+      },
+      "reference_price": "17731.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x250 Анкер жёлтый 20х250 Сариқ анкер 20х250 "
+    },
+    {
+      "id": 344,
+      "slug": "sariq-anker-20x300",
+      "name_uz": "Sariq anker 20x300",
+      "name_uz_cyrl": "Сариқ анкер 20х300",
+      "name_ru": "Анкер жёлтый 20х300",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x300",
+        "diameter_mm": 20
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x300 Анкер жёлтый 20х300 Сариқ анкер 20х300 "
+    },
+    {
+      "id": 345,
+      "slug": "sariq-anker-24x150",
+      "name_uz": "Sariq anker 24x150",
+      "name_uz_cyrl": "Сариқ анкер 24х150",
+      "name_ru": "Анкер жёлтый 24х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "24x150",
+        "diameter_mm": 24
+      },
+      "reference_price": "22695.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 24x150 Анкер жёлтый 24х150 Сариқ анкер 24х150 "
+    },
+    {
+      "id": 346,
+      "slug": "sariq-anker-24x200",
+      "name_uz": "Sariq anker 24x200",
+      "name_uz_cyrl": "Сариқ анкер 24х200",
+      "name_ru": "Анкер жёлтый 24х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "24x200",
+        "diameter_mm": 24
+      },
+      "reference_price": "28369.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 24x200 Анкер жёлтый 24х200 Сариқ анкер 24х200 "
+    },
+    {
+      "id": 347,
+      "slug": "sariq-anker-24x250",
+      "name_uz": "Sariq anker 24x250",
+      "name_uz_cyrl": "Сариқ анкер 24х250",
+      "name_ru": "Анкер жёлтый 24х250",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "24x250",
+        "diameter_mm": 24
+      },
+      "reference_price": "35461.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 24x250 Анкер жёлтый 24х250 Сариқ анкер 24х250 "
+    },
+    {
+      "id": 308,
+      "slug": "oq-anker-10x92",
+      "name_uz": "Oq anker 10x92",
+      "name_uz_cyrl": "Оқ анкер 10х92",
+      "name_ru": "Анкер белый 10х92",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x92",
+        "diameter_mm": 10
+      },
+      "reference_price": "993.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x92 Анкер белый 10х92 Оқ анкер 10х92 "
+    },
+    {
+      "id": 348,
+      "slug": "anker-klin-6x40",
+      "name_uz": "Anker klin 6x40",
+      "name_uz_cyrl": "Анкер клин 6х40",
+      "name_ru": "Анкер клин 6х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "6x40",
+        "diameter_mm": 6
+      },
+      "reference_price": "369.00",
+      "is_active": true,
+      "search_doc": "Anker klin 6x40 Анкер клин 6х40 Анкер клин 6х40 "
+    },
+    {
+      "id": 349,
+      "slug": "anker-klin-6x60",
+      "name_uz": "Anker klin 6x60",
+      "name_uz_cyrl": "Анкер клин 6х60",
+      "name_ru": "Анкер клин 6х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "6x60",
+        "diameter_mm": 6
+      },
+      "reference_price": "525.00",
+      "is_active": true,
+      "search_doc": "Anker klin 6x60 Анкер клин 6х60 Анкер клин 6х60 "
+    },
+    {
+      "id": 350,
+      "slug": "mufta-soedinitel-6",
+      "name_uz": "Mufta (biriktiruvchi) 6",
+      "name_uz_cyrl": "Муфта (бириктирувчи) 6",
+      "name_ru": "Муфта соединительная 6",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "383.00",
+      "is_active": true,
+      "search_doc": "Mufta (biriktiruvchi) 6 Муфта соединительная 6 Муфта (бириктирувчи) 6 "
+    },
+    {
+      "id": 351,
+      "slug": "mufta-soedinitel-8",
+      "name_uz": "Mufta (biriktiruvchi) 8",
+      "name_uz_cyrl": "Муфта (бириктирувчи) 8",
+      "name_ru": "Муфта соединительная 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "624.00",
+      "is_active": true,
+      "search_doc": "Mufta (biriktiruvchi) 8 Муфта соединительная 8 Муфта (бириктирувчи) 8 "
+    },
+    {
+      "id": 352,
+      "slug": "mufta-soedinitel-10",
+      "name_uz": "Mufta (biriktiruvchi) 10",
+      "name_uz_cyrl": "Муфта (бириктирувчи) 10",
+      "name_ru": "Муфта соединительная 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "809.00",
+      "is_active": true,
+      "search_doc": "Mufta (biriktiruvchi) 10 Муфта соединительная 10 Муфта (бириктирувчи) 10 "
+    },
+    {
+      "id": 353,
+      "slug": "mufta-soedinitel-12",
+      "name_uz": "Mufta (biriktiruvchi) 12",
+      "name_uz_cyrl": "Муфта (бириктирувчи) 12",
+      "name_ru": "Муфта соединительная 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "1560.00",
+      "is_active": true,
+      "search_doc": "Mufta (biriktiruvchi) 12 Муфта соединительная 12 Муфта (бириктирувчи) 12 "
+    },
+    {
+      "id": 354,
+      "slug": "medved-montajniy-7-5x72-202",
+      "name_uz": "Medved montajniy 7.5x72-202",
+      "name_uz_cyrl": "Медведь монтажний 7.5х72-202",
+      "name_ru": "Медведь монтажный 7.5х72-202",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "7.5x72-202",
+        "diameter_mm": 7.5
+      },
+      "reference_price": "27660.00",
+      "is_active": true,
+      "search_doc": "Medved montajniy 7.5x72-202 Медведь монтажный 7.5х72-202 Медведь монтажний 7.5х72-202 "
+    },
+    {
+      "id": 355,
+      "slug": "krovelniy-samorez-rangli-4-8x25",
+      "name_uz": "Krovelniy samorez rangli 4.8x25",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х25",
+      "name_ru": "Кровельный саморез цветной 4.8х25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x25",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "1106397.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x25 Кровельный саморез цветной 4.8х25 Кровелний саморез рангли 4.8х25 "
+    },
+    {
+      "id": 356,
+      "slug": "krovelniy-samorez-rangli-4-8x32",
+      "name_uz": "Krovelniy samorez rangli 4.8x32",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х32",
+      "name_ru": "Кровельный саморез цветной 4.8х32",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x32",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "1177320.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x32 Кровельный саморез цветной 4.8х32 Кровелний саморез рангли 4.8х32 "
+    },
+    {
+      "id": 357,
+      "slug": "krovelniy-samorez-rangli-4-8x40",
+      "name_uz": "Krovelniy samorez rangli 4.8x40",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х40",
+      "name_ru": "Кровельный саморез цветной 4.8х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x40",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "1063843.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x40 Кровельный саморез цветной 4.8х40 Кровелний саморез рангли 4.8х40 "
+    },
+    {
+      "id": 358,
+      "slug": "krovelniy-samorez-rangli-4-8x50",
+      "name_uz": "Krovelniy samorez rangli 4.8x50",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х50",
+      "name_ru": "Кровельный саморез цветной 4.8х50",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x50",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "865259.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x50 Кровельный саморез цветной 4.8х50 Кровелний саморез рангли 4.8х50 "
+    },
+    {
+      "id": 359,
+      "slug": "krovelniy-samorez-rangli-4-8x60",
+      "name_uz": "Krovelniy samorez rangli 4.8x60",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х60",
+      "name_ru": "Кровельный саморез цветной 4.8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x60",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "865259.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x60 Кровельный саморез цветной 4.8х60 Кровелний саморез рангли 4.8х60 "
+    },
+    {
+      "id": 360,
+      "slug": "krovelniy-samorez-rangli-4-8x70",
+      "name_uz": "Krovelniy samorez rangli 4.8x70",
+      "name_uz_cyrl": "Кровелний саморез рангли 4.8х70",
+      "name_ru": "Кровельный саморез цветной 4.8х70",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x70",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "865259.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez rangli 4.8x70 Кровельный саморез цветной 4.8х70 Кровелний саморез рангли 4.8х70 "
+    },
+    {
+      "id": 361,
+      "slug": "krovelniy-sariq-metallga-5-5x20-180",
+      "name_uz": "Krovelniy sariq (metallga) 5.5x20-180",
+      "name_uz_cyrl": "Кровелний сариқ (металлга) 5.5х20-180",
+      "name_ru": "Кровельный жёлтый (по металлу) 5.5х20-180",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "5.5x20-180",
+        "diameter_mm": 5.5
+      },
+      "reference_price": "27660.00",
+      "is_active": true,
+      "search_doc": "Krovelniy sariq (metallga) 5.5x20-180 Кровельный жёлтый (по металлу) 5.5х20-180 Кровелний сариқ (металлга) 5.5х20-180 "
+    },
+    {
+      "id": 362,
+      "slug": "krovelniy-samorez-oq-kg-6-3x25-200",
+      "name_uz": "Krovelniy samorez oq 6.3x25-200",
+      "name_uz_cyrl": "Кровелний саморез оқ 6.3х25-200",
+      "name_ru": "Кровельный саморез белый 6.3х25-200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6.3x25-200",
+        "diameter_mm": 6.3
+      },
+      "reference_price": "34043.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 6.3x25-200 Кровельный саморез белый 6.3х25-200 Кровелний саморез оқ 6.3х25-200 "
+    },
+    {
+      "id": 363,
+      "slug": "krovelniy-samorez-oq-4-8x25",
+      "name_uz": "Krovelniy samorez oq 4.8x25",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х25",
+      "name_ru": "Кровельный саморез белый 4.8х25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x25",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "992920.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x25 Кровельный саморез белый 4.8х25 Кровелний саморез оқ 4.8х25 "
+    },
+    {
+      "id": 364,
+      "slug": "krovelniy-samorez-oq-4-8x32",
+      "name_uz": "Krovelniy samorez oq 4.8x32",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х32",
+      "name_ru": "Кровельный саморез белый 4.8х32",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x32",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "1106397.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x32 Кровельный саморез белый 4.8х32 Кровелний саморез оқ 4.8х32 "
+    },
+    {
+      "id": 365,
+      "slug": "krovelniy-samorez-oq-4-8x40",
+      "name_uz": "Krovelniy samorez oq 4.8x40",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х40",
+      "name_ru": "Кровельный саморез белый 4.8х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x40",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "1007105.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x40 Кровельный саморез белый 4.8х40 Кровелний саморез оқ 4.8х40 "
+    },
+    {
+      "id": 366,
+      "slug": "krovelniy-samorez-oq-4-8x50",
+      "name_uz": "Krovelniy samorez oq 4.8x50",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х50",
+      "name_ru": "Кровельный саморез белый 4.8х50",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x50",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "794336.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x50 Кровельный саморез белый 4.8х50 Кровелний саморез оқ 4.8х50 "
+    },
+    {
+      "id": 367,
+      "slug": "krovelniy-samorez-oq-4-8x60",
+      "name_uz": "Krovelniy samorez oq 4.8x60",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х60",
+      "name_ru": "Кровельный саморез белый 4.8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x60",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "851075.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x60 Кровельный саморез белый 4.8х60 Кровелний саморез оқ 4.8х60 "
+    },
+    {
+      "id": 368,
+      "slug": "krovelniy-samorez-oq-4-8x70",
+      "name_uz": "Krovelniy samorez oq 4.8x70",
+      "name_uz_cyrl": "Кровелний саморез оқ 4.8х70",
+      "name_ru": "Кровельный саморез белый 4.8х70",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "4.8x70",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "822705.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq 4.8x70 Кровельный саморез белый 4.8х70 Кровелний саморез оқ 4.8х70 "
+    },
+    {
+      "id": 369,
+      "slug": "qora-samorez-goldvalley-16-19",
+      "name_uz": "Qora samorez Goldvalley 16-19",
+      "name_uz_cyrl": "Қора саморез Голдваллей 16-19",
+      "name_ru": "Саморез чёрный Goldvalley 16-19",
+      "brand": "Goldvalley",
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "28369.00",
+      "is_active": true,
+      "search_doc": "Qora samorez Goldvalley 16-19 Саморез чёрный Goldvalley 16-19 Қора саморез Голдваллей 16-19 Goldvalley"
+    },
+    {
+      "id": 370,
+      "slug": "qora-samorez-goldvalley-25-100",
+      "name_uz": "Qora samorez Goldvalley 25-100",
+      "name_uz_cyrl": "Қора саморез Голдваллей 25-100",
+      "name_ru": "Саморез чёрный Goldvalley 25-100",
+      "brand": "Goldvalley",
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 25
+      },
+      "reference_price": "24823.00",
+      "is_active": true,
+      "search_doc": "Qora samorez Goldvalley 25-100 Саморез чёрный Goldvalley 25-100 Қора саморез Голдваллей 25-100 Goldvalley"
+    },
+    {
+      "id": 371,
+      "slug": "dyubel-gvozd-6x40",
+      "name_uz": "Dyubel-gvozd 6x40",
+      "name_uz_cyrl": "Дюбел-гвозд 6х40",
+      "name_ru": "Дюбель-гвоздь 6х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x40",
+        "diameter_mm": 6
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 6x40 Дюбель-гвоздь 6х40 Дюбел-гвозд 6х40 "
+    },
+    {
+      "id": 372,
+      "slug": "dyubel-gvozd-6x60",
+      "name_uz": "Dyubel-gvozd 6x60",
+      "name_uz_cyrl": "Дюбел-гвозд 6х60",
+      "name_ru": "Дюбель-гвоздь 6х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x60",
+        "diameter_mm": 6
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 6x60 Дюбель-гвоздь 6х60 Дюбел-гвозд 6х60 "
+    },
+    {
+      "id": 373,
+      "slug": "dyubel-gvozd-6x80",
+      "name_uz": "Dyubel-gvozd 6x80",
+      "name_uz_cyrl": "Дюбел-гвозд 6х80",
+      "name_ru": "Дюбель-гвоздь 6х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x80",
+        "diameter_mm": 6
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 6x80 Дюбель-гвоздь 6х80 Дюбел-гвозд 6х80 "
+    },
+    {
+      "id": 374,
+      "slug": "dyubel-gvozd-8x60",
+      "name_uz": "Dyubel-gvozd 8x60",
+      "name_uz_cyrl": "Дюбел-гвозд 8х60",
+      "name_ru": "Дюбель-гвоздь 8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 8x60 Дюбель-гвоздь 8х60 Дюбел-гвозд 8х60 "
+    },
+    {
+      "id": 375,
+      "slug": "dyubel-gvozd-8x80",
+      "name_uz": "Dyubel-gvozd 8x80",
+      "name_uz_cyrl": "Дюбел-гвозд 8х80",
+      "name_ru": "Дюбель-гвоздь 8х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x80",
+        "diameter_mm": 8
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 8x80 Дюбель-гвоздь 8х80 Дюбел-гвозд 8х80 "
+    },
+    {
+      "id": 376,
+      "slug": "dyubel-gvozd-8x100",
+      "name_uz": "Dyubel-gvozd 8x100",
+      "name_uz_cyrl": "Дюбел-гвозд 8х100",
+      "name_ru": "Дюбель-гвоздь 8х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x100",
+        "diameter_mm": 8
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 8x100 Дюбель-гвоздь 8х100 Дюбел-гвозд 8х100 "
+    },
+    {
+      "id": 377,
+      "slug": "dyubel-gvozd-8x120",
+      "name_uz": "Dyubel-gvozd 8x120",
+      "name_uz_cyrl": "Дюбел-гвозд 8х120",
+      "name_ru": "Дюбель-гвоздь 8х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x120",
+        "diameter_mm": 8
+      },
+      "reference_price": "29788.00",
+      "is_active": true,
+      "search_doc": "Dyubel-gvozd 8x120 Дюбель-гвоздь 8х120 Дюбел-гвозд 8х120 "
+    },
+    {
+      "id": 378,
+      "slug": "sariq-samorez-3x13-16-20-25",
+      "name_uz": "Sariq samorez 3x13-16-20-25",
+      "name_uz_cyrl": "Сариқ саморез 3х13-16-20-25",
+      "name_ru": "Саморез жёлтый 3х13-16-20-25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "3x13-16-20-25",
+        "diameter_mm": 3
+      },
+      "reference_price": "38298.00",
+      "is_active": true,
+      "search_doc": "Sariq samorez 3x13-16-20-25 Саморез жёлтый 3х13-16-20-25 Сариқ саморез 3х13-16-20-25 "
+    },
+    {
+      "id": 379,
+      "slug": "sariq-samorez-4x16-6x150",
+      "name_uz": "Sariq samorez 4x16-6x150",
+      "name_uz_cyrl": "Сариқ саморез 4х16-6х150",
+      "name_ru": "Саморез жёлтый 4х16-6х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4x16-6x150",
+        "diameter_mm": 4
+      },
+      "reference_price": "26951.00",
+      "is_active": true,
+      "search_doc": "Sariq samorez 4x16-6x150 Саморез жёлтый 4х16-6х150 Сариқ саморез 4х16-6х150 "
+    },
+    {
+      "id": 380,
+      "slug": "oq-samorez-3x13-16-20-25",
+      "name_uz": "Oq samorez 3x13-16-20-25",
+      "name_uz_cyrl": "Оқ саморез 3х13-16-20-25",
+      "name_ru": "Саморез белый 3х13-16-20-25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "3x13-16-20-25",
+        "diameter_mm": 3
+      },
+      "reference_price": "38298.00",
+      "is_active": true,
+      "search_doc": "Oq samorez 3x13-16-20-25 Саморез белый 3х13-16-20-25 Оқ саморез 3х13-16-20-25 "
+    },
+    {
+      "id": 381,
+      "slug": "oq-samorez-3-5x16-4x16",
+      "name_uz": "Oq samorez 3.5x16-4x16",
+      "name_uz_cyrl": "Оқ саморез 3.5х16-4х16",
+      "name_ru": "Саморез белый 3.5х16-4х16",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "3.5x16-4x16",
+        "diameter_mm": 3.5
+      },
+      "reference_price": "32625.00",
+      "is_active": true,
+      "search_doc": "Oq samorez 3.5x16-4x16 Саморез белый 3.5х16-4х16 Оқ саморез 3.5х16-4х16 "
+    },
+    {
+      "id": 382,
+      "slug": "press-shayba-ostriy-4-2x13-76",
+      "name_uz": "Press shayba (o'tkir) 4.2x13-76",
+      "name_uz_cyrl": "Пресс шайба (ўткир) 4.2х13-76",
+      "name_ru": "Пресс-шайба острая 4.2х13-76",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.2x13-76",
+        "diameter_mm": 4.2
+      },
+      "reference_price": "25532.00",
+      "is_active": true,
+      "search_doc": "Press shayba (o'tkir) 4.2x13-76 Пресс-шайба острая 4.2х13-76 Пресс шайба (ўткир) 4.2х13-76 "
+    },
+    {
+      "id": 383,
+      "slug": "press-shayba-sverlo-4-2x13-76",
+      "name_uz": "Press shayba (parmali) 4.2x13-76",
+      "name_uz_cyrl": "Пресс шайба (пармали) 4.2х13-76",
+      "name_ru": "Пресс-шайба со сверлом 4.2х13-76",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.2x13-76",
+        "diameter_mm": 4.2
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Press shayba (parmali) 4.2x13-76 Пресс-шайба со сверлом 4.2х13-76 Пресс шайба (пармали) 4.2х13-76 "
+    },
+    {
+      "id": 384,
+      "slug": "potay-samorez-4-2x16-19-25-32",
+      "name_uz": "Potay samorez 4.2x16;19;25;32",
+      "name_uz_cyrl": "Потай саморез 4.2х16;19;25;32",
+      "name_ru": "Саморез потайной 4.2х16;19;25;32",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.2x16;19;25;32",
+        "diameter_mm": 4.2
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Potay samorez 4.2x16;19;25;32 Саморез потайной 4.2х16;19;25;32 Потай саморез 4.2х16;19;25;32 "
+    },
+    {
+      "id": 385,
+      "slug": "potay-samorez-4-2x40-50-60-70-80-100",
+      "name_uz": "Potay samorez 4.2x40;50;60;70;80;100",
+      "name_uz_cyrl": "Потай саморез 4.2х40;50;60;70;80;100",
+      "name_ru": "Саморез потайной 4.2х40;50;60;70;80;100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.2x40;50;60;70;80;100",
+        "diameter_mm": 4.2
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Potay samorez 4.2x40;50;60;70;80;100 Саморез потайной 4.2х40;50;60;70;80;100 Потай саморез 4.2х40;50;60;70;80;100 "
+    },
+    {
+      "id": 386,
+      "slug": "gribok-samorez-4-8x16-19-25-32",
+      "name_uz": "Gribok samorez 4.8x16;19;25;32",
+      "name_uz_cyrl": "Грибок саморез 4.8х16;19;25;32",
+      "name_ru": "Саморез грибок 4.8х16;19;25;32",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.8x16;19;25;32",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Gribok samorez 4.8x16;19;25;32 Саморез грибок 4.8х16;19;25;32 Грибок саморез 4.8х16;19;25;32 "
+    },
+    {
+      "id": 387,
+      "slug": "gribok-samorez-4-8x40-50-60-70-80-100",
+      "name_uz": "Gribok samorez 4.8x40;50;60;70;80;100",
+      "name_uz_cyrl": "Грибок саморез 4.8х40;50;60;70;80;100",
+      "name_ru": "Саморез грибок 4.8х40;50;60;70;80;100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.8x40;50;60;70;80;100",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "26241.00",
+      "is_active": true,
+      "search_doc": "Gribok samorez 4.8x40;50;60;70;80;100 Саморез грибок 4.8х40;50;60;70;80;100 Грибок саморез 4.8х40;50;60;70;80;100 "
+    },
+    {
+      "id": 389,
+      "slug": "mix-25",
+      "name_uz": "Mix 25",
+      "name_uz_cyrl": "Мих 25",
+      "name_ru": "Гвозди 25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 25
+      },
+      "reference_price": "19149.00",
+      "is_active": true,
+      "search_doc": "Mix 25 Гвозди 25 Мих 25 "
+    },
+    {
+      "id": 390,
+      "slug": "mix-30-40",
+      "name_uz": "Mix 30-40",
+      "name_uz_cyrl": "Мих 30-40",
+      "name_ru": "Гвозди 30-40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 30
+      },
+      "reference_price": "17731.00",
+      "is_active": true,
+      "search_doc": "Mix 30-40 Гвозди 30-40 Мих 30-40 "
+    },
+    {
+      "id": 391,
+      "slug": "mix-50-60",
+      "name_uz": "Mix 50-60",
+      "name_uz_cyrl": "Мих 50-60",
+      "name_ru": "Гвозди 50-60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 50
+      },
+      "reference_price": "13050.00",
+      "is_active": true,
+      "search_doc": "Mix 50-60 Гвозди 50-60 Мих 50-60 "
+    },
+    {
+      "id": 393,
+      "slug": "dyubel-30-100",
+      "name_uz": "Dyubel 30-100",
+      "name_uz_cyrl": "Дюбел 30-100",
+      "name_ru": "Дюбель 30-100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 30
+      },
+      "reference_price": "24114.00",
+      "is_active": true,
+      "search_doc": "Dyubel 30-100 Дюбель 30-100 Дюбел 30-100 "
+    },
+    {
+      "id": 394,
+      "slug": "zaklepka-orbita-3-2x11",
+      "name_uz": "Zaklepka Orbita 3.2x11",
+      "name_uz_cyrl": "Заклепка Орбита 3.2х11",
+      "name_ru": "Заклёпка Orbita 3.2х11",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "3.2x11",
+        "diameter_mm": 3.2
+      },
+      "reference_price": "48228.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 3.2x11 Заклёпка Orbita 3.2х11 Заклепка Орбита 3.2х11 Orbita"
+    },
+    {
+      "id": 395,
+      "slug": "zaklepka-orbita-3-2x13",
+      "name_uz": "Zaklepka Orbita 3.2x13",
+      "name_uz_cyrl": "Заклепка Орбита 3.2х13",
+      "name_ru": "Заклёпка Orbita 3.2х13",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "3.2x13",
+        "diameter_mm": 3.2
+      },
+      "reference_price": "55320.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 3.2x13 Заклёпка Orbita 3.2х13 Заклепка Орбита 3.2х13 Orbita"
+    },
+    {
+      "id": 396,
+      "slug": "zaklepka-orbita-3-2x17",
+      "name_uz": "Zaklepka Orbita 3.2x17",
+      "name_uz_cyrl": "Заклепка Орбита 3.2х17",
+      "name_ru": "Заклёпка Orbita 3.2х17",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "3.2x17",
+        "diameter_mm": 3.2
+      },
+      "reference_price": "56738.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 3.2x17 Заклёпка Orbita 3.2х17 Заклепка Орбита 3.2х17 Orbita"
+    },
+    {
+      "id": 397,
+      "slug": "zaklepka-orbita-4x8",
+      "name_uz": "Zaklepka Orbita 4x8",
+      "name_uz_cyrl": "Заклепка Орбита 4х8",
+      "name_ru": "Заклёпка Orbita 4х8",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "4x8",
+        "diameter_mm": 4
+      },
+      "reference_price": "65249.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 4x8 Заклёпка Orbita 4х8 Заклепка Орбита 4х8 Orbita"
+    },
+    {
+      "id": 398,
+      "slug": "zaklepka-orbita-4x10",
+      "name_uz": "Zaklepka Orbita 4x10",
+      "name_uz_cyrl": "Заклепка Орбита 4х10",
+      "name_ru": "Заклёпка Orbita 4х10",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "4x10",
+        "diameter_mm": 4
+      },
+      "reference_price": "66668.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 4x10 Заклёпка Orbita 4х10 Заклепка Орбита 4х10 Orbita"
+    },
+    {
+      "id": 309,
+      "slug": "oq-anker-10x112",
+      "name_uz": "Oq anker 10x112",
+      "name_uz_cyrl": "Оқ анкер 10х112",
+      "name_ru": "Анкер белый 10х112",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x112",
+        "diameter_mm": 10
+      },
+      "reference_price": "1135.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x112 Анкер белый 10х112 Оқ анкер 10х112 "
+    },
+    {
+      "id": 388,
+      "slug": "mix-16-20",
+      "name_uz": "Mix 16-20",
+      "name_uz_cyrl": "Мих 16-20",
+      "name_ru": "Гвозди 16-20",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "20568.00",
+      "is_active": true,
+      "search_doc": "Mix 16-20 Гвозди 16-20 Мих 16-20 "
+    },
+    {
+      "id": 399,
+      "slug": "zaklepka-orbita-4x13",
+      "name_uz": "Zaklepka Orbita 4x13",
+      "name_uz_cyrl": "Заклепка Орбита 4х13",
+      "name_ru": "Заклёпка Orbita 4х13",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "4x13",
+        "diameter_mm": 4
+      },
+      "reference_price": "75178.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 4x13 Заклёпка Orbita 4х13 Заклепка Орбита 4х13 Orbita"
+    },
+    {
+      "id": 400,
+      "slug": "zaklepka-orbita-4x16",
+      "name_uz": "Zaklepka Orbita 4x16",
+      "name_uz_cyrl": "Заклепка Орбита 4х16",
+      "name_ru": "Заклёпка Orbita 4х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "4x16",
+        "diameter_mm": 4
+      },
+      "reference_price": "39717.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 4x16 Заклёпка Orbita 4х16 Заклепка Орбита 4х16 Orbita"
+    },
+    {
+      "id": 401,
+      "slug": "zaklepka-orbita-4x20",
+      "name_uz": "Zaklepka Orbita 4x20",
+      "name_uz_cyrl": "Заклепка Орбита 4х20",
+      "name_ru": "Заклёпка Orbita 4х20",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "4x20",
+        "diameter_mm": 4
+      },
+      "reference_price": "42554.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 4x20 Заклёпка Orbita 4х20 Заклепка Орбита 4х20 Orbita"
+    },
+    {
+      "id": 180,
+      "slug": "boyoq-emal-pf115-qizil-5kg",
+      "name_uz": "Emal PF-115 Qizil (5 kg)",
+      "name_uz_cyrl": "Эмаль ПФ-115 Qizil (5 кг)",
+      "name_ru": "Эмаль алкидная ПФ-115 Красный (5 кг)",
+      "brand": "Lakra",
+      "category_id": 5,
+      "base_unit_code": "kg",
+      "attributes": {},
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "Emal PF-115 Qizil (5 kg) Эмаль алкидная ПФ-115 Красный (5 кг) Эмаль ПФ-115 Qizil (5 кг) Lakra"
+    },
+    {
+      "id": 402,
+      "slug": "zaklepka-orbita-5x11",
+      "name_uz": "Zaklepka Orbita 5x11",
+      "name_uz_cyrl": "Заклепка Орбита 5х11",
+      "name_ru": "Заклёпка Orbita 5х11",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x11",
+        "diameter_mm": 5
+      },
+      "reference_price": "52483.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x11 Заклёпка Orbita 5х11 Заклепка Орбита 5х11 Orbita"
+    },
+    {
+      "id": 403,
+      "slug": "zaklepka-orbita-5x13",
+      "name_uz": "Zaklepka Orbita 5x13",
+      "name_uz_cyrl": "Заклепка Орбита 5х13",
+      "name_ru": "Заклёпка Orbita 5х13",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x13",
+        "diameter_mm": 5
+      },
+      "reference_price": "55320.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x13 Заклёпка Orbita 5х13 Заклепка Орбита 5х13 Orbita"
+    },
+    {
+      "id": 404,
+      "slug": "zaklepka-orbita-5x16",
+      "name_uz": "Zaklepka Orbita 5x16",
+      "name_uz_cyrl": "Заклепка Орбита 5х16",
+      "name_ru": "Заклёпка Orbita 5х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x16",
+        "diameter_mm": 5
+      },
+      "reference_price": "60994.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x16 Заклёпка Orbita 5х16 Заклепка Орбита 5х16 Orbita"
+    },
+    {
+      "id": 405,
+      "slug": "zaklepka-orbita-5x20",
+      "name_uz": "Zaklepka Orbita 5x20",
+      "name_uz_cyrl": "Заклепка Орбита 5х20",
+      "name_ru": "Заклёпка Orbita 5х20",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x20",
+        "diameter_mm": 5
+      },
+      "reference_price": "69504.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x20 Заклёпка Orbita 5х20 Заклепка Орбита 5х20 Orbita"
+    },
+    {
+      "id": 406,
+      "slug": "zaklepka-orbita-5x25",
+      "name_uz": "Zaklepka Orbita 5x25",
+      "name_uz_cyrl": "Заклепка Орбита 5х25",
+      "name_ru": "Заклёпка Orbita 5х25",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x25",
+        "diameter_mm": 5
+      },
+      "reference_price": "79434.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x25 Заклёпка Orbita 5х25 Заклепка Орбита 5х25 Orbita"
+    },
+    {
+      "id": 407,
+      "slug": "zaklepka-orbita-6x16",
+      "name_uz": "Zaklepka Orbita 6x16",
+      "name_uz_cyrl": "Заклепка Орбита 6х16",
+      "name_ru": "Заклёпка Orbita 6х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "6x16",
+        "diameter_mm": 6
+      },
+      "reference_price": "58157.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 6x16 Заклёпка Orbita 6х16 Заклепка Орбита 6х16 Orbita"
+    },
+    {
+      "id": 408,
+      "slug": "zaklepka-orbita-6x20",
+      "name_uz": "Zaklepka Orbita 6x20",
+      "name_uz_cyrl": "Заклепка Орбита 6х20",
+      "name_ru": "Заклёпка Orbita 6х20",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "6x20",
+        "diameter_mm": 6
+      },
+      "reference_price": "62412.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 6x20 Заклёпка Orbita 6х20 Заклепка Орбита 6х20 Orbita"
+    },
+    {
+      "id": 409,
+      "slug": "zaklepka-orbita-6x25",
+      "name_uz": "Zaklepka Orbita 6x25",
+      "name_uz_cyrl": "Заклепка Орбита 6х25",
+      "name_ru": "Заклёпка Orbita 6х25",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "6x25",
+        "diameter_mm": 6
+      },
+      "reference_price": "70923.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 6x25 Заклёпка Orbita 6х25 Заклепка Орбита 6х25 Orbita"
+    },
+    {
+      "id": 410,
+      "slug": "zaklepka-orbita-5x16x16",
+      "name_uz": "Zaklepka Orbita 5x16x16",
+      "name_uz_cyrl": "Заклепка Орбита 5х16х16",
+      "name_ru": "Заклёпка Orbita 5х16х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x16x16",
+        "diameter_mm": 5
+      },
+      "reference_price": "80852.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x16x16 Заклёпка Orbita 5х16х16 Заклепка Орбита 5х16х16 Orbita"
+    },
+    {
+      "id": 411,
+      "slug": "zaklepka-orbita-5x20x16",
+      "name_uz": "Zaklepka Orbita 5x20x16",
+      "name_uz_cyrl": "Заклепка Орбита 5х20х16",
+      "name_ru": "Заклёпка Orbita 5х20х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x20x16",
+        "diameter_mm": 5
+      },
+      "reference_price": "80852.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x20x16 Заклёпка Orbita 5х20х16 Заклепка Орбита 5х20х16 Orbita"
+    },
+    {
+      "id": 412,
+      "slug": "zaklepka-orbita-5x25x16",
+      "name_uz": "Zaklepka Orbita 5x25x16",
+      "name_uz_cyrl": "Заклепка Орбита 5х25х16",
+      "name_ru": "Заклёпка Orbita 5х25х16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "size": "5x25x16",
+        "diameter_mm": 5
+      },
+      "reference_price": "80852.00",
+      "is_active": true,
+      "search_doc": "Zaklepka Orbita 5x25x16 Заклёпка Orbita 5х25х16 Заклепка Орбита 5х25х16 Orbita"
+    },
+    {
+      "id": 413,
+      "slug": "rezina-shayba-4-8x14",
+      "name_uz": "Rezina shayba 4.8x14",
+      "name_uz_cyrl": "Резина шайба 4.8х14",
+      "name_ru": "Резиновая шайба 4.8х14",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "4.8x14",
+        "diameter_mm": 4.8
+      },
+      "reference_price": "35461.00",
+      "is_active": true,
+      "search_doc": "Rezina shayba 4.8x14 Резиновая шайба 4.8х14 Резина шайба 4.8х14 "
+    },
+    {
+      "id": 414,
+      "slug": "rezina-shayba-5-5x19",
+      "name_uz": "Rezina shayba 5.5x19",
+      "name_uz_cyrl": "Резина шайба 5.5х19",
+      "name_ru": "Резиновая шайба 5.5х19",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "5.5x19",
+        "diameter_mm": 5.5
+      },
+      "reference_price": "31206.00",
+      "is_active": true,
+      "search_doc": "Rezina shayba 5.5x19 Резиновая шайба 5.5х19 Резина шайба 5.5х19 "
+    },
+    {
+      "id": 415,
+      "slug": "rezina-shayba-6-3x25",
+      "name_uz": "Rezina shayba 6.3x25",
+      "name_uz_cyrl": "Резина шайба 6.3х25",
+      "name_ru": "Резиновая шайба 6.3х25",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6.3x25",
+        "diameter_mm": 6.3
+      },
+      "reference_price": "28369.00",
+      "is_active": true,
+      "search_doc": "Rezina shayba 6.3x25 Резиновая шайба 6.3х25 Резина шайба 6.3х25 "
+    },
+    {
+      "id": 417,
+      "slug": "podves-agraf-1",
+      "name_uz": "Podves (agraf) 1",
+      "name_uz_cyrl": "Подвес (аграф) 1",
+      "name_ru": "Подвес (аграф) 1",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 1
+      },
+      "reference_price": "581568.00",
+      "is_active": true,
+      "search_doc": "Podves (agraf) 1 Подвес (аграф) 1 Подвес (аграф) 1 "
+    },
+    {
+      "id": 418,
+      "slug": "chervyak-bolt-8x80-10x120",
+      "name_uz": "Chervyak bolt 8x80-10x120",
+      "name_uz_cyrl": "Червяк болт 8х80-10х120",
+      "name_ru": "Червячный болт 8х80-10х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x80-10x120",
+        "diameter_mm": 8
+      },
+      "reference_price": "24114.00",
+      "is_active": true,
+      "search_doc": "Chervyak bolt 8x80-10x120 Червячный болт 8х80-10х120 Червяк болт 8х80-10х120 "
+    },
+    {
+      "id": 419,
+      "slug": "gluxar-6x50-12x150",
+      "name_uz": "Gluxar 6x50-12x150",
+      "name_uz_cyrl": "Глухар 6х50-12х150",
+      "name_ru": "Глухарь 6х50-12х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x50-12x150",
+        "diameter_mm": 6
+      },
+      "reference_price": "24114.00",
+      "is_active": true,
+      "search_doc": "Gluxar 6x50-12x150 Глухарь 6х50-12х150 Глухар 6х50-12х150 "
+    },
+    {
+      "id": 420,
+      "slug": "shayba-m4-m5",
+      "name_uz": "Shayba (katta va kichik) m4;m5",
+      "name_uz_cyrl": "Шайба (катта ва кичик) m4;m5",
+      "name_ru": "Шайба (большая и малая) m4;m5",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 4
+      },
+      "reference_price": "24114.00",
+      "is_active": true,
+      "search_doc": "Shayba (katta va kichik) m4;m5 Шайба (большая и малая) m4;m5 Шайба (катта ва кичик) m4;m5 "
+    },
+    {
+      "id": 421,
+      "slug": "shayba-m6-m24",
+      "name_uz": "Shayba (katta va kichik) m6-m24",
+      "name_uz_cyrl": "Шайба (катта ва кичик) m6-m24",
+      "name_ru": "Шайба (большая и малая) m6-m24",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "21986.00",
+      "is_active": true,
+      "search_doc": "Shayba (katta va kichik) m6-m24 Шайба (большая и малая) m6-m24 Шайба (катта ва кичик) m6-m24 "
+    },
+    {
+      "id": 422,
+      "slug": "stashka-vint-mebel-6x16-6x100",
+      "name_uz": "Stashka vint (mebel) 6x16-6x100",
+      "name_uz_cyrl": "Сташка винт (мебел) 6х16-6х100",
+      "name_ru": "Стяжка винт мебельная 6х16-6х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x16-6x100",
+        "diameter_mm": 6
+      },
+      "reference_price": "21277.00",
+      "is_active": true,
+      "search_doc": "Stashka vint (mebel) 6x16-6x100 Стяжка винт мебельная 6х16-6х100 Сташка винт (мебел) 6х16-6х100 "
+    },
+    {
+      "id": 423,
+      "slug": "evro-stashka-6-3x50",
+      "name_uz": "Yevro stashka 6.3x50",
+      "name_uz_cyrl": "Евро сташка 6.3х50",
+      "name_ru": "Евро стяжка 6.3х50",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "6.3x50",
+        "diameter_mm": 6.3
+      },
+      "reference_price": "425537.00",
+      "is_active": true,
+      "search_doc": "Yevro stashka 6.3x50 Евро стяжка 6.3х50 Евро сташка 6.3х50 "
+    },
+    {
+      "id": 425,
+      "slug": "tsanga-orbita-m8",
+      "name_uz": "Tsanga Orbita m8",
+      "name_uz_cyrl": "Цанга Орбита m8",
+      "name_ru": "Цанга Orbita m8",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m8",
+        "diameter_mm": 8
+      },
+      "reference_price": "284.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m8 Цанга Orbita m8 Цанга Орбита m8 Orbita"
+    },
+    {
+      "id": 426,
+      "slug": "tsanga-orbita-m10",
+      "name_uz": "Tsanga Orbita m10",
+      "name_uz_cyrl": "Цанга Орбита m10",
+      "name_ru": "Цанга Orbita m10",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m10",
+        "diameter_mm": 10
+      },
+      "reference_price": "525.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m10 Цанга Orbita m10 Цанга Орбита m10 Orbita"
+    },
+    {
+      "id": 427,
+      "slug": "tsanga-orbita-m12",
+      "name_uz": "Tsanga Orbita m12",
+      "name_uz_cyrl": "Цанга Орбита m12",
+      "name_ru": "Цанга Orbita m12",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m12",
+        "diameter_mm": 12
+      },
+      "reference_price": "1560.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m12 Цанга Orbita m12 Цанга Орбита m12 Orbita"
+    },
+    {
+      "id": 428,
+      "slug": "tsanga-orbita-m14",
+      "name_uz": "Tsanga Orbita m14",
+      "name_uz_cyrl": "Цанга Орбита m14",
+      "name_ru": "Цанга Orbita m14",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m14",
+        "diameter_mm": 14
+      },
+      "reference_price": "1986.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m14 Цанга Orbita m14 Цанга Орбита m14 Orbita"
+    },
+    {
+      "id": 429,
+      "slug": "tsanga-orbita-m16",
+      "name_uz": "Tsanga Orbita m16",
+      "name_uz_cyrl": "Цанга Орбита m16",
+      "name_ru": "Цанга Orbita m16",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m16",
+        "diameter_mm": 16
+      },
+      "reference_price": "2411.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m16 Цанга Orbita m16 Цанга Орбита m16 Orbita"
+    },
+    {
+      "id": 430,
+      "slug": "tsanga-turk-m8",
+      "name_uz": "Tsanga (turk) m8",
+      "name_uz_cyrl": "Цанга (турк) m8",
+      "name_ru": "Цанга турецкая m8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m8",
+        "diameter_mm": 8
+      },
+      "reference_price": "525.00",
+      "is_active": true,
+      "search_doc": "Tsanga (turk) m8 Цанга турецкая m8 Цанга (турк) m8 "
+    },
+    {
+      "id": 431,
+      "slug": "tsanga-turk-m10",
+      "name_uz": "Tsanga (turk) m10",
+      "name_uz_cyrl": "Цанга (турк) m10",
+      "name_ru": "Цанга турецкая m10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m10",
+        "diameter_mm": 10
+      },
+      "reference_price": "1986.00",
+      "is_active": true,
+      "search_doc": "Tsanga (turk) m10 Цанга турецкая m10 Цанга (турк) m10 "
+    },
+    {
+      "id": 432,
+      "slug": "kryuchok-sariq-m6x60",
+      "name_uz": "Kryuchok sariq (ilmoq) m6x60",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m6х60",
+      "name_ru": "Крючок жёлтый m6х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m6x60",
+        "diameter_mm": 6
+      },
+      "reference_price": "2128.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m6x60 Крючок жёлтый m6х60 Крючок сариқ (илмоқ) m6х60 "
+    },
+    {
+      "id": 433,
+      "slug": "kryuchok-sariq-m6x80",
+      "name_uz": "Kryuchok sariq (ilmoq) m6x80",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m6х80",
+      "name_ru": "Крючок жёлтый m6х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m6x80",
+        "diameter_mm": 6
+      },
+      "reference_price": "2411.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m6x80 Крючок жёлтый m6х80 Крючок сариқ (илмоқ) m6х80 "
+    },
+    {
+      "id": 424,
+      "slug": "tsanga-orbita-m6",
+      "name_uz": "Tsanga Orbita m6",
+      "name_uz_cyrl": "Цанга Орбита m6",
+      "name_ru": "Цанга Orbita m6",
+      "brand": "Orbita",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m6",
+        "diameter_mm": 6
+      },
+      "reference_price": "213.00",
+      "is_active": true,
+      "search_doc": "Tsanga Orbita m6 Цанга Orbita m6 Цанга Орбита m6 Orbita"
+    },
+    {
+      "id": 434,
+      "slug": "kryuchok-sariq-m8x60",
+      "name_uz": "Kryuchok sariq (ilmoq) m8x60",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m8х60",
+      "name_ru": "Крючок жёлтый m8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "3830.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m8x60 Крючок жёлтый m8х60 Крючок сариқ (илмоқ) m8х60 "
+    },
+    {
+      "id": 435,
+      "slug": "kryuchok-sariq-m8x100",
+      "name_uz": "Kryuchok sariq (ilmoq) m8x100",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m8х100",
+      "name_ru": "Крючок жёлтый m8х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x100",
+        "diameter_mm": 8
+      },
+      "reference_price": "4397.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m8x100 Крючок жёлтый m8х100 Крючок сариқ (илмоқ) m8х100 "
+    },
+    {
+      "id": 436,
+      "slug": "kryuchok-sariq-m10x80",
+      "name_uz": "Kryuchok sariq (ilmoq) m10x80",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m10х80",
+      "name_ru": "Крючок жёлтый m10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "6667.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m10x80 Крючок жёлтый m10х80 Крючок сариқ (илмоқ) m10х80 "
+    },
+    {
+      "id": 437,
+      "slug": "kryuchok-sariq-m10x120",
+      "name_uz": "Kryuchok sariq (ilmoq) m10x120",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m10х120",
+      "name_ru": "Крючок жёлтый m10х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x120",
+        "diameter_mm": 10
+      },
+      "reference_price": "7518.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m10x120 Крючок жёлтый m10х120 Крючок сариқ (илмоқ) m10х120 "
+    },
+    {
+      "id": 438,
+      "slug": "kryuchok-sariq-m12x100",
+      "name_uz": "Kryuchok sariq (ilmoq) m12x100",
+      "name_uz_cyrl": "Крючок сариқ (илмоқ) m12х100",
+      "name_ru": "Крючок жёлтый m12х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m12x100",
+        "diameter_mm": 12
+      },
+      "reference_price": "10922.00",
+      "is_active": true,
+      "search_doc": "Kryuchok sariq (ilmoq) m12x100 Крючок жёлтый m12х100 Крючок сариқ (илмоқ) m12х100 "
+    },
+    {
+      "id": 439,
+      "slug": "kryuchok-yopiq-m6x60",
+      "name_uz": "Kryuchok yopiq (ilmoq) m6x60",
+      "name_uz_cyrl": "Крючок ёпиқ (илмоқ) m6х60",
+      "name_ru": "Крючок закрытый m6х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m6x60",
+        "diameter_mm": 6
+      },
+      "reference_price": "2128.00",
+      "is_active": true,
+      "search_doc": "Kryuchok yopiq (ilmoq) m6x60 Крючок закрытый m6х60 Крючок ёпиқ (илмоқ) m6х60 "
+    },
+    {
+      "id": 440,
+      "slug": "kryuchok-yopiq-m8x60",
+      "name_uz": "Kryuchok yopiq (ilmoq) m8x60",
+      "name_uz_cyrl": "Крючок ёпиқ (илмоқ) m8х60",
+      "name_ru": "Крючок закрытый m8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "3830.00",
+      "is_active": true,
+      "search_doc": "Kryuchok yopiq (ilmoq) m8x60 Крючок закрытый m8х60 Крючок ёпиқ (илмоқ) m8х60 "
+    },
+    {
+      "id": 441,
+      "slug": "kryuchok-yopiq-m10x80",
+      "name_uz": "Kryuchok yopiq (ilmoq) m10x80",
+      "name_uz_cyrl": "Крючок ёпиқ (илмоқ) m10х80",
+      "name_ru": "Крючок закрытый m10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "6667.00",
+      "is_active": true,
+      "search_doc": "Kryuchok yopiq (ilmoq) m10x80 Крючок закрытый m10х80 Крючок ёпиқ (илмоқ) m10х80 "
+    },
+    {
+      "id": 442,
+      "slug": "kryuchok-oq-yogochga-6",
+      "name_uz": "Kryuchok oq (yog'ochga) 6",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 6",
+      "name_ru": "Крючок белый по дереву 6",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "156.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 6 Крючок белый по дереву 6 Крючок оқ (ёғочга) 6 "
+    },
+    {
+      "id": 443,
+      "slug": "kryuchok-oq-yogochga-8",
+      "name_uz": "Kryuchok oq (yog'ochga) 8",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 8",
+      "name_ru": "Крючок белый по дереву 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "241.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 8 Крючок белый по дереву 8 Крючок оқ (ёғочга) 8 "
+    },
+    {
+      "id": 444,
+      "slug": "kryuchok-oq-yogochga-10",
+      "name_uz": "Kryuchok oq (yog'ochga) 10",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 10",
+      "name_ru": "Крючок белый по дереву 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "312.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 10 Крючок белый по дереву 10 Крючок оқ (ёғочга) 10 "
+    },
+    {
+      "id": 445,
+      "slug": "kryuchok-oq-yogochga-12",
+      "name_uz": "Kryuchok oq (yog'ochga) 12",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 12",
+      "name_ru": "Крючок белый по дереву 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "454.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 12 Крючок белый по дереву 12 Крючок оқ (ёғочга) 12 "
+    },
+    {
+      "id": 446,
+      "slug": "kryuchok-oq-yogochga-14",
+      "name_uz": "Kryuchok oq (yog'ochga) 14",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 14",
+      "name_ru": "Крючок белый по дереву 14",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 14
+      },
+      "reference_price": "709.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 14 Крючок белый по дереву 14 Крючок оқ (ёғочга) 14 "
+    },
+    {
+      "id": 447,
+      "slug": "kryuchok-oq-yogochga-16",
+      "name_uz": "Kryuchok oq (yog'ochga) 16",
+      "name_uz_cyrl": "Крючок оқ (ёғочга) 16",
+      "name_ru": "Крючок белый по дереву 16",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "993.00",
+      "is_active": true,
+      "search_doc": "Kryuchok oq (yog'ochga) 16 Крючок белый по дереву 16 Крючок оқ (ёғочга) 16 "
+    },
+    {
+      "id": 449,
+      "slug": "gayka-oq-4",
+      "name_uz": "Gayka oq 4",
+      "name_uz_cyrl": "Гайка оқ 4",
+      "name_ru": "Гайка белая 4",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 4
+      },
+      "reference_price": "26951.00",
+      "is_active": true,
+      "search_doc": "Gayka oq 4 Гайка белая 4 Гайка оқ 4 "
+    },
+    {
+      "id": 450,
+      "slug": "gayka-oq-5",
+      "name_uz": "Gayka oq 5",
+      "name_uz_cyrl": "Гайка оқ 5",
+      "name_ru": "Гайка белая 5",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 5
+      },
+      "reference_price": "25532.00",
+      "is_active": true,
+      "search_doc": "Gayka oq 5 Гайка белая 5 Гайка оқ 5 "
+    },
+    {
+      "id": 451,
+      "slug": "gayka-oq-6-8-10-12-14",
+      "name_uz": "Gayka oq 6-8-10-12-14",
+      "name_uz_cyrl": "Гайка оқ 6-8-10-12-14",
+      "name_ru": "Гайка белая 6-8-10-12-14",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "21986.00",
+      "is_active": true,
+      "search_doc": "Gayka oq 6-8-10-12-14 Гайка белая 6-8-10-12-14 Гайка оқ 6-8-10-12-14 "
+    },
+    {
+      "id": 452,
+      "slug": "gayka-oq-16-18-20-24",
+      "name_uz": "Gayka oq 16-18-20-24",
+      "name_uz_cyrl": "Гайка оқ 16-18-20-24",
+      "name_ru": "Гайка белая 16-18-20-24",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "21986.00",
+      "is_active": true,
+      "search_doc": "Gayka oq 16-18-20-24 Гайка белая 16-18-20-24 Гайка оқ 16-18-20-24 "
+    },
+    {
+      "id": 453,
+      "slug": "shpilka-097-6",
+      "name_uz": "Shpilka 0.97 m 6",
+      "name_uz_cyrl": "Шпилька 0,97 м 6",
+      "name_ru": "Шпилька 0,97 м 6",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "3121.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 6 Шпилька 0,97 м 6 Шпилька 0,97 м 6 "
+    },
+    {
+      "id": 454,
+      "slug": "shpilka-097-8",
+      "name_uz": "Shpilka 0.97 m 8",
+      "name_uz_cyrl": "Шпилька 0,97 м 8",
+      "name_ru": "Шпилька 0,97 м 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "5390.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 8 Шпилька 0,97 м 8 Шпилька 0,97 м 8 "
+    },
+    {
+      "id": 455,
+      "slug": "shpilka-097-10",
+      "name_uz": "Shpilka 0.97 m 10",
+      "name_uz_cyrl": "Шпилька 0,97 м 10",
+      "name_ru": "Шпилька 0,97 м 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "8511.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 10 Шпилька 0,97 м 10 Шпилька 0,97 м 10 "
+    },
+    {
+      "id": 457,
+      "slug": "shpilka-097-14",
+      "name_uz": "Shpilka 0.97 m 14",
+      "name_uz_cyrl": "Шпилька 0,97 м 14",
+      "name_ru": "Шпилька 0,97 м 14",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 14
+      },
+      "reference_price": "17731.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 14 Шпилька 0,97 м 14 Шпилька 0,97 м 14 "
+    },
+    {
+      "id": 458,
+      "slug": "shpilka-097-16",
+      "name_uz": "Shpilka 0.97 m 16",
+      "name_uz_cyrl": "Шпилька 0,97 м 16",
+      "name_ru": "Шпилька 0,97 м 16",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "24114.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 16 Шпилька 0,97 м 16 Шпилька 0,97 м 16 "
+    },
+    {
+      "id": 459,
+      "slug": "shpilka-097-18",
+      "name_uz": "Shpilka 0.97 m 18",
+      "name_uz_cyrl": "Шпилька 0,97 м 18",
+      "name_ru": "Шпилька 0,97 м 18",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 18
+      },
+      "reference_price": "39717.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 18 Шпилька 0,97 м 18 Шпилька 0,97 м 18 "
+    },
+    {
+      "id": 460,
+      "slug": "shpilka-097-20",
+      "name_uz": "Shpilka 0.97 m 20",
+      "name_uz_cyrl": "Шпилька 0,97 м 20",
+      "name_ru": "Шпилька 0,97 м 20",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 20
+      },
+      "reference_price": "49646.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 20 Шпилька 0,97 м 20 Шпилька 0,97 м 20 "
+    },
+    {
+      "id": 461,
+      "slug": "shpilka-097-24",
+      "name_uz": "Shpilka 0.97 m 24",
+      "name_uz_cyrl": "Шпилька 0,97 м 24",
+      "name_ru": "Шпилька 0,97 м 24",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 24
+      },
+      "reference_price": "78015.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 24 Шпилька 0,97 м 24 Шпилька 0,97 м 24 "
+    },
+    {
+      "id": 462,
+      "slug": "chopiq-kulrang-6x30",
+      "name_uz": "Chopiq kulrang (m/plast) 6x30",
+      "name_uz_cyrl": "Чопиқ кулранг (м/пласт) 6х30",
+      "name_ru": "Чопик серый (м/пласт) 6х30",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "6x30",
+        "diameter_mm": 6
+      },
+      "reference_price": "808521.00",
+      "is_active": true,
+      "search_doc": "Chopiq kulrang (m/plast) 6x30 Чопик серый (м/пласт) 6х30 Чопиқ кулранг (м/пласт) 6х30 "
+    },
+    {
+      "id": 463,
+      "slug": "chopiq-kulrang-6x40",
+      "name_uz": "Chopiq kulrang (m/plast) 6x40",
+      "name_uz_cyrl": "Чопиқ кулранг (м/пласт) 6х40",
+      "name_ru": "Чопик серый (м/пласт) 6х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "6x40",
+        "diameter_mm": 6
+      },
+      "reference_price": "879444.00",
+      "is_active": true,
+      "search_doc": "Chopiq kulrang (m/plast) 6x40 Чопик серый (м/пласт) 6х40 Чопиқ кулранг (м/пласт) 6х40 "
+    },
+    {
+      "id": 464,
+      "slug": "chopiq-kulrang-8x40",
+      "name_uz": "Chopiq kulrang (m/plast) 8x40",
+      "name_uz_cyrl": "Чопиқ кулранг (м/пласт) 8х40",
+      "name_ru": "Чопик серый (м/пласт) 8х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "8x40",
+        "diameter_mm": 8
+      },
+      "reference_price": "723413.00",
+      "is_active": true,
+      "search_doc": "Chopiq kulrang (m/plast) 8x40 Чопик серый (м/пласт) 8х40 Чопиқ кулранг (м/пласт) 8х40 "
+    },
+    {
+      "id": 465,
+      "slug": "chopiq-kulrang-10",
+      "name_uz": "Chopiq kulrang (m/plast) 10",
+      "name_uz_cyrl": "Чопиқ кулранг (м/пласт) 10",
+      "name_ru": "Чопик серый (м/пласт) 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "893628.00",
+      "is_active": true,
+      "search_doc": "Chopiq kulrang (m/plast) 10 Чопик серый (м/пласт) 10 Чопиқ кулранг (м/пласт) 10 "
+    },
+    {
+      "id": 466,
+      "slug": "chopiq-kulrang-12",
+      "name_uz": "Chopiq kulrang (m/plast) 12",
+      "name_uz_cyrl": "Чопиқ кулранг (м/пласт) 12",
+      "name_ru": "Чопик серый (м/пласт) 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "808521.00",
+      "is_active": true,
+      "search_doc": "Chopiq kulrang (m/plast) 12 Чопик серый (м/пласт) 12 Чопиқ кулранг (м/пласт) 12 "
+    },
+    {
+      "id": 467,
+      "slug": "chopiq-qizil-6x30",
+      "name_uz": "Chopiq qizil (m/plast) 6x30",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 6х30",
+      "name_ru": "Чопик красный (м/пласт) 6х30",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "6x30",
+        "diameter_mm": 6
+      },
+      "reference_price": "453906.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 6x30 Чопик красный (м/пласт) 6х30 Чопиқ қизил (м/пласт) 6х30 "
+    },
+    {
+      "id": 468,
+      "slug": "chopiq-qizil-6x40",
+      "name_uz": "Chopiq qizil (m/plast) 6x40",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 6х40",
+      "name_ru": "Чопик красный (м/пласт) 6х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "6x40",
+        "diameter_mm": 6
+      },
+      "reference_price": "539014.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 6x40 Чопик красный (м/пласт) 6х40 Чопиқ қизил (м/пласт) 6х40 "
+    },
+    {
+      "id": 469,
+      "slug": "chopiq-qizil-8x40",
+      "name_uz": "Chopiq qizil (m/plast) 8x40",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 8х40",
+      "name_ru": "Чопик красный (м/пласт) 8х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "8x40",
+        "diameter_mm": 8
+      },
+      "reference_price": "638306.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 8x40 Чопик красный (м/пласт) 8х40 Чопиқ қизил (м/пласт) 8х40 "
+    },
+    {
+      "id": 470,
+      "slug": "chopiq-qizil-8x50",
+      "name_uz": "Chopiq qizil (m/plast) 8x50",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 8х50",
+      "name_ru": "Чопик красный (м/пласт) 8х50",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "8x50",
+        "diameter_mm": 8
+      },
+      "reference_price": "765967.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 8x50 Чопик красный (м/пласт) 8х50 Чопиқ қизил (м/пласт) 8х50 "
+    },
+    {
+      "id": 259,
+      "slug": "hdf-kronospan-3-2mm-2800x2070",
+      "name_uz": "HDF plita Kronospan 3.2 mm (2800x2070)",
+      "name_uz_cyrl": "ХДФ плита Kronospan 3.2 мм (2800х2070)",
+      "name_ru": "ХДФ плита Kronospan 3.2 мм (2800х2070)",
+      "brand": "Kronospan",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2800x2070",
+        "thickness_mm": 3.2
+      },
+      "reference_price": null,
+      "is_active": true,
+      "search_doc": "HDF plita Kronospan 3.2 mm (2800x2070) ХДФ плита Kronospan 3.2 мм (2800х2070) ХДФ плита Kronospan 3.2 мм (2800х2070) Kronospan"
+    },
+    {
+      "id": 261,
+      "slug": "dvp-t-2-5mm-2745x1700",
+      "name_uz": "DVP plita (T markasi) 2.5 mm (2745x1700)",
+      "name_uz_cyrl": "ДВП плита (Т маркаси) 2.5 мм (2745х1700)",
+      "name_ru": "ДВП плита (марка Т) 2.5 мм (2745х1700)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2745x1700",
+        "thickness_mm": 2.5
+      },
+      "reference_price": "60000.00",
+      "is_active": true,
+      "search_doc": "DVP plita (T markasi) 2.5 mm (2745x1700) ДВП плита (марка Т) 2.5 мм (2745х1700) ДВП плита (Т маркаси) 2.5 мм (2745х1700) "
+    },
+    {
+      "id": 262,
+      "slug": "dvp-t-3-2mm-2745x1700",
+      "name_uz": "DVP plita (T markasi) 3.2 mm (2745x1700)",
+      "name_uz_cyrl": "ДВП плита (Т маркаси) 3.2 мм (2745х1700)",
+      "name_ru": "ДВП плита (марка Т) 3.2 мм (2745х1700)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2745x1700",
+        "thickness_mm": 3.2
+      },
+      "reference_price": "65000.00",
+      "is_active": true,
+      "search_doc": "DVP plita (T markasi) 3.2 mm (2745x1700) ДВП плита (марка Т) 3.2 мм (2745х1700) ДВП плита (Т маркаси) 3.2 мм (2745х1700) "
+    },
+    {
+      "id": 263,
+      "slug": "osb3-6mm-2500x1250",
+      "name_uz": "OSB-3 plita 6 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 6 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 6 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 6
+      },
+      "reference_price": "109000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 6 mm (2500x1250) ОСБ-3 плита 6 мм (2500х1250) ОСБ-3 плита 6 мм (2500х1250) "
+    },
+    {
+      "id": 264,
+      "slug": "osb3-8mm-2500x1250",
+      "name_uz": "OSB-3 plita 8 mm (2500x1250)",
+      "name_uz_cyrl": "ОСБ-3 плита 8 мм (2500х1250)",
+      "name_ru": "ОСБ-3 плита 8 мм (2500х1250)",
+      "brand": null,
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "2500x1250",
+        "thickness_mm": 8
+      },
+      "reference_price": "116000.00",
+      "is_active": true,
+      "search_doc": "OSB-3 plita 8 mm (2500x1250) ОСБ-3 плита 8 мм (2500х1250) ОСБ-3 плита 8 мм (2500х1250) "
+    },
+    {
+      "id": 273,
+      "slug": "dsp-perm-1-6mm-3500x1750",
+      "name_uz": "DSP plita Perm 1.6 mm (3500x1750)",
+      "name_uz_cyrl": "ДСП плита Пермь 1.6 мм (3500х1750)",
+      "name_ru": "ДСП плита Пермь 1.6 мм (3500х1750)",
+      "brand": "Perm",
+      "category_id": 29,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "3500x1750",
+        "thickness_mm": 1.6
+      },
+      "reference_price": "375000.00",
+      "is_active": false,
+      "search_doc": "DSP plita Perm 1.6 mm (3500x1750) ДСП плита Пермь 1.6 мм (3500х1750) ДСП плита Пермь 1.6 мм (3500х1750) Perm"
+    },
+    {
+      "id": 310,
+      "slug": "oq-anker-10x132",
+      "name_uz": "Oq anker 10x132",
+      "name_uz_cyrl": "Оқ анкер 10х132",
+      "name_ru": "Анкер белый 10х132",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x132",
+        "diameter_mm": 10
+      },
+      "reference_price": "1277.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x132 Анкер белый 10х132 Оқ анкер 10х132 "
+    },
+    {
+      "id": 471,
+      "slug": "chopiq-qizil-8x60",
+      "name_uz": "Chopiq qizil (m/plast) 8x60",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 8х60",
+      "name_ru": "Чопик красный (м/пласт) 8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "size": "8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "624121.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 8x60 Чопик красный (м/пласт) 8х60 Чопиқ қизил (м/пласт) 8х60 "
+    },
+    {
+      "id": 472,
+      "slug": "chopiq-qizil-10",
+      "name_uz": "Chopiq qizil (m/plast) 10",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 10",
+      "name_ru": "Чопик красный (м/пласт) 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "893628.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 10 Чопик красный (м/пласт) 10 Чопиқ қизил (м/пласт) 10 "
+    },
+    {
+      "id": 473,
+      "slug": "chopiq-qizil-12",
+      "name_uz": "Chopiq qizil (m/plast) 12",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 12",
+      "name_ru": "Чопик красный (м/пласт) 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "808521.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 12 Чопик красный (м/пласт) 12 Чопиқ қизил (м/пласт) 12 "
+    },
+    {
+      "id": 474,
+      "slug": "chopiq-qizil-14",
+      "name_uz": "Chopiq qizil (m/plast) 14",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) 14",
+      "name_ru": "Чопик красный (м/пласт) 14",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 14
+      },
+      "reference_price": "950367.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) 14 Чопик красный (м/пласт) 14 Чопиқ қизил (м/пласт) 14 "
+    },
+    {
+      "id": 475,
+      "slug": "chopiq-qizil-babochka",
+      "name_uz": "Chopiq qizil (m/plast) babochka",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) бабочка",
+      "name_ru": "Чопик красный (м/пласт) бабочка",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {},
+      "reference_price": "709229.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) babochka Чопик красный (м/пласт) бабочка Чопиқ қизил (м/пласт) бабочка "
+    },
+    {
+      "id": 476,
+      "slug": "chopiq-qizil-driva",
+      "name_uz": "Chopiq qizil (m/plast) driva",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) дрива",
+      "name_ru": "Чопик красный (м/пласт) дрива",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {},
+      "reference_price": "851075.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) driva Чопик красный (м/пласт) дрива Чопиқ қизил (м/пласт) дрива "
+    },
+    {
+      "id": 477,
+      "slug": "chopiq-qizil-zontik-shay",
+      "name_uz": "Chopiq qizil (m/plast) zontik shay",
+      "name_uz_cyrl": "Чопиқ қизил (м/пласт) зонтик шай",
+      "name_ru": "Чопик красный (м/пласт) зонтик шай",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {},
+      "reference_price": "709229.00",
+      "is_active": true,
+      "search_doc": "Chopiq qizil (m/plast) zontik shay Чопик красный (м/пласт) зонтик шай Чопиқ қизил (м/пласт) зонтик шай "
+    },
+    {
+      "id": 478,
+      "slug": "bolt-6x16-6x100",
+      "name_uz": "Bolt 6x16-6x100",
+      "name_uz_cyrl": "Болт 6х16-6х100",
+      "name_ru": "Болт 6х16-6х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6x16-6x100",
+        "diameter_mm": 6
+      },
+      "reference_price": "21277.00",
+      "is_active": true,
+      "search_doc": "Bolt 6x16-6x100 Болт 6х16-6х100 Болт 6х16-6х100 "
+    },
+    {
+      "id": 479,
+      "slug": "bolt-8x16-8x120",
+      "name_uz": "Bolt 8x16-8x120",
+      "name_uz_cyrl": "Болт 8х16-8х120",
+      "name_ru": "Болт 8х16-8х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "8x16-8x120",
+        "diameter_mm": 8
+      },
+      "reference_price": "21277.00",
+      "is_active": true,
+      "search_doc": "Bolt 8x16-8x120 Болт 8х16-8х120 Болт 8х16-8х120 "
+    },
+    {
+      "id": 311,
+      "slug": "oq-anker-10x152",
+      "name_uz": "Oq anker 10x152",
+      "name_uz_cyrl": "Оқ анкер 10х152",
+      "name_ru": "Анкер белый 10х152",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x152",
+        "diameter_mm": 10
+      },
+      "reference_price": "1560.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x152 Анкер белый 10х152 Оқ анкер 10х152 "
+    },
+    {
+      "id": 480,
+      "slug": "bolt-10x20-10x150",
+      "name_uz": "Bolt 10x20-10x150",
+      "name_uz_cyrl": "Болт 10х20-10х150",
+      "name_ru": "Болт 10х20-10х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "10x20-10x150",
+        "diameter_mm": 10
+      },
+      "reference_price": "19858.00",
+      "is_active": true,
+      "search_doc": "Bolt 10x20-10x150 Болт 10х20-10х150 Болт 10х20-10х150 "
+    },
+    {
+      "id": 481,
+      "slug": "bolt-12x30-12x150",
+      "name_uz": "Bolt 12x30-12x150",
+      "name_uz_cyrl": "Болт 12х30-12х150",
+      "name_ru": "Болт 12х30-12х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "12x30-12x150",
+        "diameter_mm": 12
+      },
+      "reference_price": "19858.00",
+      "is_active": true,
+      "search_doc": "Bolt 12x30-12x150 Болт 12х30-12х150 Болт 12х30-12х150 "
+    },
+    {
+      "id": 482,
+      "slug": "bolt-14x30-14x200",
+      "name_uz": "Bolt 14x30-14x200",
+      "name_uz_cyrl": "Болт 14х30-14х200",
+      "name_ru": "Болт 14х30-14х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "14x30-14x200",
+        "diameter_mm": 14
+      },
+      "reference_price": "19858.00",
+      "is_active": true,
+      "search_doc": "Bolt 14x30-14x200 Болт 14х30-14х200 Болт 14х30-14х200 "
+    },
+    {
+      "id": 483,
+      "slug": "bolt-16x30-16x200",
+      "name_uz": "Bolt 16x30-16x200",
+      "name_uz_cyrl": "Болт 16х30-16х200",
+      "name_ru": "Болт 16х30-16х200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "16x30-16x200",
+        "diameter_mm": 16
+      },
+      "reference_price": "19858.00",
+      "is_active": true,
+      "search_doc": "Bolt 16x30-16x200 Болт 16х30-16х200 Болт 16х30-16х200 "
+    },
+    {
+      "id": 484,
+      "slug": "zabivnoy-anker-8x100",
+      "name_uz": "Zabivnoy anker 8x100",
+      "name_uz_cyrl": "Забивной анкер 8х100",
+      "name_ru": "Забивной анкер 8х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x100",
+        "diameter_mm": 8
+      },
+      "reference_price": "1418.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 8x100 Забивной анкер 8х100 Забивной анкер 8х100 "
+    },
+    {
+      "id": 486,
+      "slug": "zabivnoy-anker-10x100",
+      "name_uz": "Zabivnoy anker 10x100",
+      "name_uz_cyrl": "Забивной анкер 10х100",
+      "name_ru": "Забивной анкер 10х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x100",
+        "diameter_mm": 10
+      },
+      "reference_price": "1986.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 10x100 Забивной анкер 10х100 Забивной анкер 10х100 "
+    },
+    {
+      "id": 487,
+      "slug": "zabivnoy-anker-10x120",
+      "name_uz": "Zabivnoy anker 10x120",
+      "name_uz_cyrl": "Забивной анкер 10х120",
+      "name_ru": "Забивной анкер 10х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x120",
+        "diameter_mm": 10
+      },
+      "reference_price": "2553.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 10x120 Забивной анкер 10х120 Забивной анкер 10х120 "
+    },
+    {
+      "id": 488,
+      "slug": "zabivnoy-anker-10x150",
+      "name_uz": "Zabivnoy anker 10x150",
+      "name_uz_cyrl": "Забивной анкер 10х150",
+      "name_ru": "Забивной анкер 10х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x150",
+        "diameter_mm": 10
+      },
+      "reference_price": "3262.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 10x150 Забивной анкер 10х150 Забивной анкер 10х150 "
+    },
+    {
+      "id": 489,
+      "slug": "zabivnoy-anker-12x100",
+      "name_uz": "Zabivnoy anker 12x100",
+      "name_uz_cyrl": "Забивной анкер 12х100",
+      "name_ru": "Забивной анкер 12х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x100",
+        "diameter_mm": 12
+      },
+      "reference_price": "3121.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 12x100 Забивной анкер 12х100 Забивной анкер 12х100 "
+    },
+    {
+      "id": 490,
+      "slug": "zabivnoy-anker-12x120",
+      "name_uz": "Zabivnoy anker 12x120",
+      "name_uz_cyrl": "Забивной анкер 12х120",
+      "name_ru": "Забивной анкер 12х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x120",
+        "diameter_mm": 12
+      },
+      "reference_price": "3972.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 12x120 Забивной анкер 12х120 Забивной анкер 12х120 "
+    },
+    {
+      "id": 491,
+      "slug": "zabivnoy-anker-12x150",
+      "name_uz": "Zabivnoy anker 12x150",
+      "name_uz_cyrl": "Забивной анкер 12х150",
+      "name_ru": "Забивной анкер 12х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "12x150",
+        "diameter_mm": 12
+      },
+      "reference_price": "4965.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 12x150 Забивной анкер 12х150 Забивной анкер 12х150 "
+    },
+    {
+      "id": 492,
+      "slug": "zabivnoy-anker-14x100",
+      "name_uz": "Zabivnoy anker 14x100",
+      "name_uz_cyrl": "Забивной анкер 14х100",
+      "name_ru": "Забивной анкер 14х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x100",
+        "diameter_mm": 14
+      },
+      "reference_price": "5958.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 14x100 Забивной анкер 14х100 Забивной анкер 14х100 "
+    },
+    {
+      "id": 493,
+      "slug": "zabivnoy-anker-14x150",
+      "name_uz": "Zabivnoy anker 14x150",
+      "name_uz_cyrl": "Забивной анкер 14х150",
+      "name_ru": "Забивной анкер 14х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "14x150",
+        "diameter_mm": 14
+      },
+      "reference_price": "8227.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 14x150 Забивной анкер 14х150 Забивной анкер 14х150 "
+    },
+    {
+      "id": 494,
+      "slug": "zabivnoy-anker-16x120",
+      "name_uz": "Zabivnoy anker 16x120",
+      "name_uz_cyrl": "Забивной анкер 16х120",
+      "name_ru": "Забивной анкер 16х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x120",
+        "diameter_mm": 16
+      },
+      "reference_price": "8936.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 16x120 Забивной анкер 16х120 Забивной анкер 16х120 "
+    },
+    {
+      "id": 495,
+      "slug": "zabivnoy-anker-16x150",
+      "name_uz": "Zabivnoy anker 16x150",
+      "name_uz_cyrl": "Забивной анкер 16х150",
+      "name_ru": "Забивной анкер 16х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "16x150",
+        "diameter_mm": 16
+      },
+      "reference_price": "11064.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 16x150 Забивной анкер 16х150 Забивной анкер 16х150 "
+    },
+    {
+      "id": 496,
+      "slug": "anker-kryuchok-m8x60",
+      "name_uz": "Anker kryuchok (ilmoq) m8x60",
+      "name_uz_cyrl": "Анкер крючок (илмоқ) m8х60",
+      "name_ru": "Анкер крючок m8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "1844.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok (ilmoq) m8x60 Анкер крючок m8х60 Анкер крючок (илмоқ) m8х60 "
+    },
+    {
+      "id": 497,
+      "slug": "anker-kryuchok-m8x100",
+      "name_uz": "Anker kryuchok (ilmoq) m8x100",
+      "name_uz_cyrl": "Анкер крючок (илмоқ) m8х100",
+      "name_ru": "Анкер крючок m8х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x100",
+        "diameter_mm": 8
+      },
+      "reference_price": "2411.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok (ilmoq) m8x100 Анкер крючок m8х100 Анкер крючок (илмоқ) m8х100 "
+    },
+    {
+      "id": 498,
+      "slug": "anker-kryuchok-m10x80",
+      "name_uz": "Anker kryuchok (ilmoq) m10x80",
+      "name_uz_cyrl": "Анкер крючок (илмоқ) m10х80",
+      "name_ru": "Анкер крючок m10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "3830.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok (ilmoq) m10x80 Анкер крючок m10х80 Анкер крючок (илмоқ) m10х80 "
+    },
+    {
+      "id": 499,
+      "slug": "anker-kryuchok-m10x120",
+      "name_uz": "Anker kryuchok (ilmoq) m10x120",
+      "name_uz_cyrl": "Анкер крючок (илмоқ) m10х120",
+      "name_ru": "Анкер крючок m10х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x120",
+        "diameter_mm": 10
+      },
+      "reference_price": "5248.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok (ilmoq) m10x120 Анкер крючок m10х120 Анкер крючок (илмоқ) m10х120 "
+    },
+    {
+      "id": 500,
+      "slug": "anker-kryuchok-m12x120",
+      "name_uz": "Anker kryuchok (ilmoq) m12x120",
+      "name_uz_cyrl": "Анкер крючок (илмоқ) m12х120",
+      "name_ru": "Анкер крючок m12х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m12x120",
+        "diameter_mm": 12
+      },
+      "reference_price": "10213.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok (ilmoq) m12x120 Анкер крючок m12х120 Анкер крючок (илмоқ) m12х120 "
+    },
+    {
+      "id": 501,
+      "slug": "anker-kryuchok-yopiq-m8x60",
+      "name_uz": "Anker kryuchok yopiq m8x60",
+      "name_uz_cyrl": "Анкер крючок ёпиқ m8х60",
+      "name_ru": "Анкер крючок закрытый m8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "1844.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok yopiq m8x60 Анкер крючок закрытый m8х60 Анкер крючок ёпиқ m8х60 "
+    },
+    {
+      "id": 502,
+      "slug": "anker-kryuchok-yopiq-m10x80",
+      "name_uz": "Anker kryuchok yopiq m10x80",
+      "name_uz_cyrl": "Анкер крючок ёпиқ m10х80",
+      "name_ru": "Анкер крючок закрытый m10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "3830.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok yopiq m10x80 Анкер крючок закрытый m10х80 Анкер крючок ёпиқ m10х80 "
+    },
+    {
+      "id": 503,
+      "slug": "anker-kryuchok-yopiq-m12x120",
+      "name_uz": "Anker kryuchok yopiq m12x120",
+      "name_uz_cyrl": "Анкер крючок ёпиқ m12х120",
+      "name_ru": "Анкер крючок закрытый m12х120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "m12x120",
+        "diameter_mm": 12
+      },
+      "reference_price": "10213.00",
+      "is_active": true,
+      "search_doc": "Anker kryuchok yopiq m12x120 Анкер крючок закрытый m12х120 Анкер крючок ёпиқ m12х120 "
+    },
+    {
+      "id": 504,
+      "slug": "grover-shayba-6-8-10-12",
+      "name_uz": "Grover shayba 6-8-10-12",
+      "name_uz_cyrl": "Гровер шайба 6-8-10-12",
+      "name_ru": "Гровер шайба 6-8-10-12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "22695.00",
+      "is_active": true,
+      "search_doc": "Grover shayba 6-8-10-12 Гровер шайба 6-8-10-12 Гровер шайба 6-8-10-12 "
+    },
+    {
+      "id": 505,
+      "slug": "shpilka-1m-8",
+      "name_uz": "Shpilka 1 m (original) 8",
+      "name_uz_cyrl": "Шпилька 1 м (оригинал) 8",
+      "name_ru": "Шпилька 1 м оригинал 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "7376.00",
+      "is_active": true,
+      "search_doc": "Shpilka 1 m (original) 8 Шпилька 1 м оригинал 8 Шпилька 1 м (оригинал) 8 "
+    },
+    {
+      "id": 506,
+      "slug": "shpilka-1m-10",
+      "name_uz": "Shpilka 1 m (original) 10",
+      "name_uz_cyrl": "Шпилька 1 м (оригинал) 10",
+      "name_ru": "Шпилька 1 м оригинал 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "10638.00",
+      "is_active": true,
+      "search_doc": "Shpilka 1 m (original) 10 Шпилька 1 м оригинал 10 Шпилька 1 м (оригинал) 10 "
+    },
+    {
+      "id": 507,
+      "slug": "shpilka-1m-12",
+      "name_uz": "Shpilka 1 m (original) 12",
+      "name_uz_cyrl": "Шпилька 1 м (оригинал) 12",
+      "name_ru": "Шпилька 1 м оригинал 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "14752.00",
+      "is_active": true,
+      "search_doc": "Shpilka 1 m (original) 12 Шпилька 1 м оригинал 12 Шпилька 1 м (оригинал) 12 "
+    },
+    {
+      "id": 508,
+      "slug": "shpilka-2m-8",
+      "name_uz": "Shpilka 2 m 8",
+      "name_uz_cyrl": "Шпилька 2 м 8",
+      "name_ru": "Шпилька 2 м 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "15603.00",
+      "is_active": true,
+      "search_doc": "Shpilka 2 m 8 Шпилька 2 м 8 Шпилька 2 м 8 "
+    },
+    {
+      "id": 509,
+      "slug": "shpilka-2m-10",
+      "name_uz": "Shpilka 2 m 10",
+      "name_uz_cyrl": "Шпилька 2 м 10",
+      "name_ru": "Шпилька 2 м 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "22695.00",
+      "is_active": true,
+      "search_doc": "Shpilka 2 m 10 Шпилька 2 м 10 Шпилька 2 м 10 "
+    },
+    {
+      "id": 510,
+      "slug": "shpilka-2m-12",
+      "name_uz": "Shpilka 2 m 12",
+      "name_uz_cyrl": "Шпилька 2 м 12",
+      "name_ru": "Шпилька 2 м 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "36880.00",
+      "is_active": true,
+      "search_doc": "Shpilka 2 m 12 Шпилька 2 м 12 Шпилька 2 м 12 "
+    },
+    {
+      "id": 511,
+      "slug": "zontik-mplast-80",
+      "name_uz": "Zontik (m/plast) 80",
+      "name_uz_cyrl": "Зонтик (м/пласт) 80",
+      "name_ru": "Зонтик (м/пласт) 80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "diameter_mm": 80
+      },
+      "reference_price": "46809.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) 80 Зонтик (м/пласт) 80 Зонтик (м/пласт) 80 "
+    },
+    {
+      "id": 512,
+      "slug": "zontik-mplast-110",
+      "name_uz": "Zontik (m/plast) 110",
+      "name_uz_cyrl": "Зонтик (м/пласт) 110",
+      "name_ru": "Зонтик (м/пласт) 110",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "diameter_mm": 110
+      },
+      "reference_price": "62412.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) 110 Зонтик (м/пласт) 110 Зонтик (м/пласт) 110 "
+    },
+    {
+      "id": 513,
+      "slug": "zontik-mplast-120",
+      "name_uz": "Zontik (m/plast) 120",
+      "name_uz_cyrl": "Зонтик (м/пласт) 120",
+      "name_ru": "Зонтик (м/пласт) 120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "diameter_mm": 120
+      },
+      "reference_price": "66668.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) 120 Зонтик (м/пласт) 120 Зонтик (м/пласт) 120 "
+    },
+    {
+      "id": 514,
+      "slug": "zontik-mplast-150",
+      "name_uz": "Zontik (m/plast) 150",
+      "name_uz_cyrl": "Зонтик (м/пласт) 150",
+      "name_ru": "Зонтик (м/пласт) 150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {
+        "diameter_mm": 150
+      },
+      "reference_price": "38298.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) 150 Зонтик (м/пласт) 150 Зонтик (м/пласт) 150 "
+    },
+    {
+      "id": 515,
+      "slug": "zontik-mplast-termo-120",
+      "name_uz": "Zontik (m/plast) termo 120",
+      "name_uz_cyrl": "Зонтик (м/пласт) термо 120",
+      "name_ru": "Зонтик (м/пласт) термо 120",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {},
+      "reference_price": "425537.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) termo 120 Зонтик (м/пласт) термо 120 Зонтик (м/пласт) термо 120 "
+    },
+    {
+      "id": 516,
+      "slug": "zontik-mplast-termo-150",
+      "name_uz": "Zontik (m/plast) termo 150",
+      "name_uz_cyrl": "Зонтик (м/пласт) термо 150",
+      "name_ru": "Зонтик (м/пласт) термо 150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "pachka",
+      "attributes": {},
+      "reference_price": "390076.00",
+      "is_active": true,
+      "search_doc": "Zontik (m/plast) termo 150 Зонтик (м/пласт) термо 150 Зонтик (м/пласт) термо 150 "
+    },
+    {
+      "id": 312,
+      "slug": "oq-anker-10x182",
+      "name_uz": "Oq anker 10x182",
+      "name_uz_cyrl": "Оқ анкер 10х182",
+      "name_ru": "Анкер белый 10х182",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x182",
+        "diameter_mm": 10
+      },
+      "reference_price": "1844.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x182 Анкер белый 10х182 Оқ анкер 10х182 "
+    },
+    {
+      "id": 517,
+      "slug": "qora-samorez-mexmash-16-19",
+      "name_uz": "Qora samorez Mexmash 16-19",
+      "name_uz_cyrl": "Қора саморез Мехмаш 16-19",
+      "name_ru": "Саморез чёрный Мехмаш 16-19",
+      "brand": "Mexmash",
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 16
+      },
+      "reference_price": "30781.00",
+      "is_active": true,
+      "search_doc": "Qora samorez Mexmash 16-19 Саморез чёрный Мехмаш 16-19 Қора саморез Мехмаш 16-19 Mexmash"
+    },
+    {
+      "id": 518,
+      "slug": "qora-samorez-mexmash-25-100",
+      "name_uz": "Qora samorez Mexmash 25-100",
+      "name_uz_cyrl": "Қора саморез Мехмаш 25-100",
+      "name_ru": "Саморез чёрный Мехмаш 25-100",
+      "brand": "Mexmash",
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 25
+      },
+      "reference_price": "27376.00",
+      "is_active": true,
+      "search_doc": "Qora samorez Mexmash 25-100 Саморез чёрный Мехмаш 25-100 Қора саморез Мехмаш 25-100 Mexmash"
+    },
+    {
+      "id": 519,
+      "slug": "rezba-zaklepka-4",
+      "name_uz": "Rezbali zaklepka 4",
+      "name_uz_cyrl": "Резбали заклепка 4",
+      "name_ru": "Резьбовая заклёпка 4",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 4
+      },
+      "reference_price": "142.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 4 Резьбовая заклёпка 4 Резбали заклепка 4 "
+    },
+    {
+      "id": 520,
+      "slug": "rezba-zaklepka-5",
+      "name_uz": "Rezbali zaklepka 5",
+      "name_uz_cyrl": "Резбали заклепка 5",
+      "name_ru": "Резьбовая заклёпка 5",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 5
+      },
+      "reference_price": "213.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 5 Резьбовая заклёпка 5 Резбали заклепка 5 "
+    },
+    {
+      "id": 526,
+      "slug": "krovelniy-samorez-oq-metallga-5-5x25-150",
+      "name_uz": "Krovelniy samorez oq (metallga) 5.5x25-150",
+      "name_uz_cyrl": "Кровелний саморез оқ (металлга) 5.5х25-150",
+      "name_ru": "Кровельный саморез белый (по металлу) 5.5х25-150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "5.5x25-150",
+        "diameter_mm": 5.5
+      },
+      "reference_price": "38298.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq (metallga) 5.5x25-150 Кровельный саморез белый (по металлу) 5.5х25-150 Кровелний саморез оқ (металлга) 5.5х25-150 "
+    },
+    {
+      "id": 527,
+      "slug": "krovelniy-samorez-oq-metallga-6-3x25-200",
+      "name_uz": "Krovelniy samorez oq (metallga) 6.3x25-200",
+      "name_uz_cyrl": "Кровелний саморез оқ (металлга) 6.3х25-200",
+      "name_ru": "Кровельный саморез белый (по металлу) 6.3х25-200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "size": "6.3x25-200",
+        "diameter_mm": 6.3
+      },
+      "reference_price": "38298.00",
+      "is_active": true,
+      "search_doc": "Krovelniy samorez oq (metallga) 6.3x25-200 Кровельный саморез белый (по металлу) 6.3х25-200 Кровелний саморез оқ (металлга) 6.3х25-200 "
+    },
+    {
+      "id": 528,
+      "slug": "gayka-shaybali-6-8-10-12",
+      "name_uz": "Gayka shaybali 6-8-10-12",
+      "name_uz_cyrl": "Гайка шайбали 6-8-10-12",
+      "name_ru": "Гайка с шайбой 6-8-10-12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "31206.00",
+      "is_active": true,
+      "search_doc": "Gayka shaybali 6-8-10-12 Гайка с шайбой 6-8-10-12 Гайка шайбали 6-8-10-12 "
+    },
+    {
+      "id": 529,
+      "slug": "gayka-samakontr-6-8-10-12",
+      "name_uz": "Gayka samakontr 6-8-10-12",
+      "name_uz_cyrl": "Гайка самаконтр 6-8-10-12",
+      "name_ru": "Гайка самоконтрящаяся 6-8-10-12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "31206.00",
+      "is_active": true,
+      "search_doc": "Gayka samakontr 6-8-10-12 Гайка самоконтрящаяся 6-8-10-12 Гайка самаконтр 6-8-10-12 "
+    },
+    {
+      "id": 530,
+      "slug": "gayka-barashka-m6-m8-m10",
+      "name_uz": "Gayka barashka m6-m8-m10",
+      "name_uz_cyrl": "Гайка барашка m6-m8-m10",
+      "name_ru": "Гайка-барашек m6-m8-m10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "36880.00",
+      "is_active": true,
+      "search_doc": "Gayka barashka m6-m8-m10 Гайка-барашек m6-m8-m10 Гайка барашка m6-m8-m10 "
+    },
+    {
+      "id": 531,
+      "slug": "gazoblok-probka-5x30",
+      "name_uz": "Gazoblok probka 5x30",
+      "name_uz_cyrl": "Газаблок пробка 5х30",
+      "name_ru": "Пробка для газоблока 5х30",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "5x30",
+        "diameter_mm": 5
+      },
+      "reference_price": "227.00",
+      "is_active": true,
+      "search_doc": "Gazoblok probka 5x30 Пробка для газоблока 5х30 Газаблок пробка 5х30 "
+    },
+    {
+      "id": 532,
+      "slug": "gazoblok-probka-6x32",
+      "name_uz": "Gazoblok probka 6x32",
+      "name_uz_cyrl": "Газаблок пробка 6х32",
+      "name_ru": "Пробка для газоблока 6х32",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "6x32",
+        "diameter_mm": 6
+      },
+      "reference_price": "312.00",
+      "is_active": true,
+      "search_doc": "Gazoblok probka 6x32 Пробка для газоблока 6х32 Газаблок пробка 6х32 "
+    },
+    {
+      "id": 313,
+      "slug": "oq-anker-10x202",
+      "name_uz": "Oq anker 10x202",
+      "name_uz_cyrl": "Оқ анкер 10х202",
+      "name_ru": "Анкер белый 10х202",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x202",
+        "diameter_mm": 10
+      },
+      "reference_price": "2057.00",
+      "is_active": true,
+      "search_doc": "Oq anker 10x202 Анкер белый 10х202 Оқ анкер 10х202 "
+    },
+    {
+      "id": 314,
+      "slug": "sariq-anker-8x40",
+      "name_uz": "Sariq anker 8x40",
+      "name_uz_cyrl": "Сариқ анкер 8х40",
+      "name_ru": "Анкер жёлтый 8х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x40",
+        "diameter_mm": 8
+      },
+      "reference_price": "468.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 8x40 Анкер жёлтый 8х40 Сариқ анкер 8х40 "
+    },
+    {
+      "id": 315,
+      "slug": "sariq-anker-8x60",
+      "name_uz": "Sariq anker 8x60",
+      "name_uz_cyrl": "Сариқ анкер 8х60",
+      "name_ru": "Анкер жёлтый 8х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x60",
+        "diameter_mm": 8
+      },
+      "reference_price": "752.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 8x60 Анкер жёлтый 8х60 Сариқ анкер 8х60 "
+    },
+    {
+      "id": 316,
+      "slug": "sariq-anker-8x80",
+      "name_uz": "Sariq anker 8x80",
+      "name_uz_cyrl": "Сариқ анкер 8х80",
+      "name_ru": "Анкер жёлтый 8х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x80",
+        "diameter_mm": 8
+      },
+      "reference_price": "851.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 8x80 Анкер жёлтый 8х80 Сариқ анкер 8х80 "
+    },
+    {
+      "id": 317,
+      "slug": "sariq-anker-8x100",
+      "name_uz": "Sariq anker 8x100",
+      "name_uz_cyrl": "Сариқ анкер 8х100",
+      "name_ru": "Анкер жёлтый 8х100",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x100",
+        "diameter_mm": 8
+      },
+      "reference_price": "950.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 8x100 Анкер жёлтый 8х100 Сариқ анкер 8х100 "
+    },
+    {
+      "id": 318,
+      "slug": "sariq-anker-10x40",
+      "name_uz": "Sariq anker 10x40",
+      "name_uz_cyrl": "Сариқ анкер 10х40",
+      "name_ru": "Анкер жёлтый 10х40",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x40",
+        "diameter_mm": 10
+      },
+      "reference_price": "922.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x40 Анкер жёлтый 10х40 Сариқ анкер 10х40 "
+    },
+    {
+      "id": 319,
+      "slug": "sariq-anker-10x60",
+      "name_uz": "Sariq anker 10x60",
+      "name_uz_cyrl": "Сариқ анкер 10х60",
+      "name_ru": "Анкер жёлтый 10х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x60",
+        "diameter_mm": 10
+      },
+      "reference_price": "1106.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x60 Анкер жёлтый 10х60 Сариқ анкер 10х60 "
+    },
+    {
+      "id": 320,
+      "slug": "sariq-anker-10x80",
+      "name_uz": "Sariq anker 10x80",
+      "name_uz_cyrl": "Сариқ анкер 10х80",
+      "name_ru": "Анкер жёлтый 10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "1248.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 10x80 Анкер жёлтый 10х80 Сариқ анкер 10х80 "
+    },
+    {
+      "id": 341,
+      "slug": "sariq-anker-20x150",
+      "name_uz": "Sariq anker 20x150",
+      "name_uz_cyrl": "Сариқ анкер 20х150",
+      "name_ru": "Анкер жёлтый 20х150",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "20x150",
+        "diameter_mm": 20
+      },
+      "reference_price": "11773.00",
+      "is_active": true,
+      "search_doc": "Sariq anker 20x150 Анкер жёлтый 20х150 Сариқ анкер 20х150 "
+    },
+    {
+      "id": 392,
+      "slug": "mix-70-200",
+      "name_uz": "Mix 70-200",
+      "name_uz_cyrl": "Мих 70-200",
+      "name_ru": "Гвозди 70-200",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 70
+      },
+      "reference_price": "10780.00",
+      "is_active": true,
+      "search_doc": "Mix 70-200 Гвозди 70-200 Мих 70-200 "
+    },
+    {
+      "id": 416,
+      "slug": "podves-agraf-0-7",
+      "name_uz": "Podves (agraf) 0.7",
+      "name_uz_cyrl": "Подвес (аграф) 0.7",
+      "name_ru": "Подвес (аграф) 0.7",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "quti",
+      "attributes": {
+        "diameter_mm": 0.7
+      },
+      "reference_price": "453906.00",
+      "is_active": true,
+      "search_doc": "Podves (agraf) 0.7 Подвес (аграф) 0.7 Подвес (аграф) 0.7 "
+    },
+    {
+      "id": 448,
+      "slug": "gayka-oq-3",
+      "name_uz": "Gayka oq 3",
+      "name_uz_cyrl": "Гайка оқ 3",
+      "name_ru": "Гайка белая 3",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "kg",
+      "attributes": {
+        "diameter_mm": 3
+      },
+      "reference_price": "31206.00",
+      "is_active": true,
+      "search_doc": "Gayka oq 3 Гайка белая 3 Гайка оқ 3 "
+    },
+    {
+      "id": 456,
+      "slug": "shpilka-097-12",
+      "name_uz": "Shpilka 0.97 m 12",
+      "name_uz_cyrl": "Шпилька 0,97 м 12",
+      "name_ru": "Шпилька 0,97 м 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "12057.00",
+      "is_active": true,
+      "search_doc": "Shpilka 0.97 m 12 Шпилька 0,97 м 12 Шпилька 0,97 м 12 "
+    },
+    {
+      "id": 485,
+      "slug": "zabivnoy-anker-10x80",
+      "name_uz": "Zabivnoy anker 10x80",
+      "name_uz_cyrl": "Забивной анкер 10х80",
+      "name_ru": "Забивной анкер 10х80",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x80",
+        "diameter_mm": 10
+      },
+      "reference_price": "1702.00",
+      "is_active": true,
+      "search_doc": "Zabivnoy anker 10x80 Забивной анкер 10х80 Забивной анкер 10х80 "
+    },
+    {
+      "id": 521,
+      "slug": "rezba-zaklepka-6",
+      "name_uz": "Rezbali zaklepka 6",
+      "name_uz_cyrl": "Резбали заклепка 6",
+      "name_ru": "Резьбовая заклёпка 6",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 6
+      },
+      "reference_price": "284.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 6 Резьбовая заклёпка 6 Резбали заклепка 6 "
+    },
+    {
+      "id": 522,
+      "slug": "rezba-zaklepka-8",
+      "name_uz": "Rezbali zaklepka 8",
+      "name_uz_cyrl": "Резбали заклепка 8",
+      "name_ru": "Резьбовая заклёпка 8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 8
+      },
+      "reference_price": "397.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 8 Резьбовая заклёпка 8 Резбали заклепка 8 "
+    },
+    {
+      "id": 523,
+      "slug": "rezba-zaklepka-10",
+      "name_uz": "Rezbali zaklepka 10",
+      "name_uz_cyrl": "Резбали заклепка 10",
+      "name_ru": "Резьбовая заклёпка 10",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 10
+      },
+      "reference_price": "624.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 10 Резьбовая заклёпка 10 Резбали заклепка 10 "
+    },
+    {
+      "id": 524,
+      "slug": "rezba-zaklepka-12",
+      "name_uz": "Rezbali zaklepka 12",
+      "name_uz_cyrl": "Резбали заклепка 12",
+      "name_ru": "Резьбовая заклёпка 12",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "diameter_mm": 12
+      },
+      "reference_price": "1206.00",
+      "is_active": true,
+      "search_doc": "Rezbali zaklepka 12 Резьбовая заклёпка 12 Резбали заклепка 12 "
+    },
+    {
+      "id": 525,
+      "slug": "kryuchok-armstrong-6x40",
+      "name_uz": "Kryuchok Armstrong 6x40",
+      "name_uz_cyrl": "Крючок Армстронг 6х40",
+      "name_ru": "Крючок Армстронг 6х40",
+      "brand": "Armstrong",
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "6x40",
+        "diameter_mm": 6
+      },
+      "reference_price": "284.00",
+      "is_active": true,
+      "search_doc": "Kryuchok Armstrong 6x40 Крючок Армстронг 6х40 Крючок Армстронг 6х40 Armstrong"
+    },
+    {
+      "id": 533,
+      "slug": "gazoblok-probka-8x38",
+      "name_uz": "Gazoblok probka 8x38",
+      "name_uz_cyrl": "Газаблок пробка 8х38",
+      "name_ru": "Пробка для газоблока 8х38",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "8x38",
+        "diameter_mm": 8
+      },
+      "reference_price": "567.00",
+      "is_active": true,
+      "search_doc": "Gazoblok probka 8x38 Пробка для газоблока 8х38 Газаблок пробка 8х38 "
+    },
+    {
+      "id": 534,
+      "slug": "gazoblok-probka-10x60",
+      "name_uz": "Gazoblok probka 10x60",
+      "name_uz_cyrl": "Газаблок пробка 10х60",
+      "name_ru": "Пробка для газоблока 10х60",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "size": "10x60",
+        "diameter_mm": 10
+      },
+      "reference_price": "1135.00",
+      "is_active": true,
+      "search_doc": "Gazoblok probka 10x60 Пробка для газоблока 10х60 Газаблок пробка 10х60 "
+    },
+    {
+      "id": 535,
+      "slug": "kryuchok-babochka-m4",
+      "name_uz": "Kryuchok babochka m4",
+      "name_uz_cyrl": "Крючок бабочка m4",
+      "name_ru": "Крючок бабочка m4",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m4",
+        "diameter_mm": 4
+      },
+      "reference_price": "1560.00",
+      "is_active": true,
+      "search_doc": "Kryuchok babochka m4 Крючок бабочка m4 Крючок бабочка m4 "
+    },
+    {
+      "id": 536,
+      "slug": "kryuchok-babochka-m5",
+      "name_uz": "Kryuchok babochka m5",
+      "name_uz_cyrl": "Крючок бабочка m5",
+      "name_ru": "Крючок бабочка m5",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m5",
+        "diameter_mm": 5
+      },
+      "reference_price": "2270.00",
+      "is_active": true,
+      "search_doc": "Kryuchok babochka m5 Крючок бабочка m5 Крючок бабочка m5 "
+    },
+    {
+      "id": 537,
+      "slug": "kryuchok-babochka-m6",
+      "name_uz": "Kryuchok babochka m6",
+      "name_uz_cyrl": "Крючок бабочка m6",
+      "name_ru": "Крючок бабочка m6",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m6",
+        "diameter_mm": 6
+      },
+      "reference_price": "3121.00",
+      "is_active": true,
+      "search_doc": "Kryuchok babochka m6 Крючок бабочка m6 Крючок бабочка m6 "
+    },
+    {
+      "id": 538,
+      "slug": "kryuchok-babochka-m8",
+      "name_uz": "Kryuchok babochka m8",
+      "name_uz_cyrl": "Крючок бабочка m8",
+      "name_ru": "Крючок бабочка m8",
+      "brand": null,
+      "category_id": 26,
+      "base_unit_code": "dona",
+      "attributes": {
+        "grade": "m8",
+        "diameter_mm": 8
+      },
+      "reference_price": "4681.00",
+      "is_active": true,
+      "search_doc": "Kryuchok babochka m8 Крючок бабочка m8 Крючок бабочка m8 "
+    }
+  ]
+}

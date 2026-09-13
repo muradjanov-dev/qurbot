@@ -1,0 +1,962 @@
+[
+  {
+    "query": "10 dona Fanera laminatsiyalangan SibPly 18 mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      223
+    ],
+    "kind": "exact",
+    "id": "q001",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera laminatsiyalangan sibply 18mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      223
+    ],
+    "kind": "compact",
+    "id": "q002",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera laminatsiyalangan Murashinsky 18 mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      225
+    ],
+    "kind": "exact",
+    "id": "q003",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera laminatsiyalangan murashinsky 18mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      225
+    ],
+    "kind": "compact",
+    "id": "q004",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera laminatsiyalangan SEGEZHA 18 mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      226
+    ],
+    "kind": "exact",
+    "id": "q005",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera laminatsiyalangan segezha 18mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      226
+    ],
+    "kind": "compact",
+    "id": "q006",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 2x4 3 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      228
+    ],
+    "kind": "exact",
+    "id": "q007",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 2x4 3mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      228
+    ],
+    "kind": "compact",
+    "id": "q008",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 2x4 4 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      229
+    ],
+    "kind": "exact",
+    "id": "q009",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 2x4 4mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      229
+    ],
+    "kind": "compact",
+    "id": "q010",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 3 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      230
+    ],
+    "kind": "exact",
+    "id": "q011",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 3mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      230
+    ],
+    "kind": "compact",
+    "id": "q012",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 4 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      231
+    ],
+    "kind": "exact",
+    "id": "q013",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 4mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      231
+    ],
+    "kind": "compact",
+    "id": "q014",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 5 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      232
+    ],
+    "kind": "exact",
+    "id": "q015",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 5mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      232
+    ],
+    "kind": "compact",
+    "id": "q016",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 6 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      233
+    ],
+    "kind": "exact",
+    "id": "q017",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 6mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      233
+    ],
+    "kind": "compact",
+    "id": "q018",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 8 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      234
+    ],
+    "kind": "exact",
+    "id": "q019",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 8mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      234
+    ],
+    "kind": "compact",
+    "id": "q020",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 10 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      235
+    ],
+    "kind": "exact",
+    "id": "q021",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 10mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      235
+    ],
+    "kind": "compact",
+    "id": "q022",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 12 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      236
+    ],
+    "kind": "exact",
+    "id": "q023",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 12mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      236
+    ],
+    "kind": "compact",
+    "id": "q024",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 15 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      237
+    ],
+    "kind": "exact",
+    "id": "q025",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 15mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      237
+    ],
+    "kind": "compact",
+    "id": "q026",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 18 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      238
+    ],
+    "kind": "exact",
+    "id": "q027",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 18mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      238
+    ],
+    "kind": "compact",
+    "id": "q028",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 3x3 21 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      239
+    ],
+    "kind": "exact",
+    "id": "q029",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 3x3 21mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      239
+    ],
+    "kind": "compact",
+    "id": "q030",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 4x4 3 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      240
+    ],
+    "kind": "exact",
+    "id": "q031",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 4x4 3mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      240
+    ],
+    "kind": "compact",
+    "id": "q032",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 4x4 4 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      241
+    ],
+    "kind": "exact",
+    "id": "q033",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 4x4 4mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      241
+    ],
+    "kind": "compact",
+    "id": "q034",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 4x4 14 mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      242
+    ],
+    "kind": "exact",
+    "id": "q035",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 4x4 14mm (1525x1525)",
+    "expected": "match",
+    "ids": [
+      242
+    ],
+    "kind": "compact",
+    "id": "q036",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 2x4 4 mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      244
+    ],
+    "kind": "exact",
+    "id": "q037",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 2x4 4mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      244
+    ],
+    "kind": "compact",
+    "id": "q038",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Fanera berezovaya 2x4 6 mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      246
+    ],
+    "kind": "exact",
+    "id": "q039",
+    "split": "development"
+  },
+  {
+    "query": "5 dona fanera berezovaya 2x4 6mm (2440x1220)",
+    "expected": "match",
+    "ids": [
+      246
+    ],
+    "kind": "compact",
+    "id": "q040",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Oq anker 10x72",
+    "expected": "match",
+    "ids": [
+      307
+    ],
+    "kind": "exact",
+    "id": "q041",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x72",
+    "expected": "match",
+    "ids": [
+      307
+    ],
+    "kind": "compact",
+    "id": "q042",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Oq anker 10x92",
+    "expected": "match",
+    "ids": [
+      308
+    ],
+    "kind": "exact",
+    "id": "q043",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x92",
+    "expected": "match",
+    "ids": [
+      308
+    ],
+    "kind": "compact",
+    "id": "q044",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Oq anker 10x112",
+    "expected": "match",
+    "ids": [
+      309
+    ],
+    "kind": "exact",
+    "id": "q045",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x112",
+    "expected": "match",
+    "ids": [
+      309
+    ],
+    "kind": "compact",
+    "id": "q046",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Oq anker 10x132",
+    "expected": "match",
+    "ids": [
+      310
+    ],
+    "kind": "exact",
+    "id": "q047",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x132",
+    "expected": "match",
+    "ids": [
+      310
+    ],
+    "kind": "compact",
+    "id": "q048",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Oq anker 10x152",
+    "expected": "match",
+    "ids": [
+      311
+    ],
+    "kind": "exact",
+    "id": "q049",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x152",
+    "expected": "match",
+    "ids": [
+      311
+    ],
+    "kind": "compact",
+    "id": "q050",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Oq anker 10x182",
+    "expected": "match",
+    "ids": [
+      312
+    ],
+    "kind": "exact",
+    "id": "q051",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x182",
+    "expected": "match",
+    "ids": [
+      312
+    ],
+    "kind": "compact",
+    "id": "q052",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Oq anker 10x202",
+    "expected": "match",
+    "ids": [
+      313
+    ],
+    "kind": "exact",
+    "id": "q053",
+    "split": "development"
+  },
+  {
+    "query": "5 dona oq anker 10x202",
+    "expected": "match",
+    "ids": [
+      313
+    ],
+    "kind": "compact",
+    "id": "q054",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 8x40",
+    "expected": "match",
+    "ids": [
+      314
+    ],
+    "kind": "exact",
+    "id": "q055",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 8x40",
+    "expected": "match",
+    "ids": [
+      314
+    ],
+    "kind": "compact",
+    "id": "q056",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 8x60",
+    "expected": "match",
+    "ids": [
+      315
+    ],
+    "kind": "exact",
+    "id": "q057",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 8x60",
+    "expected": "match",
+    "ids": [
+      315
+    ],
+    "kind": "compact",
+    "id": "q058",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 8x80",
+    "expected": "match",
+    "ids": [
+      316
+    ],
+    "kind": "exact",
+    "id": "q059",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 8x80",
+    "expected": "match",
+    "ids": [
+      316
+    ],
+    "kind": "compact",
+    "id": "q060",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 8x100",
+    "expected": "match",
+    "ids": [
+      317
+    ],
+    "kind": "exact",
+    "id": "q061",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 8x100",
+    "expected": "match",
+    "ids": [
+      317
+    ],
+    "kind": "compact",
+    "id": "q062",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 10x40",
+    "expected": "match",
+    "ids": [
+      318
+    ],
+    "kind": "exact",
+    "id": "q063",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x40",
+    "expected": "match",
+    "ids": [
+      318
+    ],
+    "kind": "compact",
+    "id": "q064",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 10x60",
+    "expected": "match",
+    "ids": [
+      319
+    ],
+    "kind": "exact",
+    "id": "q065",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x60",
+    "expected": "match",
+    "ids": [
+      319
+    ],
+    "kind": "compact",
+    "id": "q066",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 10x80",
+    "expected": "match",
+    "ids": [
+      320
+    ],
+    "kind": "exact",
+    "id": "q067",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x80",
+    "expected": "match",
+    "ids": [
+      320
+    ],
+    "kind": "compact",
+    "id": "q068",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 10x100",
+    "expected": "match",
+    "ids": [
+      321
+    ],
+    "kind": "exact",
+    "id": "q069",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x100",
+    "expected": "match",
+    "ids": [
+      321
+    ],
+    "kind": "compact",
+    "id": "q070",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 10x120",
+    "expected": "match",
+    "ids": [
+      322
+    ],
+    "kind": "exact",
+    "id": "q071",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x120",
+    "expected": "match",
+    "ids": [
+      322
+    ],
+    "kind": "compact",
+    "id": "q072",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 10x150",
+    "expected": "match",
+    "ids": [
+      323
+    ],
+    "kind": "exact",
+    "id": "q073",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 10x150",
+    "expected": "match",
+    "ids": [
+      323
+    ],
+    "kind": "compact",
+    "id": "q074",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 12x60",
+    "expected": "match",
+    "ids": [
+      324
+    ],
+    "kind": "exact",
+    "id": "q075",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 12x60",
+    "expected": "match",
+    "ids": [
+      324
+    ],
+    "kind": "compact",
+    "id": "q076",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona Sariq anker 12x80",
+    "expected": "match",
+    "ids": [
+      325
+    ],
+    "kind": "exact",
+    "id": "q077",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 12x80",
+    "expected": "match",
+    "ids": [
+      325
+    ],
+    "kind": "compact",
+    "id": "q078",
+    "split": "development"
+  },
+  {
+    "query": "10 dona Sariq anker 12x100",
+    "expected": "match",
+    "ids": [
+      326
+    ],
+    "kind": "exact",
+    "id": "q079",
+    "split": "development"
+  },
+  {
+    "query": "5 dona sariq anker 12x100",
+    "expected": "match",
+    "ids": [
+      326
+    ],
+    "kind": "compact",
+    "id": "q080",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona fanera",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q081",
+    "split": "development"
+  },
+  {
+    "query": "10 dona faner",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q082",
+    "split": "development"
+  },
+  {
+    "query": "10 dona paner",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q083",
+    "split": "development"
+  },
+  {
+    "query": "5 dona osb",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q084",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona fanera 0.3mm",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q085",
+    "split": "development"
+  },
+  {
+    "query": "10 dona fanera 03m",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q086",
+    "split": "development"
+  },
+  {
+    "query": "10 dona fanera 3m",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q087",
+    "split": "development"
+  },
+  {
+    "query": "50ta",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q088",
+    "split": "holdout"
+  },
+  {
+    "query": "fanera",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q089",
+    "split": "development"
+  },
+  {
+    "query": "osb",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q090",
+    "split": "development"
+  },
+  {
+    "query": "-5 dona fanera",
+    "expected": "invalid",
+    "ids": [],
+    "kind": "edge",
+    "id": "q091",
+    "split": "development"
+  },
+  {
+    "query": "0 dona fanera",
+    "expected": "invalid",
+    "ids": [],
+    "kind": "edge",
+    "id": "q092",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona oboy",
+    "expected": "unavailable",
+    "ids": [],
+    "kind": "edge",
+    "id": "q093",
+    "split": "development"
+  },
+  {
+    "query": "10 dona antimateriya",
+    "expected": "unavailable",
+    "ids": [],
+    "kind": "edge",
+    "id": "q094",
+    "split": "development"
+  },
+  {
+    "query": "10 dona samarez",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q095",
+    "split": "development"
+  },
+  {
+    "query": "10 dona ankel",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q096",
+    "split": "holdout"
+  },
+  {
+    "query": "10 dona фанера",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q097",
+    "split": "development"
+  },
+  {
+    "query": "10 dona ОСБ",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q098",
+    "split": "development"
+  },
+  {
+    "query": "10 dona fanera 1220x2440",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q099",
+    "split": "development"
+  },
+  {
+    "query": "10 dona fanera\n5 dona osb",
+    "expected": "clarify",
+    "ids": [],
+    "kind": "edge",
+    "id": "q100",
+    "split": "holdout"
+  }
+]
