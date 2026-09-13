@@ -1,4 +1,5 @@
 from app.bot.handlers.admin import router as admin_router
+from app.bot.handlers.ai_chat import router as ai_chat_router
 from app.bot.handlers.common import router as common_router
 from app.bot.handlers.customer import router as customer_router
 from app.bot.handlers.fallback import router as fallback_router
@@ -8,6 +9,7 @@ from app.bot.handlers.shop_listing import router as shop_listing_router
 
 __all__ = [
     "admin_router",
+    "ai_chat_router",
     "common_router",
     "customer_router",
     "fallback_router",

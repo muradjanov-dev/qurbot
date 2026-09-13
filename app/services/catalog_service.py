@@ -89,6 +89,15 @@ class CatalogService:
         except TimeoutError:
             return None
 
+    async def find_for_customer(self, query: str, limit: int) -> list[CandidateMatch]:
+        """Products a shop actually sells that fit `query`, best first. No LLM call."""
+        line = ParsedLine(
+            line_no=1, raw_text=query, parsed_name=query, qty=Decimal(1), unit_code=None
+        )
+        match = await self._match_deterministic(line, require_offers=True)
+        ranked = match.decision.candidates or match.candidates
+        return list(ranked[:limit])
+
     async def _match_deterministic(
         self,
         parsed_line: ParsedLine,

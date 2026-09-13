@@ -10,6 +10,7 @@ from aiogram.types import BotCommand
 
 from app.bot.handlers import (
     admin_router,
+    ai_chat_router,
     common_router,
     customer_router,
     fallback_router,
@@ -97,16 +98,19 @@ def create_dispatcher() -> Dispatcher:
     dp.update.outer_middleware(I18nMiddleware())
 
     # Include routers. shop_listing_router goes first because its handlers are
-    # all state-filtered to the upload wizard, while shop_router's quick-price
-    # and customer_router's basket handlers both match loose text patterns that
-    # would otherwise swallow a wizard step (cf. commit e68f17c).
+    # all state-filtered to the upload wizard, while customer_router's basket
+    # handlers match loose text that would otherwise swallow a wizard step
+    # (cf. commit e68f17c).
     dp.include_router(common_router)
     dp.include_router(shop_listing_router)
     dp.include_router(price_browse_router)
-    # shop_router precedes customer_router: the quick-price shorthand
-    # ("cement m400 52000") is ordinary text, so the basket catch-all would
-    # otherwise consume it and answer "I don't understand".
+    # shop_router precedes customer_router: inside the admin quick-price and
+    # delivery-rule states ("cement m400 52000") the text is ordinary, so the
+    # basket catch-all would otherwise consume it.
     dp.include_router(shop_router)
+    # The AI sales agent answers customer free text first; with no key it
+    # filters itself out and the basket handler in customer_router runs.
+    dp.include_router(ai_chat_router)
     dp.include_router(customer_router)
     dp.include_router(admin_router)
     # Last: whatever no handler claimed still gets an answer. Registered

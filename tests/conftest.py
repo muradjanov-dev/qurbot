@@ -21,6 +21,7 @@ os.environ.setdefault("FSM_USE_REDIS", "false")
 # developer's shell would otherwise still get through. Clients built with
 # mock_mode=True are unaffected; they never reach the HTTP layer.
 os.environ["OPENAI_API_KEY"] = "placeholder_openai_key"
+os.environ["ANTHROPIC_API_KEY"] = "placeholder_anthropic_key"
 
 import app.db.models  # noqa: F401
 from app.db.base import Base

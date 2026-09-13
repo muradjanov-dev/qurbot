@@ -160,6 +160,30 @@ class Settings(BaseSettings):
     # on every future basket, so a wrong one is expensive to notice.
     llm_alias_writeback_min_confidence: float = 0.70
 
+    # AI sales agent: Claude talks to the customer, finds products in our own
+    # catalogue, fills the basket and prepares the order. The order itself is
+    # still placed by the customer pressing the confirm button. Without a key,
+    # or when a call fails, the deterministic basket flow answers instead.
+    anthropic_api_key: str = "placeholder_anthropic_key"
+    agent_enabled: bool = True
+    agent_model: str = "claude-opus-5"
+    # Chat replies do not need deep reasoning; low effort keeps the bill small.
+    agent_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    agent_max_tokens: int = 2000
+    agent_timeout_seconds: float = 60.0
+    # Tool calls per customer message before the agent must answer.
+    agent_max_tool_rounds: int = 6
+    # Plain-text messages remembered between turns (re-sent on every call).
+    agent_history_max_messages: int = 12
+    agent_search_limit: int = 5
+    # Claude Opus 5 list price, used for the llm_calls cost column.
+    agent_input_usd_per_mtok: Decimal = Decimal("5")
+    agent_output_usd_per_mtok: Decimal = Decimal("25")
+    agent_cache_read_price_ratio: Decimal = Decimal("0.1")
+    agent_cache_write_price_ratio: Decimal = Decimal("1.25")
+    # Telegram rejects messages over 4096 characters.
+    agent_reply_max_chars: int = 3500
+
     # Where a customer is sent when the catalog cannot help: an out-of-stock
     # product or an empty category. Kept here rather than in the string
     # catalogue so it changes in one place across all three languages.

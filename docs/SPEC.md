@@ -39,6 +39,7 @@ mobile app.
 | Cache / FSM | Redis (aiogram `RedisStorage`, plus app-level cache) |
 | Background jobs | `arq` (Redis-backed) — separate worker process |
 | LLM | OpenAI-compatible Chat Completions API (`gpt-5.6-terra`), used **only as fallback**, see §6 |
+| AI sales agent | Anthropic SDK, `claude-opus-5`, chats with customers through tools, see §6a |
 | Config | `pydantic-settings`, all secrets from env, `.env.example` committed |
 | Logging | `structlog`, JSON output, request/update correlation IDs |
 | Tests | `pytest` + `pytest-asyncio` + `testcontainers` (or a dedicated test DB) |
@@ -304,6 +305,25 @@ Optional (Phase 6): add `pgvector` embeddings for semantic matches where trigram
 (`yopishtiruvchi` → `plitka yelimi`). Insert as Stage 2.5.
 
 ---
+
+## 6a. AI sales agent (customer chat)
+
+Customer free text goes to a Claude agent first (`app/services/sales_agent.py`,
+handler `app/bot/handlers/ai_chat.py`). It talks to the customer in their language and
+works only through tools backed by the existing services:
+
+| Tool | Does |
+|---|---|
+| `search_products` | Stages 0–2 search, stocked products only, with the lowest price. No LLM. |
+| `set_basket_item` | Sets qty for a real `canonical_id` (0 removes). Clears quote and order. |
+| `get_quote` | `QuoteService.optimize_basket`, cheapest variant. |
+| `get_saved_addresses` | The customer's saved addresses. |
+| `prepare_order` | Validates phone and address and needs an orderable quote. It does **not** place the order. |
+
+- The order is placed only when the customer presses the existing confirm button, which runs `place_order` and `notify_order`.
+- Between messages the agent remembers only plain text turns (`agent_history_max_messages`). Tool calls are dropped once the reply is sent.
+- Every call is written to `llm_calls` with `purpose='sales_agent'` and counts against `llm_daily_token_budget`.
+- No key, no budget, API error or refusal: the deterministic basket flow (§7, §9) answers instead.
 
 ## 7. Basket parsing
 
