@@ -15,8 +15,14 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.catalog import CanonicalProduct
 from app.db.models.shop import District, Shop, ShopProduct
 from scripts.seed import seed_database
+
+# How many offers each recreated demo shop carries. The seed no longer builds
+# the demo market, so these tests put back just enough of it to have something
+# for the migration to retire.
+DEMO_OFFERS_PER_SHOP = 3
 
 _MIGRATION = pathlib.Path("migrations/versions/0010_retire_seeded_market.py")
 
@@ -27,6 +33,32 @@ def _load_migration() -> Any:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+async def _demo_market(session: AsyncSession, names: tuple[str, ...]) -> None:
+    """The seeded shops as they exist in production, with a few offers each."""
+    await seed_database(session, catalog_only=True)
+    district = (await session.execute(select(District).limit(1))).scalars().first()
+    assert district is not None
+    for name in names:
+        shop = Shop(name=name, phone="+998900000000", district_id=district.id, address="-")
+        session.add(shop)
+        await session.flush()
+        for i in range(DEMO_OFFERS_PER_SHOP):
+            session.add(
+                ShopProduct(
+                    shop_id=shop.id,
+                    canonical_id=None,
+                    raw_name=f"Demo {i}",
+                    raw_unit="dona",
+                    pack_size=Decimal("1"),
+                    pack_unit_code="dona",
+                    price_per_pack=Decimal("50000"),
+                    price_per_base_unit=Decimal("50000"),
+                    is_active=True,
+                )
+            )
+    await session.flush()
 
 
 async def _real_shop(session: AsyncSession) -> Shop:
@@ -64,9 +96,9 @@ async def _real_shop(session: AsyncSession) -> Shop:
 async def test_seeded_offers_are_deactivated_and_real_ones_are_not(
     test_session: AsyncSession,
 ) -> None:
-    await seed_database(test_session)
-    real = await _real_shop(test_session)
     migration = _load_migration()
+    await _demo_market(test_session, migration.SEEDED_SHOP_NAMES)
+    real = await _real_shop(test_session)
 
     connection = await test_session.connection()
     offer_count, shop_count = await connection.run_sync(
@@ -105,8 +137,8 @@ async def test_seeded_offers_are_deactivated_and_real_ones_are_not(
 @pytest.mark.asyncio
 async def test_the_cleanup_is_reversible(test_session: AsyncSession) -> None:
     """Downgrade must put the demo market back, exactly as promised."""
-    await seed_database(test_session)
     migration = _load_migration()
+    await _demo_market(test_session, migration.SEEDED_SHOP_NAMES)
     connection = await test_session.connection()
 
     before = (
@@ -142,17 +174,34 @@ async def test_deactivated_offers_stop_reaching_quotes(test_session: AsyncSessio
     """The point of the exercise: synthetic prices must leave the quote path."""
     from app.db.repositories.shop_repo import ShopRepository
 
-    await seed_database(test_session)
-    canonical_ids = [
-        row[0]
-        for row in (await test_session.execute(select(ShopProduct.canonical_id).limit(20))).all()
-        if row[0] is not None
-    ]
-    repo = ShopRepository(test_session)
-    assert await repo.get_active_offers_for_canonicals(canonical_ids), "precondition"
-
     migration = _load_migration()
+    await _demo_market(test_session, migration.SEEDED_SHOP_NAMES)
+    canonical_ids = list(
+        (await test_session.execute(select(CanonicalProduct.id).limit(20))).scalars().all()
+    )
+    # Point the demo offers at real products so they would reach a quote.
+    demo_offers = (
+        (
+            await test_session.execute(
+                select(ShopProduct)
+                .join(Shop, Shop.id == ShopProduct.shop_id)
+                .where(Shop.name.in_(migration.SEEDED_SHOP_NAMES))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for offer, canonical_id in zip(demo_offers, canonical_ids, strict=False):
+        offer.canonical_id = canonical_id
+    await test_session.flush()
+
+    repo = ShopRepository(test_session)
+    demo_ids = {o.id for o in demo_offers}
+    offers = await repo.get_active_offers_for_canonicals(canonical_ids)
+    assert demo_ids & {o.id for o in offers}, "precondition"
+
     connection = await test_session.connection()
     await connection.run_sync(lambda c: migration.set_seeded_market_active(c, False))
 
-    assert await repo.get_active_offers_for_canonicals(canonical_ids) == []
+    offers = await repo.get_active_offers_for_canonicals(canonical_ids)
+    assert not demo_ids & {o.id for o in offers}

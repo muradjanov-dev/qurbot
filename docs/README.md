@@ -1,7 +1,7 @@
 # QurBot
 
 A Telegram bot that turns a free-text construction-materials shopping list into
-priced quotes aggregated across partner shops in Tashkent, then places the order.
+priced quotes from QurBot's own catalogue in Tashkent, then places the order.
 Full product/technical spec: [`SPEC.md`](SPEC.md). Operating a live deployment:
 [`OPERATIONS.md`](OPERATIONS.md). Agent working rules: [`../CLAUDE.md`](../CLAUDE.md).
 
@@ -26,9 +26,9 @@ scripts/        seed.py, load_test.py, backup.py, restore.py, notify_deploy.py
 tests/          unit/ (no DB), integration/ (sqlite in-memory via test_session fixture)
 ```
 
-## Shop product uploads
+## Product uploads
 
-A shop owner adds a product in one action: send photos with a caption like
+An admin adds a product in one action: send photos with a caption like
 `Sement M400 50kg qop 52000 so'm`. Whatever the caption doesn't say is asked
 for, and nothing else.
 

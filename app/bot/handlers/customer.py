@@ -44,6 +44,7 @@ from app.domain.normalize.text import normalize_query
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
 from app.services.catalog_service import CatalogService
+from app.services.house_shop import is_admin as user_is_admin
 from app.services.order_service import notify_order, place_order
 from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
@@ -497,14 +498,11 @@ async def callback_back_to_menu(
     lang: str,
 ) -> None:
     await state.clear()
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     if isinstance(callback.message, Message):
         await callback.message.answer(
             t("action_cancelled", lang=lang),
-            reply_markup=get_main_menu_keyboard(
-                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-            ),
+            reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
         )
     await callback.answer()
 
@@ -868,7 +866,11 @@ async def callback_checkout_pick_address(
         await callback.answer()
         return
 
-    await state.update_data(delivery_address=address.address_text)
+    await state.update_data(
+        delivery_address=address.address_text,
+        delivery_lat=str(address.lat),
+        delivery_lng=str(address.lng),
+    )
     await state.set_state(OrderCheckoutStates.entering_comment)
     await callback.message.answer(t("prompt_checkout_comment", lang=lang))
     await callback.answer()
@@ -1032,7 +1034,13 @@ async def _store_checkout_address(
         )
         await session.commit()
 
-    await state.update_data(delivery_address=text)
+    # A typed address with no pin clears any pin left from an earlier step, so
+    # the admins are never sent a location for a different place.
+    await state.update_data(
+        delivery_address=text,
+        delivery_lat=str(lat) if lat is not None and lng is not None else None,
+        delivery_lng=str(lng) if lat is not None and lng is not None else None,
+    )
     await state.set_state(OrderCheckoutStates.entering_comment)
     await message.answer(t("prompt_checkout_comment", lang=lang))
 
@@ -1089,6 +1097,16 @@ async def checkout_comment(
     )
 
 
+def _state_decimal(raw: object) -> Decimal | None:
+    """A coordinate kept in FSM state as a string; anything unreadable is no pin."""
+    if raw is None:
+        return None
+    try:
+        return Decimal(str(raw))
+    except ArithmeticError:
+        return None
+
+
 @router.callback_query(F.data == "confirm_order")
 async def callback_confirm_order(
     callback: CallbackQuery,
@@ -1135,6 +1153,8 @@ async def callback_confirm_order(
         variant=variant,
         contact_phone=phone,
         delivery_address=address,
+        delivery_lat=_state_decimal(data.get("delivery_lat")),
+        delivery_lng=_state_decimal(data.get("delivery_lng")),
         comment=comment,
         raw_text="Customer basket",
         source="bot",
@@ -1145,8 +1165,7 @@ async def callback_confirm_order(
     await session.commit()
     await state.clear()
 
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
             t(
@@ -1160,9 +1179,7 @@ async def callback_confirm_order(
             await callback.message.answer(t("pebbles_earned", lang=lang, pebbles=pebbles))
         await callback.message.answer(
             t("welcome_done", lang=lang),
-            reply_markup=get_main_menu_keyboard(
-                lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-            ),
+            reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
         )
     await callback.answer()
 

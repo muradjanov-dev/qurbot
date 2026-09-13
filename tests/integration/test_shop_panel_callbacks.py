@@ -1,4 +1,4 @@
-"""The shop panel's inline buttons must actually reach their handlers.
+"""The products panel's inline buttons must actually reach their handlers.
 
 Each button delegates to the command handler that already implements it. Those
 calls used to be positional, so inserting a parameter into a command handler's
@@ -27,19 +27,14 @@ from app.bot.handlers.shop import (
     menu_shop_portal,
 )
 from app.db.models import District, User
-from app.db.repositories import ShopRepository
 
 
-async def _owner_with_shop(session: AsyncSession) -> User:
+async def _admin(session: AsyncSession) -> User:
     district = District(region="Toshkent", name_uz="Chilonzor", name_ru="Чиланзар")
     session.add(district)
     await session.flush()
 
-    repo = ShopRepository(session)
-    shop = await repo.create_shop("Ark buloq", "+998900000001", district.id, "Manzil")
-    await repo.add_shop_owner(shop.id, tg_id=4242)
-
-    user = User(tg_id=4242, full_name="Owner", lang="uz_latn", role="shop_owner")
+    user = User(tg_id=4242, full_name="Admin", lang="uz_latn", role="admin")
     session.add(user)
     await session.flush()
     return user
@@ -62,7 +57,7 @@ def _fake_callback() -> CallbackQuery:
 async def test_shop_panel_buttons_bind_to_their_handlers(
     test_session: AsyncSession, handler
 ) -> None:
-    user = await _owner_with_shop(test_session)
+    user = await _admin(test_session)
     state = FSMContext(storage=MemoryStorage(), key=StorageKey(bot_id=1, chat_id=1, user_id=4242))
     callback = _fake_callback()
 
@@ -72,23 +67,20 @@ async def test_shop_panel_buttons_bind_to_their_handlers(
 
 
 @pytest.mark.asyncio
-async def test_shop_portal_opens_for_an_owner(test_session: AsyncSession) -> None:
-    user = await _owner_with_shop(test_session)
-    state = FSMContext(storage=MemoryStorage(), key=StorageKey(bot_id=1, chat_id=1, user_id=4242))
+async def test_products_panel_opens_for_an_admin(test_session: AsyncSession) -> None:
+    user = await _admin(test_session)
     message = AsyncMock(spec=Message)
     message.answer = AsyncMock()
 
-    await menu_shop_portal(
-        message=message, user=user, session=test_session, state=state, lang="uz_latn"
-    )
+    await menu_shop_portal(message=message, user=user, session=test_session, lang="uz_latn")
 
     message.answer.assert_awaited()
-    assert "Ark buloq" in message.answer.call_args[0][0]
+    assert message.answer.call_args.kwargs.get("reply_markup") is not None
 
 
 @pytest.mark.asyncio
 async def test_shop_product_page_acknowledges_the_callback(test_session: AsyncSession) -> None:
-    user = await _owner_with_shop(test_session)
+    user = await _admin(test_session)
     state = FSMContext(storage=MemoryStorage(), key=StorageKey(bot_id=1, chat_id=1, user_id=4242))
     callback = _fake_callback()
     callback.data = "products_page:1"
@@ -102,3 +94,17 @@ async def test_shop_product_page_acknowledges_the_callback(test_session: AsyncSe
     )
 
     callback.answer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_products_panel_is_refused_to_a_customer(test_session: AsyncSession) -> None:
+    await _admin(test_session)
+    customer = User(tg_id=5151, full_name="Mijoz", lang="uz_latn", role="customer")
+    test_session.add(customer)
+    await test_session.flush()
+    message = AsyncMock(spec=Message)
+    message.answer = AsyncMock()
+
+    await menu_shop_portal(message=message, user=customer, session=test_session, lang="uz_latn")
+
+    assert message.answer.call_args.kwargs.get("reply_markup") is None

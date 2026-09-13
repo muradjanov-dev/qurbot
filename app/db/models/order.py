@@ -114,6 +114,12 @@ class Order(Base, TimestampMixin):
     )  # new|confirmed|partially_fulfilled|fulfilled|cancelled
     contact_phone: Mapped[str] = mapped_column(String(50), nullable=False)
     delivery_address: Mapped[str] = mapped_column(Text, nullable=False)
+    # The pin the customer confirmed, copied onto the order rather than read
+    # back through user_addresses: a saved address can be edited or deleted
+    # later, and the courier needs where *this* order was meant to go. NULL for
+    # a typed address with no pin (Telegram Desktop cannot share a location).
+    delivery_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
+    delivery_lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     grand_total_quoted: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     grand_total_final: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)

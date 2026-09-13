@@ -31,7 +31,7 @@ class User(Base, TimestampMixin):
     )
     role: Mapped[str] = mapped_column(
         String(32), default="customer", nullable=False
-    )  # customer|shop_owner|admin
+    )  # customer|admin (shop_owner retired in 0015)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     referral_source: Mapped[str | None] = mapped_column(String(100), nullable=True)

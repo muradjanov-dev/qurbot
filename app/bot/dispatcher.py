@@ -69,8 +69,8 @@ async def setup_bot_commands(bot: Bot) -> None:
         BotCommand(command="settings", description="Sozlamalar"),
         BotCommand(command="reregister", description="0 dan qayta ro'yxatdan o'tish"),
         BotCommand(command="cancel", description="Amalni bekor qilish"),
-        BotCommand(command="shop_products", description="Do'kon mahsulotlari (Do'kon egalari)"),
-        BotCommand(command="delivery_rules", description="Yetkazish qoidalarini sozlash"),
+        BotCommand(command="shop_products", description="Mahsulotlar ro'yxati (adminlar)"),
+        BotCommand(command="delivery_rules", description="Yetkazish qoidalari (adminlar)"),
     ]
     with suppress(Exception):
         await bot.set_my_commands(commands)

@@ -8,7 +8,6 @@ from app.web.routers import (
     offers,
     orders,
     products,
-    shops,
     unmatched,
 )
 
@@ -22,7 +21,6 @@ async def admin_root() -> RedirectResponse:
 
 router.include_router(unmatched.router)
 router.include_router(aliases.router)
-router.include_router(shops.router)
 router.include_router(offers.router)
 router.include_router(products.router)
 router.include_router(listings.router)

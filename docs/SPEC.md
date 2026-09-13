@@ -10,13 +10,18 @@
 ## 1. Product summary
 
 A Telegram bot where a customer pastes a free-text list of construction materials with
-quantities. The system parses it, matches each line to a canonical SKU, looks up live
-offers across many partner shops, and returns **3–5 optimized basket variants**
-(cheapest / fastest / single-shop / premium / balanced). The customer picks one, an order
-is created, and the relevant shops are notified.
+quantities. The system parses it, matches each line to a canonical SKU, prices it from
+QurBot's own offers, and returns the quote. The customer confirms, an order is created,
+and the admins are notified.
 
-Second side of the marketplace: partner shops update their prices through a supplier bot
-(Excel upload or one-line text) or a web form.
+**One seller, no marketplace.** There are no partner shops and no shop-owner role
+(retired in migration `0015_single_house_shop`). Every price lives on a single internal
+shop row named by `settings.house_shop_name`; the `shops` table stays only because
+offers, delivery rules and order parts hang off it. Products and prices are added and
+edited **by admins only** — in the bot's "📦 Mahsulotlar" panel (photo/caption wizard,
+quick price, Excel upload) or the web panel at `/shop`. The optimizer keeps its
+multi-shop strategies (§8); with one shop they collapse to a single variant after
+de-duplication.
 
 **Primary market:** Uzbekistan. Users write in Uzbek Latin, Uzbek Cyrillic, and Russian —
 often mixed in the same message. The system must handle all three.
@@ -177,7 +182,7 @@ batch status (`uploaded|parsed|awaiting_confirmation|applied|failed`), per-row
 ### 4.3 Demand side
 
 **`users`** — `id`, `tg_id` (unique), `username`, `full_name`, `phone`, `lang`
-(`uz_latn|uz_cyrl|ru`), `district_id`, `role` (`customer|shop_owner|admin`),
+(`uz_latn|uz_cyrl|ru`), `district_id`, `role` (`customer|admin`),
 `is_blocked`, `created_at`, `last_active_at`, `referral_source`.
 
 **`baskets`** — `id`, `user_id`, `raw_text`, `status`
@@ -196,7 +201,8 @@ Quotes are **snapshots**. Prices may change; the order must reference the quoted
 
 **`orders`** — `id`, `quote_id`, `user_id`, `status`
 (`new|confirmed|partially_fulfilled|fulfilled|cancelled`), `contact_phone`,
-`delivery_address`, `comment`, `grand_total_quoted`, `grand_total_final`,
+`delivery_address`, `delivery_lat`, `delivery_lng` (nullable pin), `comment`,
+`grand_total_quoted`, `grand_total_final`,
 `cancel_reason`, timestamps.
 
 **`order_shop_parts`** — one row per shop in the order: `order_id`, `shop_id`,
@@ -492,27 +498,34 @@ JAMI:             1 520 000 so'm
 ```
 
 **Order** → confirm phone + address + comment → create `order` + `order_shop_parts` →
-notify each shop's `telegram_chat_id` with an accept/reject inline keyboard → notify the
-admin group → give the customer an order number and status tracking.
+notify the admins → give the customer an order number and status tracking.
+The confirmed delivery pin is copied onto the order (`orders.delivery_lat/lng`) and sent to
+each admin as a native Telegram location, threaded under the order text. A typed address
+with no pin sends text only.
 
-### Shop owner flow (same bot, role-gated)
+### Products panel (same bot, admins only)
 
 ```
-🏪 Do'kon paneli
-   📤 Narxlarni yuklash (Excel/CSV)
-   ✏️ Tez narx yangilash        ← "cement m400 52000" one-liner
-   📊 Mening mahsulotlarim (paginated, inline edit)
-   🔔 Yangi buyurtmalar
-   ⚙️ Dostavka sozlamalari
+📦 Mahsulotlar
+   ✏️ Tez narx yangilash        ← "cement m400 52000" one-liner, only after tapping it
+   📋 Mahsulotlar ro'yxati (paginated, inline edit)
+   ➕ Yangi mahsulot            ← photos + caption, or text
+   📤 Excel yuklash (Excel/CSV)
+   🚚 Yetkazish                 ← "dostavka ..." rules, only after tapping it
+   🔔 Buyurtmalar
 ```
+
+The one-liner shorthands are accepted only inside the state their button sets: an admin
+may also be ordering, and "fanera 18mm 20" is both a valid price update and a valid
+basket line.
 
 Excel upload → `import_batches` → parse with `openpyxl`/`pandas` → auto-match each row →
 show a summary ("142 qatordan 118 tasi avtomatik moslashtirildi, 24 tasi tasdiqlashni
-kutmoqda") → owner confirms ambiguous rows via inline buttons → only then apply to
+kutmoqda") → admin confirms ambiguous rows via inline buttons → only then apply to
 `shop_products` + append to `price_history`.
 
-Also accept a plain Excel file forwarded as a document without any command, if the sender
-is a verified shop owner.
+Also accept a plain Excel file sent as a document without any command, if the sender
+is an admin.
 
 ### Middlewares (order matters)
 
@@ -530,10 +543,10 @@ Use a Redis sliding window. Silently drop, don't reply, when a flood is detected
 | Job | Schedule | Behavior |
 |---|---|---|
 | `mark_price_staleness` | hourly | `updated_at` > 5d → `aging`; > 7d → `stale` (excluded from quotes) |
-| `nudge_shops` | daily 09:00 | DM owners of shops with `aging` prices, one message with a "Yangilash" button |
+| `nudge_shops` | daily 09:00 | DM the admins when any price is `aging`, one message with a "Yangilash" button |
 | `recompute_trust_scores` | daily 03:00 | freshness ratio × 0.5 + accept rate × 0.3 + rating × 0.2 |
 | `rollup_metrics` | daily 04:00 | write yesterday's funnel into a `daily_metrics` table |
-| `admin_digest` | daily 08:00 | top unmatched queries, stale shop count, orders, GMV |
+| `admin_digest` | daily 08:00 | top unmatched queries, stale price count, orders, GMV |
 | `abandon_baskets` | every 30 min | baskets in `awaiting_confirmation` > 24h → `abandoned` |
 
 All jobs idempotent and safe to re-run. Add a Postgres advisory lock per job name.
@@ -546,8 +559,8 @@ FastAPI + Jinja2 (server-rendered, no SPA — keep it boring) behind HTTP Basic 
 allowlist, or a Telegram-login-verified session.
 
 Screens: **Unmatched queue** (sorted by occurrences, one-click "create alias" / "create
-SKU" / "mark junk") · **Alias approvals** (LLM-generated, unapproved) · **Shops** (CRUD,
-verify, delivery rules) · **Offers** (filter by staleness, bulk deactivate) ·
+SKU" / "mark junk") · **Alias approvals** (LLM-generated, unapproved) ·
+**Offers** (filter by staleness, bulk deactivate) ·
 **Orders** · **Metrics dashboard** · **LLM cost**.
 
 The unmatched queue is the single most important admin screen. Make it fast to work

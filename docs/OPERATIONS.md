@@ -33,7 +33,7 @@ in `app/workers/schedules.py` and implemented in `app/workers/tasks.py`:
 | Job | Schedule | What it does |
 |---|---|---|
 | `mark_price_staleness` | hourly | Escalates `shop_products.staleness_state`: `fresh → aging` after `price_staleness_aging_days` (default 5), `→ stale` after `price_staleness_stale_days` (default 7). |
-| `nudge_shops` | daily 09:00 | DMs shop owners with aging offers, "Yangilash" button. |
+| `nudge_shops` | daily 09:00 | DMs the admins when prices are aging, "Yangilash" button. |
 | `recompute_trust_scores` | daily 03:00 | Rewrites `shops.trust_score` from freshness ratio, order accept rate, and rating. |
 | `rollup_metrics` | daily 04:00 | Writes yesterday's funnel into `daily_metrics` (idempotent — safe to re-run for the same day). |
 | `admin_digest` | daily 08:00 | DMs every `admin_tg_ids` entry a summary: unmatched queries, stale shop count, orders, GMV. |
@@ -100,7 +100,7 @@ Served from the same web service at `/admin`, behind HTTP Basic Auth
 values before deploying; the defaults are placeholders).
 
 Screens: `/admin/unmatched` (start here — highest-value queue), `/admin/aliases`,
-`/admin/shops`, `/admin/offers`, `/admin/products` (full catalogue),
+`/admin/offers`, `/admin/products` (full catalogue),
 `/admin/listings` (photo review), `/admin/orders`, `/admin/dashboard`
 (daily metrics), `/admin/llm-cost`.
 
@@ -131,7 +131,7 @@ without re-creating placeholder shops next to real ones.
 
 ### Photo review (`/admin/listings`)
 
-Shop owners upload products with photos through the bot. Approving or rejecting
+Admins upload products with photos through the bot. Approving or rejecting
 gates **only** whether customers see the owner's photos and description — the
 price of a pending listing is live and competing in quotes from the moment it is
 saved. Withholding a shop's prices because nobody has reviewed their photo yet

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import and_, case, func, or_, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.order import OrderShopPart
@@ -15,7 +15,6 @@ from app.db.models.shop import (
     ProductPhotoBlob,
     Shop,
     ShopDeliveryRule,
-    ShopOwner,
     ShopProduct,
 )
 from app.db.repositories.base import BaseRepository
@@ -35,49 +34,6 @@ class ShopRepository(BaseRepository[Shop]):
 
     async def list_active_shops(self) -> Sequence[Shop]:
         stmt = select(Shop).where(Shop.is_active.is_(True)).order_by(Shop.name)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
-
-    async def get_shop_by_owner_tg_id(self, owner_tg_id: int) -> Shop | None:
-        """Find the shop this Telegram account manages.
-
-        Checks the shop_owners join table as well as the legacy single
-        Shop.owner_tg_id column, so shops created before multi-owner support
-        (and anything seeded) keep resolving.
-        """
-        stmt = (
-            select(Shop)
-            .outerjoin(ShopOwner, ShopOwner.shop_id == Shop.id)
-            .where(
-                or_(
-                    Shop.owner_tg_id == owner_tg_id,
-                    and_(ShopOwner.tg_id == owner_tg_id, ShopOwner.is_active.is_(True)),
-                )
-            )
-        )
-        result = await self.session.execute(stmt)
-        return result.scalars().first()
-
-    async def list_shops_for_owner(self, owner_tg_id: int) -> Sequence[Shop]:
-        """Every shop this account manages, newest last.
-
-        One person commonly runs several branches, so this is the plural form
-        of get_shop_by_owner_tg_id and honours both the shop_owners table and
-        the legacy Shop.owner_tg_id column.
-        """
-        stmt = (
-            select(Shop)
-            .outerjoin(ShopOwner, ShopOwner.shop_id == Shop.id)
-            .where(
-                Shop.is_active.is_(True),
-                or_(
-                    Shop.owner_tg_id == owner_tg_id,
-                    and_(ShopOwner.tg_id == owner_tg_id, ShopOwner.is_active.is_(True)),
-                ),
-            )
-            .order_by(Shop.id)
-            .distinct()
-        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
@@ -116,61 +72,6 @@ class ShopRepository(BaseRepository[Shop]):
                 blob_bytes = blob.data if blob else None
             return file_id, blob_bytes
         return None
-
-    async def list_shop_owners(self, shop_id: int) -> Sequence[ShopOwner]:
-        stmt = (
-            select(ShopOwner)
-            .where(ShopOwner.shop_id == shop_id, ShopOwner.is_active.is_(True))
-            .order_by(ShopOwner.id)
-        )
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
-
-    async def add_shop_owner(
-        self, shop_id: int, tg_id: int, full_name: str | None = None
-    ) -> ShopOwner:
-        stmt = select(ShopOwner).where(ShopOwner.shop_id == shop_id, ShopOwner.tg_id == tg_id)
-        result = await self.session.execute(stmt)
-        existing = result.scalars().first()
-        if existing is not None:
-            existing.is_active = True
-            if full_name:
-                existing.full_name = full_name
-            await self.session.flush()
-            return existing
-
-        owner = ShopOwner(shop_id=shop_id, tg_id=tg_id, full_name=full_name, is_active=True)
-        self.session.add(owner)
-        await self.session.flush()
-        return owner
-
-    async def remove_shop_owner(self, shop_id: int, tg_id: int) -> bool:
-        stmt = select(ShopOwner).where(ShopOwner.shop_id == shop_id, ShopOwner.tg_id == tg_id)
-        result = await self.session.execute(stmt)
-        owner = result.scalars().first()
-        if owner is None:
-            return False
-        owner.is_active = False
-        await self.session.flush()
-        return True
-
-    async def create_shop(
-        self,
-        name: str,
-        phone: str,
-        district_id: int,
-        address: str,
-    ) -> Shop:
-        shop = Shop(
-            name=name,
-            phone=phone,
-            district_id=district_id,
-            address=address,
-            is_active=True,
-        )
-        self.session.add(shop)
-        await self.session.flush()
-        return shop
 
     async def get_delivery_rule_for_district(
         self, shop_id: int, district_id: int | None
@@ -530,19 +431,13 @@ class ShopRepository(BaseRepository[Shop]):
         )
         await self.session.execute(stmt)
 
-    async def list_shops_with_aging_offers(self) -> Sequence[Shop]:
-        stmt = (
-            select(Shop)
-            .join(ShopProduct, ShopProduct.shop_id == Shop.id)
-            .where(
-                ShopProduct.staleness_state == "aging",
-                ShopProduct.is_active.is_(True),
-                Shop.owner_tg_id.is_not(None),
-            )
-            .distinct()
+    async def count_aging_offers(self) -> int:
+        stmt = select(func.count()).where(
+            ShopProduct.is_active.is_(True),
+            ShopProduct.staleness_state == "aging",
         )
         result = await self.session.execute(stmt)
-        return result.scalars().all()
+        return int(result.scalar() or 0)
 
     async def compute_freshness_ratios(self) -> dict[int, Decimal]:
         """Fraction of each shop's active offers currently 'fresh', for trust scoring."""
@@ -586,14 +481,6 @@ class ShopRepository(BaseRepository[Shop]):
         await self.session.execute(stmt)
 
     # ─── Admin Panel Queries (§11) ─────────────────────────────────
-
-    async def verify_shop(self, shop_id: int) -> None:
-        stmt = update(Shop).where(Shop.id == shop_id).values(verified_at=datetime.now(UTC))
-        await self.session.execute(stmt)
-
-    async def set_shop_active(self, shop_id: int, is_active: bool) -> None:
-        stmt = update(Shop).where(Shop.id == shop_id).values(is_active=is_active)
-        await self.session.execute(stmt)
 
     async def list_offers_by_staleness(
         self, staleness_state: str | None = None, limit: int = 100

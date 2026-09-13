@@ -63,44 +63,39 @@ async def mark_price_staleness(ctx: dict[str, Any]) -> None:
 
 
 async def _nudge_shops_impl(session: AsyncSession, bot: Bot) -> tuple[int, int]:
-    shop_repo = ShopRepository(session)
-    shops = await shop_repo.list_shops_with_aging_offers()
+    """Tell the admins when our prices are going stale. Returns (aging, sent).
+
+    Admins are the only people who set prices, so they are the only ones who
+    can act on it. Nothing is sent when every price is fresh.
+    """
+    aging = await ShopRepository(session).count_aging_offers()
+    if not aging:
+        return 0, 0
 
     keyboard = get_price_nudge_keyboard()
     sent = 0
-    for shop in shops:
-        # Every account that manages the shop needs the nudge, not just the one
-        # in the legacy owner_tg_id column -- shops onboarded through /add_shop
-        # leave that column NULL and record their owners in shop_owners, so
-        # reading only the column would silently skip them entirely.
-        recipients = {o.tg_id for o in await shop_repo.list_shop_owners(shop.id)}
-        if shop.owner_tg_id:
-            recipients.add(shop.owner_tg_id)
-        if not recipients:
-            continue
-        for tg_id in sorted(recipients):
-            try:
-                await bot.send_message(
-                    tg_id,
-                    f"⚠️ «{shop.name}» do'koningizdagi ba'zi narxlar eskirmoqda. "
-                    "Iltimos, narxlarni yangilang.",
-                    reply_markup=keyboard,
-                )
-                sent += 1
-            except TelegramAPIError as exc:
-                logger.warning("nudge_send_failed", shop_id=shop.id, tg_id=tg_id, error=str(exc))
-    return len(shops), sent
+    for tg_id in settings.admin_tg_ids:
+        try:
+            await bot.send_message(
+                tg_id,
+                f"⚠️ {aging} ta mahsulot narxi eskirmoqda. Iltimos, narxlarni yangilang.",
+                reply_markup=keyboard,
+            )
+            sent += 1
+        except TelegramAPIError as exc:
+            logger.warning("nudge_send_failed", tg_id=tg_id, error=str(exc))
+    return aging, sent
 
 
 async def nudge_shops(ctx: dict[str, Any]) -> None:
-    """Daily 09:00: DM owners of shops with aging offers (§10)."""
+    """Daily 09:00: DM the admins when offers are aging (§10)."""
     async with async_session_factory() as session:
         if not await try_acquire_job_lock(session, "nudge_shops"):
             logger.info("job_skipped_locked", job="nudge_shops")
             return
-        shops, sent = await _nudge_shops_impl(session, ctx["bot"])
+        aging, sent = await _nudge_shops_impl(session, ctx["bot"])
         await session.commit()
-        logger.info("nudge_shops_done", shops=shops, sent=sent)
+        logger.info("nudge_shops_done", aging=aging, sent=sent)
 
 
 async def _recompute_trust_scores_impl(session: AsyncSession) -> int:
@@ -207,7 +202,7 @@ async def _admin_digest_impl(session: AsyncSession, bot: Bot, day_start: datetim
     day_end = day_start + timedelta(days=1)
     ops_repo = OpsRepository(session)
     top_unmatched = await ops_repo.get_top_unmatched(limit=5)
-    stale_shop_count = await ops_repo.count_stale_shops()
+    stale_offer_count = await ShopRepository(session).count_stale_offers()
     order_count, gmv = await ops_repo.get_order_stats(day_start, day_end)
 
     # The AI budget is the one number in the digest that can quietly break the
@@ -222,7 +217,7 @@ async def _admin_digest_impl(session: AsyncSession, bot: Bot, day_start: datetim
 
     lines = ["📋 <b>Kunlik hisobot</b>\n"]
     lines.append(f"• Kecha buyurtmalar: <b>{order_count}</b>, GMV: <b>{gmv:,.0f} so'm</b>")
-    lines.append(f"• Eskirgan narxli do'konlar: <b>{stale_shop_count}</b>")
+    lines.append(f"• Eskirgan narxlar: <b>{stale_offer_count}</b>")
     lines.append(
         f"• AI sarfi (24 soat): <b>{tokens_used:,}</b> / {token_budget:,} token "
         f"({used_percent}%)"

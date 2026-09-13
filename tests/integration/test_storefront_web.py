@@ -98,11 +98,10 @@ async def _seed(session: AsyncSession) -> Fixtures:
     )
 
     shop = Shop(
-        name="Baraka Qurilish",
-        phone="+998901112233",
+        name=settings.house_shop_name,
+        phone=settings.house_shop_phone,
         district_id=district.id,
         address="Chilonzor 7",
-        owner_tg_id=7770001,
     )
     session.add(shop)
     await session.flush()
@@ -328,6 +327,43 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
     # price it was placed at.
     assert Decimal(order.quote.payload["grand_total_uzs"]) == Decimal("620000")
     assert order.quote.payload["shop_groups"][0]["shop_id"] == data.shop_id
+    # Typed with no pin: there is no location to send the admins.
+    assert order.delivery_lat is None and order.delivery_lng is None
+
+
+@pytest.mark.asyncio
+async def test_order_to_a_saved_address_carries_its_pin(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    """The pin is copied onto the order, so the admins can be sent a location."""
+    data = await _seed(test_session)
+    user = await test_session.get(User, data.user_id)
+    assert user is not None
+    address = UserAddress(
+        user_id=user.id,
+        lat=Decimal("41.2995000"),
+        lng=Decimal("69.2401000"),
+        address_text="Yunusobod 4-kvartal, 7-uy",
+        is_default=True,
+    )
+    test_session.add(address)
+    await test_session.commit()
+
+    _sign_in(client, data.user_id)
+    body = client.post(
+        "/api/order",
+        json={
+            "lines": [_basket_line(data.product_id)],
+            "phone": "+998901234567",
+            "address_id": address.id,
+        },
+    ).json()
+    assert body["ok"] is True, body
+
+    order = (await test_session.execute(select(Order))).scalars().one()
+    assert order.delivery_address == "Yunusobod 4-kvartal, 7-uy"
+    assert order.delivery_lat == Decimal("41.2995000")
+    assert order.delivery_lng == Decimal("69.2401000")
 
 
 @pytest.mark.asyncio
@@ -405,11 +441,11 @@ async def test_order_refuses_another_customers_saved_address(
     assert (await test_session.execute(select(Order))).scalars().first() is None
 
 
-# ── shop portal ─────────────────────────────────────────────────────────
+# ── admin products panel ─────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_shop_panel_is_invisible_to_non_owners(
+async def test_products_panel_is_invisible_to_customers(
     client: TestClient, test_session: AsyncSession
 ) -> None:
     data = await _seed(test_session)
@@ -417,16 +453,19 @@ async def test_shop_panel_is_invisible_to_non_owners(
     assert client.get(f"/shop/{data.shop_id}").status_code == 404
 
 
+async def _sign_in_admin(client: TestClient, session: AsyncSession) -> User:
+    admin = User(tg_id=7770001, full_name="Admin", role="admin", lang="uz_latn")
+    session.add(admin)
+    await session.flush()
+    await session.commit()
+    _sign_in(client, admin.id, tg_id=7770001)
+    return admin
+
+
 @pytest.mark.asyncio
-async def test_shop_owner_can_update_a_price(
-    client: TestClient, test_session: AsyncSession
-) -> None:
+async def test_admin_can_update_a_price(client: TestClient, test_session: AsyncSession) -> None:
     data = await _seed(test_session)
-    owner = User(tg_id=7770001, full_name="Do'kon egasi", role="shop_owner", lang="uz_latn")
-    test_session.add(owner)
-    await test_session.flush()
-    await test_session.commit()
-    _sign_in(client, owner.id, tg_id=7770001)
+    await _sign_in_admin(client, test_session)
 
     offer = (await test_session.execute(select(ShopProduct))).scalars().one()
     response = client.post(
@@ -441,34 +480,28 @@ async def test_shop_owner_can_update_a_price(
     assert offer.stock_status == "low"
 
 
-async def _sign_in_owner(client: TestClient, session: AsyncSession) -> User:
-    owner = User(tg_id=7770001, full_name="Do'kon egasi", role="shop_owner", lang="uz_latn")
-    session.add(owner)
-    await session.flush()
-    await session.commit()
-    _sign_in(client, owner.id, tg_id=7770001)
-    return owner
-
-
 @pytest.mark.asyncio
-async def test_every_shop_page_renders_for_its_owner(
+async def test_every_products_page_renders_for_an_admin(
     client: TestClient, test_session: AsyncSession
 ) -> None:
     data = await _seed(test_session)
-    await _sign_in_owner(client, test_session)
+    await _sign_in_admin(client, test_session)
+
+    root = client.get("/shop", follow_redirects=False)
+    assert root.status_code == 303
+    assert root.headers["location"] == f"/shop/{data.shop_id}"
 
     for path in ("", "/products", "/orders", "/delivery", "/import"):
         response = client.get(f"/shop/{data.shop_id}{path}")
         assert response.status_code == 200, path
-        assert "Baraka Qurilish" in response.text
 
 
 @pytest.mark.asyncio
-async def test_owner_can_save_a_delivery_rule(
+async def test_admin_can_save_a_delivery_rule(
     client: TestClient, test_session: AsyncSession
 ) -> None:
     data = await _seed(test_session)
-    await _sign_in_owner(client, test_session)
+    await _sign_in_admin(client, test_session)
 
     response = client.post(
         f"/shop/{data.shop_id}/delivery",
@@ -492,7 +525,7 @@ async def test_owner_can_save_a_delivery_rule(
 
 
 @pytest.mark.asyncio
-async def test_owner_answers_an_order_and_the_customer_sees_it(
+async def test_admin_answers_an_order_and_the_customer_sees_it(
     client: TestClient, test_session: AsyncSession
 ) -> None:
     data = await _seed(test_session)
@@ -513,7 +546,7 @@ async def test_owner_answers_an_order_and_the_customer_sees_it(
     assert "Gipsokarton 12.5mm" in detail.text
     assert client.get("/orders").status_code == 200
 
-    await _sign_in_owner(client, test_session)
+    await _sign_in_admin(client, test_session)
     part = (await test_session.execute(select(OrderShopPart))).scalars().one()
     response = client.post(f"/shop/{data.shop_id}/orders/{part.id}/accept", follow_redirects=False)
     assert response.status_code == 303
@@ -525,9 +558,10 @@ async def test_owner_answers_an_order_and_the_customer_sees_it(
 
 
 @pytest.mark.asyncio
-async def test_owner_cannot_answer_another_shops_order(
+async def test_a_retired_partner_shop_is_out_of_reach(
     client: TestClient, test_session: AsyncSession
 ) -> None:
+    """Even an admin cannot act through a shop row other than ours."""
     data = await _seed(test_session)
     _sign_in(client, data.user_id)
     client.post(
@@ -545,14 +579,11 @@ async def test_owner_cannot_answer_another_shops_order(
         district_id=1,
         address="Yunusobod 1",
         owner_tg_id=8880002,
+        is_active=False,
     )
     test_session.add(other)
     await test_session.flush()
-    stranger = User(tg_id=8880002, full_name="Begona", role="shop_owner", lang="uz_latn")
-    test_session.add(stranger)
-    await test_session.flush()
-    await test_session.commit()
-    _sign_in(client, stranger.id, tg_id=8880002)
+    await _sign_in_admin(client, test_session)
 
     part = (await test_session.execute(select(OrderShopPart))).scalars().one()
     assert client.post(f"/shop/{other.id}/orders/{part.id}/accept").status_code == 404

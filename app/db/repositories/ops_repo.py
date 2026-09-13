@@ -107,15 +107,6 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def count_stale_shops(self) -> int:
-        """Distinct shops with at least one active offer that has gone stale."""
-        stmt = select(func.count(func.distinct(ShopProduct.shop_id))).where(
-            ShopProduct.is_active.is_(True),
-            ShopProduct.staleness_state == "stale",
-        )
-        result = await self.session.execute(stmt)
-        return int(result.scalar() or 0)
-
     async def get_order_stats(self, start: datetime, end: datetime) -> tuple[int, Decimal]:
         stmt = select(
             func.count(),

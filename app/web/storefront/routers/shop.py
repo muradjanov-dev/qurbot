@@ -1,9 +1,9 @@
-"""The shop owner's portal: prices, stock, delivery terms, orders, imports.
+"""The admin products panel: prices, stock, delivery terms, orders, imports.
 
-Same actions the Telegram shop panel offers, on a screen wide enough to work
-through a price list. Every route re-checks that this account manages this shop:
-ids arrive from the client, and without that check anyone could accept another
-shop's orders by editing a URL.
+Same actions the Telegram products panel offers, on a screen wide enough to
+work through a price list. There is one shop -- ours -- and only admins manage
+it. Every route re-checks both: ids arrive from the client, and without that
+check anyone could accept an order by editing a URL.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.domain.pricing.units import unit_price
+from app.services.house_shop import shop_for_admin
 from app.services.supplier_service import SupplierService
 from app.web.storefront.deps import current_lang, current_user, render
 
@@ -36,14 +37,11 @@ STOCK_STATUSES = ("in_stock", "low", "on_order", "out")
 
 
 async def _require_shop(session: AsyncSession, user: User | None, shop_id: int) -> Shop:
-    """The shop, if this account manages it. Anything else is a 404."""
-    if user is None or user.tg_id is None:
+    """Our shop, if this account is an admin and the id names it. Anything else is a 404."""
+    shop = await shop_for_admin(user, session)
+    if shop is None or shop.id != shop_id:
         raise HTTPException(status_code=404, detail="shop_not_found")
-    shops = await ShopRepository(session).list_shops_for_owner(user.tg_id)
-    for shop in shops:
-        if shop.id == shop_id:
-            return shop
-    raise HTTPException(status_code=404, detail="shop_not_found")
+    return shop
 
 
 def _decimal_or_none(raw: str) -> Decimal | None:
@@ -67,10 +65,10 @@ async def shop_root(
     if user is None:
         return RedirectResponse("/login?next=/shop", status_code=303)
 
-    shops = await ShopRepository(session).list_shops_for_owner(user.tg_id)
-    if len(shops) == 1:
-        return RedirectResponse(f"/shop/{shops[0].id}", status_code=303)
-    return render(request, "shop_list.html", user=user, lang=lang, shops=shops)
+    shop = await shop_for_admin(user, session)
+    if shop is None:
+        raise HTTPException(status_code=404, detail="shop_not_found")
+    return RedirectResponse(f"/shop/{shop.id}", status_code=303)
 
 
 @router.get("/{shop_id}")
@@ -152,7 +150,7 @@ async def update_product(
             shop_product_id=offer.id,
             price_per_pack=new_price,
             price_per_base_unit=_per_base_unit(offer, new_price),
-            updated_by="shop",
+            updated_by="admin",
         )
 
     if stock_status in STOCK_STATUSES:
@@ -171,7 +169,7 @@ def _per_base_unit(offer: object, price: Decimal) -> Decimal:
     Falls back to a plain division when the units are not comparable (an offer
     imported with a unit the catalogue does not define): a slightly coarse
     per-unit price still sorts sensibly, whereas refusing the edit would leave
-    the owner unable to correct a wrong price at all.
+    the admin unable to correct a wrong price at all.
     """
     pack_size = getattr(offer, "pack_size", Decimal("1")) or Decimal("1")
     pack_unit = getattr(offer, "pack_unit_code", None)

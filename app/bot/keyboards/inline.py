@@ -7,28 +7,16 @@ from app.bot.formatters.common import shorten_button_label
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct, Category
-from app.db.models.shop import District, Shop, ShopProduct
+from app.db.models.shop import District, ShopProduct
 from app.db.models.user import UserAddress
 from app.domain.matching.models import CandidateMatch
-
-
-def get_shop_picker_keyboard(
-    shops: Sequence["Shop"], lang: str = "uz_latn"
-) -> InlineKeyboardMarkup:
-    """Branch picker for owners who run more than one shop."""
-    builder = InlineKeyboardBuilder()
-    for shop in shops:
-        district = shop.district.name_ru if lang == "ru" else shop.district.name_uz
-        builder.button(text=f"{shop.name} — {district}", callback_data=f"shp:pick:{shop.id}")
-    builder.adjust(1)
-    return builder.as_markup()
 
 
 def get_upload_template_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     """Offered alongside the upload prompt.
 
     "Send your Excel here" is not enough on its own: nothing on that screen
-    said which columns the importer reads, so an owner had to guess and find
+    said which columns the importer reads, so an admin had to guess and find
     out only after a failed import.
     """
     builder = InlineKeyboardBuilder()
@@ -37,10 +25,8 @@ def get_upload_template_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_shop_panel_inline_keyboard(
-    lang: str = "uz_latn", show_switch: bool = False
-) -> InlineKeyboardMarkup:
-    """Actions for the shop-owner panel, as buttons instead of typed commands."""
+def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+    """Actions for the admin products panel, as buttons instead of typed commands."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("shp_btn_quick_price", lang=lang), callback_data="shp:quick_price")
     builder.button(text=t("shp_btn_products", lang=lang), callback_data="shp:products")
@@ -49,12 +35,6 @@ def get_shop_panel_inline_keyboard(
     builder.button(text=t("shp_btn_delivery", lang=lang), callback_data="shp:delivery")
     builder.button(text=t("shp_btn_orders", lang=lang), callback_data="shp:orders")
     builder.adjust(2, 2, 2)
-    if show_switch:
-        builder.row(
-            InlineKeyboardButton(
-                text=t("shp_btn_switch_shop", lang=lang), callback_data="shp:switch"
-            )
-        )
     return builder.as_markup()
 
 
@@ -68,12 +48,10 @@ def get_admin_panel_keyboard(
     """
     builder = InlineKeyboardBuilder()
     builder.button(text=t("adm_btn_stats", lang=lang), callback_data="adm:stats")
-    builder.button(text=t("adm_btn_shops", lang=lang), callback_data="adm:shops")
     builder.button(text=t("adm_btn_products", lang=lang), callback_data="adm:products")
     builder.button(text=t("adm_btn_users", lang=lang), callback_data="adm:users")
     builder.button(text=t("adm_btn_unmatched", lang=lang), callback_data="adm:unmatched")
-    builder.button(text=t("adm_btn_add_shop", lang=lang), callback_data="adm:add_shop")
-    builder.adjust(2, 2, 2)
+    builder.adjust(2, 2)
     if is_super_admin:
         builder.row(
             InlineKeyboardButton(text=t("adm_btn_admins", lang=lang), callback_data="adm:admins")
@@ -394,7 +372,7 @@ def get_quote_carousel_keyboard(
 
 
 def get_shop_order_decision_keyboard(order_part_id: int) -> InlineKeyboardMarkup:
-    """Build shop owner accept/reject buttons for incoming order part."""
+    """Build admin accept/reject buttons for an incoming order part."""
     builder = InlineKeyboardBuilder()
     builder.button(text="✅ Qabul qilish", callback_data=f"shop_order:accept:{order_part_id}")
     builder.button(text="❌ Rad etish", callback_data=f"shop_order:reject:{order_part_id}")

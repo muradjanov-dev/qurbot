@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     # admin_tg_ids so a promoted admin cannot promote further admins.
     super_admin_tg_ids: list[int] = [917456291]
 
+    # QurBot sells from one stock of its own; there are no partner shops. The
+    # `shops` table is kept because offers, delivery terms and order parts all
+    # hang off a shop row, but exactly one row is live -- this one -- and only
+    # admins manage it. Changing the name here without renaming the row would
+    # orphan every offer, so treat it as an identifier, not a label.
+    house_shop_name: str = "QurBot"
+    house_shop_phone: str = "+998935394994"
+
     # Database
     database_url: str = "postgresql+asyncpg://qurbot:qurbot@localhost:5432/qurbot"
     database_echo: bool = False
