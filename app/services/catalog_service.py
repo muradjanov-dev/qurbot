@@ -547,6 +547,15 @@ class CatalogService:
                 is_product_request = bool(
                     set(normalize_query(line.parsed_name).tokens) & product_words
                 )
+                if not missing_name and not is_product_request and line.parsed_name:
+                    query = normalize_query(line.parsed_name)
+                    products = await self.catalog_repo.search_canonical_products(
+                        query.text_norm, limit=3, require_offers=require_offers
+                    )
+                    words = {word for word in query.tokens if len(word) >= 3}
+                    is_product_request = any(
+                        words & set(normalize_query(product.name_uz).tokens) for product in products
+                    )
                 question = "Mahsulot nomini yozing." if missing_name else "Miqdorini yozing."
                 if lang == "ru":
                     question = (
