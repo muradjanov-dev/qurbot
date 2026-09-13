@@ -304,12 +304,10 @@ class SalesAgent:
 
         history = trim_history(cart.history, settings.agent_history_max_messages - 1)
         language = _LANGUAGES.get(lang, _LANGUAGES["uz_latn"])
+        phones = ", ".join(settings.support_phones)
         system: list[BetaTextBlockParam] = [
             {"type": "text", "text": SYSTEM_PROMPT},
-            {
-                "type": "text",
-                "text": f"Reply in {language}. Support phone: {settings.support_phone}.",
-            },
+            {"type": "text", "text": f"Reply in {language}. Support phone: {phones}."},
         ]
         messages = cast(list[BetaMessageParam], [*history, {"role": "user", "content": text}])
 
