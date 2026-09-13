@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import re
+import time
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from decimal import Decimal
@@ -10,6 +12,7 @@ from app.core.metrics import match_method_total
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.matching.models import CandidateMatch, MatchDecision, MatchStatus
+from app.domain.matching.safety import attributes_verified
 from app.domain.matching.scorer import rank_candidates, score_and_rank_candidates
 from app.domain.models import NormalizedQuery
 from app.domain.normalize.text import normalize_query
@@ -17,6 +20,7 @@ from app.domain.parsing.models import ParsedLine
 from app.domain.parsing.parser import is_qty_orderable, parse_basket_lines
 from app.llm.client import LLMClient
 from app.llm.models import (
+    BatchDisambiguationResult,
     BatchLineDecision,
     BatchLineInput,
     DisambiguationCandidateInput,
@@ -37,9 +41,25 @@ class _DeterministicMatch:
     decision: MatchDecision
     candidates: list[CandidateMatch]
     category_ids: tuple[int, ...] | None = None
+    require_offers: bool = False
 
 
 class CatalogService:
+    @staticmethod
+    def _localize(decision: MatchDecision, lang: str) -> MatchDecision:
+        translations = {
+            "Qalinligi yoki o'lchamini tanlang.": {
+                "ru": "Выберите толщину или размер.",
+                "uz_cyrl": "Қалинлиги ёки ўлчамини танланг.",
+            },
+            "O'lchamini aniqlashtiring.": {
+                "ru": "Уточните размер.",
+                "uz_cyrl": "Ўлчамини аниқлаштиринг.",
+            },
+        }
+        question = translations.get(decision.clarify_question or "", {}).get(lang)
+        return replace(decision, clarify_question=question) if question else decision
+
     def __init__(
         self,
         catalog_repo: CatalogRepository,
@@ -49,6 +69,7 @@ class CatalogService:
         self.catalog_repo = catalog_repo
         self.ops_repo = ops_repo
         self.llm_client = llm_client or LLMClient(session=catalog_repo.session)
+        self._ai_deadline: float | None = None
 
     async def guide_customer(self, message_text: str, lang: str = "uz_latn") -> str | None:
         """What to tell a customer whose message could not be read as an order.
@@ -57,7 +78,16 @@ class CatalogService:
         back to the fixed string: a customer must always get an answer, even
         when the model is out of budget or unreachable.
         """
-        return await self.llm_client.guide_customer(message_text, lang=lang)
+        remaining = (
+            self._ai_deadline - time.monotonic()
+            if self._ai_deadline is not None
+            else settings.llm_total_deadline_seconds
+        )
+        try:
+            async with asyncio.timeout(max(0, remaining)):
+                return await self.llm_client.guide_customer(message_text, lang=lang)
+        except TimeoutError:
+            return None
 
     async def _match_deterministic(
         self,
@@ -75,6 +105,7 @@ class CatalogService:
         """
         # Stage 0: Normalize text and extract feature bag
         query = normalize_query(parsed_line.parsed_name)
+        query = replace(query, raw=parsed_line.raw_text)
 
         # Stage 1: Exact alias hash lookup
         alias = await self.catalog_repo.get_approved_alias(query.text_norm)
@@ -85,7 +116,20 @@ class CatalogService:
             )
             if is_matchable:
                 await self.catalog_repo.record_alias_hit(alias.id)
-            if canonical and is_matchable:
+            generic_variant_alias = (
+                canonical is not None
+                and not re.search(r"\d", parsed_line.parsed_name)
+                and any(
+                    canonical.attributes.get(key) is not None
+                    for key in ("thickness_mm", "diameter_mm", "size", "grade")
+                )
+            )
+            if (
+                canonical
+                and is_matchable
+                and not generic_variant_alias
+                and attributes_verified(query, canonical.attributes)
+            ):
                 cand = CandidateMatch(
                     canonical_id=canonical.id,
                     slug=canonical.slug,
@@ -116,13 +160,6 @@ class CatalogService:
         raw_candidates = await self.catalog_repo.search_canonical_products(
             query.text_norm, limit=40, category_ids=category_ids, require_offers=require_offers
         )
-        if not raw_candidates and category_ids:
-            # The owner may have filed the product under the wrong category.
-            # Retrying unscoped keeps a mis-categorised listing matchable
-            # instead of dropping it into the unmatched queue.
-            raw_candidates = await self.catalog_repo.search_canonical_products(
-                query.text_norm, limit=40, require_offers=require_offers
-            )
 
         candidate_matches: list[CandidateMatch] = [
             CandidateMatch(
@@ -153,6 +190,7 @@ class CatalogService:
             decision=decision,
             candidates=ranked_candidates,
             category_ids=tuple(category_ids) if category_ids is not None else None,
+            require_offers=require_offers,
         )
 
     @staticmethod
@@ -177,6 +215,10 @@ class CatalogService:
         only make it worse.
         """
         if match.decision.method == "alias":
+            return False
+        if match.decision.clarify_question and match.decision.method != "ai_parse":
+            # The buyer must supply a physical specification; another model
+            # call cannot provide it and _apply_llm_decision preserves it.
             return False
         return match.decision.status != "auto_accept"
 
@@ -209,6 +251,34 @@ class CatalogService:
         if canonical_id is not None and canonical_id not in allowed_ids:
             # A model is never allowed to invent an ID it was not shown.
             return match.decision
+        if canonical_id is not None:
+            chosen = next(c for c in match.candidates[:8] if c.canonical_id == canonical_id)
+            if not await self.catalog_repo.is_matchable(
+                canonical_id, match.category_ids, require_offers=match.require_offers
+            ):
+                return replace(
+                    match.decision,
+                    canonical_id=None,
+                    status="unresolved",
+                    candidates=[],
+                    needs_review=True,
+                )
+            current = await self.catalog_repo.get_current(canonical_id)
+            if current is None:
+                return replace(
+                    match.decision, canonical_id=None, status="unresolved", candidates=[]
+                )
+            chosen = replace(chosen, attributes=current.attributes, name_uz=current.name_uz)
+            if not attributes_verified(match.query, chosen.attributes):
+                return replace(
+                    match.decision,
+                    status="ask_user",
+                    needs_review=True,
+                    clarify_question=match.decision.clarify_question
+                    or "O'lchamini aniqlashtiring.",
+                )
+        if match.decision.clarify_question:
+            return match.decision
         if canonical_id is None or answer.confidence < settings.llm_alias_writeback_min_confidence:
             # Not strong enough to move the match. The question is still worth
             # keeping: it is the one thing that can resolve the line, and it
@@ -227,22 +297,7 @@ class CatalogService:
             source="llm",
         )
 
-        matched_cand = next(
-            (c for c in match.candidates if c.canonical_id == canonical_id),
-            None,
-        )
-        if not matched_cand:
-            canon_db = await self.catalog_repo.get(canonical_id)
-            if canon_db:
-                matched_cand = CandidateMatch(
-                    canonical_id=canon_db.id,
-                    slug=canon_db.slug,
-                    name_uz=canon_db.name_uz,
-                    brand=canon_db.brand,
-                    attributes=canon_db.attributes,
-                    score=answer.confidence,
-                    match_method="llm",
-                )
+        matched_cand = chosen
 
         # A question the model chose to ask outranks its own confidence: it
         # said the difference matters to the buyer, so the buyer decides.
@@ -288,6 +343,17 @@ class CatalogService:
         )
         if retried.decision.canonical_id is None:
             return current
+        chosen = next(
+            (c for c in retried.candidates if c.canonical_id == retried.decision.canonical_id), None
+        )
+        if chosen is None or not attributes_verified(match.query, chosen.attributes):
+            return replace(
+                current,
+                status="ask_user",
+                candidates=retried.decision.candidates,
+                needs_review=True,
+                clarify_question="O'lchamini aniqlashtiring.",
+            )
 
         await self.catalog_repo.create_unapproved_alias(
             canonical_id=retried.decision.canonical_id,
@@ -358,9 +424,13 @@ class CatalogService:
         decision = match.decision
 
         if self._needs_llm(match):
-            batch = await self.llm_client.disambiguate_batch(
-                [self._to_batch_input(match, parsed_line.line_no)], lang=lang
-            )
+            try:
+                async with asyncio.timeout(settings.llm_total_deadline_seconds):
+                    batch = await self.llm_client.disambiguate_batch(
+                        [self._to_batch_input(match, parsed_line.line_no)], lang=lang
+                    )
+            except TimeoutError:
+                batch = BatchDisambiguationResult()
             answer = batch.lines.get(parsed_line.line_no)
             if answer is not None:
                 decision = await self._settle_with_model(
@@ -368,7 +438,7 @@ class CatalogService:
                 )
 
         await self._finalize(parsed_line, decision, match.query.text_norm, user_id)
-        return parsed_line, decision
+        return parsed_line, self._localize(decision, lang)
 
     async def parse_and_match_basket(
         self,
@@ -389,6 +459,8 @@ class CatalogService:
         have quantities), the whole message goes to the LLM parser first
         (SPEC §7).
         """
+        deadline = time.monotonic() + settings.llm_total_deadline_seconds
+        self._ai_deadline = deadline
         parsed_lines = parse_basket_lines(raw_text)
 
         # Check if structured parsing struggled
@@ -403,9 +475,16 @@ class CatalogService:
                 1 for line in parsed_lines if not line.needs_review and line.parsed_name
             )
             qty_ratio = lines_with_qty / len(parsed_lines)
-            if qty_ratio < 0.5 and settings.llm_enabled:
+            if (
+                qty_ratio < 0.5
+                and settings.llm_enabled
+                and re.search(r"\d+\s*(?:ta|dona|kg|qop|шт|кг)\b", raw_text, re.IGNORECASE)
+                and not re.fullmatch(
+                    r"\s*\d+\s*(?:ta|dona|kg|qop|шт|кг)\s*", raw_text, re.IGNORECASE
+                )
+            ):
                 try:
-                    async with asyncio.timeout(settings.llm_total_deadline_seconds):
+                    async with asyncio.timeout(max(0, deadline - time.monotonic())):
                         llm_parsed = await self.llm_client.parse_whole_message(raw_text)
                 except TimeoutError:
                     llm_parsed = None
@@ -418,6 +497,7 @@ class CatalogService:
                             qty=pl.qty,
                             unit_code=pl.unit,
                             needs_review=(pl.confidence < 0.8),
+                            user_note="ai_extracted",
                         )
                         for idx, pl in enumerate(llm_parsed.lines)
                     ]
@@ -428,6 +508,55 @@ class CatalogService:
         pending: list[tuple[int, _DeterministicMatch]] = []
 
         for line in parsed_lines:
+            missing_name = bool(
+                re.fullmatch(
+                    r"\s*\d+(?:[.,]\d+)?\s*(?:ta|dona|kg|qop|шт|кг)?\s*",
+                    line.raw_text,
+                    re.IGNORECASE,
+                )
+            )
+            if missing_name or line.needs_review:
+                product_words = {
+                    "fanera",
+                    "faner",
+                    "paner",
+                    "osb",
+                    "dsp",
+                    "mdf",
+                    "hdf",
+                    "dvp",
+                    "samorez",
+                    "samarez",
+                    "anker",
+                    "ankel",
+                    "mix",
+                }
+                is_product_request = bool(
+                    set(normalize_query(line.parsed_name).tokens) & product_words
+                )
+                question = "Mahsulot nomini yozing." if missing_name else "Miqdorini yozing."
+                if lang == "ru":
+                    question = (
+                        "Напишите название товара." if missing_name else "Укажите количество."
+                    )
+                elif lang == "uz_cyrl":
+                    question = "Маҳсулот номини ёзинг." if missing_name else "Миқдорини ёзинг."
+                results.append(
+                    (
+                        line,
+                        MatchDecision(
+                            canonical_id=None,
+                            status="unresolved",
+                            confidence=0,
+                            method="missing_name" if missing_name else "missing_qty",
+                            needs_review=True,
+                            clarify_question=question
+                            if missing_name or is_product_request
+                            else None,
+                        ),
+                    )
+                )
+                continue
             if not is_qty_orderable(line.qty, max_qty=max_qty):
                 # Refused before matching: an unorderable quantity should not
                 # consume a catalog lookup or an LLM call, and must never reach
@@ -448,6 +577,22 @@ class CatalogService:
                 continue
 
             match = await self._match_deterministic(line, require_offers=require_offers)
+            if line.user_note == "ai_extracted":
+                question = f"Tasdiqlang: {line.qty} {line.unit_code or ''} {line.parsed_name}"
+                if lang == "ru":
+                    question = f"Подтвердите: {line.qty} {line.unit_code or ''} {line.parsed_name}"
+                elif lang == "uz_cyrl":
+                    question = f"Тасдиқланг: {line.qty} {line.unit_code or ''} {line.parsed_name}"
+                match = replace(
+                    match,
+                    decision=replace(
+                        match.decision,
+                        status="ask_user" if match.candidates else "unresolved",
+                        needs_review=True,
+                        clarify_question=question,
+                        method="ai_parse",
+                    ),
+                )
             index = len(results)
             results.append((line, match.decision))
             matched.append((index, match))
@@ -456,7 +601,7 @@ class CatalogService:
 
         if pending:
             try:
-                async with asyncio.timeout(settings.llm_total_deadline_seconds):
+                async with asyncio.timeout(max(0, deadline - time.monotonic())):
                     batch = await self.llm_client.disambiguate_batch(
                         [self._to_batch_input(match, index) for index, match in pending], lang=lang
                     )
@@ -480,4 +625,4 @@ class CatalogService:
                 results[index][0], results[index][1], match.query.text_norm, user_id
             )
 
-        return results
+        return [(line, self._localize(decision, lang)) for line, decision in results]

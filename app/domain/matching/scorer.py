@@ -3,8 +3,10 @@ import re
 from typing import Any
 
 from app.domain.matching.models import CandidateMatch, MatchDecision
+from app.domain.matching.safety import attributes_verified
 from app.domain.matching.trigram import best_match_similarity
 from app.domain.models import NormalizedQuery
+from app.domain.normalize.text import normalize_text
 
 # A plywood grade ("2x4", "3x3") is written like a size and comes out of
 # normalization as one -- both are digits joined by an x. No sheet is three
@@ -12,6 +14,10 @@ from app.domain.models import NormalizedQuery
 # wrong means judging a customer who named a grade against a size they never
 # mentioned.
 _GRADE_LIKE_SIZE = re.compile(r"^\dx\d$")
+
+
+def _name_key(text: str) -> str:
+    return re.sub(r"(?<=\d)\s+(?=mm\b)", "", normalize_text(text))
 
 
 def _grade_like_sizes(query: NormalizedQuery) -> list[str]:
@@ -110,7 +116,7 @@ def score_and_rank_candidates(
 
     # Stage 1: Exact alias shortcut
     exact_alias = next((c for c in candidates if c.is_exact_alias), None)
-    if exact_alias:
+    if exact_alias and attributes_verified(query, exact_alias.attributes):
         return MatchDecision(
             canonical_id=exact_alias.canonical_id,
             status="auto_accept",
@@ -129,7 +135,37 @@ def score_and_rank_candidates(
     # several viable variants.  Name similarity and order specificity are two
     # different facts.
     ambiguous_variants = _has_unspecified_variant(query, scored_candidates)
-    if not ambiguous_variants and top.score >= auto_accept_threshold and margin >= margin_threshold:
+    exact_name = _name_key(top.name_uz) == _name_key(query.text_norm)
+    if exact_name and attributes_verified(query, top.attributes):
+        return MatchDecision(top.canonical_id, "auto_accept", 1.0, [top], "exact_name", False)
+    # Long catalogue titles must not turn a recognized family into "unknown".
+    family = next((t for t in query.tokens if t.isalpha()), "")
+    family_candidates = [
+        c
+        for c in scored_candidates
+        if family
+        and family in normalize_text(c.name_uz).split()
+        and attributes_verified(query, c.attributes)
+    ]
+    if len(family_candidates) > 1 and any(
+        len({str(c.attributes.get(key)) for c in family_candidates}) > 1
+        for key in ("thickness_mm", "diameter_mm", "size", "grade")
+    ):
+        return MatchDecision(
+            family_candidates[0].canonical_id,
+            "ask_user",
+            top.score,
+            family_candidates[:3],
+            "trgm",
+            True,
+            "Qalinligi yoki o'lchamini tanlang.",
+        )
+    if (
+        not ambiguous_variants
+        and attributes_verified(query, top.attributes)
+        and top.score >= auto_accept_threshold
+        and margin >= margin_threshold
+    ):
         return MatchDecision(
             canonical_id=top.canonical_id,
             status="auto_accept",
@@ -179,6 +215,10 @@ def rank_candidates(
             + 0.10 * 0.5  # default baseline category prior
             + 0.05 * pop_score
         )
+        if _name_key(cand.name_uz) == _name_key(query.text_norm) and attributes_verified(
+            query, cand.attributes
+        ):
+            final_score = 1.0
 
         scored_candidates.append(
             CandidateMatch(

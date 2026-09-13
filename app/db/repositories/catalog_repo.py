@@ -10,6 +10,9 @@ from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
 from app.db.models.shop import Shop, ShopProduct
 from app.db.repositories.base import BaseRepository
+from app.domain.matching.models import CandidateMatch
+from app.domain.matching.scorer import rank_candidates
+from app.domain.normalize.text import normalize_query
 
 # Stock states a customer can actually be quoted from. Matches the offer query
 # in ShopRepository.get_active_offers_for_canonicals -- the two have to agree,
@@ -51,6 +54,15 @@ def _is_orderable() -> Any:
 class CatalogRepository(BaseRepository[CanonicalProduct]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(CanonicalProduct, session)
+
+    async def get_current(self, canonical_id: int) -> CanonicalProduct | None:
+        """Refresh identity-map state after waiting for an external model."""
+        result = await self.session.execute(
+            select(CanonicalProduct)
+            .where(CanonicalProduct.id == canonical_id)
+            .execution_options(populate_existing=True)
+        )
+        return result.scalars().first()
 
     async def get_unit(self, code: str) -> Unit | None:
         return await self.session.get(Unit, code)
@@ -223,7 +235,7 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         # not proof that it is the best hit ("faner 3mm" can also need the
         # trigram result for a misspelt brand), so never short-circuit fuzzy
         # search merely because ILIKE found something.
-        source_limit = max(40, limit)
+        source_limit = 40
         tokens = [t for t in query.split() if len(t) >= 2]
         if not tokens:
             stmt = (
@@ -259,7 +271,21 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         merged: dict[int, CanonicalProduct] = {}
         for row in [*token_rows, *trigram_rows]:
             merged.setdefault(row.id, row)
-        return [merged[key] for key in sorted(merged)][:limit]
+        ranked = rank_candidates(
+            normalize_query(query),
+            [
+                CandidateMatch(
+                    canonical_id=row.id,
+                    slug=row.slug,
+                    name_uz=row.name_uz,
+                    attributes=row.attributes,
+                    brand=row.brand,
+                    search_doc=row.search_doc,
+                )
+                for row in merged.values()
+            ],
+        )
+        return [merged[c.canonical_id] for c in ranked[:limit]]
 
     async def _search_by_trigram_similarity(
         self,
@@ -286,7 +312,18 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
             return []
 
         sim = func.word_similarity(query, CanonicalProduct.search_doc)
-        filters = [CanonicalProduct.is_active.is_(True), sim > settings.match_trigram_threshold]
+        await self.session.execute(
+            select(
+                func.set_config(
+                    "pg_trgm.word_similarity_threshold", str(settings.match_trigram_threshold), True
+                )
+            )
+        )
+        filters = [
+            CanonicalProduct.is_active.is_(True),
+            sim > settings.match_trigram_threshold,
+            CanonicalProduct.search_doc.op("%>")(query),
+        ]
         if scoped:
             filters.append(CanonicalProduct.category_id.in_(list(scoped)))
         if require_offers:

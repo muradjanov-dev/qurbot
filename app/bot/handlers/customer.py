@@ -169,7 +169,14 @@ async def _process_basket_input(
         # chat. The model reads what they actually sent and answers with the
         # next step; the catalogue string stays as the floor for when it
         # cannot (no budget, no key, no answer).
-        guidance = await catalog_service.guide_customer(raw_text, lang=lang)
+        questions = [
+            decision.clarify_question for _, decision in parsed_results if decision.clarify_question
+        ]
+        guidance = (
+            "\n".join(questions)
+            if questions
+            else await catalog_service.guide_customer(raw_text, lang=lang)
+        )
         await status_msg.edit_text(
             esc(guidance) if guidance else t("basket_not_understood", lang=lang)
         )
