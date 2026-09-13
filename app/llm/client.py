@@ -16,8 +16,10 @@ import logging
 import math
 import random
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
@@ -25,7 +27,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.metrics import llm_cost_usd_total
+from app.core.metrics import llm_cost_usd_total, llm_outcome_total
 from app.db.models.ops import LLMCall
 from app.db.repositories.ops_repo import OpsRepository
 from app.llm.cache import compute_llm_input_hash
@@ -38,6 +40,7 @@ from app.llm.models import (
     LLMParsedLine,
     LLMParseResult,
 )
+from app.llm.pricing import EvaluationBudget, estimate_cost
 from app.llm.prompts import (
     BATCH_DISAMBIGUATION_SYSTEM_PROMPT,
     CUSTOMER_GUIDE_SYSTEM_PROMPT,
@@ -55,6 +58,30 @@ logger = logging.getLogger(__name__)
 # the second; either one reaching the API is a configuration mistake, not a
 # call worth making.
 _PLACEHOLDER_API_KEYS = frozenset({"", "changeme", "placeholder_openai_key"})
+_http_client: httpx.AsyncClient | None = None
+
+
+async def start_http_client() -> None:
+    global _http_client
+    if _http_client is None:
+        _http_client = httpx.AsyncClient()
+
+
+async def close_http_client() -> None:
+    global _http_client
+    if _http_client is not None:
+        await _http_client.aclose()
+        _http_client = None
+
+
+@asynccontextmanager
+async def http_session() -> AsyncIterator[httpx.AsyncClient]:
+    if _http_client is not None:
+        yield _http_client
+    else:
+        # CLI/tests without an application lifecycle still close their sockets.
+        async with httpx.AsyncClient() as client:
+            yield client
 
 
 class LLMClient:
@@ -67,6 +94,7 @@ class LLMClient:
         model: str | None = None,
         base_url: str | None = None,
         mock_mode: bool = False,
+        evaluation_budget: EvaluationBudget | None = None,
     ) -> None:
         self.session = session
         self.api_key = api_key or settings.openai_api_key
@@ -76,7 +104,22 @@ class LLMClient:
         ).rstrip("/")
         self.mock_mode = mock_mode
         self.timeout = settings.llm_timeout_seconds
-        self.max_retries = settings.llm_max_retries
+        self.max_retries = min(1, max(0, settings.llm_max_retries))
+        self.last_outcome = "unknown"
+        self.last_attempt_count = 0
+        self.evaluation_budget = evaluation_budget
+
+    def _validated_single(
+        self, data: dict[str, Any], candidates: list[DisambiguationCandidateInput]
+    ) -> DisambiguationResult:
+        batch = self._deserialize_batch(
+            {"lines": [{**data, "line_no": 0}]},
+            [BatchLineInput(0, "", "", candidates)],
+        )
+        answer = batch.lines.get(0)
+        if answer is None:
+            return DisambiguationResult(None, 0, "invalid_response")
+        return DisambiguationResult(answer.canonical_id, answer.confidence, answer.reason)
 
     async def disambiguate(
         self,
@@ -99,11 +142,7 @@ class LLMClient:
         if cached_result:
             try:
                 data = json.loads(cached_result)
-                return DisambiguationResult(
-                    canonical_id=data.get("canonical_id"),
-                    confidence=float(data.get("confidence", 0.0)),
-                    reason=data.get("reason", "cached"),
-                )
+                return self._validated_single(data, candidates)
             except Exception:
                 pass
 
@@ -129,11 +168,7 @@ class LLMClient:
                 cache_hit=False,
                 raw_response=json.dumps(data),
             )
-            return DisambiguationResult(
-                canonical_id=data.get("canonical_id"),
-                confidence=float(data.get("confidence", 0.0)),
-                reason=data.get("reason", "mock_match"),
-            )
+            return self._validated_single(data, candidates)
 
         start_time = time.monotonic()
         response_dict, in_toks, out_toks = await self._call_chat_completions(
@@ -160,11 +195,7 @@ class LLMClient:
                 canonical_id=None, confidence=0.0, reason="Empty LLM response"
             )
 
-        return DisambiguationResult(
-            canonical_id=response_dict.get("canonical_id"),
-            confidence=float(response_dict.get("confidence", 0.0)),
-            reason=str(response_dict.get("reason", "")),
-        )
+        return self._validated_single(response_dict, candidates)
 
     async def disambiguate_batch(
         self,
@@ -222,6 +253,9 @@ class LLMClient:
             user_prompt=user_prompt,
         )
         latency_ms = int((time.monotonic() - start_time) * 1000)
+        validated = self._deserialize_batch(response_dict or {}, lines)
+        if response_dict and len(validated.lines) != len(lines):
+            self.last_outcome = "invalid_response"
 
         await self._record_call(
             purpose="batch_disambiguation",
@@ -238,7 +272,7 @@ class LLMClient:
         if not response_dict:
             return BatchDisambiguationResult()
 
-        return self._deserialize_batch(response_dict, lines)
+        return validated
 
     async def parse_whole_message(self, message_text: str) -> LLMParseResult:
         """Whole message parsing fallback when structured parser yields < 50% lines."""
@@ -397,13 +431,15 @@ class LLMClient:
         user_prompt: str,
     ) -> tuple[dict[str, Any] | None, int, int]:
         """Execute request against OpenAI-compatible Chat Completions endpoint."""
+        self.last_attempt_count = 0
+        self.last_outcome = "unavailable"
         if self.api_key in _PLACEHOLDER_API_KEYS:
             # No key was ever configured, so every request would fail auth after
             # the full timeout-and-retry budget. Refusing here keeps a
             # misconfigured deployment from adding seconds of certain failure to
             # every basket, and keeps tests off the network without pretending
             # the LLM answered.
-            logger.warning("LLM API key is a placeholder; skipping call to %s", self.base_url)
+            logger.warning("LLM API key is a placeholder; skipping call")
             return None, 0, 0
 
         url = f"{self.base_url}/chat/completions"
@@ -430,12 +466,23 @@ class LLMClient:
         }
 
         for attempt in range(self.max_retries + 1):
+            in_tokens = out_tokens = 0
+            if self.evaluation_budget is not None and not self.evaluation_budget.reserve(
+                self.model, system_prompt, user_prompt, settings.llm_max_completion_tokens
+            ):
+                self.last_outcome = "budget_exhausted"
+                return None, 0, 0
+            self.last_attempt_count = attempt + 1
             try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.post(url, headers=headers, json=payload)
+                async with http_session() as client:
+                    async with asyncio.timeout(min(8.0, self.timeout)):
+                        resp = await client.post(
+                            url, headers=headers, json=payload, timeout=self.timeout
+                        )
                     # Authentication, validation and malformed requests cannot
                     # improve on retry.  Only transient upstream failures do.
                     if resp.status_code in (400, 401, 403):
+                        self.last_outcome = "rejected"
                         logger.warning("LLM request rejected with HTTP %s", resp.status_code)
                         return None, 0, 0
                     resp.raise_for_status()
@@ -449,9 +496,23 @@ class LLMClient:
                     if choices:
                         content_str = choices[0].get("message", {}).get("content", "{}")
                         parsed = json.loads(content_str)
+                        if not isinstance(parsed, dict):
+                            self.last_outcome = "invalid_response"
+                            return None, in_tokens, out_tokens
+                        self.last_outcome = "success"
                         return parsed, in_tokens, out_tokens
                     return None, in_tokens, out_tokens
-            except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as e:
+            except (
+                TimeoutError,
+                httpx.TimeoutException,
+                httpx.TransportError,
+                httpx.HTTPStatusError,
+            ) as e:
+                self.last_outcome = (
+                    "timeout"
+                    if isinstance(e, TimeoutError | httpx.TimeoutException)
+                    else "api_error"
+                )
                 retryable = not isinstance(e, httpx.HTTPStatusError) or (
                     e.response.status_code == 429 or e.response.status_code >= 500
                 )
@@ -464,9 +525,15 @@ class LLMClient:
                         self.max_retries,
                         type(e).__name__,
                     )
-            except (ValueError, json.JSONDecodeError):
+                    return None, 0, 0
+            except asyncio.CancelledError:
+                self.last_outcome = "deadline"
+                llm_outcome_total.labels(outcome="deadline").inc()
+                raise
+            except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+                self.last_outcome = "invalid_response"
                 logger.warning("LLM returned invalid JSON; not retrying")
-                return None, 0, 0
+                return None, in_tokens, out_tokens
 
         return None, 0, 0
 
@@ -483,6 +550,9 @@ class LLMClient:
                 .where(
                     LLMCall.input_hash == input_hash,
                     LLMCall.created_at >= datetime.now(UTC) - timedelta(hours=24),
+                    LLMCall.cache_hit.is_(False),
+                    LLMCall.model == self.model,
+                    LLMCall.outcome.in_(["success", "mock"]),
                 )
                 .order_by(LLMCall.id.desc())
                 .limit(1)
@@ -502,6 +572,9 @@ class LLMClient:
                     latency_ms=1,
                     cache_hit=True,
                     raw_response=call.raw_response,
+                    model=self.model,
+                    outcome="cache_hit",
+                    attempt_count=0,
                 )
                 return call.raw_response
         except Exception:
@@ -550,6 +623,7 @@ class LLMClient:
         outcome: str | None = None,
         attempt_count: int | None = None,
     ) -> None:
+        llm_outcome_total.labels(outcome=outcome or self.last_outcome).inc()
         if not self.session:
             return
         try:
@@ -565,8 +639,10 @@ class LLMClient:
                 cache_hit=cache_hit,
                 raw_response=raw_response,
                 model=self.model,
-                outcome=outcome or ("cache_hit" if cache_hit else "success"),
-                attempt_count=attempt_count or (0 if cache_hit else 1),
+                outcome=outcome or ("mock" if self.mock_mode else self.last_outcome),
+                attempt_count=attempt_count
+                if attempt_count is not None
+                else self.last_attempt_count,
             )
             llm_cost_usd_total.inc(float(cost_usd))
         except Exception:
@@ -587,11 +663,13 @@ class LLMClient:
         )
 
     def _estimate_cost(self, in_tokens: int, out_tokens: int) -> Decimal:
-        """Cost estimate for gpt-5.6-terra / modern fast models ($2.5 / 1M in, $10 / 1M out)."""
-        cost = (Decimal(in_tokens) * Decimal("0.0000025")) + (
-            Decimal(out_tokens) * Decimal("0.000010")
-        )
-        return cost.quantize(Decimal("0.000001"))
+        cost = estimate_cost(self.model, in_tokens, out_tokens)
+        if cost is None:
+            self.last_outcome = "unknown_price"
+            # Legacy NOT NULL amount: outcome explicitly excludes this zero
+            # from being interpreted as a known free call.
+            return Decimal("0")
+        return cost
 
     def _deserialize_batch(
         self, data: dict[str, Any], requested_lines: list[BatchLineInput] | None = None
@@ -608,15 +686,31 @@ class LLMClient:
             line.line_no: {candidate.canonical_id for candidate in line.candidates}
             for line in requested_lines or []
         }
-        for raw in data.get("lines", []):
+        if not isinstance(data, dict) or not isinstance(data.get("lines"), list):
+            return BatchDisambiguationResult()
+        duplicates: set[int] = set()
+        seen: set[int] = set()
+        for raw in data["lines"]:
             if not isinstance(raw, dict):
                 continue
+            if isinstance(raw.get("confidence"), bool) or any(
+                raw.get(key) is not None and not isinstance(raw[key], str)
+                for key in ("question", "search_term", "reason")
+            ):
+                continue
             try:
-                line_no = int(raw["line_no"])
+                if type(raw["line_no"]) is not int:
+                    continue
+                line_no = raw["line_no"]
             except (KeyError, TypeError, ValueError):
                 continue
 
             raw_canonical = raw.get("canonical_id")
+            if line_no in seen:
+                duplicates.add(line_no)
+            seen.add(line_no)
+            if raw_canonical is not None and type(raw_canonical) is not int:
+                continue
             try:
                 canonical_id = int(raw_canonical) if raw_canonical is not None else None
                 confidence = float(raw.get("confidence", 0.0))
@@ -647,7 +741,9 @@ class LLMClient:
                 question=question_text or None,
                 search_term=search_text or None,
             )
-        return BatchDisambiguationResult(lines=decisions)
+        return BatchDisambiguationResult(
+            lines={key: value for key, value in decisions.items() if key not in duplicates}
+        )
 
     def _mock_disambiguate_batch(self, lines: list[BatchLineInput]) -> dict[str, Any]:
         """Offline batch mock: the single-line heuristic applied to each line."""
@@ -666,14 +762,26 @@ class LLMClient:
         return {"lines": answers}
 
     def _deserialize_parse_lines(self, data: dict[str, Any]) -> LLMParseResult:
+        if not isinstance(data, dict) or not isinstance(data.get("lines"), list):
+            return LLMParseResult(lines=[])
         raw_lines = data.get("lines", [])
         parsed_lines: list[LLMParsedLine] = []
         for raw_line in raw_lines:
             if not isinstance(raw_line, dict) or not raw_line.get("name"):
                 continue
-            qty_val = Decimal(str(raw_line.get("qty", 1.0)))
+            try:
+                qty_val = Decimal(str(raw_line["qty"]))
+                conf_val = float(raw_line.get("confidence", 0))
+            except (KeyError, InvalidOperation, TypeError, ValueError):
+                continue
+            if (
+                not qty_val.is_finite()
+                or qty_val <= 0
+                or not math.isfinite(conf_val)
+                or not 0 <= conf_val <= 1
+            ):
+                continue
             unit_val = str(raw_line["unit"]) if raw_line.get("unit") else None
-            conf_val = float(raw_line.get("confidence", 0.9))
             parsed_lines.append(
                 LLMParsedLine(
                     name=str(raw_line["name"]),

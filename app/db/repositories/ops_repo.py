@@ -248,6 +248,20 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         result = await self.session.execute(stmt)
         return {purpose: Decimal(str(cost)) for purpose, cost in result.all()}
 
+    async def llm_outcomes(self, since: datetime) -> list[dict[str, Any]]:
+        model = func.coalesce(LLMCall.model, "unknown")
+        outcome = func.coalesce(LLMCall.outcome, "unknown")
+        rows = await self.session.execute(
+            select(
+                model, outcome, func.count(), func.sum(LLMCall.input_tokens + LLMCall.output_tokens)
+            )
+            .where(LLMCall.created_at >= since)
+            .group_by(model, outcome)
+        )
+        return [
+            {"model": m, "outcome": o, "calls": n, "tokens": tokens} for m, o, n, tokens in rows
+        ]
+
     # ─── Pebble rewards ────────────────────────────────────────────
 
     async def award_pebbles(

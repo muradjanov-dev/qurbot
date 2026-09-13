@@ -154,8 +154,8 @@ def test_batch_response_cannot_choose_an_id_or_line_it_was_not_given() -> None:
         },
         lines,
     )
-    assert set(result.lines) == {1}
-    assert result.lines[1].canonical_id == 10
+    # Conflicting repeated answers invalidate the entire line.
+    assert result.lines == {}
 
 
 async def test_batch_mock_answers_every_line_without_a_session() -> None:

@@ -5,6 +5,7 @@ from arq.connections import RedisSettings
 from app.bot.dispatcher import create_bot
 from app.core.config import settings
 from app.core.logging import configure_logging, configure_sentry, get_logger
+from app.llm.client import close_http_client, start_http_client
 from app.workers.schedules import CRON_JOBS
 
 logger = get_logger(__name__)
@@ -14,6 +15,7 @@ async def on_startup(ctx: dict[str, Any]) -> None:
     configure_logging(settings.log_level)
     configure_sentry(settings.sentry_dsn, settings.app_env)
     ctx["bot"] = create_bot()
+    await start_http_client()
     logger.info("worker_started")
 
 
@@ -22,6 +24,7 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
     if bot is not None:
         await bot.session.close()
     logger.info("worker_stopped")
+    await close_http_client()
 
 
 class WorkerSettings:

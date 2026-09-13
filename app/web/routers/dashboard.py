@@ -43,5 +43,6 @@ async def llm_cost(
             "cost_by_purpose": cost_by_purpose,
             "total_cost": total_cost,
             "window_days": settings.admin_llm_cost_window_days,
+            "outcomes": await ops_repo.llm_outcomes(since),
         },
     )

@@ -22,6 +22,10 @@ llm_cost_usd_total = Counter(
     "Cumulative LLM spend in USD",
 )
 
+llm_outcome_total = Counter(
+    "qurbot_llm_outcome_total", "AI request outcomes including deadline fallback", ["outcome"]
+)
+
 stale_price_offers = Gauge(
     "qurbot_stale_price_offers",
     "Active offers currently marked stale",

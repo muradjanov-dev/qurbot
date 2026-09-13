@@ -125,18 +125,11 @@ class Settings(BaseSettings):
     # LLM Settings (§6 & §7)
     openai_api_key: str = "placeholder_openai_key"
     openai_base_url: str | None = None
-    # Chosen by measurement, not by tier name -- `scripts.eval_models` runs
-    # every candidate over queries taken from the unmatched queue. Every model
-    # we can actually call ties at 27/28, and the one miss is a matching-layer
-    # fault the model never sees, so accuracy cannot separate them. Latency
-    # can, and the customer is sitting in the chat while this runs: terra
-    # answers in 1.3s against luna's 1.6 and sol's 1.9, reproducibly.
-    #
-    # The "pro" tiers are deliberately not here. They are not served on
-    # /v1/chat/completions -- every call 404s -- so reaching them means
-    # teaching the client the Responses API, for a model that is slower and
-    # that nothing in the measurements suggests would answer better.
-    llm_model: str = "gpt-5.6-terra"
+    # Same 100/100 decisions as Terra on the isolated release corpus, at
+    # lower measured list-price cost. Only four live calls per model: this
+    # is a workload-specific choice, not a general model-quality claim.
+    # See docs/AI_RELEASE_REPORT.md and scripts/eval_matching.py.
+    llm_model: str = "gpt-5.6-luna"
     # A customer must get deterministic candidates instead of waiting through
     # several long network timeouts.  The basket-level deadline is enforced by
     # CatalogService; this is the limit for one HTTP attempt.
@@ -158,7 +151,7 @@ class Settings(BaseSettings):
     # wall of text, so an over-long answer is cut rather than sent.
     llm_guide_max_chars: int = 700
     llm_enabled: bool = True
-    llm_prompt_version: str = "v1"
+    llm_prompt_version: str = "matching-v2"
     # Below this the model's answer is not trusted enough to become an alias
     # the catalog will reuse forever. An approved alias short-circuits Stage 1
     # on every future basket, so a wrong one is expensive to notice.

@@ -125,7 +125,11 @@ Rules:
    sentence. When the match is clear, "question" must be null.
 5. Write "question" in the language named by "answer_language" in the input, in the words
    a builder would use rather than catalog phrasing.
-6. Do NOT output markdown, backticks, or any text outside the JSON object."""
+6. Never change physical quantities or units: 0.3mm is not 3mm and 3m is not 3mm.
+   Missing thickness/diameter/size is unknown, not permission to pick any variant.
+   Ask for confirmation whenever a spelling correction would change a dimension.
+   Preserve the original dimensions in search_term; never remove them to get a hit.
+7. Do NOT output markdown, backticks, or any text outside the JSON object."""
 
 
 # The bot's language codes, spelled out for the model. Uzbek customers read

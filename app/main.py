@@ -12,6 +12,7 @@ from app.bot.webhook_guard import watch_webhook
 from app.core.config import settings
 from app.core.deploy_notify import notify_admins_of_deploy
 from app.core.logging import configure_logging, configure_sentry, get_logger
+from app.llm.client import close_http_client, start_http_client
 from app.web.routers import router as admin_router
 from app.web.storefront import install_storefront
 
@@ -22,6 +23,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(settings.log_level)
     configure_sentry(settings.sentry_dsn, settings.app_env)
+    await start_http_client()
 
     bot = create_bot()
     app.state.bot = bot
@@ -84,6 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # every deploy). Startup already re-registers idempotently every boot, so
     # there's nothing for shutdown to clean up.
     await bot.session.close()
+    await close_http_client()
     logger.info("shutdown_complete")
 
 

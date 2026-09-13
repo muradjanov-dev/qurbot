@@ -2,6 +2,13 @@
 {% block title %}LLM xarajat — QurBot Admin{% endblock %}
 {% block content %}
 <h1>LLM xarajati (oxirgi {{ window_days }} kun)</h1>
+<p>Summalar tarif asosidagi taxmin. Eski yozuvlar va unknown_price uchun narx tasdiqlanmagan.</p>
+<table>
+  <thead><tr><th>Model</th><th>Natija</th><th>Chaqiruvlar</th><th>Tokenlar</th></tr></thead>
+  <tbody>{% for row in outcomes %}
+    <tr><td>{{ row.model }}</td><td>{{ row.outcome }}</td><td>{{ row.calls }}</td><td>{{ row.tokens }}</td></tr>
+  {% endfor %}</tbody>
+</table>
 {% if not cost_by_purpose %}
 <p class="empty">Bu davrda LLM chaqiruvlari bo'lmagan.</p>
 {% else %}
