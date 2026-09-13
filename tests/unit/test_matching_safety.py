@@ -12,7 +12,9 @@ from app.llm.models import BatchLineDecision
 from app.services.catalog_service import CatalogService, _DeterministicMatch
 
 
-@pytest.mark.parametrize("query", ["fanera 0.3mm", "fanera 3m", "fanera 03m", "fanera 12mm"])
+@pytest.mark.parametrize(
+    "query", ["fanera 0.3mm", "fanera 3m", "fanera 03m", "fanera 12mm", "paner", "fanera"]
+)
 async def test_ai_cannot_override_physical_constraints(query: str) -> None:
     candidate = CandidateMatch(1, "fanera-3", "Fanera 3 mm", attributes={"thickness_mm": 3})
     line = ParsedLine(1, query, query, Decimal("10"), "dona")

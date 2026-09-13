@@ -269,6 +269,19 @@ class CatalogService:
                     match.decision, canonical_id=None, status="unresolved", candidates=[]
                 )
             chosen = replace(chosen, attributes=current.attributes, name_uz=current.name_uz)
+            # A typo can leave fuzzy scores below the normal ambiguity band.
+            # Model confidence still cannot supply an unstated physical variant.
+            if not re.search(r"\d", match.parsed_line.parsed_name) and any(
+                chosen.attributes.get(key) is not None
+                for key in ("thickness_mm", "diameter_mm", "size", "grade")
+            ):
+                return replace(
+                    match.decision,
+                    status="ask_user",
+                    needs_review=True,
+                    candidates=match.candidates[:3],
+                    clarify_question="Qalinligi yoki o'lchamini tanlang.",
+                )
             if not attributes_verified(match.query, chosen.attributes):
                 return replace(
                     match.decision,
