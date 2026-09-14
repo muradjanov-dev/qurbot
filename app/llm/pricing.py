@@ -1,7 +1,8 @@
-"""List-price estimates, not invoices. Verified 2026-09-12.
+"""List-price estimates, not invoices. Verified 2026-09-14.
 
 https://developers.openai.com/api/docs/models/gpt-5.6-luna
 https://developers.openai.com/api/docs/models/gpt-5.6-terra
+https://platform.claude.com/docs/en/models/overview
 Custom providers may charge differently and require explicit rates.
 """
 
@@ -13,6 +14,7 @@ from pathlib import Path
 RATES = {
     "gpt-5.6-luna": (Decimal("0.20"), Decimal("1.20")),
     "gpt-5.6-terra": (Decimal("2.00"), Decimal("12.00")),
+    "claude-opus-5": (Decimal("5.00"), Decimal("25.00")),
 }
 
 

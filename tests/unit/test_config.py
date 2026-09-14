@@ -46,3 +46,15 @@ def test_support_contacts_have_only_current_phone_number() -> None:
     settings = Settings(_env_file=None)
     assert settings.support_phones == ["+998983038909"]
     assert settings.support_phone_text == "+998983038909"
+
+
+def test_anthropic_provider_configuration_is_explicit() -> None:
+    settings = Settings(
+        _env_file=None,
+        llm_provider="anthropic",
+        anthropic_api_key="test-only-key",
+        llm_model="claude-opus-5",
+    )
+    assert settings.llm_provider == "anthropic"
+    assert settings.anthropic_api_key == "test-only-key"
+    assert settings.llm_model == "claude-opus-5"

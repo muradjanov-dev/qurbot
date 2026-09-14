@@ -59,7 +59,7 @@ Rules:
 1. Return ONLY a valid JSON object with the key "lines":
    {
      "lines": [
-       {"name": "product name", "qty": 10.0,
+       {"name": "product name", "qty": "10.0",
         "unit": "qop" | "kg" | "dona" | "m2" | "m3" | "litr" | "rulon" | "metr" | null,
         "confidence": 0.95}
      ]
@@ -74,7 +74,7 @@ Rules:
    - m3, kub -> m3
    - metr, m, pogon -> metr
    - rulon -> rulon
-4. Default qty to 1.0 if not specified.
+4. Return qty as a decimal string, never a JSON number. Default qty to "1.0" if not specified.
 5. Do NOT output markdown backticks or commentary — output raw JSON only."""
 
 

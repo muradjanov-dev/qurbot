@@ -1,6 +1,6 @@
 import hashlib
 from decimal import Decimal
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -123,8 +123,11 @@ class Settings(BaseSettings):
     inline_button_max_chars: int = 34
 
     # LLM Settings (§6 & §7)
+    llm_provider: Literal["openai", "anthropic"] = "openai"
     openai_api_key: str = "placeholder_openai_key"
     openai_base_url: str | None = None
+    anthropic_api_key: str = "placeholder_anthropic_key"
+    anthropic_base_url: str = "https://api.anthropic.com/v1"
     # Same 100/100 decisions as Terra on the isolated release corpus, at
     # lower measured list-price cost. Only four live calls per model: this
     # is a workload-specific choice, not a general model-quality claim.

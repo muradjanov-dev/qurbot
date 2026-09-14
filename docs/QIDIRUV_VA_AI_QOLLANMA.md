@@ -23,7 +23,11 @@ AIga mahsulotlar faqat ID bilan beriladi va u faqat shu IDlardan birini qaytaris
 
 Har HTTP urinish 8 soniyadan oshmaydi; faqat timeout/tarmoq/429/5xx uchun bitta retry bor. Savatdagi AI ishi 12 soniyada tugaydi. Cache 24 soat va model, prompt versiyasi, til hamda kandidat tartibi bilan ajratilgan.
 
-`LLM_MODEL` orqali model tanlanadi (prod hozir Luna). `LLM_TIMEOUT_SECONDS`, `LLM_TOTAL_DEADLINE_SECONDS`, `LLM_MAX_RETRIES` faqat shu servisga tegishli; secretlarni commit qilmang.
+`LLM_PROVIDER` (`openai` yoki `anthropic`) va `LLM_MODEL` birga modelni tanlaydi.
+Anthropic uchun `ANTHROPIC_API_KEY` ishlatiladi va javoblar native Messages API orqali
+strict JSON schema bilan olinadi; OpenAI uchun `OPENAI_API_KEY` ishlatiladi.
+`LLM_TIMEOUT_SECONDS`, `LLM_TOTAL_DEADLINE_SECONDS`, `LLM_MAX_RETRIES` faqat shu
+servisga tegishli; secretlarni commit qilmang.
 
 ## Tekshirish
 

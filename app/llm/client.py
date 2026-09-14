@@ -1,4 +1,4 @@
-"""Async LLM client for QurBot supporting gpt-5.6-terra and OpenAI-compatible APIs.
+"""Async LLM client for QurBot supporting OpenAI and native Anthropic APIs.
 
 Handles:
 - Structured JSON completion requests with retries and jitter.
@@ -20,7 +20,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from sqlalchemy import func, select
@@ -57,8 +57,81 @@ logger = logging.getLogger(__name__)
 # Values that mean "nobody set a key". Config ships the first, `.env.example`
 # the second; either one reaching the API is a configuration mistake, not a
 # call worth making.
-_PLACEHOLDER_API_KEYS = frozenset({"", "changeme", "placeholder_openai_key"})
+_PLACEHOLDER_API_KEYS = frozenset(
+    {"", "changeme", "placeholder_openai_key", "placeholder_anthropic_key"}
+)
 _http_client: httpx.AsyncClient | None = None
+
+_GUIDE_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"reply": {"type": "string"}},
+    "required": ["reply"],
+    "additionalProperties": False,
+}
+_DISAMBIGUATION_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "canonical_id": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "confidence": {"type": "number"},
+        "reason": {"type": "string"},
+    },
+    "required": ["canonical_id", "confidence", "reason"],
+    "additionalProperties": False,
+}
+_BATCH_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "lines": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "line_no": {"type": "integer"},
+                    "canonical_id": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                    "confidence": {"type": "number"},
+                    "reason": {"type": "string"},
+                    "question": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "search_term": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                },
+                "required": [
+                    "line_no",
+                    "canonical_id",
+                    "confidence",
+                    "reason",
+                    "question",
+                    "search_term",
+                ],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["lines"],
+    "additionalProperties": False,
+}
+_WHOLE_MESSAGE_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "lines": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "qty": {
+                        "type": "string",
+                        "description": "Decimal quantity, for example 10 or 0.5",
+                    },
+                    "unit": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "confidence": {"type": "number"},
+                },
+                "required": ["name", "qty", "unit", "confidence"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["lines"],
+    "additionalProperties": False,
+}
 
 
 async def start_http_client() -> None:
@@ -93,15 +166,23 @@ class LLMClient:
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
+        provider: Literal["openai", "anthropic"] | None = None,
         mock_mode: bool = False,
         evaluation_budget: EvaluationBudget | None = None,
     ) -> None:
         self.session = session
-        self.api_key = api_key or settings.openai_api_key
+        self.provider = provider or settings.llm_provider
+        configured_key = (
+            settings.anthropic_api_key if self.provider == "anthropic" else settings.openai_api_key
+        )
+        self.api_key = api_key or configured_key
         self.model = model or settings.llm_model
-        self.base_url = (
-            base_url or settings.openai_base_url or "https://api.openai.com/v1"
-        ).rstrip("/")
+        configured_base_url = (
+            settings.anthropic_base_url
+            if self.provider == "anthropic"
+            else settings.openai_base_url or "https://api.openai.com/v1"
+        )
+        self.base_url = (base_url or configured_base_url).rstrip("/")
         self.mock_mode = mock_mode
         self.timeout = settings.llm_timeout_seconds
         self.max_retries = min(1, max(0, settings.llm_max_retries))
@@ -174,6 +255,7 @@ class LLMClient:
         response_dict, in_toks, out_toks = await self._call_chat_completions(
             system_prompt=DISAMBIGUATION_SYSTEM_PROMPT,
             user_prompt=user_prompt,
+            output_schema=_DISAMBIGUATION_OUTPUT_SCHEMA,
         )
         latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -251,6 +333,7 @@ class LLMClient:
         response_dict, in_toks, out_toks = await self._call_chat_completions(
             system_prompt=BATCH_DISAMBIGUATION_SYSTEM_PROMPT,
             user_prompt=user_prompt,
+            output_schema=_BATCH_OUTPUT_SCHEMA,
         )
         latency_ms = int((time.monotonic() - start_time) * 1000)
         validated = self._deserialize_batch(response_dict or {}, lines)
@@ -314,6 +397,7 @@ class LLMClient:
         response_dict, in_toks, out_toks = await self._call_chat_completions(
             system_prompt=WHOLE_MESSAGE_SYSTEM_PROMPT,
             user_prompt=user_prompt,
+            output_schema=_WHOLE_MESSAGE_OUTPUT_SCHEMA,
         )
         latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -391,6 +475,7 @@ class LLMClient:
         response_dict, in_toks, out_toks = await self._call_chat_completions(
             system_prompt=CUSTOMER_GUIDE_SYSTEM_PROMPT,
             user_prompt=user_prompt,
+            output_schema=_GUIDE_OUTPUT_SCHEMA,
         )
         latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -429,8 +514,9 @@ class LLMClient:
         self,
         system_prompt: str,
         user_prompt: str,
+        output_schema: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any] | None, int, int]:
-        """Execute request against OpenAI-compatible Chat Completions endpoint."""
+        """Execute one structured completion through the configured provider."""
         self.last_attempt_count = 0
         self.last_outcome = "unavailable"
         if self.api_key in _PLACEHOLDER_API_KEYS:
@@ -442,28 +528,43 @@ class LLMClient:
             logger.warning("LLM API key is a placeholder; skipping call")
             return None, 0, 0
 
-        url = f"{self.base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        # NOTE (deviates from SPEC §6 "Temperature 0, max_tokens 300"): the
-        # configured model rejects both of those parameters outright --
-        # "'max_tokens' is not supported with this model, use
-        # 'max_completion_tokens'" and "'temperature' does not support 0 with
-        # this model. Only the default (1) value is supported." Sending them
-        # returned HTTP 400 on every single call, so Stage 3 silently never
-        # worked in production. Temperature is therefore omitted (model default)
-        # and the cap uses the parameter the model actually accepts.
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "max_completion_tokens": settings.llm_max_completion_tokens,
-            "response_format": {"type": "json_object"},
-        }
+        if self.provider == "anthropic":
+            url = f"{self.base_url}/messages"
+            headers = {
+                "x-api-key": self.api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            }
+            payload: dict[str, Any] = {
+                "model": self.model,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_prompt}],
+                "max_tokens": settings.llm_max_completion_tokens,
+                # QurBot needs a small JSON classification, not agentic reasoning.
+                # Opus 5 enables thinking by default, which adds billed tokens and
+                # latency without improving this constrained task.
+                "thinking": {"type": "disabled"},
+            }
+            if output_schema is not None:
+                payload["output_config"] = {
+                    "format": {"type": "json_schema", "schema": output_schema}
+                }
+        else:
+            url = f"{self.base_url}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+            # The configured OpenAI models reject temperature=0 and max_tokens.
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "max_completion_tokens": settings.llm_max_completion_tokens,
+                "response_format": {"type": "json_object"},
+            }
 
         for attempt in range(self.max_retries + 1):
             in_tokens = out_tokens = 0
@@ -489,19 +590,32 @@ class LLMClient:
                     data = resp.json()
 
                     usage = data.get("usage", {})
-                    in_tokens = int(usage.get("prompt_tokens", 0))
-                    out_tokens = int(usage.get("completion_tokens", 0))
-
-                    choices = data.get("choices", [])
-                    if choices:
-                        content_str = choices[0].get("message", {}).get("content", "{}")
-                        parsed = json.loads(content_str)
-                        if not isinstance(parsed, dict):
-                            self.last_outcome = "invalid_response"
-                            return None, in_tokens, out_tokens
-                        self.last_outcome = "success"
-                        return parsed, in_tokens, out_tokens
-                    return None, in_tokens, out_tokens
+                    if self.provider == "anthropic":
+                        in_tokens = int(usage.get("input_tokens", 0))
+                        out_tokens = int(usage.get("output_tokens", 0))
+                        content_str = next(
+                            (
+                                block.get("text", "")
+                                for block in data.get("content", [])
+                                if block.get("type") == "text"
+                            ),
+                            "",
+                        )
+                    else:
+                        in_tokens = int(usage.get("prompt_tokens", 0))
+                        out_tokens = int(usage.get("completion_tokens", 0))
+                        choices = data.get("choices", [])
+                        content_str = (
+                            choices[0].get("message", {}).get("content", "") if choices else ""
+                        )
+                    if not content_str:
+                        return None, in_tokens, out_tokens
+                    parsed = json.loads(content_str)
+                    if not isinstance(parsed, dict):
+                        self.last_outcome = "invalid_response"
+                        return None, in_tokens, out_tokens
+                    self.last_outcome = "success"
+                    return parsed, in_tokens, out_tokens
             except (
                 TimeoutError,
                 httpx.TimeoutException,
