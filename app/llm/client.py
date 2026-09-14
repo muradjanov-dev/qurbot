@@ -576,7 +576,7 @@ class LLMClient:
             self.last_attempt_count = attempt + 1
             try:
                 async with http_session() as client:
-                    async with asyncio.timeout(min(8.0, self.timeout)):
+                    async with asyncio.timeout(self.timeout):
                         resp = await client.post(
                             url, headers=headers, json=payload, timeout=self.timeout
                         )

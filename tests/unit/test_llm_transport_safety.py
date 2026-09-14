@@ -1,3 +1,4 @@
+import asyncio
 import json
 from decimal import Decimal
 
@@ -90,6 +91,33 @@ async def test_anthropic_provider_uses_native_structured_messages_api(
     assert payload["output_config"]["format"]["type"] == "json_schema"
     assert payload["output_config"]["format"]["schema"]["required"] == ["reply"]
     assert payload["messages"][0]["role"] == "user"
+
+
+async def test_request_uses_configured_attempt_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen_timeouts: list[float | None] = []
+    real_timeout = asyncio.timeout
+
+    def recording_timeout(delay: float | None) -> asyncio.Timeout:
+        seen_timeouts.append(delay)
+        return real_timeout(delay)
+
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                json={"choices": [{"message": {"content": '{"reply":"ok"}'}}]},
+            )
+        )
+    ) as shared:
+        monkeypatch.setattr(module, "_http_client", shared)
+        monkeypatch.setattr(module.asyncio, "timeout", recording_timeout)
+        client = LLMClient(api_key="test-only")
+        client.timeout = 20.0
+        await client._call_chat_completions("system", "user")
+
+    assert seen_timeouts == [20.0]
 
 
 async def test_anthropic_batch_disambiguation_has_a_strict_output_schema(
