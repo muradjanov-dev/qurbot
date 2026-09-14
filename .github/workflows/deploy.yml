@@ -14,7 +14,6 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   build:
-    needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,7 +37,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=qurbot
 
   deploy:
-    needs: build
+    needs: [ci, build]
     runs-on: ubuntu-latest
     environment: production
     permissions:
