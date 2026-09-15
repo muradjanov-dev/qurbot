@@ -172,7 +172,7 @@ class Settings(BaseSettings):
     # catalogue, fills the basket and prepares the order. The order itself is
     # still placed by the customer pressing the confirm button. Without a key,
     # or when a call fails, the deterministic basket flow answers instead.
-    anthropic_api_key: str = "placeholder_anthropic_key"
+    # Shares `anthropic_api_key` with the LLM matching provider above.
     agent_enabled: bool = True
     agent_model: str = "claude-opus-5"
     # Chat replies do not need deep reasoning; low effort keeps the bill small.
