@@ -184,9 +184,8 @@ class Settings(BaseSettings):
     # Plain-text messages remembered between turns (re-sent on every call).
     agent_history_max_messages: int = 12
     agent_search_limit: int = 5
-    # Claude Opus 5 list price, used for the llm_calls cost column.
-    agent_input_usd_per_mtok: Decimal = Decimal("5")
-    agent_output_usd_per_mtok: Decimal = Decimal("25")
+    # Prompt-cache token prices relative to the model's input price
+    # (per-model list prices live in `app.llm.pricing.RATES`).
     agent_cache_read_price_ratio: Decimal = Decimal("0.1")
     agent_cache_write_price_ratio: Decimal = Decimal("1.25")
     # Telegram rejects messages over 4096 characters.
@@ -196,6 +195,12 @@ class Settings(BaseSettings):
     # product or an empty category. Kept here rather than in the string
     # catalogue so it changes in one place across all three languages.
     support_phones: list[str] = ["+998983038909"]
+
+    # End-of-day AI bill for the admins. The worker clock is UTC, so the local
+    # business day (Tashkent, UTC+5) is converted before querying and scheduling.
+    report_utc_offset_hours: int = 5
+    ai_cost_report_hour_utc: int = 18  # 23:55 in Tashkent
+    ai_cost_report_minute: int = 55
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5

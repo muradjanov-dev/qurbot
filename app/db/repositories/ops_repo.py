@@ -11,6 +11,7 @@ from app.db.models.ops import DailyMetrics, Event, LLMCall, PebbleAward, Unmatch
 from app.db.models.order import Basket, BasketLine, Order, Quote
 from app.db.models.shop import ShopProduct
 from app.db.repositories.base import BaseRepository
+from app.domain.llm_costs import ModelSpend
 
 
 class OpsRepository(BaseRepository[UnmatchedQuery]):
@@ -124,6 +125,35 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
         )
         result = await self.session.execute(stmt)
         return Decimal(str(result.scalar() or 0))
+
+    async def get_llm_spend_by_model(self, start: datetime, end: datetime) -> list[ModelSpend]:
+        """Calls, tokens and dollars per model in [start, end). Cache hits cost nothing."""
+        stmt = (
+            select(
+                LLMCall.model,
+                func.count(LLMCall.id),
+                func.coalesce(func.sum(LLMCall.input_tokens), 0),
+                func.coalesce(func.sum(LLMCall.output_tokens), 0),
+                func.coalesce(func.sum(LLMCall.cost_usd), 0),
+            )
+            .where(
+                LLMCall.created_at >= start,
+                LLMCall.created_at < end,
+                LLMCall.cache_hit.is_(False),
+            )
+            .group_by(LLMCall.model)
+        )
+        result = await self.session.execute(stmt)
+        return [
+            ModelSpend(
+                model=model,
+                calls=int(calls),
+                input_tokens=int(tokens_in),
+                output_tokens=int(tokens_out),
+                cost_usd=Decimal(str(cost)),
+            )
+            for model, calls, tokens_in, tokens_out, cost in result.all()
+        ]
 
     async def get_llm_tokens_since(self, since: datetime) -> int:
         """Tokens spent since `since` -- the figure the daily budget is measured in.

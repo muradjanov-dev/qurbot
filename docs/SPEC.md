@@ -547,6 +547,7 @@ Use a Redis sliding window. Silently drop, don't reply, when a flood is detected
 | `recompute_trust_scores` | daily 03:00 | freshness ratio × 0.5 + accept rate × 0.3 + rating × 0.2 |
 | `rollup_metrics` | daily 04:00 | write yesterday's funnel into a `daily_metrics` table |
 | `admin_digest` | daily 08:00 | top unmatched queries, stale price count, orders, GMV |
+| `ai_cost_report` | daily 23:55 Tashkent (18:55 UTC) | today's AI spend in $: total, then per model with its API (Anthropic/OpenAI), calls and tokens; from `llm_calls`, free cache replays excluded |
 | `abandon_baskets` | every 30 min | baskets in `awaiting_confirmation` > 24h → `abandoned` |
 
 All jobs idempotent and safe to re-run. Add a Postgres advisory lock per job name.

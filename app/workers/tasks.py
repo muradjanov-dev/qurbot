@@ -26,6 +26,7 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import async_session_factory
+from app.domain.llm_costs import format_ai_cost_report, local_day_start_utc
 from app.workers.locks import try_acquire_job_lock
 
 logger = get_logger(__name__)
@@ -248,6 +249,32 @@ async def admin_digest(ctx: dict[str, Any]) -> None:
         await _admin_digest_impl(session, ctx["bot"], day_start)
         await session.commit()
         logger.info("admin_digest_done", admins=len(settings.admin_tg_ids))
+
+
+async def _ai_cost_report_impl(session: AsyncSession, bot: Bot, day_start: datetime) -> str:
+    """Tell the admins what AI cost over one local day, per model and API."""
+    day_end = day_start + timedelta(days=1)
+    rows = await OpsRepository(session).get_llm_spend_by_model(day_start, day_end)
+    local_day = day_start + timedelta(hours=settings.report_utc_offset_hours)
+    text = format_ai_cost_report(local_day.strftime("%d.%m.%Y"), rows)
+    for admin_id in settings.admin_tg_ids:
+        try:
+            await bot.send_message(admin_id, text)
+        except TelegramAPIError as exc:
+            logger.warning("ai_cost_report_send_failed", admin_id=admin_id, error=str(exc))
+    return text
+
+
+async def ai_cost_report(ctx: dict[str, Any]) -> None:
+    """End of the local day: DM admins today's AI spend by model and provider."""
+    async with async_session_factory() as session:
+        if not await try_acquire_job_lock(session, "ai_cost_report"):
+            logger.info("job_skipped_locked", job="ai_cost_report")
+            return
+        day_start = local_day_start_utc(datetime.now(UTC), settings.report_utc_offset_hours)
+        await _ai_cost_report_impl(session, ctx["bot"], day_start)
+        await session.commit()
+        logger.info("ai_cost_report_done", admins=len(settings.admin_tg_ids))
 
 
 ORDER_REMINDER_EVENT = "order_confirm_reminder_sent"

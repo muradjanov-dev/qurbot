@@ -41,6 +41,7 @@ from app.domain.agent import parse_agent_qty, trim_history
 from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.optimizer.models import BasketItemQuery
 from app.domain.optimizer.serde import deserialize_variant, serialize_variant
+from app.llm.pricing import RATES
 from app.services.address_service import AddressService
 from app.services.catalog_service import CatalogService
 from app.services.quote_service import QuoteService
@@ -307,7 +308,10 @@ class SalesAgent:
         phones = ", ".join(settings.support_phones)
         system: list[BetaTextBlockParam] = [
             {"type": "text", "text": SYSTEM_PROMPT},
-            {"type": "text", "text": f"Reply in {language}. Support phone: {phones}."},
+            {
+                "type": "text",
+                "text": f"Reply in {language}. Support phone: {phones}.",
+            },
         ]
         messages = cast(list[BetaMessageParam], [*history, {"role": "user", "content": text}])
 
@@ -375,12 +379,14 @@ class SalesAgent:
         usage = response.usage
         cache_read = usage.cache_read_input_tokens or 0
         cache_write = usage.cache_creation_input_tokens or 0
-        input_price = settings.agent_input_usd_per_mtok
+        # A refusal fallback may answer on another model; bill what actually ran.
+        model = str(getattr(response, "model", None) or settings.agent_model)
+        input_price, output_price = RATES.get(model, RATES[settings.agent_model])
         cost = (
             Decimal(usage.input_tokens) * input_price
             + Decimal(cache_read) * input_price * settings.agent_cache_read_price_ratio
             + Decimal(cache_write) * input_price * settings.agent_cache_write_price_ratio
-            + Decimal(usage.output_tokens) * settings.agent_output_usd_per_mtok
+            + Decimal(usage.output_tokens) * output_price
         ) / Decimal(1_000_000)
         cost = cost.quantize(Decimal("0.000001"))
         llm_cost_usd_total.inc(float(cost))
@@ -394,5 +400,8 @@ class SalesAgent:
             output_tokens=usage.output_tokens,
             cost_usd=cost,
             latency_ms=latency_ms,
-            cache_hit=bool(usage.cache_read_input_tokens),
+            # Prompt-cache reads are still billed; cache_hit marks free replays.
+            cache_hit=False,
+            model=model,
+            outcome=str(response.stop_reason),
         )
