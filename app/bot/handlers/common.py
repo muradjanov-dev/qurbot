@@ -28,6 +28,7 @@ from app.db.repositories.address_repo import AddressRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.services.address_service import AddressService, ResolvedLocation
+from app.services.house_shop import is_admin as user_is_admin
 
 router = Router(name="common")
 
@@ -77,14 +78,11 @@ async def callback_set_lang(
         # Already onboarded -- /start just changed the language, so go straight
         # to the menu instead of re-asking district and phone.
         await state.clear()
-        is_shop_owner = user.role in ("shop_owner", "admin")
-        is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+        is_admin = user_is_admin(user)
         await callback.message.edit_text(t("language_changed", lang=new_lang))
         await callback.message.answer(
             t("welcome_done", lang=new_lang),
-            reply_markup=get_main_menu_keyboard(
-                lang=new_lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-            ),
+            reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )
         await callback.answer()
         return
@@ -304,13 +302,10 @@ async def _save_registration_address(
 
 async def _finish_registration(message: Message, user: User, lang: str) -> None:
     """Signup ends here -- the phone is collected at checkout, where it is used."""
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(
-            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
 
@@ -349,13 +344,10 @@ async def msg_contact(
         await state.update_data(contact_phone=message.contact.phone_number)
 
     await state.clear()
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(
-            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
 
@@ -369,13 +361,10 @@ async def msg_skip_phone(
     lang: str,
 ) -> None:
     await state.clear()
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(
-            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
 
@@ -383,13 +372,10 @@ async def msg_skip_phone(
 @router.message(F.text.in_(["❌ Bekor qilish", "❌ Бекор қилиш", "❌ Отмена"]))
 async def cmd_cancel(message: Message, state: FSMContext, user: User, lang: str) -> None:
     await state.clear()
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     await message.answer(
         t("action_cancelled", lang=lang),
-        reply_markup=get_main_menu_keyboard(
-            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
 
@@ -412,13 +398,10 @@ async def menu_contact(message: Message, lang: str) -> None:
 @router.message(F.text.in_(["⬅️ Asosiy menyu", "⬅️ Асосий меню", "⬅️ Главное меню"]))
 async def menu_back_to_main(message: Message, user: User, state: FSMContext, lang: str) -> None:
     await state.clear()
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     await message.answer(
         t("welcome_done", lang=lang),
-        reply_markup=get_main_menu_keyboard(
-            lang=lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-        ),
+        reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
 
@@ -568,15 +551,12 @@ async def callback_change_language(
     user.lang = new_lang
     await session.flush()
 
-    is_shop_owner = user.role in ("shop_owner", "admin")
-    is_admin = user.tg_id in settings.admin_tg_ids or user.role == "admin"
+    is_admin = user_is_admin(user)
     if isinstance(callback.message, Message):
         await callback.message.edit_text(t("language_changed", lang=new_lang))
         await callback.message.answer(
             t("welcome_done", lang=new_lang),
-            reply_markup=get_main_menu_keyboard(
-                lang=new_lang, is_shop_owner=is_shop_owner, is_admin=is_admin
-            ),
+            reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )
     await callback.answer()
 

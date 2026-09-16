@@ -153,36 +153,6 @@ async def test_alias_approve_and_reject(
 
 
 @pytest.mark.asyncio
-async def test_shop_verify_and_deactivate(
-    admin_client: TestClient, test_session: AsyncSession
-) -> None:
-    district = District(name_uz="Chilonzor", name_ru="Чиланзар")
-    test_session.add(district)
-    await test_session.flush()
-    shop = Shop(name="Test Shop", phone="+998901112233", district_id=district.id, address="addr")
-    test_session.add(shop)
-    await test_session.flush()
-
-    list_response = admin_client.get("/admin/shops", auth=AUTH)
-    assert list_response.status_code == 200
-    assert "Test Shop" in list_response.text
-
-    verify_response = admin_client.post(
-        f"/admin/shops/{shop.id}/verify", auth=AUTH, follow_redirects=False
-    )
-    assert verify_response.status_code == 303
-    await test_session.refresh(shop)
-    assert shop.verified_at is not None
-
-    deactivate_response = admin_client.post(
-        f"/admin/shops/{shop.id}/deactivate", auth=AUTH, follow_redirects=False
-    )
-    assert deactivate_response.status_code == 303
-    await test_session.refresh(shop)
-    assert shop.is_active is False
-
-
-@pytest.mark.asyncio
 async def test_offers_filter_and_bulk_deactivate(
     admin_client: TestClient, test_session: AsyncSession
 ) -> None:

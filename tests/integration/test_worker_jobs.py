@@ -107,28 +107,42 @@ async def test_mark_price_staleness(test_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_nudge_shops_sends_only_to_shops_with_aging_offers(
+async def test_price_nudge_goes_to_the_admins_when_prices_age(
     test_session: AsyncSession,
 ) -> None:
+    """Admins set every price, so they are the ones told -- never a shop owner id."""
     district = await _make_district(test_session)
-    shop_aging = await _make_shop(test_session, district.id, owner_tg_id=111)
-    shop_fresh = await _make_shop(test_session, district.id, owner_tg_id=222)
+    shop = await _make_shop(test_session, district.id, owner_tg_id=111)
     now = datetime.now(UTC)
 
     test_session.add_all(
         [
-            _make_offer(shop_aging.id, now - timedelta(days=6), staleness_state="aging"),
-            _make_offer(shop_fresh.id, now - timedelta(days=1), staleness_state="fresh"),
+            _make_offer(shop.id, now - timedelta(days=6), staleness_state="aging"),
+            _make_offer(shop.id, now - timedelta(days=1), staleness_state="fresh"),
         ]
     )
     await test_session.flush()
 
     bot = FakeBot()
-    shops_count, sent = await _nudge_shops_impl(test_session, bot)  # type: ignore[arg-type]
+    aging, sent = await _nudge_shops_impl(test_session, bot)  # type: ignore[arg-type]
 
-    assert shops_count == 1
-    assert sent == 1
-    assert bot.sent[0][0] == 111
+    assert aging == 1
+    assert sent == len(settings.admin_tg_ids)
+    assert {chat_id for chat_id, _ in bot.sent} == set(settings.admin_tg_ids)
+
+
+@pytest.mark.asyncio
+async def test_price_nudge_is_silent_when_every_price_is_fresh(
+    test_session: AsyncSession,
+) -> None:
+    district = await _make_district(test_session)
+    shop = await _make_shop(test_session, district.id)
+    test_session.add(_make_offer(shop.id, datetime.now(UTC), staleness_state="fresh"))
+    await test_session.flush()
+
+    bot = FakeBot()
+    assert await _nudge_shops_impl(test_session, bot) == (0, 0)  # type: ignore[arg-type]
+    assert bot.sent == []
 
 
 @pytest.mark.asyncio
@@ -226,7 +240,7 @@ async def test_admin_digest_sends_to_all_admins(test_session: AsyncSession) -> N
     day_start = datetime(now.year, now.month, now.day, tzinfo=UTC) - timedelta(days=1)
     digest_text = await _admin_digest_impl(test_session, bot, day_start)  # type: ignore[arg-type]
 
-    assert "Eskirgan narxli do'konlar" in digest_text
+    assert "Eskirgan narxlar: <b>1</b>" in digest_text
     assert len(bot.sent) == len(settings.admin_tg_ids)
 
 

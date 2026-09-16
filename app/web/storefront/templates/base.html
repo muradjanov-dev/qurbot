@@ -27,7 +27,7 @@
         <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
         <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
         {% if user %}<a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>{% endif %}
-        {% if is_shop_owner %}<a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
+        {% if is_admin %}<a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
       </nav>
 
       <div class="topbar-side">

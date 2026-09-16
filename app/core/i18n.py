@@ -302,9 +302,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "\n<i>Цены — наше лучшее предложение.</i>",
     },
     "menu_shop_portal": {
-        "uz_latn": "🏪 Do'kon paneli",
-        "uz_cyrl": "🏪 Дўкон панели",
-        "ru": "🏪 Панель магазина",
+        "uz_latn": "📦 Mahsulotlar",
+        "uz_cyrl": "📦 Маҳсулотлар",
+        "ru": "📦 Товары",
     },
     "menu_settings": {
         "uz_latn": "⚙️ Sozlamalar",
@@ -783,11 +783,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "❌ Буюртма <b>#{order_id}</b> оператор томонидан бекор қилинди.",
         "ru": "❌ Заказ <b>#{order_id}</b> отменён оператором.",
     },
-    # Shop Owner Flow
+    # Products panel (admins only)
     "shop_panel_title": {
-        "uz_latn": "🏪 <b>Do'kon boshqaruv paneli</b>\n\nDo'kon: <b>{shop_name}</b>",
-        "uz_cyrl": "🏪 <b>Дўкон бошқарув панели</b>\n\nДўкон: <b>{shop_name}</b>",
-        "ru": "🏪 <b>Панель управления магазином</b>\n\nМагазин: <b>{shop_name}</b>",
+        "uz_latn": "📦 <b>Mahsulotlar va narxlar</b>",
+        "uz_cyrl": "📦 <b>Маҳсулотлар ва нархлар</b>",
+        "ru": "📦 <b>Товары и цены</b>",
     },
     "btn_quick_price": {
         "uz_latn": "✏️ Tez narx yangilash",
@@ -1018,9 +1018,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
     },
     "no_shop_found": {
-        "uz_latn": "Sizga biriktirilgan do'kon topilmadi.",
-        "uz_cyrl": "Сизга бириктирилган дўкон топилмади.",
-        "ru": "Магазин, привязанный к вам, не найден.",
+        "uz_latn": "Katalog hali tayyor emas: tumanlar yuklanmagan.",
+        "uz_cyrl": "Каталог ҳали тайёр эмас: туманлар юкланмаган.",
+        "ru": "Каталог ещё не готов: районы не загружены.",
     },
     # ── Admin panel (in-bot, admins only) ─────────────────────────────────
     "menu_admin_panel": {
@@ -1032,11 +1032,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "📊 Statistika",
         "uz_cyrl": "📊 Статистика",
         "ru": "📊 Статистика",
-    },
-    "adm_btn_shops": {
-        "uz_latn": "🏪 Do'konlar",
-        "uz_cyrl": "🏪 Дўконлар",
-        "ru": "🏪 Магазины",
     },
     "adm_btn_products": {
         "uz_latn": "📦 Mahsulotlar",
@@ -1053,11 +1048,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "🔍 Топилмаган",
         "ru": "🔍 Ненайденные",
     },
-    "adm_btn_add_shop": {
-        "uz_latn": "➕ Do'kon qo'shish",
-        "uz_cyrl": "➕ Дўкон қўшиш",
-        "ru": "➕ Добавить магазин",
-    },
     "adm_btn_admins": {
         "uz_latn": "👑 Adminlar",
         "uz_cyrl": "👑 Админлар",
@@ -1072,9 +1062,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": (
             "📊 <b>Statistika</b>\n\n"
             "👥 Foydalanuvchilar: <b>{users}</b>\n"
-            "🏪 Do'konlar: <b>{shops}</b>\n"
             "📦 Katalog SKU: <b>{skus}</b>\n"
-            "🏷 Do'kon takliflari: <b>{offers}</b>\n"
+            "🏷 Narxlangan mahsulotlar: <b>{offers}</b>\n"
             "🧾 Buyurtmalar: <b>{orders}</b>\n"
             "💰 Umumiy savdo: <b>{gmv} so'm</b>\n"
             "🔍 Topilmagan so'rovlar: <b>{unmatched}</b>"
@@ -1082,9 +1071,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": (
             "📊 <b>Статистика</b>\n\n"
             "👥 Фойдаланувчилар: <b>{users}</b>\n"
-            "🏪 Дўконлар: <b>{shops}</b>\n"
             "📦 Каталог SKU: <b>{skus}</b>\n"
-            "🏷 Дўкон таклифлари: <b>{offers}</b>\n"
+            "🏷 Нархланган маҳсулотлар: <b>{offers}</b>\n"
             "🧾 Буюртмалар: <b>{orders}</b>\n"
             "💰 Умумий савдо: <b>{gmv} сўм</b>\n"
             "🔍 Топилмаган сўровлар: <b>{unmatched}</b>"
@@ -1092,9 +1080,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": (
             "📊 <b>Статистика</b>\n\n"
             "👥 Пользователей: <b>{users}</b>\n"
-            "🏪 Магазинов: <b>{shops}</b>\n"
             "📦 SKU в каталоге: <b>{skus}</b>\n"
-            "🏷 Предложений: <b>{offers}</b>\n"
+            "🏷 Товаров с ценой: <b>{offers}</b>\n"
             "🧾 Заказов: <b>{orders}</b>\n"
             "💰 Оборот: <b>{gmv} сум</b>\n"
             "🔍 Ненайденных запросов: <b>{unmatched}</b>"
@@ -1179,87 +1166,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Бу бўлим фақат админлар учун.",
         "ru": "Этот раздел только для администраторов.",
     },
-    "admin_shop_ask_name": {
-        "uz_latn": "🏪 Yangi do'kon qo'shamiz.\n\nDo'kon nomini yozing:",
-        "uz_cyrl": "🏪 Янги дўкон қўшамиз.\n\nДўкон номини ёзинг:",
-        "ru": "🏪 Добавляем новый магазин.\n\nНапишите название магазина:",
-    },
-    "admin_shop_ask_phone": {
-        "uz_latn": "📞 Do'kon telefon raqamini yozing:",
-        "uz_cyrl": "📞 Дўкон телефон рақамини ёзинг:",
-        "ru": "📞 Напишите телефон магазина:",
-    },
-    "admin_shop_ask_district": {
-        "uz_latn": "📍 Do'kon tumanini tanlang:",
-        "uz_cyrl": "📍 Дўкон туманини танланг:",
-        "ru": "📍 Выберите район магазина:",
-    },
-    "admin_shop_ask_address": {
-        "uz_latn": "🏠 Do'kon manzilini yozing:",
-        "uz_cyrl": "🏠 Дўкон манзилини ёзинг:",
-        "ru": "🏠 Напишите адрес магазина:",
-    },
-    "admin_shop_created": {
-        "uz_latn": (
-            "✅ <b>{name}</b> qo'shildi (ID: {shop_id}).\n\n"
-            "Endi egalarining Telegram ID raqamlarini qo'shing."
-        ),
-        "uz_cyrl": (
-            "✅ <b>{name}</b> қўшилди (ID: {shop_id}).\n\n"
-            "Энди эгаларининг Telegram ID рақамларини қўшинг."
-        ),
-        "ru": (
-            "✅ <b>{name}</b> добавлен (ID: {shop_id}).\n\n"
-            "Теперь добавьте Telegram ID владельцев."
-        ),
-    },
-    "admin_shop_ask_owner": {
-        "uz_latn": (
-            "👤 Egasining Telegram ID raqamini yozing (faqat raqam).\n"
-            "<i>ID ni bilish uchun @userinfobot dan foydalaning.</i>"
-        ),
-        "uz_cyrl": (
-            "👤 Эгасининг Telegram ID рақамини ёзинг (фақат рақам).\n"
-            "<i>ID ни билиш учун @userinfobot дан фойдаланинг.</i>"
-        ),
-        "ru": (
-            "👤 Напишите Telegram ID владельца (только цифры).\n"
-            "<i>Узнать ID можно через @userinfobot.</i>"
-        ),
-    },
-    "admin_owner_added": {
-        "uz_latn": (
-            "✅ Ega qo'shildi: <code>{tg_id}</code>\n\n"
-            "Yana ega qo'shasizmi? ID yozing yoki /done bosing."
-        ),
-        "uz_cyrl": (
-            "✅ Эга қўшилди: <code>{tg_id}</code>\n\n"
-            "Яна эга қўшасизми? ID ёзинг ёки /done босинг."
-        ),
-        "ru": (
-            "✅ Владелец добавлен: <code>{tg_id}</code>\n\n"
-            "Добавить ещё? Напишите ID или нажмите /done."
-        ),
-    },
     "admin_owner_invalid": {
         "uz_latn": "❌ Telegram ID faqat raqamlardan iborat bo'lishi kerak. Qaytadan yozing:",
         "uz_cyrl": "❌ Telegram ID фақат рақамлардан иборат бўлиши керак. Қайтадан ёзинг:",
         "ru": "❌ Telegram ID должен состоять только из цифр. Напишите ещё раз:",
-    },
-    "admin_shop_done": {
-        "uz_latn": "✅ <b>{name}</b> to'liq sozlandi. Egalari: {count} ta.",
-        "uz_cyrl": "✅ <b>{name}</b> тўлиқ созланди. Эгалари: {count} та.",
-        "ru": "✅ <b>{name}</b> полностью настроен. Владельцев: {count}.",
-    },
-    "admin_shops_header": {
-        "uz_latn": "🏪 <b>Do'konlar ({count} ta):</b>\n",
-        "uz_cyrl": "🏪 <b>Дўконлар ({count} та):</b>\n",
-        "ru": "🏪 <b>Магазины ({count}):</b>\n",
-    },
-    "admin_shops_empty": {
-        "uz_latn": "Hozircha do'konlar yo'q. /add_shop orqali qo'shing.",
-        "uz_cyrl": "Ҳозирча дўконлар йўқ. /add_shop орқали қўшинг.",
-        "ru": "Магазинов пока нет. Добавьте через /add_shop.",
     },
     "shp_btn_quick_price": {
         "uz_latn": "✏️ Tez narx yangilash",
@@ -1267,9 +1177,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "✏️ Быстрое обновление цены",
     },
     "shp_btn_products": {
-        "uz_latn": "📋 Mahsulotlarim",
-        "uz_cyrl": "📋 Маҳсулотларим",
-        "ru": "📋 Мои товары",
+        "uz_latn": "📋 Mahsulotlar ro'yxati",
+        "uz_cyrl": "📋 Маҳсулотлар рўйхати",
+        "ru": "📋 Список товаров",
     },
     "shp_btn_add_product": {
         "uz_latn": "➕ Yangi mahsulot",
@@ -1295,16 +1205,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "📦 Buyurtmalar",
         "uz_cyrl": "📦 Буюртмалар",
         "ru": "📦 Заказы",
-    },
-    "shp_choose_shop": {
-        "uz_latn": "🏪 Qaysi do'kon bilan ishlaymiz?",
-        "uz_cyrl": "🏪 Қайси дўкон билан ишлаймиз?",
-        "ru": "🏪 С каким магазином работаем?",
-    },
-    "shp_btn_switch_shop": {
-        "uz_latn": "🔄 Do'konni almashtirish",
-        "uz_cyrl": "🔄 Дўконни алмаштириш",
-        "ru": "🔄 Сменить магазин",
     },
     "shp_quick_price_prompt": {
         "uz_latn": (
@@ -1448,11 +1348,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "Bu mahsulot sizning do'koningizga tegishli emas.",
         "uz_cyrl": "Бу маҳсулот сизнинг дўконингизга тегишли эмас.",
         "ru": "Этот товар не принадлежит вашему магазину.",
-    },
-    "not_shop_owner": {
-        "uz_latn": "Siz do'kon egasi sifatida ro'yxatdan o'tmagansiz.",
-        "uz_cyrl": "Сиз дўкон эгаси сифатида рўйхатдан ўтмагансиз.",
-        "ru": "Вы не зарегистрированы как владелец магазина.",
     },
     # ── Product listing wizard ────────────────────────────────────────────
     "menu_add_product": {
@@ -1987,7 +1882,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "web_nav_basket": {"uz_latn": "Savat", "uz_cyrl": "Сават", "ru": "Корзина"},
     "web_nav_orders": {"uz_latn": "Buyurtmalar", "uz_cyrl": "Буюртмалар", "ru": "Заказы"},
     "web_nav_account": {"uz_latn": "Kabinet", "uz_cyrl": "Кабинет", "ru": "Кабинет"},
-    "web_nav_shop": {"uz_latn": "Do'kon", "uz_cyrl": "Дўкон", "ru": "Магазин"},
+    "web_nav_shop": {"uz_latn": "Mahsulotlar", "uz_cyrl": "Маҳсулотлар", "ru": "Товары"},
     "web_login": {"uz_latn": "Kirish", "uz_cyrl": "Кириш", "ru": "Войти"},
     "web_logout": {"uz_latn": "Chiqish", "uz_cyrl": "Чиқиш", "ru": "Выйти"},
     "web_back": {"uz_latn": "Orqaga", "uz_cyrl": "Орқага", "ru": "Назад"},
@@ -2392,21 +2287,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Бу ҳисоб блокланган.",
         "ru": "Этот аккаунт заблокирован.",
     },
-    # ── Shop portal ───────────────────────────────────────────────────────
+    # ── Admin products panel ──────────────────────────────────────────────
     "web_shop_title": {
-        "uz_latn": "Do'kon paneli",
-        "uz_cyrl": "Дўкон панели",
-        "ru": "Панель магазина",
-    },
-    "web_shop_none": {
-        "uz_latn": "Sizga biriktirilgan do'kon topilmadi.",
-        "uz_cyrl": "Сизга бириктирилган дўкон топилмади.",
-        "ru": "К вам не привязан ни один магазин.",
+        "uz_latn": "Mahsulotlar paneli",
+        "uz_cyrl": "Маҳсулотлар панели",
+        "ru": "Панель товаров",
     },
     "web_shop_products": {
-        "uz_latn": "Mahsulotlarim",
-        "uz_cyrl": "Маҳсулотларим",
-        "ru": "Мои товары",
+        "uz_latn": "Mahsulotlar",
+        "uz_cyrl": "Маҳсулотлар",
+        "ru": "Товары",
     },
     "web_shop_orders": {
         "uz_latn": "Buyurtmalar",

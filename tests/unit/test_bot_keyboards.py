@@ -157,20 +157,22 @@ def test_main_menu_keyboard() -> None:
     # Deterministic: mock settings so row counts do not depend on .env.
     with patch("app.bot.keyboards.reply.settings") as mock:
         mock.storefront_webapp_url = "https://qur.standart-eko.uz"
-        kb_cust = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=False)
+        kb_cust = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
         assert len(kb_cust.keyboard) == 4
         assert kb_cust.keyboard[2][0].text == "☎️ Bog'lanish"
         assert kb_cust.is_persistent is False
 
-        kb_shop = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=True)
-        assert len(kb_shop.keyboard) == 5
+        # Admins get one extra row: the products panel beside the admin panel + WebApp row = 5 rows
+        kb_admin = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
+        assert len(kb_admin.keyboard) == 5
+        assert [b.text for b in kb_admin.keyboard[3]] == ["📦 Mahsulotlar", "🛠 Admin panel"]
 
     with patch("app.bot.keyboards.reply.settings") as mock:
         mock.storefront_webapp_url = None
-        kb_cust_none = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=False)
+        kb_cust_none = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
         assert len(kb_cust_none.keyboard) == 3
-        kb_shop_none = get_main_menu_keyboard(lang="uz_latn", is_shop_owner=True)
-        assert len(kb_shop_none.keyboard) == 4
+        kb_admin_none = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
+        assert len(kb_admin_none.keyboard) == 4
 
 
 def test_phone_request_keyboard() -> None:

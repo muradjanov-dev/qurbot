@@ -26,7 +26,6 @@ from app.bot.keyboards.inline import (
     get_product_list_keyboard,
     get_shop_order_decision_keyboard,
     get_shop_panel_inline_keyboard,
-    get_shop_picker_keyboard,
     get_stock_status_keyboard,
     get_unmatched_row_keyboard,
     get_upload_template_keyboard,
@@ -43,66 +42,34 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.catalog_service import CatalogService
+from app.services.house_shop import is_admin, is_house_shop, shop_for_admin
 from app.services.supplier_service import SupplierService
 
 router = Router(name="shop")
 
 
 # ---------------------------------------------------------------------------
-# Helper: get shop for user
+# Helper: the shop an admin acts on
 # ---------------------------------------------------------------------------
 
 
-ACTIVE_SHOP_KEY = "active_shop_id"
-
-
-async def _get_user_shop(
-    user: User, session: AsyncSession, state: FSMContext | None = None
-) -> Shop | None:
-    """Resolve which shop the owner is currently acting for.
-
-    An owner may run several branches, so the panel records a choice in
-    ACTIVE_SHOP_KEY and every shop action reads it back here. The stored id is
-    re-checked against the owner's shops on each call so a stale or forged
-    selection cannot act on someone else's shop. With exactly one shop the
-    choice is implicit and no prompt is shown.
-    """
-    if user.tg_id is None:
-        return None
-
-    shop_repo = ShopRepository(session)
-    shops = await shop_repo.list_shops_for_owner(user.tg_id)
-    if not shops:
-        return None
-    if len(shops) == 1:
-        return shops[0]
-
-    if state is not None:
-        data = await state.get_data()
-        active_id = data.get(ACTIVE_SHOP_KEY)
-        if active_id is not None:
-            for shop in shops:
-                if shop.id == int(active_id):
-                    return shop
-    return None
+async def _get_user_shop(user: User, session: AsyncSession) -> Shop | None:
+    """Our shop, if this account is an admin. There is no other shop to pick."""
+    return await shop_for_admin(user, session)
 
 
 async def _owns_shop(user: User, session: AsyncSession, shop_id: int) -> bool:
-    """Whether this account manages the given shop.
+    """Whether this account may act on the shop an id names.
 
     Callback payloads carry ids chosen by the client, so every handler acting
-    on a shop-scoped object has to re-check ownership here -- without it
-    anyone could accept another shop's orders or apply its price import just
-    by sending the callback data by hand.
+    on a shop-scoped object re-checks here -- without it anyone could accept an
+    order or apply a price import just by sending the callback data by hand.
     """
-    if user.tg_id is None:
-        return False
-    shops = await ShopRepository(session).list_shops_for_owner(user.tg_id)
-    return any(shop.id == shop_id for shop in shops)
+    return is_admin(user) and await is_house_shop(session, shop_id)
 
 
 async def _batch_belongs_to_user(user: User, session: AsyncSession, batch_id: int) -> bool:
-    """Ownership check for an import batch addressed by callback data."""
+    """Permission check for an import batch addressed by callback data."""
     batch = await ShopRepository(session).get_import_batch(batch_id)
     if batch is None:
         return False
@@ -110,7 +77,7 @@ async def _batch_belongs_to_user(user: User, session: AsyncSession, batch_id: in
 
 
 async def _row_belongs_to_user(user: User, session: AsyncSession, row_id: int) -> bool:
-    """Ownership check for an import row addressed by callback data."""
+    """Permission check for an import row addressed by callback data."""
     row = await session.get(ImportRow, row_id)
     if row is None:
         return False
@@ -118,101 +85,29 @@ async def _row_belongs_to_user(user: User, session: AsyncSession, row_id: int) -
 
 
 # ---------------------------------------------------------------------------
-# Shop Portal Entry
+# Products panel entry
 # ---------------------------------------------------------------------------
 
 
-@router.message(F.text.in_(["🏪 Do'kon paneli", "🏪 Дўкон панели", "🏪 Панель магазина"]))
+@router.message(F.text.in_(["📦 Mahsulotlar", "📦 Маҳсулотлар", "📦 Товары"]))
 async def menu_shop_portal(
     message: Message,
     user: User,
     session: AsyncSession,
-    state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
-        await message.answer(t("not_shop_owner", lang=lang))
+    if not is_admin(user):
+        await message.answer(t("admin_only", lang=lang))
         return
 
-    await _show_shop_panel(message=message, user=user, session=session, state=state, lang=lang)
-
-
-async def _show_shop_panel(
-    message: Message,
-    user: User,
-    session: AsyncSession,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    """Render the panel, asking which branch first when the owner runs several."""
-    if user.tg_id is None:
-        return
-    shop_repo = ShopRepository(session)
-    shops = await shop_repo.list_shops_for_owner(user.tg_id)
-    if not shops:
+    if await _get_user_shop(user, session) is None:
         await message.answer(t("no_shop_found", lang=lang))
         return
-
-    shop = await _get_user_shop(user, session, state)
-    if shop is None:
-        await message.answer(
-            t("shp_choose_shop", lang=lang),
-            reply_markup=get_shop_picker_keyboard(shops, lang=lang),
-        )
-        return
-
+    await session.commit()
     await message.answer(
-        t("shop_panel_title", lang=lang, shop_name=shop.name),
-        reply_markup=get_shop_panel_inline_keyboard(lang=lang, show_switch=len(shops) > 1),
+        t("shop_panel_title", lang=lang),
+        reply_markup=get_shop_panel_inline_keyboard(lang=lang),
     )
-
-
-@router.callback_query(F.data.startswith("shp:pick:"))
-async def cb_pick_shop(
-    callback: CallbackQuery,
-    user: User,
-    session: AsyncSession,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    if not callback.data or not isinstance(callback.message, Message) or user.tg_id is None:
-        await callback.answer()
-        return
-    shop_id = int(callback.data.split(":")[2])
-
-    # Re-check ownership: the id arrives from the client, so it is untrusted.
-    shop_repo = ShopRepository(session)
-    shops = await shop_repo.list_shops_for_owner(user.tg_id)
-    if not any(s.id == shop_id for s in shops):
-        await callback.answer(t("admin_only", lang=lang), show_alert=True)
-        return
-
-    await state.update_data({ACTIVE_SHOP_KEY: shop_id})
-    await callback.message.delete()
-    await _show_shop_panel(
-        message=callback.message, user=user, session=session, state=state, lang=lang
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "shp:switch")
-async def cb_switch_shop(
-    callback: CallbackQuery,
-    user: User,
-    session: AsyncSession,
-    state: FSMContext,
-    lang: str,
-) -> None:
-    if not isinstance(callback.message, Message) or user.tg_id is None:
-        await callback.answer()
-        return
-    shop_repo = ShopRepository(session)
-    shops = await shop_repo.list_shops_for_owner(user.tg_id)
-    await callback.message.answer(
-        t("shp_choose_shop", lang=lang),
-        reply_markup=get_shop_picker_keyboard(shops, lang=lang),
-    )
-    await callback.answer()
 
 
 # ---------------------------------------------------------------------------
@@ -228,10 +123,10 @@ async def cmd_shop_orders(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not is_admin(user):
         return
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -284,7 +179,7 @@ async def callback_shop_order_decision(
         return
 
     if not await _owns_shop(user, session, order_part.shop_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     if action == "accept":
@@ -309,21 +204,11 @@ QUICK_PRICE_REGEX = re.compile(
 )
 
 
-def _is_quick_price_from_owner(message: Message, user: User) -> bool:
-    """Quick-price shorthand, and only from someone allowed to use it.
-
-    The role check has to live in the filter rather than the handler body:
-    a handler whose filters pass counts as having handled the update, so
-    returning early would swallow an ordinary customer's message instead of
-    letting it fall through to the basket parser.
-    """
-    if user.role not in ("shop_owner", "admin"):
-        return False
-    return bool(message.text and QUICK_PRICE_REGEX.match(message.text.strip()))
-
-
+# Only inside the state the panel's button sets. Any admin may also be
+# ordering, and "fanera 18mm 20" is both a valid price shorthand and a valid
+# basket line -- matched on text alone, an admin's basket would silently
+# rewrite a price instead of being quoted.
 @router.message(ShopOwnerStates.waiting_for_quick_price)
-@router.message(_is_quick_price_from_owner)
 async def handle_quick_price_update(
     message: Message,
     user: User,
@@ -331,13 +216,16 @@ async def handle_quick_price_update(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not is_admin(user):
         return
     if not message.text:
         return
 
     match = QUICK_PRICE_REGEX.match(message.text.strip())
     if not match:
+        # Inside the state a line that does not parse is a typo, not a basket;
+        # silence here would leave the admin waiting on a reply that never comes.
+        await message.answer(t("shp_quick_price_prompt", lang=lang))
         return
 
     prod_phrase, price_str = match.groups()
@@ -363,7 +251,7 @@ async def handle_quick_price_update(
         return
 
     # Find or create shop product
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -383,7 +271,7 @@ async def handle_quick_price_update(
             price_per_base_unit=price_val / shop_prod.pack_size
             if shop_prod.pack_size > Decimal("0")
             else price_val,
-            updated_by="shop",
+            updated_by="admin",
         )
     else:
         shop_prod = ShopProduct(
@@ -397,7 +285,7 @@ async def handle_quick_price_update(
             stock_status="in_stock",
             is_active=True,
             staleness_state="fresh",
-            updated_by="shop",
+            updated_by="admin",
         )
         session.add(shop_prod)
 
@@ -422,8 +310,8 @@ async def handle_document_upload(
     state: FSMContext,
     lang: str,
 ) -> None:
-    """Handle Excel/CSV document uploads from shop owners."""
-    if user.role not in ("shop_owner", "admin"):
+    """Handle Excel/CSV price-list uploads from admins."""
+    if not is_admin(user):
         return
     if not message.document:
         return
@@ -433,7 +321,7 @@ async def handle_document_upload(
     if not lower_name.endswith((".xlsx", ".xls", ".csv")):
         return
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -486,7 +374,7 @@ async def handle_document_upload(
     )
 
     # The counts go first, then what was actually read. A summary alone asked
-    # the owner to agree with a number: a row understood as 5 000 instead of
+    # the admin to agree with a number: a row understood as 5 000 instead of
     # 50 000 looked exactly like a correct one until a customer ordered at that
     # price.
     await status_msg.edit_text(summary_text)
@@ -499,7 +387,7 @@ async def _render_import_page(
 ) -> tuple[str, InlineKeyboardMarkup]:
     """One page of a staged price list, ready to send.
 
-    The owner is confirming content, not a count -- so this reads back what the
+    The admin is confirming content, not a count -- so this reads back what the
     file was understood to say, a screen at a time, before anything reaches the
     live price list.
     """
@@ -567,7 +455,7 @@ async def callback_import_page(
     batch_id = int(raw_batch_id)
 
     if not await _batch_belongs_to_user(user, session, batch_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     text, keyboard = await _render_import_page(session, batch_id, int(raw_page), lang)
@@ -593,7 +481,7 @@ async def callback_confirm_batch(
     batch_id = int(callback.data.split(":")[1])
 
     if not await _batch_belongs_to_user(user, session, batch_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     shop_repo = ShopRepository(session)
@@ -620,7 +508,7 @@ async def callback_cancel_batch(
     batch_id = int(callback.data.split(":")[1])
 
     if not await _batch_belongs_to_user(user, session, batch_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     shop_repo = ShopRepository(session)
@@ -648,7 +536,7 @@ async def callback_review_batch(
     batch_id = int(callback.data.split(":")[1])
 
     if not await _batch_belongs_to_user(user, session, batch_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     shop_repo = ShopRepository(session)
@@ -705,7 +593,7 @@ async def callback_resolve_import_row(
     canonical_id = int(parts[2])
 
     if not await _row_belongs_to_user(user, session, row_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     shop_repo = ShopRepository(session)
@@ -787,7 +675,7 @@ async def callback_skip_import_row(
     row_id = int(callback.data.split(":")[1])
 
     if not await _row_belongs_to_user(user, session, row_id):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
     shop_repo = ShopRepository(session)
@@ -855,10 +743,10 @@ async def cmd_shop_products(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not is_admin(user):
         return
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -893,7 +781,7 @@ async def callback_products_page(
         return
     page = int(callback.data.split(":")[1])
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await callback.answer()
         return
@@ -957,10 +845,10 @@ async def cmd_delivery_rules(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not is_admin(user):
         return
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -981,6 +869,9 @@ async def cmd_delivery_rules(
     else:
         text += "Hali sozlamalar mavjud emas.\n"
 
+    # The title already shows the "dostavka ..." format, so the next line the
+    # admin types is read as a rule rather than as a basket.
+    await state.set_state(ShopOwnerStates.editing_delivery_rule)
     await message.answer(text)
 
 
@@ -993,7 +884,6 @@ DELIVERY_RULE_REGEX = re.compile(
 
 
 @router.message(ShopOwnerStates.editing_delivery_rule)
-@router.message(lambda msg: bool(msg.text and DELIVERY_RULE_REGEX.match(msg.text.strip())))
 async def handle_delivery_rule_update(
     message: Message,
     user: User,
@@ -1001,13 +891,14 @@ async def handle_delivery_rule_update(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin"):
+    if not is_admin(user):
         return
     if not message.text:
         return
 
     match = DELIVERY_RULE_REGEX.match(message.text.strip())
     if not match:
+        await message.answer(t("delivery_rules_title", lang=lang))
         return
 
     district_name, fee_str, free_above_str, min_order_str = match.groups()
@@ -1015,7 +906,7 @@ async def handle_delivery_rule_update(
     free_above = Decimal(free_above_str) if free_above_str else None
     min_order = Decimal(min_order_str) if min_order_str else Decimal("0")
 
-    shop = await _get_user_shop(user, session, state)
+    shop = await _get_user_shop(user, session)
     if not shop:
         await message.answer(t("no_shop_found", lang=lang))
         return
@@ -1038,6 +929,7 @@ async def handle_delivery_rule_update(
         min_order=min_order,
     )
     await session.commit()
+    await state.clear()
 
     dist_display = target_district.name_uz if target_district else district_name
     await message.answer(t("delivery_rule_updated", lang=lang, district=dist_display))
@@ -1052,7 +944,7 @@ async def handle_delivery_rule_update(
 async def cb_shop_quick_price(
     callback: CallbackQuery, user: User, state: FSMContext, lang: str
 ) -> None:
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
     await state.set_state(ShopOwnerStates.waiting_for_quick_price)
@@ -1062,7 +954,7 @@ async def cb_shop_quick_price(
 
 @router.callback_query(F.data == "shp:upload")
 async def cb_shop_upload(callback: CallbackQuery, user: User, lang: str) -> None:
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
     await callback.message.answer(
@@ -1074,8 +966,8 @@ async def cb_shop_upload(callback: CallbackQuery, user: User, lang: str) -> None
 
 @router.callback_query(F.data == "shp:template")
 async def cb_shop_template(callback: CallbackQuery, user: User, lang: str) -> None:
-    """Hand the owner a price list already in the shape the importer reads."""
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    """Hand the admin a price list already in the shape the importer reads."""
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
 
@@ -1098,7 +990,7 @@ async def cb_shop_products(
     lang: str,
 ) -> None:
     """Reuses the paginated /shop_products listing rather than a second one."""
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
     await cmd_shop_products(
@@ -1115,7 +1007,7 @@ async def cb_shop_delivery(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
     await cmd_delivery_rules(
@@ -1132,7 +1024,7 @@ async def cb_shop_orders(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if user.role not in ("shop_owner", "admin") or not isinstance(callback.message, Message):
+    if not is_admin(user) or not isinstance(callback.message, Message):
         await callback.answer()
         return
     await cmd_shop_orders(
@@ -1142,7 +1034,7 @@ async def cb_shop_orders(
 
 
 # ---------------------------------------------------------------------------
-# Product CRUD (owner edits their own listings; admins may edit any)
+# Product CRUD (admins only)
 # ---------------------------------------------------------------------------
 
 
@@ -1151,17 +1043,12 @@ async def _load_editable_product(
 ) -> ShopProduct | None:
     """Fetch a product the caller is allowed to edit.
 
-    Product ids arrive in callback data, so ownership is re-checked here rather
-    than trusted; admins bypass the shop check because they moderate every shop.
+    Product ids arrive in callback data, so permission is re-checked here
+    rather than trusted: only admins edit products.
     """
-    product = await session.get(ShopProduct, product_id)
-    if product is None:
+    if not is_admin(user):
         return None
-    if user.role == "admin" or user.tg_id in settings.admin_tg_ids:
-        return product
-    if await _owns_shop(user, session, product.shop_id):
-        return product
-    return None
+    return await session.get(ShopProduct, product_id)
 
 
 def _render_product_card(product: ShopProduct, lang: str) -> str:
@@ -1251,7 +1138,7 @@ async def handle_product_price_value(
         price_per_base_unit=(
             price / product.pack_size if product.pack_size > Decimal("0") else price
         ),
-        updated_by="admin" if user.role == "admin" else "shop",
+        updated_by="admin",
     )
     await session.commit()
     await state.set_state(None)

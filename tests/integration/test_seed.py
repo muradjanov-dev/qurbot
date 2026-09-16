@@ -51,17 +51,16 @@ async def test_seed_database(test_session: AsyncSession) -> None:
     alias_count = (await test_session.execute(select(func.count(ProductAlias.id)))).scalar()
     assert alias_count is not None and alias_count >= prod_count
 
-    # Verify Shops
-    shop_count = (await test_session.execute(select(func.count(Shop.id)))).scalar()
-    assert shop_count is not None and shop_count >= 20
-
-    # Verify Offers
+    # One shop, ours, and only the prices we actually quote. There is no demo
+    # market: generated partner prices would be numbers that mean nothing.
+    shop_names = (await test_session.execute(select(Shop.name))).scalars().all()
+    assert shop_names == [OUR_SHOP_NAME]
     offer_count = (await test_session.execute(select(func.count(ShopProduct.id)))).scalar()
-    assert offer_count is not None and offer_count >= 500
+    assert offer_count == len(our_priced_rows())
 
-    # Verify Users
-    user_count = (await test_session.execute(select(func.count(User.id)))).scalar()
-    assert user_count is not None and user_count >= 5
+    # Sample users, and nobody holding the retired shop-owner role.
+    roles = set((await test_session.execute(select(User.role))).scalars().all())
+    assert roles and roles <= {"customer", "admin"}
 
 
 @pytest.mark.asyncio
@@ -86,11 +85,11 @@ async def test_seeding_twice_is_idempotent(test_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_catalog_only_seed_skips_the_demo_market(test_session: AsyncSession) -> None:
+async def test_catalog_only_seed_writes_only_our_shop(test_session: AsyncSession) -> None:
     """Rolling out catalogue changes must not create placeholder shops.
 
-    This is what runs on every deploy, against a database holding real shops
-    and real offers -- so it has to add products without touching the market.
+    This is what runs on every deploy, against a database holding real offers
+    -- so it has to add products without inventing anything around them.
     """
     await seed_database(test_session, catalog_only=True)
 
@@ -103,16 +102,15 @@ async def test_catalog_only_seed_skips_the_demo_market(test_session: AsyncSessio
     assert categories and categories > 0
     # Our own shop is seeded here on purpose: its prices are real offers a
     # customer can order against, and a deploy that skipped them would leave
-    # the catalogue priced by nobody. What must stay out is the demo market.
+    # the catalogue priced by nobody.
     own_shops = (
         (await test_session.execute(select(Shop.name).where(Shop.name == OUR_SHOP_NAME)))
         .scalars()
         .all()
     )
     assert len(own_shops) == 1
+    assert settings.house_shop_name == OUR_SHOP_NAME
     assert shops == 1, "catalog-only must create no shop but our own"
-    # Same reasoning as the shop above: these are our own prices, the only
-    # ones a customer can order against before a partner uploads anything.
     assert offers == len(our_priced_rows()), "catalog-only must create our own offers and no others"
 
 

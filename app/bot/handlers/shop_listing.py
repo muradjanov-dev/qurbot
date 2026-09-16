@@ -1,6 +1,6 @@
 """Shop product upload: one message in, a live offer out.
 
-The intended interaction is a single action -- the owner sends photos with a
+The intended interaction is a single action -- an admin sends photos with a
 caption like "Sement M400 50kg qop 52000 so'm" and the product is created. The
 handlers below exist mostly to cover what that caption did *not* say: they ask
 for exactly the missing piece and nothing more.
@@ -52,6 +52,7 @@ from app.domain.listing import (
     PhotoRef,
     parse_listing_caption,
 )
+from app.services.house_shop import is_admin, shop_for_admin
 from app.services.listing_service import ListingService
 
 logger = logging.getLogger(__name__)
@@ -74,13 +75,7 @@ def _service(session: AsyncSession) -> ListingService:
 
 
 async def _shop_for(user: User, session: AsyncSession) -> Shop | None:
-    if user.tg_id is None:
-        return None
-    return await ShopRepository(session).get_shop_by_owner_tg_id(user.tg_id)
-
-
-def _is_shop_owner(user: User) -> bool:
-    return user.role in ("shop_owner", "admin")
+    return await shop_for_admin(user, session)
 
 
 async def _current_draft(
@@ -278,8 +273,8 @@ async def menu_add_product(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if not _is_shop_owner(user):
-        await message.answer(t("not_shop_owner", lang=lang))
+    if not is_admin(user):
+        await message.answer(t("admin_only", lang=lang))
         return
     if await _shop_for(user, session) is None:
         await message.answer(t("no_shop_found", lang=lang))
@@ -298,17 +293,17 @@ async def cb_add_product(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    """The shop panel's own button for the same thing the menu entry starts.
+    """The products panel's own button for the same thing the menu entry starts.
 
     It was drawn on the panel but never wired: tapping it did nothing at all,
-    which is worse than not offering it -- the owner concludes the upload is
+    which is worse than not offering it -- the admin concludes the upload is
     broken and stops trying.
     """
     if not isinstance(callback.message, Message):
         await callback.answer()
         return
-    if not _is_shop_owner(user):
-        await callback.answer(t("not_shop_owner", lang=lang), show_alert=True)
+    if not is_admin(user):
+        await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
     if await _shop_for(user, session) is None:
         await callback.answer(t("no_shop_found", lang=lang), show_alert=True)
@@ -329,14 +324,14 @@ async def handle_product_photo(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    """A photo from a shop owner is a product listing.
+    """A photo from an admin is a product listing.
 
     Album members arrive as separate updates sharing media_group_id, and only
     the first carries the caption. Looking the draft up by that id means the
     later photos attach to the listing the first one started -- no in-memory
     album buffer, and nothing lost if the photos straddle a restart.
     """
-    if not _is_shop_owner(user) or not message.photo or user.tg_id is None:
+    if not is_admin(user) or not message.photo or user.tg_id is None:
         return
     shop = await _shop_for(user, session)
     if shop is None:

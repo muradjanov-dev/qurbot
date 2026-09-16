@@ -5,14 +5,13 @@ from app.core.config import settings
 from app.core.i18n import t
 
 
-def get_main_menu_keyboard(
-    lang: str = "uz_latn", is_shop_owner: bool = False, is_admin: bool = False
-) -> ReplyKeyboardMarkup:
+def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> ReplyKeyboardMarkup:
     """Build main menu reply keyboard.
 
     "Ro'yxat yuborish" gets its own full-width row because it is the primary
-    action -- everything else in the menu exists to support it. The shop and
-    admin entries are only rendered for accounts that hold those roles.
+    action -- everything else in the menu exists to support it. Products and
+    the admin panel share one row, and only admins see it: nobody else manages
+    the catalogue.
     """
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("menu_send_list", lang=lang))
@@ -21,12 +20,10 @@ def get_main_menu_keyboard(
     builder.button(text=t("menu_contact", lang=lang))
 
     extra_rows = []
-    if is_shop_owner:
-        builder.button(text=t("menu_shop_portal", lang=lang))
-        extra_rows.append(1)
     if is_admin:
+        builder.button(text=t("menu_shop_portal", lang=lang))
         builder.button(text=t("menu_admin_panel", lang=lang))
-        extra_rows.append(1)
+        extra_rows.append(2)
 
     if settings.storefront_webapp_url:
         builder.button(
@@ -55,7 +52,7 @@ def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
 
 
 def get_shop_panel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
-    """Build the shop-owner panel keyboard.
+    """Build the products panel keyboard.
 
     Carries the entry point for the product upload wizard, which is otherwise
     unreachable -- its handler matches on this button's exact text.

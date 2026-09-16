@@ -11,13 +11,12 @@ Seeds:
 - 20 Standard Categories
 - Canonical Products + search aliases (Uzbek Latin, Uzbek Cyrillic, Russian)
 - 13 Districts (Tashkent City + Region)
-- Demo market (shops, offers, sample users) -- skipped by `--catalog-only`,
-  which is what deploys run
+- QurBot's own offers, on the single house shop
+- Sample users -- skipped by `--catalog-only`, which is what deploys run
 """
 
 import asyncio
 import logging
-import random
 import re
 import sys
 from dataclasses import dataclass
@@ -27,13 +26,13 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models import (
     CanonicalProduct,
     Category,
     District,
     ProductAlias,
     Shop,
-    ShopDeliveryRule,
     ShopProduct,
     ShopProductPriceTier,
     Unit,
@@ -45,8 +44,6 @@ from app.domain.normalize.text import normalize_query, normalize_text
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seed")
 
-# Set fixed seed for reproducibility
-random.seed(42)
 
 # --- 1. Units ---
 UNITS_DATA = [
@@ -522,191 +519,7 @@ DISTRICTS_DATA = [
     },
 ]
 
-# --- 4. Shops Data ---
-SHOPS_DATA = [
-    {
-        "name": "Baraka Qurilish",
-        "legal_name": "Baraka Qurilish Savdo MCHJ",
-        "phone": "+998901112233",
-        "district_idx": 0,
-        "address": "Chilonzor 19-mavze, 45",
-        "rating": Decimal("4.9"),
-        "trust_score": Decimal("0.98"),
-    },
-    {
-        "name": "Nur Stroy Yunusobod",
-        "legal_name": "Nur Stroy Grand OK",
-        "phone": "+998902223344",
-        "district_idx": 1,
-        "address": "Yunusobod 12-mavze, 12",
-        "rating": Decimal("4.8"),
-        "trust_score": Decimal("0.95"),
-    },
-    {
-        "name": "O'rikzor Mega Stroy",
-        "legal_name": "Mega Qurilish Savdo MCHJ",
-        "phone": "+998903334455",
-        "district_idx": 6,
-        "address": "O'rikzor bozori, 4-blok 12-do'kon",
-        "rating": Decimal("4.7"),
-        "trust_score": Decimal("0.92"),
-    },
-    {
-        "name": "Mirzo Ulug'bek Qurilish Markazi",
-        "legal_name": "Ulugbek Stroy MCHJ",
-        "phone": "+998904445566",
-        "district_idx": 2,
-        "address": "Buyuk Ipak Yo'li ko'chasi 110",
-        "rating": Decimal("4.9"),
-        "trust_score": Decimal("0.97"),
-    },
-    {
-        "name": "Yakkasaroy Master Stroy",
-        "legal_name": "Master Stroy Servis OK",
-        "phone": "+998905556677",
-        "district_idx": 3,
-        "address": "Shota Rustaveli ko'chasi 88",
-        "rating": Decimal("4.6"),
-        "trust_score": Decimal("0.90"),
-    },
-    {
-        "name": "Jomboy Savdo Markazi",
-        "legal_name": "Jomboy Qurilish Savdo",
-        "phone": "+998906667788",
-        "district_idx": 4,
-        "address": "Qoratosh ko'chasi 15",
-        "rating": Decimal("4.5"),
-        "trust_score": Decimal("0.89"),
-    },
-    {
-        "name": "Olmazor Temir va Sement",
-        "legal_name": "Olmazor Stroy MCHJ",
-        "phone": "+998907778899",
-        "district_idx": 5,
-        "address": "Keles yo'li 45",
-        "rating": Decimal("4.7"),
-        "trust_score": Decimal("0.94"),
-    },
-    {
-        "name": "Sergeli Qurilish Bozori 7-do'kon",
-        "legal_name": "Sergeli Qurilish Savdo",
-        "phone": "+998908889900",
-        "district_idx": 8,
-        "address": "Sergeli Yangi bozor 7",
-        "rating": Decimal("4.8"),
-        "trust_score": Decimal("0.96"),
-    },
-    {
-        "name": "Mirobod Elite Stroy",
-        "legal_name": "Elite Building Materials MCHJ",
-        "phone": "+998909990011",
-        "district_idx": 7,
-        "address": "Nukus ko'chasi 42",
-        "rating": Decimal("4.9"),
-        "trust_score": Decimal("0.99"),
-    },
-    {
-        "name": "Yashnobod Qurilish Baza",
-        "legal_name": "Yashnobod Stroy Baza MCHJ",
-        "phone": "+998931110022",
-        "district_idx": 11,
-        "address": "Farg'ona Yo'li 180",
-        "rating": Decimal("4.6"),
-        "trust_score": Decimal("0.91"),
-    },
-    {
-        "name": "Bektemir Metal Trade",
-        "legal_name": "Bektemir Metal Trade MCHJ",
-        "phone": "+998932220033",
-        "district_idx": 9,
-        "address": "Bektemir shoh ko'chasi 25",
-        "rating": Decimal("4.8"),
-        "trust_score": Decimal("0.95"),
-    },
-    {
-        "name": "Uchtepa Kafel & Plitka",
-        "legal_name": "Uchtepa Ceramic OK",
-        "phone": "+998933330044",
-        "district_idx": 6,
-        "address": "Farhod bozori 102",
-        "rating": Decimal("4.7"),
-        "trust_score": Decimal("0.93"),
-    },
-    {
-        "name": "Akfa & Knauf Rasmiy Dileri",
-        "legal_name": "Plaster & Profile Diler MCHJ",
-        "phone": "+998934440055",
-        "district_idx": 0,
-        "address": "Bunyodkor ko'chasi 50",
-        "rating": Decimal("5.0"),
-        "trust_score": Decimal("0.99"),
-    },
-    {
-        "name": "Ideal Sement Chilonzor",
-        "legal_name": "Ideal Sement Savdo",
-        "phone": "+998935550066",
-        "district_idx": 0,
-        "address": "Lutfiy ko'chasi 18",
-        "rating": Decimal("4.5"),
-        "trust_score": Decimal("0.90"),
-    },
-    {
-        "name": "StroyMarket Yunusobod",
-        "legal_name": "StroyMarket Express MCHJ",
-        "phone": "+998936660077",
-        "district_idx": 1,
-        "address": "Amir Temur ko'chasi 140",
-        "rating": Decimal("4.8"),
-        "trust_score": Decimal("0.97"),
-    },
-    {
-        "name": "Toshkent Santexnika Markazi",
-        "legal_name": "Aqua Therm Servis MCHJ",
-        "phone": "+998937770088",
-        "district_idx": 4,
-        "address": "Beruniy ko'chasi 33",
-        "rating": Decimal("4.9"),
-        "trust_score": Decimal("0.98"),
-    },
-    {
-        "name": "Grand Bo'yoq va Lak",
-        "legal_name": "Grand Paints MCHJ",
-        "phone": "+998938880099",
-        "district_idx": 2,
-        "address": "Parkent ko'chasi 77",
-        "rating": Decimal("4.7"),
-        "trust_score": Decimal("0.93"),
-    },
-    {
-        "name": "Quruvchi Do'st Sergeli",
-        "legal_name": "Builder Friend OK",
-        "phone": "+998941112244",
-        "district_idx": 8,
-        "address": "Choshtepa ko'chasi 14",
-        "rating": Decimal("4.6"),
-        "trust_score": Decimal("0.91"),
-    },
-    {
-        "name": "Keles Stroy Baza",
-        "legal_name": "Keles Qurilish Ta'minot",
-        "phone": "+998942223355",
-        "district_idx": 5,
-        "address": "Qorasaroy ko'chasi 99",
-        "rating": Decimal("4.7"),
-        "trust_score": Decimal("0.94"),
-    },
-    {
-        "name": "Toshkent Viloyat Stroy Terminal",
-        "legal_name": "Region Stroy Terminal MCHJ",
-        "phone": "+998943334466",
-        "district_idx": 12,
-        "address": "Bekobod yo'nalishi 5-km",
-        "rating": Decimal("4.8"),
-        "trust_score": Decimal("0.96"),
-    },
-]
-
-# --- 5. Sample Users ---
+# --- 4. Sample Users ---
 USERS_DATA = [
     {
         "tg_id": 917456291,
@@ -736,24 +549,10 @@ USERS_DATA = [
         "role": "customer",
         "lang": "ru",
     },
-    {
-        "tg_id": 300001,
-        "username": "baraka_owner",
-        "full_name": "Baraka Do'kon Egasi",
-        "role": "shop_owner",
-        "lang": "uz_latn",
-    },
-    {
-        "tg_id": 300002,
-        "username": "nur_owner",
-        "full_name": "Nur Stroy Rahbari",
-        "role": "shop_owner",
-        "lang": "uz_cyrl",
-    },
 ]
 
 
-# --- 6. Catalogue -------------------------------------------------------
+# --- 5. Catalogue -------------------------------------------------------
 # The catalogue is transcribed from supplier price lists, one section per
 # list. Nothing here is invented: a row exists because a supplier published
 # it, and `reference_price` is None wherever the list says "Kelishiladi"
@@ -2284,8 +2083,8 @@ def generate_aliases_for_product(item: CatalogItem) -> list[dict[str, Any]]:
 # every price follows.
 USD_TO_UZS = Decimal("11820.48")  # O'zbekiston MB, 02.09.2026
 
-OUR_SHOP_NAME = "QurBot"
-OUR_SHOP_PHONE = "+998935394994"
+OUR_SHOP_NAME = settings.house_shop_name
+OUR_SHOP_PHONE = settings.house_shop_phone
 
 # (size, grade, thickness mm, retail $, wholesale $, wholesale from N sheets)
 _OUR_PLYWOOD_PRICES: list[tuple[str, str, str, str, str, int]] = [
@@ -2638,109 +2437,15 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
     await seed_own_offers(session)
 
     if catalog_only:
-        logger.info("catalog_only: stopping before shops, offers and demo users.")
+        logger.info("catalog_only: stopping before demo users.")
         return
 
-    # 5. Shops & Delivery Rules
-    logger.info("Seeding shops and delivery rules...")
-    shop_objs: list[Shop] = []
-    for s in SHOPS_DATA:
-        dist = district_objs[s["district_idx"]]
-        stmt = select(Shop).where(Shop.name == s["name"])
-        res = await session.execute(stmt)
-        shop = res.scalars().first()
-        if not shop:
-            shop = Shop(
-                name=s["name"],
-                legal_name=s["legal_name"],
-                phone=s["phone"],
-                district_id=dist.id,
-                address=s["address"],
-                lat=dist.centroid_lat,
-                lng=dist.centroid_lng,
-                is_active=True,
-                rating=s["rating"],
-                trust_score=s["trust_score"],
-                working_hours={"mon_fri": "08:00-19:00", "sat_sun": "08:00-18:00"},
-                payment_methods=["cash", "card", "click", "payme", "bank_transfer"],
-            )
-            session.add(shop)
-            await session.flush()
-
-            # Add default delivery rule (all districts)
-            rule_all = ShopDeliveryRule(
-                shop_id=shop.id,
-                district_id=None,
-                fee=Decimal("50000.00"),
-                free_above=Decimal("5000000.00"),
-                min_order=Decimal("100000.00"),
-                eta_hours=24,
-            )
-            session.add(rule_all)
-
-            # Add specific local district rule (cheaper / faster)
-            rule_local = ShopDeliveryRule(
-                shop_id=shop.id,
-                district_id=dist.id,
-                fee=Decimal("50000.00"),
-                free_above=Decimal("5000000.00"),
-                min_order=Decimal("50000.00"),
-                eta_hours=12,
-            )
-            session.add(rule_local)
-
-        shop_objs.append(shop)
-
+    # There is no demo market: QurBot sells from one shop, and its offers were
+    # written above from real price lists. Partner shops with generated prices
+    # would only put numbers in front of a customer that mean nothing.
     await session.flush()
 
-    # 6. Offers (Shop Products) - generate ~4,000 realistic offers
-    logger.info("Seeding offers (shop_products)...")
-    offer_count = 0
-    for shop in shop_objs:
-        # Each shop carries 70% to 90% of all canonical products
-        carried_products = random.sample(
-            canonical_objs, k=int(len(canonical_objs) * random.uniform(0.70, 0.90))
-        )
-        for prod in carried_products:
-            # Find base product details
-            base_pack_size = Decimal("1.0000")
-            base_pack_unit = prod.base_unit_code
-            price_multiplier = Decimal(str(round(random.uniform(0.92, 1.15), 4)))
-
-            # Realistic price based on product
-            estimated_price = Decimal("50000.00") * price_multiplier
-            price_per_base = estimated_price / base_pack_size
-
-            # Check if offer already exists
-            stmt = select(ShopProduct).where(
-                ShopProduct.shop_id == shop.id,
-                ShopProduct.canonical_id == prod.id,
-            )
-            res = await session.execute(stmt)
-            offer = res.scalars().first()
-            if not offer:
-                offer = ShopProduct(
-                    shop_id=shop.id,
-                    canonical_id=prod.id,
-                    raw_name=prod.name_uz,
-                    raw_unit=prod.base_unit_code,
-                    pack_size=base_pack_size,
-                    pack_unit_code=base_pack_unit,
-                    price_per_pack=estimated_price.quantize(Decimal("1.00")),
-                    price_per_base_unit=price_per_base.quantize(Decimal("0.0001")),
-                    currency="UZS",
-                    stock_status="in_stock",
-                    min_qty=Decimal("1.0000"),
-                    is_active=True,
-                    staleness_state="fresh",
-                )
-                session.add(offer)
-                offer_count += 1
-
-    await session.flush()
-    logger.info(f"Seeded {offer_count} shop offers.")
-
-    # 7. Users
+    # 5. Users
     logger.info("Seeding users...")
     for u in USERS_DATA:
         stmt = select(User).where(User.tg_id == u["tg_id"])

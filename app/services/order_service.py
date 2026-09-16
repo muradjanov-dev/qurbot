@@ -5,10 +5,10 @@ an order, and the per-shop parts the sourcing splits into -- plus the pebbles
 the customer earned, granted inside the same transaction so a customer can
 never see "order placed" without them.
 
-The customer-facing half of an order is deliberately white-labelled (they buy
-from QurBot, not from a list of vendors), so shop identity only ever appears in
-the two places that need it: `order_shop_parts`, and the notifications this
-module sends to the shops themselves and to the admin group.
+Everything is sold from QurBot's own stock, so the per-shop parts always name
+the one house shop; they are kept because the order schema and the optimizer
+still speak in shop groups. The admins are the only people told about an
+order -- there is no third party to notify.
 
 Both doorways come through here -- the bot's confirm button and the website's
 checkout -- so an order means the same thing whichever way it was placed, and a
@@ -31,7 +31,6 @@ from app.core.logging import get_logger
 from app.db.models.order import Basket, Order, OrderItem, OrderShopPart, Quote
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
-from app.db.repositories.shop_repo import ShopRepository
 from app.domain.optimizer.models import QuoteVariant, ShopQuoteGroup
 from app.domain.optimizer.serde import serialize_variant
 from app.domain.rewards import pebbles_for_order
@@ -63,6 +62,8 @@ async def place_order(
     variant: QuoteVariant,
     contact_phone: str,
     delivery_address: str,
+    delivery_lat: Decimal | None = None,
+    delivery_lng: Decimal | None = None,
     comment: str | None = None,
     raw_text: str = "",
     source: str = "web",
@@ -100,6 +101,9 @@ async def place_order(
         status="new",
         contact_phone=contact_phone,
         delivery_address=delivery_address,
+        # Only a complete pin is stored: half a coordinate is not a place.
+        delivery_lat=delivery_lat if delivery_lng is not None else None,
+        delivery_lng=delivery_lng if delivery_lat is not None else None,
         comment=comment,
         grand_total_quoted=variant.grand_total_uzs,
     )
@@ -163,45 +167,16 @@ async def notify_order(
     *,
     user: User,
 ) -> None:
-    """Tell each shop its part of the order, and the admins the whole thing.
+    """Tell the admins about a new order.
 
-    Best-effort by design: this runs after the order is committed, so a shop
-    with no `owner_tg_id` on file or a failed send is logged and skipped rather
-    than allowed to fail an order that already exists.
+    Best-effort by design: this runs after the order is committed, so a failed
+    send is logged and skipped rather than allowed to fail an order that
+    already exists.
     """
     order = placed.order
-    shop_repo = ShopRepository(session)
     customer_name = user.full_name or str(user.tg_id)
     phone = order.contact_phone
     address = order.delivery_address
-
-    for part, group in placed.parts:
-        shop = await shop_repo.get(part.shop_id)
-        if not shop or not shop.owner_tg_id:
-            continue
-        lines_str = "\n".join(
-            f"• {escape(line.product_name)} × {_format_qty(line.billed_qty)} "
-            f"{escape(line.pack_unit)}"
-            for line in group.lines
-        )
-        # A shop is told what to prepare and nothing about who it is for.
-        # QurBot collects from the shop and delivers; the customer and the shop
-        # never deal with each other. Sending the name, phone and address here
-        # handed a shop everything it needed to go around us -- and handed a
-        # customer's personal details to a third party that has no use for
-        # them. The admins get the full picture; they are the ones arranging
-        # the pickup.
-        text = (
-            f"🆕 <b>Yangi buyurtma #{order.id}</b>\n\n"
-            f"{lines_str}\n\n"
-            f"Mollar summasi: <b>{part.subtotal:,.0f} so'm</b>\n\n"
-            f"📦 Iltimos, tayyorlab qo'ying — <b>kuryerimiz olib ketadi</b>.\n"
-            f"Mijoz bilan bog'lanish shart emas, hammasi QurBot orqali."
-        )
-        try:
-            await bot.send_message(shop.owner_tg_id, text)
-        except TelegramAPIError as exc:
-            logger.warning("shop_order_notify_failed", shop_id=shop.id, error=str(exc))
 
     admin_sections: list[str] = []
     items_total = Decimal("0")
@@ -215,7 +190,6 @@ async def notify_order(
             for line in group.lines
         )
         admin_sections.append(
-            f"🏪 <b>{escape(group.shop_name)}</b>\n"
             f"{lines_str}\n"
             f"   <i>Jami: {part.subtotal:,.0f} + dostavka {part.delivery_fee:,.0f} so'm</i>"
         )
@@ -234,12 +208,29 @@ async def notify_order(
         f"Dostavka: {delivery_total:,.0f} so'm\n"
         f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>"
     )
+    lat, lng = order.delivery_lat, order.delivery_lng
     for admin_id in settings.admin_tg_ids:
         try:
-            await bot.send_message(
+            sent = await bot.send_message(
                 admin_id,
                 admin_text,
                 reply_markup=get_admin_order_decision_keyboard(order.id),
             )
         except TelegramAPIError as exc:
             logger.warning("admin_order_notify_failed", admin_id=admin_id, error=str(exc))
+            continue
+        if lat is None or lng is None:
+            continue
+        # The text alone is not enough to deliver on: a typed Tashkent address
+        # often does not resolve to a findable place. The pin goes as a native
+        # location, threaded under the order so the two are never confused
+        # when several orders arrive together.
+        try:
+            await bot.send_location(
+                admin_id,
+                latitude=float(lat),
+                longitude=float(lng),
+                reply_to_message_id=getattr(sent, "message_id", None),
+            )
+        except TelegramAPIError as exc:
+            logger.warning("admin_order_location_failed", admin_id=admin_id, error=str(exc))

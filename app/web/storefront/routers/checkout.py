@@ -122,7 +122,7 @@ async def api_create_order(
     address = await _resolve_address(session, user, body, lang=lang)
     if address is None:
         return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
-    address_text, district_id = address
+    address_text, district_id, pin = address
 
     basket = await validate_lines(session, [line.model_dump() for line in body.lines])
     if not basket.items:
@@ -158,6 +158,8 @@ async def api_create_order(
         variant=variant,
         contact_phone=phone,
         delivery_address=address_text,
+        delivery_lat=pin[0] if pin else None,
+        delivery_lng=pin[1] if pin else None,
         comment=comment,
         raw_text="\n".join(
             f"{item.needed_qty} {item.unit_code} {item.name_uz}" for item in basket.items
@@ -185,8 +187,12 @@ async def _resolve_address(
     body: OrderIn,
     *,
     lang: str,
-) -> tuple[str, int | None] | None:
+) -> tuple[str, int | None, tuple[Decimal, Decimal] | None] | None:
     """Work out where this order goes, saving a new place for next time.
+
+    Returns (address text, district, pin). The pin is None only for a typed
+    address with no location, and travels onto the order so the admins get a
+    map point rather than just words.
 
     A saved address is re-read from the database rather than trusted from the
     request, and checked to belong to this customer -- the id came from a client.
@@ -197,7 +203,7 @@ async def _resolve_address(
         stored = await repo.get(body.address_id)
         if stored is None or stored.user_id != user.id:
             return None
-        return stored.address_text, stored.district_id
+        return stored.address_text, stored.district_id, (stored.lat, stored.lng)
 
     typed = (body.address_text or "").strip()
     if not typed:
@@ -206,7 +212,7 @@ async def _resolve_address(
     if body.lat is None or body.lng is None:
         # Typed with no pin: usable for delivery, but there is nothing durable
         # to anchor a saved place on, so it is used for this order only.
-        return typed, user.district_id
+        return typed, user.district_id, None
 
     service = AddressService(session)
     resolved = await service.resolve(body.lat, body.lng, lang=lang)
@@ -221,4 +227,4 @@ async def _resolve_address(
         typed,
         make_default=not await repo.get_default(user.id),
     )
-    return saved.address_text, saved.district_id
+    return saved.address_text, saved.district_id, (saved.lat, saved.lng)

@@ -1,16 +1,14 @@
-"""A shop is told what to prepare, and nothing about who it is for.
+"""A new order reaches the admins, and nobody else.
 
-QurBot buys from the shop and delivers to the customer; the two never deal with
-each other. The shop notification used to carry the customer's name, phone and
-delivery address -- everything a shop needs to go around the platform on the
-next order, and personal data handed to a third party with no use for it.
-
-The admins still get the whole picture: they are the ones arranging the pickup.
+QurBot sells from its own stock; there is no partner shop to tell. The admins
+get the whole picture -- customer, phone, address, goods -- because they are the
+ones confirming and delivering the order.
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,30 +24,46 @@ CUSTOMER_NAME = "Sunnatilloh Aka"
 CUSTOMER_PHONE = "+998901234567"
 CUSTOMER_ADDRESS = "Chilonzor 9-kvartal, 42-uy"
 
-OWNER_TG_ID = 5550001
+# A leftover owner id on the shop row must not turn into a recipient.
+LEGACY_OWNER_TG_ID = 5550001
 
 
 class FakeBot:
     def __init__(self) -> None:
         self.sent: list[tuple[int, str]] = []
         self.markups: list[object | None] = []
+        self.locations: list[tuple[int, float, float, object]] = []
+        self._next_id = 100
 
-    async def send_message(self, chat_id: int, text: str, **kwargs: object) -> None:
+    async def send_message(self, chat_id: int, text: str, **kwargs: object) -> SimpleNamespace:
         self.sent.append((chat_id, text))
         self.markups.append(kwargs.get("reply_markup"))
+        self._next_id += 1
+        return SimpleNamespace(message_id=self._next_id)
+
+    async def send_location(
+        self, chat_id: int, *, latitude: float, longitude: float, **kwargs: object
+    ) -> None:
+        self.locations.append((chat_id, latitude, longitude, kwargs.get("reply_to_message_id")))
 
 
-async def _placed_order(session: AsyncSession) -> tuple[PlacedOrder, User]:
+PIN_LAT = Decimal("41.2856800")
+PIN_LNG = Decimal("69.2034600")
+
+
+async def _placed_order(
+    session: AsyncSession, *, with_pin: bool = True
+) -> tuple[PlacedOrder, User]:
     district = District(region="Toshkent", name_uz="Chilonzor", name_ru="Чиланзар")
     session.add(district)
     await session.flush()
 
     shop = Shop(
-        name="Ark buloq",
-        phone="+998901112233",
+        name=settings.house_shop_name,
+        phone=settings.house_shop_phone,
         district_id=district.id,
-        address="Chilonzor 9",
-        owner_tg_id=OWNER_TG_ID,
+        address="Toshkent",
+        owner_tg_id=LEGACY_OWNER_TG_ID,
         is_active=True,
     )
     user = User(tg_id=424242, lang="uz_latn", full_name=CUSTOMER_NAME)
@@ -77,6 +91,8 @@ async def _placed_order(session: AsyncSession) -> tuple[PlacedOrder, User]:
         status="new",
         contact_phone=CUSTOMER_PHONE,
         delivery_address=CUSTOMER_ADDRESS,
+        delivery_lat=PIN_LAT if with_pin else None,
+        delivery_lng=PIN_LNG if with_pin else None,
         grand_total_quoted=Decimal("1510000"),
     )
     session.add(order)
@@ -126,39 +142,29 @@ async def _placed_order(session: AsyncSession) -> tuple[PlacedOrder, User]:
 
 
 @pytest.mark.asyncio
-async def test_the_shop_never_learns_who_the_customer_is(test_session: AsyncSession) -> None:
+async def test_only_the_admins_are_told(test_session: AsyncSession) -> None:
     placed, user = await _placed_order(test_session)
     bot = FakeBot()
 
     await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
 
-    shop_messages = [text for chat_id, text in bot.sent if chat_id == OWNER_TG_ID]
-    assert shop_messages, "the shop still has to be told to prepare the goods"
-    message = shop_messages[0]
-
-    assert CUSTOMER_PHONE not in message
-    assert CUSTOMER_ADDRESS not in message
-    assert CUSTOMER_NAME not in message
-
-    # What it must contain: the goods, and who is collecting them.
-    assert "Fanera 12 mm 1525x1525" in message
-    assert "kuryerimiz" in message.lower()
+    recipients = {chat_id for chat_id, _ in bot.sent}
+    assert recipients == set(settings.admin_tg_ids)
+    assert LEGACY_OWNER_TG_ID not in recipients
 
 
 @pytest.mark.asyncio
-async def test_the_admins_still_get_the_whole_picture(test_session: AsyncSession) -> None:
-    """Someone has to arrange the pickup, and that someone is us."""
+async def test_the_admins_get_the_whole_picture(test_session: AsyncSession) -> None:
+    """Someone has to confirm and deliver the order, and that someone is us."""
     placed, user = await _placed_order(test_session)
     bot = FakeBot()
 
     await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
 
-    admin_messages = [text for chat_id, text in bot.sent if chat_id in settings.admin_tg_ids]
-    assert admin_messages
-    joined = "\n".join(admin_messages)
+    joined = "\n".join(text for _, text in bot.sent)
     assert CUSTOMER_PHONE in joined
     assert CUSTOMER_ADDRESS in joined
-    assert "Ark buloq" in joined
+    assert "Fanera 12 mm 1525x1525" in joined
 
     admin_markups = [
         markup
@@ -171,3 +177,30 @@ async def test_the_admins_still_get_the_whole_picture(test_session: AsyncSession
         f"admin_order:confirm:{placed.order.id}",
         f"admin_order:cancel:{placed.order.id}",
     ]
+
+
+@pytest.mark.asyncio
+async def test_each_admin_gets_the_pin_as_a_telegram_location(test_session: AsyncSession) -> None:
+    """Words alone are not deliverable; the courier opens the pin."""
+    placed, user = await _placed_order(test_session)
+    bot = FakeBot()
+
+    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
+
+    assert {chat_id for chat_id, *_ in bot.locations} == set(settings.admin_tg_ids)
+    for _, lat, lng, reply_to in bot.locations:
+        assert (lat, lng) == (float(PIN_LAT), float(PIN_LNG))
+        # Threaded under that admin's order message, so it cannot be mistaken
+        # for another order's location.
+        assert reply_to is not None
+
+
+@pytest.mark.asyncio
+async def test_a_typed_address_sends_no_location(test_session: AsyncSession) -> None:
+    placed, user = await _placed_order(test_session, with_pin=False)
+    bot = FakeBot()
+
+    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
+
+    assert bot.sent, "the order text still goes out"
+    assert bot.locations == []

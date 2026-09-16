@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     # admin_tg_ids so a promoted admin cannot promote further admins.
     super_admin_tg_ids: list[int] = [917456291]
 
+    # QurBot sells from one stock of its own; there are no partner shops. The
+    # `shops` table is kept because offers, delivery terms and order parts all
+    # hang off a shop row, but exactly one row is live -- this one -- and only
+    # admins manage it. Changing the name here without renaming the row would
+    # orphan every offer, so treat it as an identifier, not a label.
+    house_shop_name: str = "QurBot"
+    house_shop_phone: str = "+998935394994"
+
     # Database
     database_url: str = "postgresql+asyncpg://qurbot:qurbot@localhost:5432/qurbot"
     database_echo: bool = False
@@ -161,10 +169,39 @@ class Settings(BaseSettings):
     # on every future basket, so a wrong one is expensive to notice.
     llm_alias_writeback_min_confidence: float = 0.70
 
+    # AI sales agent: Claude talks to the customer, finds products in our own
+    # catalogue, fills the basket and prepares the order. The order itself is
+    # still placed by the customer pressing the confirm button. Without a key,
+    # or when a call fails, the deterministic basket flow answers instead.
+    # Shares `anthropic_api_key` with the LLM matching provider above.
+    agent_enabled: bool = True
+    agent_model: str = "claude-opus-5"
+    # Chat replies do not need deep reasoning; low effort keeps the bill small.
+    agent_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
+    agent_max_tokens: int = 2000
+    agent_timeout_seconds: float = 60.0
+    # Tool calls per customer message before the agent must answer.
+    agent_max_tool_rounds: int = 6
+    # Plain-text messages remembered between turns (re-sent on every call).
+    agent_history_max_messages: int = 12
+    agent_search_limit: int = 5
+    # Prompt-cache token prices relative to the model's input price
+    # (per-model list prices live in `app.llm.pricing.RATES`).
+    agent_cache_read_price_ratio: Decimal = Decimal("0.1")
+    agent_cache_write_price_ratio: Decimal = Decimal("1.25")
+    # Telegram rejects messages over 4096 characters.
+    agent_reply_max_chars: int = 3500
+
     # Where a customer is sent when the catalog cannot help: an out-of-stock
     # product or an empty category. Kept here rather than in the string
     # catalogue so it changes in one place across all three languages.
     support_phones: list[str] = ["+998983038909"]
+
+    # End-of-day AI bill for the admins. The worker clock is UTC, so the local
+    # business day (Tashkent, UTC+5) is converted before querying and scheduling.
+    report_utc_offset_hours: int = 5
+    ai_cost_report_hour_utc: int = 18  # 23:55 in Tashkent
+    ai_cost_report_minute: int = 55
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5

@@ -5,9 +5,11 @@ from __future__ import annotations
 from arq import cron
 from arq.cron import CronJob
 
+from app.core.config import settings
 from app.workers.tasks import (
     abandon_baskets,
     admin_digest,
+    ai_cost_report,
     mark_price_staleness,
     nudge_shops,
     recompute_trust_scores,
@@ -21,6 +23,12 @@ CRON_JOBS: list[CronJob] = [
     cron(recompute_trust_scores, hour=3, minute=0),  # daily 03:00
     cron(rollup_metrics, hour=4, minute=0),  # daily 04:00
     cron(admin_digest, hour=8, minute=0),  # daily 08:00
+    # End of the Tashkent day (worker clock is UTC): today's AI bill.
+    cron(
+        ai_cost_report,
+        hour=settings.ai_cost_report_hour_utc,
+        minute=settings.ai_cost_report_minute,
+    ),
     cron(abandon_baskets, minute={0, 30}),  # every 30 min
     # Every 5 minutes: a customer who pressed confirm is waiting, and an
     # order nobody has touched is the one failure the customer sees.

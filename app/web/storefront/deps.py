@@ -22,6 +22,7 @@ from app.core.i18n import t
 from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
+from app.services.house_shop import is_admin
 from app.web.storefront.session import LANG_COOKIE, SESSION_COOKIE, normalize_lang, read_session
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -172,13 +173,10 @@ def render(
     **context: Any,
 ) -> HTMLResponse:
     """Render a storefront page with the context every template expects."""
-    is_shop_owner = user is not None and user.role in ("shop_owner", "admin")
-    is_admin = user is not None and (user.role == "admin" or user.tg_id in settings.admin_tg_ids)
     payload: dict[str, Any] = {
         "user": user,
         "lang": lang,
-        "is_shop_owner": is_shop_owner,
-        "is_admin": is_admin,
+        "is_admin": is_admin(user),
         "flash": flash_message(request, lang),
         "path": request.url.path,
         "js_messages": js_messages(lang),
