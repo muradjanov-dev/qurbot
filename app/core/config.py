@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     bot_token: str = "placeholder_token"
     webhook_secret: str = "placeholder_secret"
     webhook_base_url: str = "http://localhost:8000"
+    storefront_webapp_url: str | None = None
     register_webhook: bool = True
     # How often to re-check that Telegram still points at this deployment.
     # Registering once at startup does not survive a rolling deploy's outgoing
