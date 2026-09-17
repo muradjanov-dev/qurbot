@@ -36,7 +36,7 @@ Production deployment status is recorded only after inspecting the running SHA.
 
 ## Progress
 
-- Implementation and local/staging validation complete; production rollout pending.
+- Implementation, local/staging checks and production rollout completed.
 - VPS staging Postgres 18 and Redis 7 run on a separate Compose network, with
   a dedicated volume; no production customer data has been copied.
 - Production comparison is read-only; matching uses explicit source identities
@@ -55,6 +55,35 @@ Production deployment status is recorded only after inspecting the running SHA.
   fallback, handoff, claim conflict, user ownership, operator reply and AI resume.
 - Staging `/chat` returns HTTP 200; functional order smoke passes and verifies
   rollback. Baseline and new additive migrations were exercised on PostgreSQL18.
+
+## Production verification — 2026-09-17
+
+- Runtime commit: `f091c131f7a24cc3ae3a8c8d21b13b6364b1b120`, verified on both
+  production web and worker image tags. Web healthy, worker running; schema head
+  `0018_conversations`.
+- [GitHub CI/build/deploy run](https://github.com/muradjanov-dev/qurbot/actions/runs/35242188844)
+  completed successfully. Measured job times: build 50s, CI 189s, deploy 34s;
+  build and CI run in parallel. Existing pip/GHA Docker caches retained; local
+  Docker builds additionally cache pip downloads.
+- [Production chat](https://qur.standart-eko.uz/chat) returns 200. `/ready`
+  verifies both PostgreSQL and Redis. Full rollback-only HTTP checkout smoke
+  passed before and after import, including repricing and repeated confirmation.
+- Fresh pre-release backup:
+  `/srv/backups/postgres/qurbot-pre-sales-release-20260917.dump`, 1,610,784 bytes,
+  mode 0600; full archive decoding passed before deploy.
+- Production import committed **20** new timber variants; second transactional
+  apply created **0**. All 20 have unverified stock, 18 are price-on-request,
+  and **0** live sale offers were invented. Existing offer price/stock count and
+  content hash match the pre-release snapshot.
+- A newly imported public product page returns 200 and does not expose an
+  automatic add-to-cart control.
+- Source review is still required for 57 held rows described above. A separate
+  staging Telegram bot token is still required for real-device test-bot checks;
+  mocked bot tests, staging HTTP/worker checks and live three-language model
+  tests are complete. No production customer records were copied to staging.
+
+The runtime SHA above is intentionally immutable. Subsequent documentation-only
+commits do not imply a different deployed application image.
 
 ## Repeatable staging and functional check
 
