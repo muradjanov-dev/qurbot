@@ -15,6 +15,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.core.config import settings
 from app.core.i18n import t
@@ -25,6 +26,8 @@ from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct
 from app.db.models.user import User, UserAddress
 from app.db.session import get_db_session
 from app.main import app
+from app.services.cart_service import CartService
+from app.web.storefront.security import csrf_token
 from app.web.storefront.session import SESSION_COOKIE, sign_session
 
 
@@ -141,13 +144,27 @@ async def _seed(session: AsyncSession) -> Fixtures:
     )
     session.add(user)
     await session.flush()
+    await CartService(session).set_item(user.id, product.id, "10", expected_revision=0)
     await session.commit()
 
     return Fixtures(category.id, product.id, shop.id, user.id)
 
 
 def _sign_in(client: TestClient, user_id: int, tg_id: int = CUSTOMER_TG_ID) -> None:
-    client.cookies.set(SESSION_COOKIE, sign_session(user_id=user_id, tg_id=tg_id))
+    cookie = sign_session(user_id=user_id, tg_id=tg_id)
+    client.cookies.set(SESSION_COOKIE, cookie)
+    request = Request(
+        {"type": "http", "headers": [(b"cookie", f"{SESSION_COOKIE}={cookie}".encode())]}
+    )
+    client.headers["X-CSRF-Token"] = csrf_token(request)
+
+
+def _checkout_fields(expected_total: str = "620000") -> dict[str, object]:
+    return {
+        "cart_revision": 1,
+        "idempotency_key": "storefront-fixture",
+        "expected_total": expected_total,
+    }
 
 
 def _basket_line(product_id: int, qty: str = "10") -> dict[str, object]:
@@ -300,6 +317,7 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
         json={
             "lines": [_basket_line(data.product_id)],
             "phone": "90 123 45 67",
+            **_checkout_fields(),
             "address_text": "Chilonzor 7-kvartal, 12-uy",
             "comment": "2-qavat",
         },
@@ -356,6 +374,7 @@ async def test_order_to_a_saved_address_carries_its_pin(
             "lines": [_basket_line(data.product_id)],
             "phone": "+998901234567",
             "address_id": address.id,
+            **_checkout_fields("630000"),
         },
     ).json()
     assert body["ok"] is True, body
@@ -380,6 +399,7 @@ async def test_order_refuses_a_total_the_client_made_up(
             "phone": "+998901234567",
             "address_text": "Chilonzor 7",
             "expected_total": "1",
+            **_checkout_fields("1"),
         },
     ).json()
 
@@ -401,6 +421,7 @@ async def test_order_refuses_a_bad_phone_number(
         json={
             "lines": [_basket_line(data.product_id)],
             "phone": "12345",
+            **_checkout_fields(),
             "address_text": "Chilonzor 7",
         },
     ).json()
@@ -431,6 +452,7 @@ async def test_order_refuses_another_customers_saved_address(
     body = client.post(
         "/api/order",
         json={
+            **_checkout_fields(),
             "lines": [_basket_line(data.product_id)],
             "phone": "+998901234567",
             "address_id": address.id,
@@ -533,6 +555,7 @@ async def test_admin_answers_an_order_and_the_customer_sees_it(
     placed = client.post(
         "/api/order",
         json={
+            **_checkout_fields(),
             "lines": [_basket_line(data.product_id)],
             "phone": "+998901234567",
             "address_text": "Chilonzor 7",
@@ -567,6 +590,7 @@ async def test_a_retired_partner_shop_is_out_of_reach(
     client.post(
         "/api/order",
         json={
+            **_checkout_fields(),
             "lines": [_basket_line(data.product_id)],
             "phone": "+998901234567",
             "address_text": "Chilonzor 7",

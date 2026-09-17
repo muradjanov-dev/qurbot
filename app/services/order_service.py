@@ -17,23 +17,28 @@ change to what an order *is* cannot land on one and miss the other.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from decimal import Decimal
+from hashlib import sha256
 from html import escape
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.keyboards.inline import get_admin_order_decision_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.db.models.cart import CheckoutAttempt
 from app.db.models.order import Basket, Order, OrderItem, OrderShopPart, Quote
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
 from app.domain.optimizer.models import QuoteVariant, ShopQuoteGroup
 from app.domain.optimizer.serde import serialize_variant
 from app.domain.rewards import pebbles_for_order
+from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 
 logger = get_logger(__name__)
 
@@ -49,6 +54,33 @@ class PlacedOrder:
     # it, and only to say so -- an operator chasing an order wants to know
     # where the customer is, and the two channels reach them differently.
     source: str = "bot"
+    replayed: bool = False
+
+
+def checkout_fingerprint(payload: dict[str, object]) -> str:
+    return sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
+async def checkout_replay(
+    session: AsyncSession,
+    *,
+    user_id: int,
+    idempotency_key: str,
+    fingerprint: str,
+) -> PlacedOrder | None:
+    if not idempotency_key or len(idempotency_key) > 160:
+        raise InvalidCartItem("invalid_idempotency_key")
+    await CartService(session).lock(user_id)
+    receipt = await session.get(CheckoutAttempt, (user_id, idempotency_key))
+    if receipt is None:
+        return None
+    if receipt.fingerprint != fingerprint:
+        raise InvalidCartItem("idempotency_conflict")
+    order = await session.scalar(
+        select(Order).where(Order.id == receipt.order_id, Order.user_id == user_id)
+    )
+    assert order is not None
+    return PlacedOrder(order=order, pebbles=0, parts=(), replayed=True)
 
 
 def _format_qty(value: Decimal) -> str:
@@ -67,12 +99,37 @@ async def place_order(
     comment: str | None = None,
     raw_text: str = "",
     source: str = "web",
+    idempotency_key: str | None = None,
+    fingerprint: str | None = None,
+    cart_revision: int | None = None,
 ) -> PlacedOrder:
     """Persist a basket, its quote snapshot, the order, and its shop parts.
 
     Flushes but does not commit: the caller owns the transaction boundary, so
     that an order and whatever else it triggers land together or not at all.
     """
+    if idempotency_key is not None:
+        if fingerprint is None:
+            raise InvalidCartItem("missing_fingerprint")
+        replay = await checkout_replay(
+            session, user_id=user.id, idempotency_key=idempotency_key, fingerprint=fingerprint
+        )
+        if replay is not None:
+            return replay
+    if not variant.is_orderable:
+        raise InvalidCartItem("quote_not_orderable")
+    if cart_revision is not None:
+        # Clear in the SAME transaction as order/reward/receipt creation.
+        cart_service = CartService(session)
+        snapshot = await cart_service.get(user.id)
+        if snapshot.revision != cart_revision:
+            raise CartConflict(snapshot.revision)
+        for product_id in {
+            line.canonical_id for group in variant.shop_groups for line in group.lines
+        }:
+            snapshot = await cart_service.remove_item(
+                user.id, product_id, expected_revision=snapshot.revision
+            )
     basket = Basket(user_id=user.id, raw_text=raw_text or "web basket", status="ordered")
     session.add(basket)
     await session.flush()
@@ -96,6 +153,7 @@ async def place_order(
     await session.flush()
 
     order = Order(
+        is_test=user.tg_id in settings.test_tg_ids,
         quote_id=quote.id,
         user_id=user.id,
         status="new",
@@ -138,14 +196,18 @@ async def place_order(
             )
 
     ops_repo = OpsRepository(session)
-    pebbles = pebbles_for_order(order.grand_total_quoted, settings.pebble_rate_per_order)
+    pebbles = (
+        0
+        if order.is_test
+        else pebbles_for_order(order.grand_total_quoted, settings.pebble_rate_per_order)
+    )
     if pebbles > 0:
         await ops_repo.award_pebbles(
             user_id=user.id, amount=pebbles, source="order", order_id=order.id
         )
 
     await ops_repo.log_event(
-        "order_created",
+        "test_order_created" if order.is_test else "order_created",
         user_id=user.id,
         props={
             "order_id": order.id,
@@ -155,6 +217,20 @@ async def place_order(
             "grand_total": str(variant.grand_total_uzs),
         },
     )
+    await ops_repo.log_event(
+        "test_checkout_confirmed" if order.is_test else "checkout_confirmed",
+        user_id=user.id,
+        props={"order_id": order.id, "source": source, "cart_revision": cart_revision},
+    )
+    if idempotency_key is not None:
+        session.add(
+            CheckoutAttempt(
+                user_id=user.id,
+                idempotency_key=idempotency_key,
+                fingerprint=fingerprint,
+                order_id=order.id,
+            )
+        )
     await session.flush()
 
     return PlacedOrder(order=order, pebbles=pebbles, parts=tuple(parts), source=source)
@@ -173,6 +249,8 @@ async def notify_order(
     send is logged and skipped rather than allowed to fail an order that
     already exists.
     """
+    if placed.replayed or placed.order.is_test:
+        return
     order = placed.order
     customer_name = user.full_name or str(user.tg_id)
     phone = order.contact_phone

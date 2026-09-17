@@ -23,11 +23,13 @@ from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
 from app.services.house_shop import is_admin
+from app.web.storefront.security import csrf_token
 from app.web.storefront.session import LANG_COOKIE, SESSION_COOKIE, normalize_lang, read_session
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals.update(
+    csrf_token=csrf_token,
     t=t,
     format_uzs=format_uzs,
     format_qty=format_qty,

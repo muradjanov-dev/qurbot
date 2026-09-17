@@ -6,6 +6,7 @@ from app.bot.dispatcher import create_bot
 from app.core.config import settings
 from app.core.logging import configure_logging, configure_sentry, get_logger
 from app.llm.client import close_http_client, start_http_client
+from app.services.conversation_service import process_conversation
 from app.workers.schedules import CRON_JOBS
 
 logger = get_logger(__name__)
@@ -30,6 +31,7 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
 class WorkerSettings:
     """arq entrypoint: `arq app.workers.main.WorkerSettings`."""
 
+    functions = [process_conversation]
     cron_jobs = CRON_JOBS
     redis_settings = RedisSettings.from_dsn(settings.redis_url)
     on_startup = on_startup

@@ -82,6 +82,9 @@ class OrderRepository(BaseRepository[Order]):
         part = await self.session.get(OrderShopPart, order_shop_part_id)
         if not part:
             return None
+        order = await self.session.get(Order, part.order_id)
+        if order is None or order.is_test:
+            return None
         part.shop_response = response
         part.responded_at = datetime.now(UTC)
         await self.session.flush()
@@ -95,21 +98,31 @@ class OrderRepository(BaseRepository[Order]):
         """
         stmt = (
             select(Order)
-            .where(Order.status == "new", Order.created_at <= cutoff)
+            .where(Order.status == "new", Order.created_at <= cutoff, Order.is_test.is_(False))
             .order_by(Order.created_at)
         )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def list_recent_orders(self, limit: int = 50) -> Sequence[Order]:
-        stmt = select(Order).order_by(Order.created_at.desc()).limit(limit)
+        stmt = (
+            select(Order)
+            .where(Order.is_test.is_(False))
+            .order_by(Order.created_at.desc())
+            .limit(limit)
+        )
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
     # ─── Shop-side views of an order ───────────────────────────────
 
     async def get_shop_part(self, part_id: int) -> OrderShopPart | None:
-        return await self.session.get(OrderShopPart, part_id)
+        result = await self.session.execute(
+            select(OrderShopPart)
+            .join(Order, Order.id == OrderShopPart.order_id)
+            .where(OrderShopPart.id == part_id, Order.is_test.is_(False))
+        )
+        return result.scalar_one_or_none()
 
     async def list_parts_for_shop(self, shop_id: int, limit: int = 50) -> Sequence[OrderShopPart]:
         """A shop's own slices of recent orders, newest first.
@@ -119,7 +132,8 @@ class OrderRepository(BaseRepository[Order]):
         """
         stmt = (
             select(OrderShopPart)
-            .where(OrderShopPart.shop_id == shop_id)
+            .join(Order, Order.id == OrderShopPart.order_id)
+            .where(OrderShopPart.shop_id == shop_id, Order.is_test.is_(False))
             .order_by(OrderShopPart.created_at.desc())
             .limit(limit)
         )
@@ -131,7 +145,9 @@ class OrderRepository(BaseRepository[Order]):
         stmt = (
             select(func.count())
             .select_from(OrderShopPart)
+            .join(Order, Order.id == OrderShopPart.order_id)
             .where(
+                Order.is_test.is_(False),
                 OrderShopPart.shop_id == shop_id,
                 OrderShopPart.shop_response == "pending",
             )

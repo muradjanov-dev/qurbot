@@ -114,7 +114,12 @@ class OpsRepository(BaseRepository[UnmatchedQuery]):
             func.coalesce(
                 func.sum(func.coalesce(Order.grand_total_final, Order.grand_total_quoted)), 0
             ),
-        ).where(Order.created_at >= start, Order.created_at < end, Order.status != "cancelled")
+        ).where(
+            Order.created_at >= start,
+            Order.created_at < end,
+            Order.status != "cancelled",
+            Order.is_test.is_(False),
+        )
         result = await self.session.execute(stmt)
         count, gmv = result.one()
         return int(count), Decimal(str(gmv))

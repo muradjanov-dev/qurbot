@@ -8,6 +8,8 @@ Supports:
 
 from typing import Any
 
+from app.core.chat_i18n import CHAT_MESSAGES
+
 MESSAGES: dict[str, dict[str, str]] = {
     # Onboarding & Language
     "choose_language": {
@@ -2443,6 +2445,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "Файл слишком большой.",
     },
 }
+
+
+MESSAGES.update(CHAT_MESSAGES)
 
 
 def t(key: str, lang: str = "uz_latn", **kwargs: Any) -> str:

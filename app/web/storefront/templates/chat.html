@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_chat_title', lang=lang) }} — QurBot{% endblock %}
+{% block content %}
+<section class="chat" aria-labelledby="chat-title" data-chat>
+  <div class="section-head chat-heading">
+    <div>
+      <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
+      <p class="muted">{{ t('web_chat_intro', lang=lang) }}</p>
+    </div>
+    <a class="btn btn-ghost" href="/basket">{{ t('web_nav_basket', lang=lang) }}</a>
+  </div>
+  {% if user %}
+  <noscript><p role="alert">{{ t('web_chat_no_js', lang=lang) }}</p></noscript>
+  <div class="chat-toolbar">
+    <p data-chat-mode role="status"></p>
+    <button type="button" class="btn btn-ghost btn-sm" data-chat-operator disabled>{{ t('web_chat_operator', lang=lang) }}</button>
+  </div>
+  <div class="chat-log" data-chat-log role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ t('web_chat_history', lang=lang) }}" tabindex="0">
+    <p class="muted" data-chat-empty hidden>{{ t('web_chat_empty', lang=lang) }}</p>
+  </div>
+  <p class="chat-status muted" data-chat-status role="status">{{ t('web_chat_loading', lang=lang) }}</p>
+  <div class="chat-requests" data-chat-requests></div>
+  <form class="card chat-composer" data-chat-form>
+    <label for="chat-message">{{ t('web_chat_message', lang=lang) }}</label>
+    <textarea id="chat-message" name="message" rows="3" maxlength="4000" required aria-describedby="chat-hint" disabled></textarea>
+    <div class="chat-compose-actions">
+      <small id="chat-hint" class="muted">{{ t('web_chat_hint', lang=lang) }}</small>
+      <button type="submit" class="btn btn-primary" data-chat-send disabled>{{ t('web_chat_send', lang=lang) }}</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="card">
+    <p>{{ t('web_chat_login', lang=lang) }}</p>
+    <a class="btn btn-primary" href="/login?next=/chat">{{ t('web_login', lang=lang) }}</a>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}
+{% if user %}
+<script id="chat-strings" type="application/json">{
+{% for key in ['title', 'loading', 'sending', 'pending', 'failed', 'connection', 'retry', 'request', 'operator', 'ai', 'requested', 'assigned', 'you', 'assistant', 'operator_name', 'system', 'qty', 'add', 'added', 'cart_error', 'cart_conflict', 'session', 'confirmation'] %}
+  {{ key|tojson }}: {{ t('web_chat_' ~ key, lang=lang)|tojson }},
+{% endfor %}
+  "unit_conflict": {{ t('web_chat_unit_conflict', lang=lang)|tojson }}
+}</script>
+<script src="{{ static_url }}/chat.js" defer></script>
+{% endif %}
+{% endblock %}

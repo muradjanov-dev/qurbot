@@ -1,4 +1,11 @@
+from app.db.models.cart import Cart, CartItem, CartMerge, CheckoutAttempt
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
+from app.db.models.conversation import (
+    Conversation,
+    ConversationJob,
+    ConversationMessage,
+    ConversationNotification,
+)
 from app.db.models.ops import Event, LLMCall, PebbleAward, UnmatchedQuery
 from app.db.models.order import (
     Basket,
@@ -24,6 +31,14 @@ from app.db.models.shop import (
 from app.db.models.user import User, UserAddress
 
 __all__ = [
+    "Cart",
+    "CartItem",
+    "CartMerge",
+    "CheckoutAttempt",
+    "Conversation",
+    "ConversationJob",
+    "ConversationMessage",
+    "ConversationNotification",
     # Catalog
     "Unit",
     "Category",

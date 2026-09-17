@@ -111,3 +111,57 @@ async def test_invented_products_are_refused(test_session: AsyncSession) -> None
         "set_basket_item", {"product_id": 99999, "qty": 1}, AgentCart()
     )
     assert result == {"error": "product not found"}
+
+
+async def test_catalogue_only_product_has_no_invented_price(test_session: AsyncSession) -> None:
+    from sqlalchemy import delete
+
+    user, product_id = await _seed(test_session)
+    await test_session.execute(delete(ShopProduct))
+    product = await test_session.get(CanonicalProduct, product_id)
+    assert product is not None
+    product.attributes = {**product.attributes, "price_on_request": True, "stock_unverified": True}
+    await test_session.flush()
+    result = await DbAgentTools(test_session, user).run(
+        "search_products", {"query": "fanera"}, AgentCart()
+    )
+    card = next(card for card in result["products"] if card["id"] == product_id)
+    assert card["price_from_uzs"] is None
+    assert card["price_on_request"] and card["stock_unverified"]
+    assert card["reference"] == f"/product/{product_id}"
+    assert card["unit_code"] == "dona"
+    tools = DbAgentTools(test_session, user)
+    assert await tools.run(
+        "set_basket_item", {"product_id": product_id, "qty": 1}, AgentCart()
+    ) == {"error": "operator_confirmation_required"}
+    cart = AgentCart(
+        basket=[{"canonical_id": product_id, "name": "Fanera", "qty": "1", "unit_code": "dona"}]
+    )
+    assert await tools.run("get_quote", {}, cart) == {"error": "operator_confirmation_required"}
+
+
+async def test_knowledge_returns_actual_support_and_delivery(
+    test_session: AsyncSession, monkeypatch
+) -> None:
+    from sqlalchemy import select
+
+    from app.db.models.shop import ShopDeliveryRule
+
+    user, _ = await _seed(test_session)
+    shop = await test_session.scalar(select(Shop))
+    monkeypatch.setattr(settings, "house_shop_name", shop.name)
+    monkeypatch.setattr(settings, "support_phones", ["+998901234567"])
+    test_session.add(
+        ShopDeliveryRule(
+            shop_id=shop.id,
+            district_id=None,
+            fee=Decimal("12345"),
+            min_order=Decimal("20000"),
+            eta_hours=48,
+            is_pickup_only=False,
+        )
+    )
+    await test_session.flush()
+    result = await DbAgentTools(test_session, user).run("get_knowledge", {}, AgentCart())
+    assert result["support_phones"] == ["+998901234567"]
+    assert Decimal(result["delivery_rules"][0]["fee_uzs"]) == Decimal("12345")

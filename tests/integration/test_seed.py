@@ -177,13 +177,8 @@ async def test_negotiable_prices_are_null_not_zero(test_session: AsyncSession) -
 
 
 @pytest.mark.asyncio
-async def test_reseeding_republishes_changed_prices(test_session: AsyncSession) -> None:
-    """A price list is republished, not re-created.
-
-    fanera.uz says prices move with the order day, so a re-seed has to reach
-    rows that already exist or the catalogue keeps whatever the first run
-    happened to load.
-    """
+async def test_reseeding_preserves_changed_prices(test_session: AsyncSession) -> None:
+    """Repeated predeploy must preserve operator prices rather than replay an old list."""
     await seed_database(test_session, catalog_only=True)
 
     slug = next(i.slug for i in generate_catalog_data() if i.reference_price is not None)
@@ -193,14 +188,12 @@ async def test_reseeding_republishes_changed_prices(test_session: AsyncSession) 
         .first()
     )
     assert product is not None
-    original = product.reference_price
-
     product.reference_price = Decimal("1")
     await test_session.commit()
 
     await seed_database(test_session, catalog_only=True)
     await test_session.refresh(product)
-    assert product.reference_price == original
+    assert product.reference_price == Decimal("1")
 
 
 @pytest.mark.asyncio

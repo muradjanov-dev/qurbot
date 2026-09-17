@@ -1,7 +1,7 @@
 /* QurBot storefront.
  *
- * The basket lives in this file, in localStorage: it is the customer's own
- * scratch list and should survive a reload without an account. Nothing here
+ * Guests keep a local draft; signed-in customers share a durable bot/web cart.
+ * Nothing here
  * decides a price -- every total on screen came back from the server, which
  * recomputes it from live offers and ignores anything this file claims.
  */
@@ -12,6 +12,79 @@
   var T = QB.i18n || {};
   var STORE_KEY = "qb_basket_v1";
   var STRATEGY_KEY = "qb_strategy";
+  var cartRevision = 0;
+  var cartLines = [];
+  var cartBusy = false;
+  var csrf = document.querySelector('meta[name="csrf-token"]');
+  var csrfToken = csrf ? csrf.content : "";
+  var draftKey = "qb_draft_" + csrfToken;
+
+  function requestKey() { return crypto.randomUUID(); }
+
+  function quantityUnits(value) {
+    var text = String(value).trim().replace(",", ".");
+    if (!/^\d+(?:\.\d{1,6})?$/.test(text)) return null;
+    var parts = text.split(".");
+    return BigInt(parts[0]) * 1000000n + BigInt((parts[1] || "").padEnd(6, "0"));
+  }
+
+  function quantityText(units) {
+    var digits = units.toString().padStart(7, "0");
+    return (digits.slice(0, -6) + "." + digits.slice(-6)).replace(/\.?0+$/, "");
+  }
+
+  function stepQuantity(value, step, min) {
+    var current = quantityUnits(value);
+    var next = (current === null ? 1000000n : current) + BigInt(step) * 1000000n;
+    var floor = quantityUnits(min) || 0n;
+    return quantityText(next < floor ? floor : next);
+  }
+
+  async function cartRequest(url, method, body) {
+    try {
+      var response = await fetch(url, {
+        method: method || "GET",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+      var result = await response.json();
+      if (!response.ok) result.ok = false;
+      return result;
+    } catch (err) { return { ok: false, error: T.error }; }
+  }
+
+  function acceptCart(result, drafts) {
+    if (result.revision < cartRevision) return;
+    cartRevision = result.revision;
+    cartLines = result.lines.concat(drafts || []);
+    cartLines.forEach(function (line, index) { line.line_no = index + 1; });
+    try { sessionStorage.setItem(draftKey, JSON.stringify(drafts || [])); } catch (err) { /* memory draft */ }
+    syncCount();
+  }
+
+  async function loadCart() {
+    if (!QB.authed) return true;
+    var result = await cartRequest("/api/cart");
+    if (!result.ok) { toast(result.error || T.error); return false; }
+    var drafts = [];
+    try { drafts = JSON.parse(sessionStorage.getItem(draftKey) || "[]"); } catch (err) { /* empty draft */ }
+    acceptCart(result, Array.isArray(drafts) ? drafts : []);
+    var guest = [];
+    try { guest = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (err) { /* empty guest cart */ }
+    if (!Array.isArray(guest) || !guest.length) return true;
+    var mergeKey;
+    try {
+      mergeKey = localStorage.getItem("qb_cart_merge_key") || requestKey();
+      localStorage.setItem("qb_cart_merge_key", mergeKey);
+    } catch (err) { mergeKey = requestKey(); }
+    var merged = await cartRequest("/api/cart/merge", "POST", {
+      lines: basket.payload(guest), merge_key: mergeKey, expected_revision: cartRevision
+    });
+    if (!merged.ok) { toast(merged.error || T.error); return true; }
+    acceptCart(merged, drafts.concat(guest.filter(function (line) { return !line.canonical_id; })));
+    try { localStorage.removeItem(STORE_KEY); localStorage.removeItem("qb_cart_merge_key"); } catch (err) { /* receipt prevents remerge */ }
+    return true;
+  }
 
   /* ── helpers ─────────────────────────────────────────────────────── */
 
@@ -44,11 +117,10 @@
   async function postJSON(url, body) {
     var response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       body: JSON.stringify(body || {})
     });
     if (response.status === 401) return { ok: false, error: T.loginRequired, unauthorized: true };
-    if (!response.ok) return { ok: false, error: T.error };
     try {
       return await response.json();
     } catch (err) {
@@ -60,6 +132,11 @@
 
   var basket = {
     load: function () {
+      if (QB.authed) {
+        var copy = JSON.parse(JSON.stringify(cartLines));
+        Object.defineProperty(copy, "cartRevision", {value: cartRevision});
+        return copy;
+      }
       try {
         var raw = window.localStorage.getItem(STORE_KEY);
         var parsed = raw ? JSON.parse(raw) : [];
@@ -68,13 +145,55 @@
         return [];
       }
     },
-    save: function (lines) {
+    save: async function (lines, expectedRevision) {
+      if (QB.authed) {
+        if (cartBusy) { toast(T.loading); return false; }
+        var baseRevision = expectedRevision === undefined ? lines.cartRevision : expectedRevision;
+        if (baseRevision !== undefined && baseRevision !== cartRevision) {
+          toast(T.error);
+          renderBasket();
+          return false;
+        }
+        cartBusy = true;
+        try {
+          var wanted = new Map();
+          basket.orderable(lines).forEach(function (line) { wanted.set(line.canonical_id, line); });
+          var previous = new Map();
+          basket.orderable(cartLines).forEach(function (line) { previous.set(line.canonical_id, line); });
+          var result = { ok: true, revision: cartRevision, lines: basket.orderable(cartLines) };
+          for (var entry of previous) {
+            if (!wanted.has(entry[0])) {
+              result = await cartRequest("/api/cart/items/" + entry[0] + "?expected_revision=" + result.revision, "DELETE");
+              if (!result.ok) throw result;
+            }
+          }
+          for (var item of wanted) {
+            var old = previous.get(item[0]);
+            if (!old || old.qty !== item[1].qty || old.unit_code !== item[1].unit_code) {
+              result = await cartRequest("/api/cart/items/" + item[0], "PUT", {
+                qty: String(item[1].qty), unit_code: item[1].unit_code, expected_revision: result.revision
+              });
+              if (!result.ok) throw result;
+            }
+          }
+          acceptCart(result, lines.filter(function (line) { return !line.canonical_id; }));
+          return true;
+        } catch (err) {
+          var fresh = await cartRequest("/api/cart");
+          if (fresh.ok) acceptCart(fresh, cartLines.filter(function (line) { return !line.canonical_id; }));
+          toast(err.error || T.error);
+          renderBasket();
+          return false;
+        } finally { cartBusy = false; }
+      }
       try {
         window.localStorage.setItem(STORE_KEY, JSON.stringify(lines));
+        window.localStorage.removeItem("qb_cart_merge_key");
       } catch (err) { /* private mode: the basket is then per-page, still usable */ }
       syncCount();
+      return true;
     },
-    clear: function () { basket.save([]); },
+    clear: function () { return basket.save([]); },
     nextNo: function (lines) {
       return lines.reduce(function (max, line) { return Math.max(max, line.line_no || 0); }, 0);
     },
@@ -133,7 +252,7 @@
       button.textContent = original;
 
       if (!result.ok) { toast(result.error || T.parseFailed); return; }
-      basket.save(lines.concat(result.lines));
+      if (!await basket.save(lines.concat(result.lines), lines.cartRevision)) return;
       window.location.href = "/basket";
     });
   }
@@ -145,9 +264,7 @@
       var input = $("input", widget);
       $$("button", widget).forEach(function (button) {
         button.addEventListener("click", function () {
-          var step = Number(button.dataset.step || 1);
-          var next = (parseFloat(input.value) || 0) + step;
-          input.value = String(Math.max(Number(input.min || 1), Math.round(next * 1000) / 1000));
+          input.value = stepQuantity(input.value, button.dataset.step || "1", input.min || "1");
         });
       });
     });
@@ -169,8 +286,14 @@
       button.disabled = false;
 
       if (!result.ok) { toast(result.error || T.error); return; }
-      lines.push(result.line);
-      basket.save(lines);
+      var existing = lines.find(function (line) { return line.canonical_id === result.line.canonical_id; });
+      if (existing) {
+        if (existing.unit_code !== result.line.unit_code) { toast(T.error); return; }
+        existing.qty = quantityText(quantityUnits(existing.qty) + quantityUnits(result.line.qty));
+      } else {
+        lines.push(result.line);
+      }
+      if (!await basket.save(lines)) return;
       toast(T.added);
     });
   }
@@ -219,9 +342,9 @@
     var remove = el("button", "btn btn-sm btn-danger", "×");
     remove.type = "button";
     remove.setAttribute("aria-label", T.remove);
-    remove.addEventListener("click", function () {
+    remove.addEventListener("click", async function () {
       lines.splice(index, 1);
-      basket.save(lines);
+      await basket.save(lines);
       renderBasket();
     });
     head.appendChild(remove);
@@ -239,15 +362,16 @@
     var plus = el("button", null, "+");
     plus.type = "button";
 
-    function commit(value) {
-      var parsed = parseFloat(String(value).replace(",", "."));
-      if (!isFinite(parsed) || parsed <= 0) { input.value = String(line.qty); return; }
-      line.qty = String(Math.round(parsed * 1000) / 1000);
+    async function commit(value) {
+      var parsed = quantityUnits(value);
+      if (parsed === null || parsed <= 0n) { input.value = String(line.qty); return; }
+      line.qty = quantityText(parsed);
       input.value = line.qty;
-      basket.save(lines);
+      await basket.save(lines);
+      renderBasket();
     }
-    minus.addEventListener("click", function () { commit((parseFloat(line.qty) || 1) - 1); });
-    plus.addEventListener("click", function () { commit((parseFloat(line.qty) || 0) + 1); });
+    minus.addEventListener("click", function () { commit(stepQuantity(line.qty, "-1", "0")); });
+    plus.addEventListener("click", function () { commit(stepQuantity(line.qty, "1", "0")); });
     input.addEventListener("change", function () { commit(input.value); });
 
     qty.appendChild(minus);
@@ -265,12 +389,12 @@
       line.candidates.forEach(function (candidate) {
         var chip = el("button", "chip", candidate.price ? candidate.name + " · " + candidate.price : candidate.name);
         chip.type = "button";
-        chip.addEventListener("click", function () {
+        chip.addEventListener("click", async function () {
           line.status = "ok";
           line.canonical_id = candidate.canonical_id;
           line.canonical_name = candidate.name;
           line.candidates = [];
-          basket.save(lines);
+          await basket.save(lines);
           renderBasket();
         });
         options.appendChild(chip);
@@ -303,7 +427,7 @@
         var lines = basket.load();
         var result = await postJSON("/api/basket/parse", { text: text, start_no: basket.nextNo(lines) });
         if (!result.ok) { toast(result.error || T.parseFailed); return; }
-        basket.save(lines.concat(result.lines));
+        if (!await basket.save(lines.concat(result.lines), lines.cartRevision)) return;
         field.value = "";
         addForm.hidden = true;
         renderBasket();
@@ -312,8 +436,8 @@
 
     var clear = $("[data-clear]");
     if (clear) {
-      clear.addEventListener("click", function () {
-        basket.clear();
+      clear.addEventListener("click", async function () {
+        await basket.clear();
         renderBasket();
         $("[data-quote]").innerHTML = "";
       });
@@ -462,6 +586,8 @@
     var summary = $("[data-order-summary]");
     var confirm = $("[data-confirm]");
     var expectedTotal = null;
+    var checkoutRevision = cartRevision;
+    var checkoutKey = requestKey();
     var payload = basket.payload(basket.load());
 
     if (!payload.length) {
@@ -490,6 +616,7 @@
     initGeolocation();
 
     confirm.addEventListener("click", async function () {
+      if (expectedTotal === null || cartBusy) { toast(T.loading); return; }
       var phone = $("[data-phone]").value.trim();
       if (!phone) { toast(T.phoneRequired); return; }
 
@@ -499,7 +626,9 @@
         strategy: strategy,
         phone: phone,
         comment: $("[data-comment]").value.trim(),
-        expected_total: expectedTotal
+        expected_total: expectedTotal,
+        cart_revision: checkoutRevision,
+        idempotency_key: checkoutKey
       };
 
       if (chosen && chosen.value !== "new") {
@@ -521,14 +650,20 @@
       confirm.textContent = original;
 
       if (result.ok) {
-        basket.clear();
+        // The server removed exactly the ordered products atomically.
         window.location.href = result.redirect || "/orders";
         return;
       }
       if (result.price_changed && result.variant) {
+        checkoutKey = requestKey();
         expectedTotal = result.variant.grand_total_raw;
         summary.innerHTML = "";
         drawSummary(summary, result.variant);
+      }
+      if (result.code === "cart_conflict") {
+        toast(result.error || T.error);
+        window.location.href = "/basket";
+        return;
       }
       if (result.unauthorized) {
         window.location.href = "/login?next=/checkout";
@@ -629,7 +764,24 @@
 
   /* ── boot ────────────────────────────────────────────────────────── */
 
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("qurbot:cart-updated", function (event) {
+    if (QB.authed && event.detail && event.detail.ok) {
+      acceptCart(event.detail, cartLines.filter(function (line) { return !line.canonical_id; }));
+      renderBasket();
+    }
+  });
+
+  document.addEventListener("visibilitychange", async function () {
+    if (!QB.authed || document.hidden || cartBusy) return;
+    var fresh = await cartRequest("/api/cart");
+    if (fresh.ok) {
+      acceptCart(fresh, cartLines.filter(function (line) { return !line.canonical_id; }));
+      renderBasket();
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", async function () {
+    if (!await loadCart()) return;
     syncCount();
     initListForm();
     initQtyWidgets();

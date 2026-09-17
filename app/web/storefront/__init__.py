@@ -16,7 +16,19 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.web.storefront.routers import account, auth, basket, catalog, checkout, home, orders, shop
+from app.web.storefront.routers import (
+    account,
+    auth,
+    basket,
+    cart,
+    catalog,
+    chat,
+    chat_page,
+    checkout,
+    home,
+    orders,
+    shop,
+)
 
 STATIC_DIR = Path(__file__).parent / "static"
 STATIC_URL = "/static/store"
@@ -25,6 +37,9 @@ router = APIRouter()
 router.include_router(home.router)
 router.include_router(catalog.router)
 router.include_router(basket.router)
+router.include_router(cart.router)
+router.include_router(chat.router)
+router.include_router(chat_page.router)
 router.include_router(checkout.router)
 router.include_router(orders.router)
 router.include_router(account.router)

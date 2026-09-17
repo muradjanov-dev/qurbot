@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token(request) }}">
   <meta name="theme-color" content="#faf9f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
   <meta name="description" content="{{ t('web_tagline', lang=lang) }}">
@@ -23,6 +24,7 @@
       </a>
 
       <nav class="topnav" aria-label="{{ t('web_nav_home', lang=lang) }}">
+        <a href="/chat" class="{{ 'is-active' if path == '/chat' }}" {% if path == '/chat' %}aria-current="page"{% endif %}>{{ t('web_chat_title', lang=lang) }}</a>
         <a href="/" class="{{ 'is-active' if path == '/' }}">{{ t('web_nav_home', lang=lang) }}</a>
         <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
         <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
@@ -62,6 +64,10 @@
   </footer>
 
   <nav class="tabbar" aria-label="{{ t('web_nav_home', lang=lang) }}">
+    <a href="/chat" class="{{ 'is-active' if path == '/chat' }}" {% if path == '/chat' %}aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4zM8 8h8M8 12h5"/></svg>
+      <span>{{ t('web_chat_title', lang=lang) }}</span>
+    </a>
     <a href="/" class="{{ 'is-active' if path == '/' }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
       <span>{{ t('web_nav_home', lang=lang) }}</span>

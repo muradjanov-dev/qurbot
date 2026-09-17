@@ -6,7 +6,8 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
+from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,10 +21,17 @@ from app.db.repositories.address_repo import AddressRepository
 from app.db.session import get_db_session
 from app.domain.normalize.phone import normalize_uz_phone
 from app.services.address_service import AddressService, ResolvedLocation
-from app.services.order_service import notify_order, place_order
+from app.services.cart_service import CartService, InvalidCartItem
+from app.services.order_service import (
+    checkout_fingerprint,
+    checkout_replay,
+    notify_order,
+    place_order,
+)
 from app.web.storefront.deps import current_lang, current_user, render, require_api_user
 from app.web.storefront.quoting import optimize, pick_variant, validate_lines, variant_payload
 from app.web.storefront.schemas import OrderIn
+from app.web.storefront.security import require_csrf
 from app.web.storefront.throttle import SlidingWindow, client_key
 
 logger = get_logger(__name__)
@@ -100,14 +108,19 @@ async def api_geocode(
     }
 
 
-@router.post("/api/order")
+class DurableOrderIn(OrderIn):
+    cart_revision: int = Field(ge=0)
+    idempotency_key: str = Field(min_length=1, max_length=120)
+
+
+@router.post("/api/order", dependencies=[Depends(require_api_user), Depends(require_csrf)])
 async def api_create_order(
-    body: OrderIn,
+    body: DurableOrderIn,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
     user: User = Depends(require_api_user),
     lang: str = Depends(current_lang),
-) -> dict[str, Any]:
+) -> Any:
     """Create the order for the selected variant.
 
     The quote is recomputed here rather than taken from the browser: prices
@@ -115,6 +128,37 @@ async def api_create_order(
     actually honour. If the total moved, the customer is shown the new one and
     asked again -- never charged the difference silently.
     """
+    fingerprint = checkout_fingerprint(body.model_dump(exclude={"lines"}))
+    key = f"web:{body.idempotency_key}"
+    try:
+        replay = await checkout_replay(
+            session, user_id=user.id, idempotency_key=key, fingerprint=fingerprint
+        )
+    except InvalidCartItem as exc:
+        return JSONResponse(
+            status_code=409,
+            content={"ok": False, "code": exc.message, "error": t("web_error_generic", lang=lang)},
+        )
+    if replay is not None:
+        await session.commit()
+        return {
+            "ok": True,
+            "order_id": replay.order.id,
+            "pebbles": 0,
+            "redirect": f"/orders/{replay.order.id}?msg=web_saved",
+            "replayed": True,
+        }
+    snapshot = await CartService(session).get(user.id)
+    if snapshot.revision != body.cart_revision:
+        return JSONResponse(
+            status_code=409,
+            content={
+                **snapshot.payload(),
+                "ok": False,
+                "code": "cart_conflict",
+                "error": t("web_error_generic", lang=lang),
+            },
+        )
     phone = normalize_uz_phone(body.phone)
     if phone is None:
         return {"ok": False, "error": t("web_checkout_phone_required", lang=lang)}
@@ -124,21 +168,25 @@ async def api_create_order(
         return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
     address_text, district_id, pin = address
 
-    basket = await validate_lines(session, [line.model_dump() for line in body.lines])
-    if not basket.items:
+    basket = await validate_lines(session, list(snapshot.lines))
+    if not basket.items or basket.rejected:
         return {"ok": False, "error": t("web_basket_nothing_confirmed", lang=lang)}
 
     variants = await optimize(session, basket.items, district_id=district_id)
     variant = pick_variant(variants, body.strategy)
-    if variant is None:
+    if variant is None or variant.missing_lines:
         return {"ok": False, "error": t("web_quote_empty", lang=lang)}
 
+    if body.expected_total is None:
+        return {"ok": False, "error": t("web_error_generic", lang=lang)}
     if body.expected_total is not None:
         try:
             expected = Decimal(body.expected_total)
         except (ArithmeticError, ValueError):
             expected = None
-        if expected is not None and expected != variant.grand_total_uzs:
+        if expected is None or not expected.is_finite():
+            return {"ok": False, "error": t("web_error_generic", lang=lang)}
+        if expected != variant.grand_total_uzs:
             currency = t("web_currency", lang=lang)
             return {
                 "ok": False,
@@ -161,6 +209,9 @@ async def api_create_order(
         delivery_lat=pin[0] if pin else None,
         delivery_lng=pin[1] if pin else None,
         comment=comment,
+        idempotency_key=key,
+        fingerprint=fingerprint,
+        cart_revision=snapshot.revision,
         raw_text="\n".join(
             f"{item.needed_qty} {item.unit_code} {item.name_uz}" for item in basket.items
         ),

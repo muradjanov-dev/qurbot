@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir --upgrade "pip==${PIP_VERSION}"
 COPY pyproject.toml ./
 COPY app ./app
 
-RUN pip install --no-cache-dir --prefix=/install .
+RUN --mount=type=cache,target=/root/.cache/pip pip install --prefix=/install .
 
 
 FROM python:3.12-slim AS runtime
@@ -28,6 +28,7 @@ COPY app ./app
 COPY scripts ./scripts
 COPY migrations ./migrations
 COPY alembic.ini ./alembic.ini
+COPY compose.staging.yml ./compose.staging.yml
 
 USER qurbot
 

@@ -28,7 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     bot = create_bot()
     app.state.bot = bot
     app.state.dispatcher = dispatcher
-    await setup_bot_commands(bot)
+    if settings.register_webhook:
+        await setup_bot_commands(bot)
 
     if settings.register_webhook and not settings.webhook_url_is_public:
         # Loud, because in a real deployment this means the service is missing

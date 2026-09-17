@@ -103,6 +103,9 @@ class Order(Base, TimestampMixin):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
+    is_test: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     quote_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("quotes.id"), nullable=False, index=True
     )

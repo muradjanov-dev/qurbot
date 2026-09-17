@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     webhook_base_url: str = "http://localhost:8000"
     storefront_webapp_url: str | None = None
     register_webhook: bool = True
+    telegram_notifications_enabled: bool = True
     # How often to re-check that Telegram still points at this deployment.
     # Registering once at startup does not survive a rolling deploy's outgoing
     # container deleting the webhook the new one just set -- and that failure
@@ -191,6 +192,11 @@ class Settings(BaseSettings):
     agent_cache_write_price_ratio: Decimal = Decimal("1.25")
     # Telegram rejects messages over 4096 characters.
     agent_reply_max_chars: int = 3500
+    # Only opt in for controlled real-model release checks. All processes in a
+    # test run must share this persistent ledger; normal customer traffic does not.
+    agent_evaluation_budget_path: str | None = None
+    agent_evaluation_budget_usd: Decimal = Decimal("5.00")
+    test_tg_ids: list[int] = []
 
     # Where a customer is sent when the catalog cannot help: an out-of-stock
     # product or an empty category. Kept here rather than in the string

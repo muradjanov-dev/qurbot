@@ -8,10 +8,22 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: qurbot_test
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: qurbot_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U qurbot_test -d qurbot_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       BOT_TOKEN: "123456:CI-TOKEN"
       WEBHOOK_SECRET: "ci-secret"
       REGISTER_WEBHOOK: "false"
+      SALES_TEST_DATABASE_URL: postgresql+asyncpg://qurbot_test:ci-only@localhost:5432/qurbot_test
     steps:
       - uses: actions/checkout@v4
 

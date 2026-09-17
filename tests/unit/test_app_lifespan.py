@@ -32,3 +32,22 @@ async def test_startup_registration_keeps_pending_updates(
     bot.set_webhook.assert_awaited_once()
     assert bot.set_webhook.await_args.kwargs["drop_pending_updates"] is False
     logger.info.assert_any_call("webhook_set")
+
+
+@pytest.mark.asyncio
+async def test_staging_startup_never_contacts_telegram(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "register_webhook", False)
+    bot = AsyncMock()
+    with (
+        patch("app.main.create_bot", return_value=bot),
+        patch("app.main.setup_bot_commands", new=AsyncMock()) as commands,
+        patch("app.main.notify_admins_of_deploy", new=AsyncMock()) as notify,
+        patch("app.main.watch_webhook", new=AsyncMock()) as watch,
+    ):
+        async with lifespan(FastAPI()):
+            pass
+    commands.assert_not_awaited()
+    notify.assert_not_awaited()
+    watch.assert_not_awaited()
+    bot.set_webhook.assert_not_awaited()
+    bot.delete_webhook.assert_not_awaited()

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.formatters.common import format_catalog_price, format_uzs
 from app.core.config import settings
 from app.core.i18n import t
+from app.db.models.catalog import CanonicalProduct
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
@@ -18,6 +19,15 @@ from app.db.session import get_db_session
 from app.web.storefront.deps import current_lang, current_user, render
 
 router = APIRouter(tags=["storefront"])
+
+
+def _needs_confirmation(product: CanonicalProduct, live_price: Decimal | None) -> bool:
+    attributes = product.attributes or {}
+    return (
+        live_price is None
+        or bool(attributes.get("price_on_request"))
+        or bool(attributes.get("stock_unverified"))
+    )
 
 
 def _category_name(category: object, lang: str) -> str:
@@ -133,15 +143,29 @@ async def _render_products(
         offset=(page - 1) * size, limit=size, category_ids=category_ids
     )
 
+    offers = await ShopRepository(session).get_active_offers_for_canonicals(
+        [product.id for product, _ in rows]
+    )
+    sellable_prices: dict[int, Decimal] = {}
+    for offer in offers:
+        if offer.canonical_id is not None:
+            current = sellable_prices.get(offer.canonical_id, offer.price_per_pack)
+            sellable_prices[offer.canonical_id] = min(current, offer.price_per_pack)
+
     products = [
         {
             "id": product.id,
             "name": product.name_ru if lang == "ru" else product.name_uz,
             "brand": product.brand,
             "unit": product.base_unit_code,
-            "price": format_catalog_price(live_price, product.reference_price, lang=lang),
+            "price": (
+                t("web_product_confirm_required", lang=lang)
+                if _needs_confirmation(product, sellable_prices.get(product.id))
+                else format_catalog_price(sellable_prices[product.id], None, lang=lang)
+            ),
+            "needs_confirmation": _needs_confirmation(product, sellable_prices.get(product.id)),
         }
-        for product, live_price in rows
+        for product, _ in rows
     ]
     return render(
         request,
@@ -176,8 +200,11 @@ async def product_detail(
 
     offers = await ShopRepository(session).get_active_offers_for_canonicals([canonical_id])
     prices = [offer.price_per_pack for offer in offers]
+    needs_confirmation = _needs_confirmation(product, min(prices) if prices else None)
     currency = t("web_currency", lang=lang)
-    if prices:
+    if needs_confirmation:
+        price_label = t("web_product_confirm_required", lang=lang)
+    elif prices:
         low, high = min(prices), max(prices)
         price_label = (
             f"{format_uzs(low)} {currency}"
@@ -196,5 +223,6 @@ async def product_detail(
         product_name=product.name_ru if lang == "ru" else product.name_uz,
         price_label=price_label,
         has_live_offer=bool(prices),
+        needs_confirmation=needs_confirmation,
         cheapest=min(prices) if prices else Decimal("0"),
     )

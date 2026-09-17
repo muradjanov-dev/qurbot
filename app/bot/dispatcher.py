@@ -18,6 +18,7 @@ from app.bot.handlers import (
     shop_listing_router,
     shop_router,
 )
+from app.bot.handlers.operator import router as operator_router
 from app.bot.middlewares import (
     DbSessionMiddleware,
     ErrorMiddleware,
@@ -108,6 +109,7 @@ def create_dispatcher() -> Dispatcher:
     # delivery-rule states ("cement m400 52000") the text is ordinary, so the
     # basket catch-all would otherwise consume it.
     dp.include_router(shop_router)
+    dp.include_router(operator_router)
     # The AI sales agent answers customer free text first; with no key it
     # filters itself out and the basket handler in customer_router runs.
     dp.include_router(ai_chat_router)

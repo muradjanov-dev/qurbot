@@ -1,0 +1,66 @@
+# No production network, credentials, database, Redis, or Telegram webhook.
+# Run with: docker compose -p qurbot-staging -f compose.staging.yml up -d --build
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: qurbot_stage
+      POSTGRES_PASSWORD: isolated-stage-only
+      POSTGRES_DB: qurbot_stage
+    volumes:
+      - stage_pg:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U qurbot_stage -d qurbot_stage]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    mem_limit: 512m
+  redis:
+    image: redis:7-alpine
+    mem_limit: 128m
+    command: [redis-server, --maxmemory, 96mb, --maxmemory-policy, noeviction]
+  web:
+    image: ${STAGING_IMAGE:-qurbot-staging:local}
+    build: .
+    environment: &stage_env
+      APP_ENV: staging
+      DATABASE_URL: postgresql+asyncpg://qurbot_stage:isolated-stage-only@postgres/qurbot_stage
+      REDIS_URL: redis://redis:6379/0
+      BOT_TOKEN: 123456:STAGING_NO_REAL_TELEGRAM_TOKEN
+      REGISTER_WEBHOOK: "false"
+      TELEGRAM_NOTIFICATIONS_ENABLED: "false"
+      WEBHOOK_BASE_URL: http://localhost:18081
+      WEB_DEV_LOGIN_ENABLED: "true"
+      ADMIN_TG_IDS: "[]"
+      SUPER_ADMIN_TG_IDS: "[]"
+      LLM_ENABLED: "false"
+      AGENT_ENABLED: "false"
+      DATABASE_POOL_SIZE: "5"
+      DATABASE_MAX_OVERFLOW: "5"
+    command: [sh, -c, "python -m scripts.predeploy && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - 127.0.0.1:18081:8000
+    volumes:
+      - stage_eval:/eval-budget
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    mem_limit: 768m
+  worker:
+    image: ${STAGING_IMAGE:-qurbot-staging:local}
+    environment: *stage_env
+    command: [arq, app.workers.main.WorkerSettings]
+    depends_on:
+      web:
+        condition: service_healthy
+    mem_limit: 384m
+volumes:
+  stage_pg:
+  stage_eval:

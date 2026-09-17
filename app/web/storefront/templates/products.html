@@ -15,7 +15,7 @@
           <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product.name }}" loading="lazy">
           <span class="tile-name">{{ product.name }}</span>
           {% if product.brand %}<span class="muted tiny">{{ product.brand }}</span>{% endif %}
-          <span class="price">{{ product.price }}</span>
+          <span class="{{ 'notice warn tiny' if product.needs_confirmation else 'price' }}">{{ product.price }}</span>
         </a>
       {% endfor %}
     </div>

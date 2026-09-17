@@ -2,6 +2,7 @@ import asyncio
 from contextlib import suppress
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -43,15 +44,82 @@ from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.normalize.text import normalize_query
 from app.domain.optimizer.models import BasketItemQuery, OptimizationStrategy, QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
+from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 from app.services.catalog_service import CatalogService
 from app.services.house_shop import is_admin as user_is_admin
-from app.services.order_service import notify_order, place_order
+from app.services.order_service import (
+    checkout_fingerprint,
+    checkout_replay,
+    notify_order,
+    place_order,
+)
 from app.services.pdf_service import generate_quote_pdf
 from app.services.quote_service import QuoteService
+from app.web.storefront.quoting import validate_lines
 
 logger = get_logger(__name__)
 
 router = Router(name="customer")
+
+
+async def _load_durable_cart(state: FSMContext, session: AsyncSession) -> list[dict[str, Any]]:
+    data = await state.get_data()
+    user_id = await session.scalar(select(User.id).where(User.tg_id == state.key.user_id))
+    if user_id is None:
+        return list(data.get("basket_lines", []))
+    snapshot = await CartService(session).migrate_legacy(user_id, data)
+    lines = [{**line, "status": "auto_accept"} for line in snapshot.lines]
+    # Unresolved text stays a draft until the customer selects a real product.
+    lines.extend(
+        dict(line) for line in data.get("basket_lines", []) if not line.get("canonical_id")
+    )
+    for index, line in enumerate(lines, start=1):
+        line["line_no"] = index
+    await state.update_data(
+        basket_lines=lines, cart_revision=snapshot.revision, cart_user_id=user_id
+    )
+    return lines
+
+
+async def _persist_bot_cart(
+    state: FSMContext,
+    session: AsyncSession,
+    lines: list[dict[str, Any]],
+) -> bool:
+    data = await state.get_data()
+    user_id = data.get("cart_user_id")
+    if user_id is None:
+        await _load_durable_cart(state, session)
+        data = await state.get_data()
+        user_id = data.get("cart_user_id")
+    if user_id is None:
+        return True
+    service = CartService(session)
+    try:
+        async with session.begin_nested():
+            snapshot = await service.get(user_id)
+            if snapshot.revision != data.get("cart_revision"):
+                raise CartConflict(snapshot.revision)
+            wanted = {line["canonical_id"]: line for line in lines if line.get("canonical_id")}
+            for old in snapshot.lines:
+                if old["canonical_id"] not in wanted:
+                    snapshot = await service.remove_item(
+                        user_id, old["canonical_id"], expected_revision=snapshot.revision
+                    )
+            for product_id, line in wanted.items():
+                snapshot = await service.set_item(
+                    user_id,
+                    product_id,
+                    line["qty"],
+                    unit_code=line.get("unit_code"),
+                    expected_revision=snapshot.revision,
+                )
+    except (CartConflict, InvalidCartItem):
+        await _load_durable_cart(state, session)
+        return False
+    await state.update_data(cart_revision=snapshot.revision, quotes=[], checkout_key=None)
+    return True
+
 
 # Reply-keyboard buttons reach the bot as ordinary text messages, so the
 # free-text basket handler has to be able to tell them apart from a real
@@ -140,6 +208,10 @@ async def _process_basket_input(
     """Parse+match `raw_text` and render the basket table, optionally merging
     onto `existing_lines` (used when the user is adding items to an existing
     basket rather than starting a fresh one)."""
+    if existing_lines is None:
+        existing_lines = await _load_durable_cart(state, session)
+    elif (await state.get_data()).get("cart_revision") is None:
+        await _load_durable_cart(state, session)
     # 1. Immediate acknowledgement message according to SPEC §9
     status_msg = await message.answer(t("parsing_in_progress", lang=lang))
 
@@ -243,6 +315,9 @@ async def _process_basket_input(
                     cand["min_price"] = f"{price:,.0f}" if price is not None else None
 
     serialized_lines = (existing_lines or []) + new_lines
+    if not await _persist_bot_cart(state, session, serialized_lines):
+        await status_msg.edit_text(t("web_error_generic", lang=lang))
+        return
 
     await state.set_state(BasketStates.viewing_quotes)
 
@@ -354,6 +429,9 @@ async def callback_pick_candidate(
             alias_raw=learned_from,
         )
 
+    if not await _persist_bot_cart(state, session, lines):
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        return
     await state.update_data(basket_lines=lines)
 
     # Confirm on the picker message itself (drop its buttons)...
@@ -424,6 +502,7 @@ async def callback_delete_line(
     state: FSMContext,
     bot: Bot,
     lang: str,
+    session: AsyncSession,
 ) -> None:
     """Remove one product from the basket, leaving the rest alone.
 
@@ -442,6 +521,9 @@ async def callback_delete_line(
         await callback.answer()
         return
 
+    if not await _persist_bot_cart(state, session, remaining):
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        return
     await state.update_data(basket_lines=remaining)
     await _redraw_basket(callback, state, bot, remaining, lang)
     await callback.answer(t("line_deleted", lang=lang, line=line_no))
@@ -512,7 +594,11 @@ async def callback_clear_basket(
     callback: CallbackQuery,
     state: FSMContext,
     lang: str,
+    session: AsyncSession,
 ) -> None:
+    if not await _persist_bot_cart(state, session, []):
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        return
     await state.update_data(basket_lines=[])
     await state.set_state(BasketStates.waiting_for_basket_text)
     if isinstance(callback.message, Message):
@@ -525,6 +611,7 @@ async def callback_back_to_basket(
     callback: CallbackQuery,
     state: FSMContext,
     lang: str,
+    session: AsyncSession,
 ) -> None:
     """Return from the quote carousel to the basket it was built from.
 
@@ -532,8 +619,7 @@ async def callback_back_to_basket(
     optimisation over the same basket and returned the same numbers -- so a
     customer who saw a wrong line had no way back to fix it.
     """
-    data = await state.get_data()
-    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    lines = await _load_durable_cart(state, session)
     if not lines:
         if isinstance(callback.message, Message):
             await callback.message.answer(t("prompt_send_basket", lang=lang))
@@ -570,8 +656,7 @@ async def callback_calculate_quotes(
     user: User,
     lang: str,
 ) -> None:
-    data = await state.get_data()
-    lines: list[dict[str, Any]] = data.get("basket_lines", [])
+    lines = await _load_durable_cart(state, session)
     if not lines:
         if isinstance(callback.message, Message):
             await callback.message.answer(t("prompt_send_basket", lang=lang))
@@ -618,7 +703,13 @@ async def callback_calculate_quotes(
     for v in result.deduplicated_variants:
         cached_variants.append(_serialize_variant(v))
 
-    await state.update_data(quotes=cached_variants, current_quote_idx=0)
+    data = await state.get_data()
+    await state.update_data(
+        quotes=cached_variants,
+        current_quote_idx=0,
+        quote_cart_revision=data.get("cart_revision"),
+        checkout_key=str(uuid4()),
+    )
 
     # Render first variant
     variant_card_text = _format_quote_card(result.deduplicated_variants[0], lang=lang)
@@ -870,6 +961,7 @@ async def callback_checkout_pick_address(
         delivery_address=address.address_text,
         delivery_lat=str(address.lat),
         delivery_lng=str(address.lng),
+        delivery_district_id=address.district_id,
     )
     await state.set_state(OrderCheckoutStates.entering_comment)
     await callback.message.answer(t("prompt_checkout_comment", lang=lang))
@@ -1040,6 +1132,9 @@ async def _store_checkout_address(
         delivery_address=text,
         delivery_lat=str(lat) if lat is not None and lng is not None else None,
         delivery_lng=str(lng) if lat is not None and lng is not None else None,
+        delivery_district_id=data.get("pending_district_id")
+        if lat is not None and lng is not None
+        else user.district_id,
     )
     await state.set_state(OrderCheckoutStates.entering_comment)
     await message.answer(t("prompt_checkout_comment", lang=lang))
@@ -1122,7 +1217,7 @@ async def callback_confirm_order(
     # address goes onto a real order that a real shop then cannot deliver or
     # call about; refusing is the only honest outcome.
     address = data.get("delivery_address")
-    phone = data.get("contact_phone")
+    phone = normalize_uz_phone(str(data.get("contact_phone") or ""))
     comment = data.get("order_comment")
     raw_quotes = data.get("quotes", [])
     selected_idx = data.get("selected_quote_idx", 0)
@@ -1144,6 +1239,77 @@ async def callback_confirm_order(
         await callback.answer()
         return
 
+    cart_service = CartService(session)
+    snapshot = await cart_service.migrate_legacy(user.id, data)
+    quoted_revision = data.get("quote_cart_revision", data.get("cart_revision"))
+    if quoted_revision is None:
+        # Legacy confirmations must be quoted again against the durable cart.
+        await callback_calculate_quotes(callback, state, session, user, lang)
+        return
+    key = "bot:" + str(data.get("checkout_key") or f"{user.id}:{quoted_revision}")
+    fingerprint = checkout_fingerprint(
+        {
+            "revision": quoted_revision,
+            "phone": phone,
+            "address": address,
+            "comment": comment,
+            "quote": raw_quotes[selected_idx],
+        }
+    )
+    replay = await checkout_replay(
+        session, user_id=user.id, idempotency_key=key, fingerprint=fingerprint
+    )
+    if replay is None:
+        if snapshot.revision != quoted_revision:
+            await callback_calculate_quotes(callback, state, session, user, lang)
+            return
+        validated = await validate_lines(session, list(snapshot.lines))
+        if validated.rejected or not validated.items:
+            await callback.answer(t("quote_not_orderable", lang=lang), show_alert=True)
+            return
+        result = await QuoteService(
+            ShopRepository(session), CatalogRepository(session)
+        ).optimize_basket(
+            list(validated.items), district_id=data.get("delivery_district_id", user.district_id)
+        )
+        fresh = next(
+            (
+                v
+                for v in result.deduplicated_variants
+                if any(label in v.strategy_labels for label in variant.strategy_labels)
+            ),
+            None,
+        )
+        if fresh is None or not fresh.is_orderable:
+            await callback.answer(t("quote_not_orderable", lang=lang), show_alert=True)
+            return
+        old_lines = [
+            (line.canonical_id, line.needed_qty, line.needed_unit, line.line_cost_uzs)
+            for group in variant.shop_groups
+            for line in group.lines
+        ]
+        new_lines = [
+            (line.canonical_id, line.needed_qty, line.needed_unit, line.line_cost_uzs)
+            for group in fresh.shop_groups
+            for line in group.lines
+        ]
+        if fresh.grand_total_uzs != variant.grand_total_uzs or old_lines != new_lines:
+            await state.update_data(
+                quotes=[_serialize_variant(fresh)],
+                selected_quote_idx=0,
+                checkout_key=str(uuid4()),
+                quote_cart_revision=snapshot.revision,
+            )
+            if isinstance(callback.message, Message):
+                await callback.message.answer(
+                    f"{_format_quote_card(fresh, lang=lang)}\n\n"
+                    f"{t('order_confirm_question', lang=lang)}",
+                    reply_markup=get_order_confirm_keyboard(lang=lang),
+                )
+            await callback.answer()
+            return
+        variant = fresh
+
     # What an order *is* -- basket, quote snapshot, order, per-shop parts and
     # the pebbles it earns -- is decided in one place, so the bot and the
     # website cannot drift apart on it.
@@ -1158,6 +1324,9 @@ async def callback_confirm_order(
         comment=comment,
         raw_text="Customer basket",
         source="bot",
+        idempotency_key=key,
+        fingerprint=fingerprint,
+        cart_revision=quoted_revision,
     )
     order = placed.order
     pebbles = placed.pebbles

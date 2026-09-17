@@ -59,7 +59,7 @@ async def callback_admin_order_decision(
 
     result = await session.execute(select(Order).where(Order.id == order_id).with_for_update())
     order = result.scalar_one_or_none()
-    if order is None:
+    if order is None or order.is_test:
         await callback.answer("Buyurtma topilmadi.", show_alert=True)
         return
     if order.status != "new":
@@ -120,7 +120,7 @@ async def cmd_admin_stats(
 
     # Aggregate counts
     user_count = await session.scalar(select(func.count(User.id)))
-    order_count = await session.scalar(select(func.count(Order.id)))
+    order_count = await session.scalar(select(func.count(Order.id)).where(Order.is_test.is_(False)))
     sku_count = await session.scalar(select(func.count(CanonicalProduct.id)))
     unmatched_count = await session.scalar(select(func.count(UnmatchedQuery.id)))
 
@@ -200,8 +200,10 @@ async def cb_admin_stats(
     offers = await session.scalar(
         select(func.count(ShopProduct.id)).where(ShopProduct.is_active.is_(True))
     )
-    orders = await session.scalar(select(func.count(Order.id)))
-    gmv = await session.scalar(select(func.coalesce(func.sum(Order.grand_total_quoted), 0)))
+    orders = await session.scalar(select(func.count(Order.id)).where(Order.is_test.is_(False)))
+    gmv = await session.scalar(
+        select(func.coalesce(func.sum(Order.grand_total_quoted), 0)).where(Order.is_test.is_(False))
+    )
     unmatched = await session.scalar(select(func.count(UnmatchedQuery.id)))
 
     await callback.message.edit_text(

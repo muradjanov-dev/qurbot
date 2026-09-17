@@ -407,3 +407,50 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Shared AI/operator conversation. */
+.chat-entry { margin-top: 20px; }
+.chat { max-width: 780px; margin-inline: auto; display: grid; gap: 16px; }
+.chat-heading { align-items: start; gap: 16px; }
+.chat-heading p { margin-top: 8px; }
+.chat-toolbar, .chat-compose-actions, .chat-product-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.chat-log {
+  min-height: 220px; max-height: 55vh; max-height: 55dvh; overflow-y: auto;
+  overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px;
+  padding: 16px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.chat-message { align-self: flex-start; max-width: 92%; min-width: 0; }
+.chat-message-you { align-self: flex-end; }
+.chat-message-author { font-size: .75rem; color: var(--ink-2); margin-bottom: 4px; }
+.chat-message-text {
+  padding: 12px 16px; background: var(--surface); border-radius: var(--radius);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.chat-message-you .chat-message-text { background: var(--accent-soft); }
+.chat-message-operator_name .chat-message-text { border-inline-start: 3px solid var(--accent); }
+.chat-product { margin-top: 8px; display: grid; gap: 10px; }
+.chat-product-title { font-weight: 640; overflow-wrap: anywhere; text-decoration: underline; }
+.chat-product-actions { flex-wrap: wrap; align-items: end; }
+.chat-product-actions .field { flex: 1 1 90px; max-width: 150px; }
+.chat-product-actions input { width: 100%; }
+.chat-composer { display: grid; gap: 8px; }
+.chat-composer textarea { width: 100%; resize: vertical; min-height: 90px; }
+.chat-compose-actions small { max-width: 70%; }
+.chat-status:empty, .chat-requests:empty { display: none; }
+.chat-request { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chat-request p { overflow-wrap: anywhere; }
+.chat [hidden] { display: none !important; }
+.chat :focus-visible, .chat-entry:focus-visible, .topnav a:focus-visible, .tabbar a:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+}
+@media (max-width: 760px) {
+  .tabbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tabbar a { overflow-wrap: anywhere; min-width: 0; }
+  .chat-heading, .chat-toolbar { flex-wrap: wrap; }
+  .chat-log { padding: 12px; }
+  .chat-message { max-width: 100%; }
+  .chat button { min-height: 44px; }
+}

@@ -3,8 +3,8 @@
 The catalogue is transcribed from supplier price lists -- currently fanera.uz
 (sheet goods: plywood, OSB-3, HDF, DVP, DSP). Every product carries the source
 it came from and that supplier's list price, so an operator can tell a real row
-from a placeholder. Re-running the script republishes prices onto the rows that
-already exist, which is how a new price list is rolled out.
+from a placeholder. Re-running the script adds missing rows while preserving
+existing prices, stock, details and import provenance.
 
 Seeds:
 - 9 Units
@@ -2141,8 +2141,10 @@ def our_priced_rows() -> list[tuple[str, str, str | None, int | None]]:
     return rows
 
 
-async def seed_own_offers(session: AsyncSession) -> int:
-    """Create or refresh QurBot's own offers, with their wholesale tiers.
+async def seed_own_offers(
+    session: AsyncSession, *, new_canonical_ids: set[int] | None = None
+) -> int:
+    """Create initial offers only for products created by this seed invocation.
 
     Runs inside the catalogue-only path because these are real prices a
     customer can order against, not demo data: skipping them on deploy would
@@ -2177,6 +2179,14 @@ async def seed_own_offers(session: AsyncSession) -> int:
         if canonical is None:
             logger.warning("seed_own_offers: no canonical product for %s", slug)
             continue
+        # An existing catalogue-only product must not acquire invented stock
+        # merely because a deploy replays the original supplier price list.
+        if new_canonical_ids is None or canonical.id not in new_canonical_ids:
+            continue
+        if canonical.attributes.get("stock_unverified") or canonical.attributes.get(
+            "catalog_import"
+        ):
+            continue
 
         price = _uzs(retail_usd)
         offer_stmt = select(ShopProduct).where(
@@ -2202,11 +2212,7 @@ async def seed_own_offers(session: AsyncSession) -> int:
             session.add(offer)
             await session.flush()
         else:
-            offer.price_per_pack = price
-            offer.price_per_base_unit = price
-            offer.stock_status = "in_stock"
-            offer.staleness_state = "fresh"
-            offer.is_active = True
+            continue
 
         written += 1
         if wholesale_usd is None or from_qty is None:
@@ -2226,8 +2232,6 @@ async def seed_own_offers(session: AsyncSession) -> int:
                     price_per_pack=wholesale,
                 )
             )
-        else:
-            tier.price_per_pack = wholesale
 
     await session.flush()
     logger.info("Seeded %d own offers with wholesale tiers.", written)
@@ -2311,6 +2315,7 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
     logger.info("Seeding canonical products and aliases...")
     raw_catalog = generate_catalog_data()
     canonical_objs: list[CanonicalProduct] = []
+    new_canonical_ids: set[int] = set()
     alias_count = 0
 
     # Seeding must be re-runnable: the unique (canonical_id, alias_norm) index
@@ -2363,24 +2368,9 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
             )
             session.add(prod)
             await session.flush()
-        else:
-            # A price list is republished, not re-created: prices move with the
-            # order day (fanera.uz says so in as many words), so re-seeding has
-            # to reach rows that already exist or the catalogue silently keeps
-            # whatever the first run happened to load.
-            prod.name_uz = item.name_uz
-            prod.name_uz_cyrl = item.name_uz_cyrl
-            prod.name_ru = item.name_ru
-            prod.brand = item.brand
-            prod.category_id = cat.id
-            prod.base_unit_code = item.base_unit
-            prod.attributes = item.attributes
-            prod.tier = item.tier
-            prod.source = item.source
-            prod.source_ref = item.source_ref
-            prod.reference_price = item.reference_price
-            prod.is_active = True
-            prod.search_doc = search_doc
+            new_canonical_ids.add(prod.id)
+        # Existing canonical rows are operator-owned, including their source
+        # metadata and active state. A deploy must not republish stale prices.
         canonical_objs.append(prod)
 
         # Aliases
@@ -2427,6 +2417,10 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
         .all()
     )
     for product in retired:
+        if product.attributes.get("catalog_import") or (product.source_ref or "").startswith(
+            "sha256:"
+        ):
+            continue
         product.is_active = False
     if retired:
         await session.flush()
@@ -2434,7 +2428,7 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
 
     # Our own prices are real, orderable offers -- they belong to the catalogue
     # pass, not the demo market that follows it.
-    await seed_own_offers(session)
+    await seed_own_offers(session, new_canonical_ids=new_canonical_ids)
 
     if catalog_only:
         logger.info("catalog_only: stopping before demo users.")
