@@ -5,6 +5,8 @@ When the agent is off or cannot answer, the deterministic basket flow runs as
 before. The order is still confirmed with the existing button.
 """
 
+from typing import Any
+
 from aiogram import Bot, F, Router
 from aiogram.enums import ChatAction
 from aiogram.filters import StateFilter
@@ -32,11 +34,21 @@ router = Router(name="ai_chat")
 _AGENT_DATA_KEY = "agent"
 
 
+def _agent_is_available(_event: Message, **_data: Any) -> bool:
+    """Check agent availability without colliding with middleware context keys.
+
+    I18nMiddleware injects a translation helper under the `_` key. A filter
+    declared as ``lambda _`` therefore receives the event positionally and
+    the same name from handler data, which raises before Claude is called.
+    """
+    return agent_available()
+
+
 @router.message(
     StateFilter(None, BasketStates.waiting_for_basket_text, BasketStates.viewing_quotes),
     F.text & ~F.text.startswith("/"),
     _not_a_menu_button,
-    lambda _: agent_available(),
+    _agent_is_available,
 )
 async def handle_ai_text(
     message: Message,
