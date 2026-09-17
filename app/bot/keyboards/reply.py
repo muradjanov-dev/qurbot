@@ -1,6 +1,7 @@
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, WebAppInfo
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
+from app.core.config import settings
 from app.core.i18n import t
 
 
@@ -23,6 +24,13 @@ def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> Rep
         builder.button(text=t("menu_shop_portal", lang=lang))
         builder.button(text=t("menu_admin_panel", lang=lang))
         extra_rows.append(2)
+
+    if settings.storefront_webapp_url:
+        builder.button(
+            text=t("open_mini_app", lang=lang),
+            web_app=WebAppInfo(url=settings.storefront_webapp_url),
+        )
+        extra_rows.append(1)  # Place on its own row
 
     builder.adjust(1, 2, 1, *extra_rows)
     # A persistent reply keyboard asks Telegram clients to reopen it whenever

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from app.bot.keyboards.inline import (
     get_admin_order_decision_keyboard,
     get_basket_actions_keyboard,
@@ -152,15 +154,25 @@ def test_admin_order_decision_keyboard() -> None:
 
 
 def test_main_menu_keyboard() -> None:
-    kb_cust = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
-    assert len(kb_cust.keyboard) == 3
-    assert kb_cust.keyboard[2][0].text == "☎️ Bog'lanish"
-    assert kb_cust.is_persistent is False
+    # Deterministic: mock settings so row counts do not depend on .env.
+    with patch("app.bot.keyboards.reply.settings") as mock:
+        mock.storefront_webapp_url = "https://qur.standart-eko.uz"
+        kb_cust = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
+        assert len(kb_cust.keyboard) == 4
+        assert kb_cust.keyboard[2][0].text == "☎️ Bog'lanish"
+        assert kb_cust.is_persistent is False
 
-    # Admins get one extra row: the products panel beside the admin panel.
-    kb_admin = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
-    assert len(kb_admin.keyboard) == 4
-    assert [b.text for b in kb_admin.keyboard[3]] == ["📦 Mahsulotlar", "🛠 Admin panel"]
+        # Admins get one extra row: the products panel beside the admin panel + WebApp row = 5 rows
+        kb_admin = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
+        assert len(kb_admin.keyboard) == 5
+        assert [b.text for b in kb_admin.keyboard[3]] == ["📦 Mahsulotlar", "🛠 Admin panel"]
+
+    with patch("app.bot.keyboards.reply.settings") as mock:
+        mock.storefront_webapp_url = None
+        kb_cust_none = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
+        assert len(kb_cust_none.keyboard) == 3
+        kb_admin_none = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
+        assert len(kb_admin_none.keyboard) == 4
 
 
 def test_phone_request_keyboard() -> None:
@@ -188,3 +200,41 @@ def test_cabinet_keyboard() -> None:
 def test_shop_panel_keyboard_can_be_hidden() -> None:
     kb = get_shop_panel_keyboard(lang="uz_latn")
     assert kb.is_persistent is False
+
+
+def test_main_menu_webapp_button() -> None:
+    url = "https://qur.standart-eko.uz"
+
+    # 1. URL present — button appears for all 3 languages with correct web_app.url.
+    with patch("app.bot.keyboards.reply.settings") as mock_settings:
+        mock_settings.storefront_webapp_url = url
+
+        kb_uz = get_main_menu_keyboard(lang="uz_latn")
+        assert any(
+            b.text == "🌐 Saytni ochish" and b.web_app and b.web_app.url == url
+            for row in kb_uz.keyboard
+            for b in row
+        )
+
+        kb_cyrl = get_main_menu_keyboard(lang="uz_cyrl")
+        assert any(
+            b.text == "🌐 Сайтни очиш" and b.web_app and b.web_app.url == url
+            for row in kb_cyrl.keyboard
+            for b in row
+        )
+
+        kb_ru = get_main_menu_keyboard(lang="ru")
+        assert any(
+            b.text == "🌐 Открыть сайт" and b.web_app and b.web_app.url == url
+            for row in kb_ru.keyboard
+            for b in row
+        )
+
+    # 2. URL is None — button omitted and no web_app attached.
+    with patch("app.bot.keyboards.reply.settings") as mock_settings:
+        mock_settings.storefront_webapp_url = None
+
+        kb_none = get_main_menu_keyboard(lang="uz_latn")
+        texts_none = [btn.text for row in kb_none.keyboard for btn in row]
+        assert "🌐 Saytni ochish" not in texts_none
+        assert not any(b.web_app for row in kb_none.keyboard for b in row)
