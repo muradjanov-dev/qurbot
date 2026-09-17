@@ -6,7 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.base import BaseStorage
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 
 from app.bot.handlers import (
     admin_router,
@@ -19,6 +19,7 @@ from app.bot.handlers import (
     shop_router,
 )
 from app.bot.handlers.operator import router as operator_router
+from app.bot.handlers.webapp import router as webapp_router
 from app.bot.middlewares import (
     DbSessionMiddleware,
     ErrorMiddleware,
@@ -70,11 +71,21 @@ async def setup_bot_commands(bot: Bot) -> None:
         BotCommand(command="settings", description="Sozlamalar"),
         BotCommand(command="reregister", description="0 dan qayta ro'yxatdan o'tish"),
         BotCommand(command="cancel", description="Amalni bekor qilish"),
+        BotCommand(command="webapp", description="Saytni ochish / Открыть сайт"),
         BotCommand(command="shop_products", description="Mahsulotlar ro'yxati (adminlar)"),
         BotCommand(command="delivery_rules", description="Yetkazish qoidalari (adminlar)"),
     ]
     with suppress(Exception):
         await bot.set_my_commands(commands)
+    if settings.storefront_webapp_url:
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="QurBot", web_app=WebAppInfo(url=settings.storefront_webapp_url)
+                )
+            )
+        except Exception:
+            logger.warning("telegram_webapp_menu_setup_failed")
 
 
 def create_dispatcher() -> Dispatcher:
@@ -102,6 +113,7 @@ def create_dispatcher() -> Dispatcher:
     # all state-filtered to the upload wizard, while customer_router's basket
     # handlers match loose text that would otherwise swallow a wizard step
     # (cf. commit e68f17c).
+    dp.include_router(webapp_router)
     dp.include_router(common_router)
     dp.include_router(shop_listing_router)
     dp.include_router(price_browse_router)

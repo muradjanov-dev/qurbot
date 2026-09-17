@@ -56,6 +56,10 @@
   {% if flash %}<div class="flash" role="status">{{ flash }}</div>{% endif %}
 
   <main id="main" class="page">
+    <p class="notice warn" data-telegram-auth role="status" hidden
+       data-missing="{{ t('web_auth_reopen', lang=lang) }}"
+       data-error="{{ t('web_auth_recovery', lang=lang) }}"
+       data-loading="{{ t('web_auth_signing_in', lang=lang) }}"></p>
     {% block content %}{% endblock %}
   </main>
 

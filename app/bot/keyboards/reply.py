@@ -1,4 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, WebAppInfo
+from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from app.core.config import settings
@@ -26,10 +26,9 @@ def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> Rep
         extra_rows.append(2)
 
     if settings.storefront_webapp_url:
-        builder.button(
-            text=t("open_mini_app", lang=lang),
-            web_app=WebAppInfo(url=settings.storefront_webapp_url),
-        )
+        # Reply-keyboard WebApps have no signed user initData. This plain
+        # button asks the bot for an inline WebApp launch instead.
+        builder.button(text=t("open_mini_app", lang=lang))
         extra_rows.append(1)  # Place on its own row
 
     builder.adjust(1, 2, 1, *extra_rows)

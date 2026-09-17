@@ -205,29 +205,28 @@ def test_shop_panel_keyboard_can_be_hidden() -> None:
 def test_main_menu_webapp_button() -> None:
     url = "https://qur.standart-eko.uz"
 
-    # 1. URL present — button appears for all 3 languages with correct web_app.url.
+    # Reply WebApps do not carry signed identity. Send a text command that
+    # returns an INLINE WebApp button instead.
     with patch("app.bot.keyboards.reply.settings") as mock_settings:
         mock_settings.storefront_webapp_url = url
 
         kb_uz = get_main_menu_keyboard(lang="uz_latn")
         assert any(
-            b.text == "🌐 Saytni ochish" and b.web_app and b.web_app.url == url
+            b.text == "🌐 Saytni ochish" and b.web_app is None
             for row in kb_uz.keyboard
             for b in row
         )
 
         kb_cyrl = get_main_menu_keyboard(lang="uz_cyrl")
         assert any(
-            b.text == "🌐 Сайтни очиш" and b.web_app and b.web_app.url == url
+            b.text == "🌐 Сайтни очиш" and b.web_app is None
             for row in kb_cyrl.keyboard
             for b in row
         )
 
         kb_ru = get_main_menu_keyboard(lang="ru")
         assert any(
-            b.text == "🌐 Открыть сайт" and b.web_app and b.web_app.url == url
-            for row in kb_ru.keyboard
-            for b in row
+            b.text == "🌐 Открыть сайт" and b.web_app is None for row in kb_ru.keyboard for b in row
         )
 
     # 2. URL is None — button omitted and no web_app attached.

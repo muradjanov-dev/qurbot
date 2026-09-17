@@ -151,3 +151,47 @@ CHAT_MESSAGES.update(
 )
 
 CHAT_MESSAGES["web_chat_confirmation"] = CHAT_MESSAGES["web_product_confirm_required"]
+
+CHAT_MESSAGES.update(
+    {
+        "web_auth_reopen": {
+            "uz_latn": (
+                "Telegram orqali kirish ishlamasa, eski tugmadan ochilgan ilovani yoping. "
+                "Botga /webapp yuboring va yangi xabar ostidagi tugma orqali saytni qayta "
+                "oching. Eski klaviatura tugmasidan foydalanmang."
+            ),
+            "uz_cyrl": (
+                "Telegram орқали кириш ишламаса, эски тугмадан очилган иловани ёпинг. "
+                "Ботга /webapp юборинг ва янги хабар остидаги тугма орқали сайтни қайта "
+                "очинг. Эски клавиатура тугмасидан фойдаланманг."
+            ),
+            "ru": (
+                "Если вход через Telegram не работает, закройте приложение, открытое старой "
+                "кнопкой. Отправьте боту /webapp и откройте сайт кнопкой под новым "
+                "сообщением. Не используйте старую кнопку клавиатуры."
+            ),
+        },
+        "web_auth_recovery": {
+            "uz_latn": (
+                "Kirishni yakunlab bo'lmadi. Cookie va sayt xotirasiga ruxsat bering. "
+                "Ilovani yoping, botga /webapp yuboring va yangi xabar ostidagi tugma "
+                "orqali qayta oching."
+            ),
+            "uz_cyrl": (
+                "Киришни якунлаб бўлмади. Cookie ва сайт хотирасига рухсат беринг. "
+                "Иловани ёпинг, ботга /webapp юборинг ва янги хабар остидаги тугма "
+                "орқали қайта очинг."
+            ),
+            "ru": (
+                "Не удалось завершить вход. Разрешите cookie и хранилище сайта. Закройте "
+                "приложение, отправьте боту /webapp и откройте его кнопкой под новым "
+                "сообщением."
+            ),
+        },
+        "web_auth_signing_in": {
+            "uz_latn": "Telegram orqali kirish tekshirilmoqda…",
+            "uz_cyrl": "Telegram орқали кириш текширилмоқда…",
+            "ru": "Проверяем вход через Telegram…",
+        },
+    }
+)

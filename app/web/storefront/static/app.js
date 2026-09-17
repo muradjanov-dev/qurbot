@@ -752,15 +752,78 @@
 
   /* ── Telegram Mini App ───────────────────────────────────────────── */
 
-  function initTelegram() {
+  async function initTelegram() {
+    var dataKey = "qb_telegram_init_data";
+    var attemptKey = "qb_telegram_auth_attempted";
     var tg = window.Telegram && window.Telegram.WebApp;
-    if (!tg) return;
-    try { tg.ready(); tg.expand(); } catch (err) { /* older clients */ }
-    if (QB.authed || !tg.initData) return;
-
-    postJSON("/auth/webapp", { init_data: tg.initData, next: window.location.pathname })
-      .then(function (result) { if (result && result.ok) window.location.reload(); });
+    var notice = $("[data-telegram-auth]");
+    function show(state) {
+      if (!notice) return;
+      notice.textContent = notice.dataset[state];
+      notice.hidden = false;
+    }
+    function clearData() {
+      try { sessionStorage.removeItem(dataKey); } catch (err) { /* unavailable storage */ }
+    }
+    function localTarget(value) {
+      if (typeof value !== "string" || value[0] !== "/" || value.startsWith("//") || value.includes("\\")) return "/";
+      var url = new URL(value, window.location.origin);
+      return url.origin === window.location.origin && url.pathname !== "/login" ? url.pathname + url.search : "/";
+    }
+    if (tg) {
+      try { tg.ready(); tg.expand(); } catch (err) { /* older clients */ }
+    }
+    if (QB.authed) {
+      clearData();
+      try { sessionStorage.removeItem(attemptKey); } catch (err) { /* unavailable storage */ }
+      return;
+    }
+    var initData = tg && typeof tg.initData === "string" ? tg.initData : "";
+    var attempted = false;
+    var storageAvailable = true;
+    try {
+      attempted = sessionStorage.getItem(attemptKey) === "1";
+      if (!initData) initData = sessionStorage.getItem(dataKey) || "";
+      if (initData && !attempted) sessionStorage.setItem(dataKey, initData);
+    } catch (err) { storageAvailable = false; }
+    if (attempted) { show("error"); return; }
+    if (!initData) {
+      if (tg && tg.platform && tg.platform !== "unknown") show("missing");
+      return;
+    }
+    // Preserve launch data if navigation interrupts the POST. The success marker
+    // below prevents re-authentication loops; raw initData never enters a URL.
+    if (!storageAvailable) { show("error"); return; }
+    var login = $("[data-login-next]");
+    var target = localTarget(login ? login.dataset.loginNext : window.location.pathname);
+    var controller = new AbortController();
+    var timeout = setTimeout(function () { controller.abort(); }, 15000);
+    show("loading");
+    try {
+      var response = await fetch("/auth/webapp", {
+        method: "POST", credentials: "same-origin", signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ init_data: initData, next: target })
+      });
+      var result = await response.json();
+      if (!response.ok || !result.ok) { show("error"); return; }
+      sessionStorage.setItem(attemptKey, "1");
+      clearData();
+      // An accepted signature alone does not prove that the browser retained the
+      // session cookie. Confirm through an authenticated endpoint before navigating.
+      var check = await fetch("/api/cart", {
+        credentials: "same-origin", cache: "no-store", signal: controller.signal
+      });
+      if (!check.ok || !(await check.json()).ok) { show("error"); return; }
+      window.location.replace(localTarget(result.redirect || target));
+    } catch (err) {
+      show("error");
+    } finally { clearTimeout(timeout); }
   }
+
+  // Capture Telegram's launch payload before full-page navigation can discard it;
+  // auth must not depend on a successful cart request or widget initialization.
+  initTelegram();
 
   /* ── boot ────────────────────────────────────────────────────────── */
 
@@ -789,6 +852,5 @@
     initBasketPage();
     initAddressChoice();
     initCheckout();
-    initTelegram();
   });
 })();
