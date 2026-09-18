@@ -30,6 +30,38 @@
   let mode = '';
   let backoff = POLL_MS;
 
+  // Keep the composer above both the keyboard and Telegram's changing viewport.
+  const viewport = window.visualViewport;
+  const telegram = window.Telegram?.WebApp;
+  function fitViewport() {
+    if (viewport && viewport.scale !== 1) return;
+    const height = Math.min(viewport?.height || window.innerHeight,
+      telegram?.viewportHeight || window.innerHeight);
+    document.body.style.setProperty('--chat-viewport-height', `${height}px`);
+    document.body.style.setProperty('--chat-viewport-top', `${viewport?.offsetTop || 0}px`);
+    document.body.classList.toggle('chat-compact', height < 480);
+  }
+  function resizeInput() {
+    input.style.height = 'auto';
+    input.style.height = `${input.scrollHeight + 2}px`;
+  }
+  let followingLatest = true;
+  log.addEventListener('scroll', () => {
+    followingLatest = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  });
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => {
+      if (followingLatest) log.scrollTop = log.scrollHeight;
+    }).observe(log);
+  }
+  input.addEventListener('input', resizeInput);
+  window.addEventListener('resize', fitViewport);
+  viewport?.addEventListener('resize', fitViewport);
+  viewport?.addEventListener('scroll', fitViewport);
+  telegram?.onEvent?.('viewportChanged', fitViewport);
+  fitViewport();
+  resizeInput();
+
   function saveRequests() {
     if (!storageKey) return;
     try {
@@ -259,7 +291,12 @@
       updateRequest({ request_id: item.request_id, status: 'pending' });
       receive(data);
       saveRequests();
-      if (input.value.trim() === item.text) input.value = '';
+      if (input.value.trim() === item.text) {
+        input.value = '';
+        resizeInput();
+      }
+      followingLatest = true;
+      log.scrollTop = log.scrollHeight;
       status.textContent = '';
     } catch (error) {
       updateRequest({ request_id: item.request_id, status: 'unknown' });

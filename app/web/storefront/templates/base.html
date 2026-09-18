@@ -13,7 +13,7 @@
   <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
-<body data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
+<body class="{% block body_class %}{% endblock %}" data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
   <a class="skip" href="#main">→</a>
 
   <header class="topbar">

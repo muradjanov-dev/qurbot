@@ -411,18 +411,41 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 /* Shared AI/operator conversation. */
 .chat-entry { margin-top: 20px; }
 .chat { max-width: 780px; margin-inline: auto; display: grid; gap: 16px; }
+.chat-page {
+  position: fixed; top: var(--chat-viewport-top, 0px); left: 0; width: 100%;
+  height: 100vh; height: var(--chat-viewport-height, 100dvh);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.chat-page .topbar { position: relative; flex: none; }
+.chat-page .page {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0;
+}
+.chat-page .footer { display: none; }
+.chat-page .chat {
+  width: 100%; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0;
+  border-inline: 1px solid var(--line);
+}
+.chat-page .chat-heading { padding: 10px 16px 0; margin: 0; align-items: center; }
+.chat-page .chat-heading h1 { font-size: 1.15rem; }
+.chat-page .chat-heading > a { padding: 6px 14px; }
+.chat-page .chat-toolbar { padding: 8px 16px; flex: none; font-size: .8rem; }
+.chat-page .tabbar { position: static; flex: none; }
+.chat-page.chat-compact .topbar, .chat-page.chat-compact .chat-heading { display: none; }
+.chat-page.chat-compact .chat-toolbar { padding-block: 4px; }
 .chat-heading { align-items: start; gap: 16px; }
 .chat-heading p { margin-top: 8px; }
-.chat-toolbar, .chat-compose-actions, .chat-product-actions {
+.chat-toolbar, .chat-product-actions {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .chat-log {
-  min-height: 220px; max-height: 55vh; max-height: 55dvh; overflow-y: auto;
+  flex: 1; min-height: 0; overflow-y: auto;
   overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px;
-  padding: 16px; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px; border-block: 1px solid var(--line);
   background: var(--surface-2);
 }
-.chat-message { align-self: flex-start; max-width: 92%; min-width: 0; }
+.chat-empty { margin: auto; max-width: 340px; text-align: center; display: grid; gap: 8px; }
+.chat-message { flex: none; align-self: flex-start; max-width: 92%; min-width: 0; }
 .chat-message-you { align-self: flex-end; }
 .chat-message-author { font-size: .75rem; color: var(--ink-2); margin-bottom: 4px; }
 .chat-message-text {
@@ -436,9 +459,19 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 .chat-product-actions { flex-wrap: wrap; align-items: end; }
 .chat-product-actions .field { flex: 1 1 90px; max-width: 150px; }
 .chat-product-actions input { width: 100%; }
-.chat-composer { display: grid; gap: 8px; }
-.chat-composer textarea { width: 100%; resize: vertical; min-height: 90px; }
-.chat-compose-actions small { max-width: 70%; }
+.chat-composer {
+  display: flex; align-items: flex-end; gap: 8px; flex: none;
+  padding: 10px 12px; background: var(--bg);
+}
+.chat-composer textarea {
+  flex: 1; min-width: 0; width: 100%; resize: none; min-height: 44px;
+  max-height: min(120px, 22vh); overflow-y: auto; font-size: 16px; line-height: 22px;
+  padding: 10px 14px; border-radius: 22px;
+}
+.chat-send { width: 44px; height: 44px; flex: none; padding: 10px; }
+.chat-send svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chat-feedback { flex: none; max-height: 20%; overflow-y: auto; font-size: .8rem; }
+.chat-status:not(:empty), .chat-request:not([hidden]) { padding: 6px 12px; }
 .chat-status:empty, .chat-requests:empty { display: none; }
 .chat-request { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .chat-request p { overflow-wrap: anywhere; }
@@ -449,8 +482,16 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 @media (max-width: 760px) {
   .tabbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .tabbar a { overflow-wrap: anywhere; min-width: 0; }
-  .chat-heading, .chat-toolbar { flex-wrap: wrap; }
+  .chat-toolbar { flex-wrap: wrap; gap: 6px; }
+  .chat-page .chat-toolbar > p { flex: 1 1 100px; }
   .chat-log { padding: 12px; }
   .chat-message { max-width: 100%; }
   .chat button { min-height: 44px; }
+}
+@media (min-width: 761px) {
+  .chat-composer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+}
+@media (max-height: 480px) {
+  .chat-page .topbar, .chat-page .chat-heading { display: none; }
+  .chat-page .chat-toolbar { padding-block: 4px; }
 }
