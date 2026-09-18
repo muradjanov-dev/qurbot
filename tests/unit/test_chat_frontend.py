@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
+from app.web.storefront.deps import ASSET_VERSION
 from app.web.storefront.routers.catalog import _needs_confirmation
 
 TEMPLATES = Path(__file__).parents[2] / "app/web/storefront/templates"
@@ -34,7 +35,7 @@ class PageAudit(HTMLParser):
 
 def template_env() -> Environment:
     env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=True)
-    env.globals.update(t=t, csrf_token=lambda request: "test-csrf")
+    env.globals.update(t=t, csrf_token=lambda request: "test-csrf", asset_version=ASSET_VERSION)
     return env
 
 
@@ -59,7 +60,12 @@ def test_chat_template_accessibility_and_localization(lang: str, authenticated: 
     assert all(label in audit.ids for label in audit.labels)
     assert "web_chat_" not in html
     assert 'name="csrf-token" content="test-csrf"' in html
+    assert f"app.css?v={ASSET_VERSION}" in html
+    assert f"app.js?v={ASSET_VERSION}" in html
     if authenticated:
+        assert f"chat.js?v={ASSET_VERSION}" in html
+        assert 'class="topbar"' not in html
+        assert 'class="tabbar"' not in html
         assert audit.logs[0]["aria-label"] == t("web_chat_history", lang=lang)
         assert audit.logs[0]["aria-live"] == "polite"
         raw = html.split('<script id="chat-strings" type="application/json">')[1]

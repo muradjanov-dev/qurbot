@@ -1,19 +1,28 @@
 # Chat layout — 2026-09-18
 
-The authenticated `/chat` now fills the available window. Only the message
-history scrolls; the compact composer stays directly below it and above the
-mobile navigation. The text field grows with multiline input, up to a limit,
-and collapses after sending. Enter still adds a newline; the arrow sends.
-The operator handoff button, product cards and shared cart remain available.
-Guest visitors keep the regular sign-in page layout.
+The authenticated `/chat` is a standalone messenger screen matching the user's
+reference: a light conversation canvas, one compact header with back arrow and
+avatar, and a single composer row at the very bottom. The text field and send
+arrow sit side by side. The storefront header, footer and bottom navigation
+are not rendered on this screen. The three-dot menu contains operator handoff,
+cart and account links. Guests keep the regular sign-in page layout.
+
+Only the message history scrolls. The text field grows with multiline input,
+up to a limit, and collapses after sending. Enter still adds a newline; the
+arrow sends. Product cards and the shared cart remain available.
 
 Previously, the history used up to 55dvh while the heading, a separate composer
 card, footer and fixed navigation consumed additional height. At 390×700 the
 composer ended at y=969 and the document was 1142px tall. The new flex layout
-reserves the composer/navigation space and gives the remainder to history.
+reserves the header/composer space and gives the remainder to history.
 `visualViewport` and Telegram `viewportChanged` events update the available
-height when the keyboard or Mini App viewport changes. Short windows use a
-compact header. Reading older messages does not jump to the latest on polling.
+height when the keyboard or Mini App viewport changes. Reading older messages
+does not jump to the latest on polling.
+
+The user's follow-up screenshot showed new markup with old styles. CSS and
+JavaScript URLs now carry a content-derived version from `deps.ASSET_VERSION`:
+updating any storefront asset changes the URLs so Telegram WebViews request
+fresh files instead of reusing the previous unversioned assets.
 
 ## Verification
 
@@ -46,12 +55,12 @@ CI, publishes the commit-tagged image, and deploys over SSH to Netcup. Verify
 both `qurbot-web` and `qurbot-worker` image tags using `ssh netcup`, then check
 `https://qur.standart-eko.uz/ready` and `/chat`. No schema migration is added.
 The previous runtime image is
-`f82f4484a4e5af621585a6dc1e3306ba61b8d83b`.
+`5dc522935221d47def0d193b598448af051324ec`.
 
 Rollback if required:
 
 ```sh
-ssh netcup '/srv/stack/scripts/deploy.sh qurbot f82f4484a4e5af621585a6dc1e3306ba61b8d83b'
+ssh netcup '/srv/stack/scripts/deploy.sh qurbot 5dc522935221d47def0d193b598448af051324ec'
 ```
 
 After deployment, close and reopen the Telegram Mini App to load the new UI.

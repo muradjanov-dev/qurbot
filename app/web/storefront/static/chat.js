@@ -39,7 +39,6 @@
       telegram?.viewportHeight || window.innerHeight);
     document.body.style.setProperty('--chat-viewport-height', `${height}px`);
     document.body.style.setProperty('--chat-viewport-top', `${viewport?.offsetTop || 0}px`);
-    document.body.classList.toggle('chat-compact', height < 480);
   }
   function resizeInput() {
     input.style.height = 'auto';
@@ -355,6 +354,8 @@
   });
 
   operator.addEventListener('click', async () => {
+    const menu = operator.closest('details');
+    if (menu) menu.open = false;
     operatorBusy = true;
     controls();
     try {

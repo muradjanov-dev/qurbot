@@ -7,6 +7,7 @@ Playwright is an optional local verification tool, not a runtime dependency.
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import Browser, Route, sync_playwright
@@ -16,7 +17,7 @@ from app.core.i18n import t
 ROOT = Path(__file__).resolve().parents[1]
 (ROOT / ".artifacts").mkdir(exist_ok=True)
 env = Environment(loader=FileSystemLoader(ROOT / "app/web/storefront/templates"), autoescape=True)
-env.globals.update(t=t, csrf_token=lambda request: "test-csrf")
+env.globals.update(t=t, csrf_token=lambda request: "test-csrf", asset_version="browser-check")
 
 
 def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
@@ -48,7 +49,7 @@ def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
     )
 
     def route(request: Route) -> None:
-        path = request.request.url.split("chat.test")[-1]
+        path = urlsplit(request.request.url).path
         if path.startswith("/static/store/"):
             file = ROOT / "app/web/storefront/static" / path.split("/")[-1]
             request.fulfill(path=str(file))
@@ -95,10 +96,12 @@ def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
         metrics = page.evaluate("""() => {
             const box = s => document.querySelector(s).getBoundingClientRect();
             const composer = box('[data-chat-form]'), log = box('[data-chat-log]');
-            const tab = box('.tabbar');
+            const input = box('#chat-message'), send = box('[data-chat-send]');
             return {composerBottom: composer.bottom, composerTop: composer.top,
                 logBottom: log.bottom,
-                tabTop: tab.height ? tab.top : innerHeight, height: innerHeight,
+                inputRight: input.right, inputBottom: input.bottom,
+                sendLeft: send.left, sendBottom: send.bottom,
+                tabTop: innerHeight, height: innerHeight,
                 pageHeight: document.documentElement.scrollHeight,
                 pageWidth: document.documentElement.scrollWidth,
                 width: innerWidth,
@@ -114,6 +117,13 @@ def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
         assert metrics["pageHeight"] <= metrics["height"] + 1, "Chat causes outer page scrolling"
         assert metrics["pageWidth"] <= metrics["width"], "Horizontal overflow"
         assert metrics["logBottom"] <= metrics["composerTop"] + 1, "Composer overlaps history"
+        assert (
+            abs(metrics["composerBottom"] - metrics["visibleHeight"]) <= 1
+        ), "Composer must sit at the bottom of the window, without site navigation"
+        assert page.locator(".topbar").count() == 0, "Chat must have only its own header"
+        assert page.locator(".footer, .tabbar").count() == 0, "Site chrome must not enter chat"
+        assert metrics["sendLeft"] >= metrics["inputRight"], "Send must be beside the input"
+        assert abs(metrics["sendBottom"] - metrics["inputBottom"]) <= 1
 
     page.screenshot(path=str(ROOT / f".artifacts/chat-{width}-{height}.png"))
     check_layout()
@@ -133,6 +143,11 @@ def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
     page.set_viewport_size({"width": width, "height": height})
     page.wait_for_function(f"document.body.getBoundingClientRect().height === {height}")
     if width == 390 and height == 700:
+        page.locator(".chat-menu summary").click()
+        assert page.locator("[data-chat-operator]").is_visible()
+        assert page.locator('.chat-menu a[href="/basket"]').is_visible()
+        page.locator("[data-chat-operator]").click()
+        assert not page.locator(".chat-menu").evaluate("menu => menu.open")
         # New messages must not pull someone away from older history.
         page.locator("[data-chat-log]").evaluate("(log) => { log.scrollTop = 0; }")
         page.wait_for_timeout(100)

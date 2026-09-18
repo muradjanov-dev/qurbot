@@ -7,6 +7,7 @@ are resolved once here rather than in each route.
 
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -27,6 +28,13 @@ from app.web.storefront.security import csrf_token
 from app.web.storefront.session import LANG_COOKIE, SESSION_COOKIE, normalize_lang, read_session
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+# Change asset URLs whenever their contents change, including in cached WebViews.
+ASSET_VERSION = sha256(
+    b"".join(
+        (Path(__file__).parent / "static" / name).read_bytes()
+        for name in ("app.css", "app.js", "chat.js")
+    )
+).hexdigest()[:16]
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals.update(
     csrf_token=csrf_token,
@@ -36,6 +44,7 @@ templates.env.globals.update(
     format_catalog_price=format_catalog_price,
     settings=settings,
     static_url="/static/store",
+    asset_version=ASSET_VERSION,
 )
 
 # Messages a route may hand to the next page through the query string. Kept as

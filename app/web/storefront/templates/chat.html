@@ -1,8 +1,33 @@
 {% extends "base.html" %}
 {% block title %}{{ t('web_chat_title', lang=lang) }} — QurBot{% endblock %}
 {% block body_class %}{{ 'chat-page' if user else '' }}{% endblock %}
+{% block site_header %}{% if not user %}{{ super() }}{% endif %}{% endblock %}
+{% block site_footer %}{% if not user %}{{ super() }}{% endif %}{% endblock %}
 {% block content %}
 <section class="chat" aria-labelledby="chat-title" data-chat>
+  {% if user %}
+  <header class="chat-header">
+    <a class="chat-icon" href="/" aria-label="{{ t('web_back', lang=lang) }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>
+    </a>
+    <span class="chat-avatar" aria-hidden="true">Q</span>
+    <div class="chat-identity">
+      <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
+      <p data-chat-mode role="status"></p>
+    </div>
+    <details class="menu chat-menu">
+      <summary class="chat-icon" aria-label="{{ t('web_chat_menu', lang=lang) }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      </summary>
+      <div class="menu-body">
+        <button type="button" data-chat-operator disabled>{{ t('web_chat_operator', lang=lang) }}</button>
+        <a href="/basket">{{ t('web_nav_basket', lang=lang) }}</a>
+        <a href="/account">{{ t('web_nav_account', lang=lang) }}</a>
+      </div>
+    </details>
+  </header>
+  <noscript><p role="alert">{{ t('web_chat_no_js', lang=lang) }}</p></noscript>
+  {% else %}
   <div class="section-head chat-heading">
     <div>
       <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
@@ -10,12 +35,8 @@
     </div>
     <a class="btn btn-ghost" href="/basket">{{ t('web_nav_basket', lang=lang) }}</a>
   </div>
+  {% endif %}
   {% if user %}
-  <noscript><p role="alert">{{ t('web_chat_no_js', lang=lang) }}</p></noscript>
-  <div class="chat-toolbar">
-    <p data-chat-mode role="status"></p>
-    <button type="button" class="btn btn-ghost btn-sm" data-chat-operator disabled>{{ t('web_chat_operator', lang=lang) }}</button>
-  </div>
   <div class="chat-log" data-chat-log role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ t('web_chat_history', lang=lang) }}" tabindex="0">
     <div class="chat-empty muted" data-chat-empty hidden>
       <p>{{ t('web_chat_intro', lang=lang) }}</p>
@@ -28,7 +49,7 @@
   </div>
   <form class="chat-composer" data-chat-form>
     <label class="sr-only" for="chat-message">{{ t('web_chat_message', lang=lang) }}</label>
-    <textarea id="chat-message" name="message" rows="1" maxlength="4000" placeholder="{{ t('web_chat_message', lang=lang) }}…" required aria-describedby="chat-hint" disabled></textarea>
+    <textarea id="chat-message" name="message" rows="1" maxlength="4000" placeholder="{{ t('web_chat_placeholder', lang=lang) }}" required aria-describedby="chat-hint" disabled></textarea>
     <small id="chat-hint" class="sr-only">{{ t('web_chat_hint', lang=lang) }}</small>
     <button type="submit" class="btn btn-primary chat-send" data-chat-send disabled aria-label="{{ t('web_chat_send', lang=lang) }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7M12 5v15"/></svg>
@@ -50,6 +71,6 @@
 {% endfor %}
   "unit_conflict": {{ t('web_chat_unit_conflict', lang=lang)|tojson }}
 }</script>
-<script src="{{ static_url }}/chat.js" defer></script>
+<script src="{{ static_url }}/chat.js?v={{ asset_version }}" defer></script>
 {% endif %}
 {% endblock %}
