@@ -39,13 +39,9 @@ def product_keyboard(
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=(
-                        f"{card['name'][:25]} · {t('web_qty', lang=lang)} "
-                        f"{qty} {card.get('unit_code', '')}"
-                    ),
-                    callback_data=f"chat:qty:{message.id}:{index}:{qty}:{revision}",
+                    text=f"{index + 1}. {card['name']}",
+                    callback_data=f"chat:product:{message.id}:{index}:{revision}",
                 )
-                for qty in (1, 5, 10)
             ]
         )
     rows.append(
@@ -56,6 +52,64 @@ def product_keyboard(
         ]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def quantity_keyboard(
+    message: ConversationMessage, index: int, revision: int, lang: str
+) -> InlineKeyboardMarkup:
+    card = message.cards[index]
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"{qty} {card.get('unit', card.get('unit_code', ''))}",
+                    callback_data=f"chat:qty:{message.id}:{index}:{qty}:{revision}",
+                )
+                for qty in (1, 5, 10)
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("web_chat_operator", lang=lang), callback_data="chat:operator"
+                )
+            ],
+        ]
+    )
+
+
+@router.callback_query(F.data.startswith("chat:product:"))
+async def select_product(
+    callback: CallbackQuery, session: AsyncSession, user: User, lang: str
+) -> None:
+    parts = (callback.data or "").split(":")
+    try:
+        if len(parts) != 5 or not all(value.isdigit() for value in parts[2:]):
+            raise InvalidCartItem("invalid_callback")
+        message_id, index, revision = map(int, parts[2:])
+        message = await session.get(ConversationMessage, message_id)
+        conversation = await session.get(Conversation, message.conversation_id) if message else None
+        if message is None or conversation is None or conversation.user_id != user.id:
+            raise InvalidCartItem("invalid_message")
+        if not 0 <= index < min(3, len(message.cards)):
+            raise InvalidCartItem("invalid_card")
+        card = message.cards[index]
+        if (
+            card.get("price_from_uzs") is None
+            or card.get("price_on_request")
+            or card.get("stock_unverified")
+        ):
+            raise InvalidCartItem("unverified_product")
+    except (InvalidCartItem, KeyError, ValueError):
+        await callback.answer(t("web_chat_cart_conflict", lang=lang), show_alert=True)
+        return
+    await callback.answer()
+    if isinstance(callback.message, Message):
+        await callback.message.answer(
+            f"{index + 1}. {card['name']}\n"
+            f"{card['price_from_uzs']} UZS / {card.get('unit', '')}\n\n"
+            f"{t('chat_choose_quantity', lang=lang)}",
+            parse_mode=None,
+            reply_markup=quantity_keyboard(message, index, revision, lang),
+        )
 
 
 def _agent_is_available(_event: Message, **_data: Any) -> bool:
@@ -186,5 +240,5 @@ async def set_product_quantity(
     await callback.answer(t("web_chat_added", lang=lang))
     if isinstance(callback.message, Message):
         await callback.message.edit_reply_markup(
-            reply_markup=product_keyboard(message, snapshot.revision, lang)
+            reply_markup=quantity_keyboard(message, index, snapshot.revision, lang)
         )

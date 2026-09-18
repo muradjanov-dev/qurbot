@@ -782,14 +782,14 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                         markup = product_keyboard(response, snapshot.revision, customer.lang)
                         if response.cards:
                             text = text[:2800]
-                        for card in response.cards[:3]:
+                        for index, card in enumerate(response.cards[:3]):
                             price = card.get("price_from_uzs")
                             label = (
                                 f"{price} UZS / {card.get('unit', '')}"
                                 if price is not None
                                 else t("web_product_confirm_required", lang=customer.lang)
                             )
-                            text += f"\n\n{str(card.get('name', ''))[:100]}\n{label}"
+                            text += f"\n\n{index + 1}. {card.get('name', '')}\n{label}"
                         await session.commit()
             await bot.send_message(tg_id, text, parse_mode=None, reply_markup=markup)
         except TelegramAPIError:

@@ -241,7 +241,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
 
     from aiogram.types import Chat, Message
 
-    from app.bot.handlers.ai_chat import prepare_confirmation, set_product_quantity
+    from app.bot.handlers.ai_chat import prepare_confirmation, select_product, set_product_quantity
     from app.services.cart_service import CartService
     from tests.integration.test_sales_agent_tools import _seed
 
@@ -275,7 +275,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
     call = bot.send_message.await_args
     markup = call.kwargs["reply_markup"]
     buttons = [button for row in markup.inline_keyboard for button in row]
-    prefix = "chat:checkout:" if checkout else "chat:qty:"
+    prefix = "chat:checkout:" if checkout else "chat:product:"
     target = next(button for button in buttons if (button.callback_data or "").startswith(prefix))
     if not checkout:
         assert "151000 UZS" in call.args[1]
@@ -294,6 +294,18 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
             assert payload["checkout_key"] == f"chat:{first['id']}"
             assert message.answer.await_args.kwargs["reply_markup"].inline_keyboard
         else:
+            other = await session.get(User, 4)
+            await select_product(callback, session, other, "uz_latn")
+            message.answer.assert_not_awaited()
+            assert callback.answer.await_args.kwargs["show_alert"] is True
+            await select_product(callback, session, user, "uz_latn")
+            assert not (await CartService(session).get(user.id)).lines
+            selection = message.answer.await_args
+            assert "1. " in selection.args[0]
+            assert "151000 UZS" in selection.args[0]
+            quantities = selection.kwargs["reply_markup"].inline_keyboard[0]
+            assert len(quantities) == 3
+            callback.data = quantities[0].callback_data
             await set_product_quantity(callback, session, user, "uz_latn")
             snapshot = await CartService(session).get(user.id)
             assert snapshot.lines[0]["qty"] == "1"

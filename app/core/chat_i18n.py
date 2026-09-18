@@ -96,6 +96,11 @@ CHAT_MESSAGES: dict[str, dict[str, str]] = {
 
 CHAT_MESSAGES.update(
     {
+        "chat_choose_quantity": {
+            "uz_latn": "Savatga qo'shish uchun miqdorni tanlang:",
+            "uz_cyrl": "Саватга қўшиш учун миқдорни танланг:",
+            "ru": "Выберите количество для добавления в корзину:",
+        },
         "web_product_confirm_required": {
             "uz_latn": "Narx va mavjudlik operator tomonidan tasdiqlanadi",
             "uz_cyrl": "Нарх ва мавжудлик оператор томонидан тасдиқланади",
