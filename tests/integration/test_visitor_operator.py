@@ -60,6 +60,9 @@ async def bootstrap(client):
     response = await client.post("/api/session", headers={"X-QurBot-Bootstrap": "1"})
     assert response.status_code == 200
     assert response.json()["mode"] == "guest"
+    if "set-cookie" in response.headers:
+        assert "SameSite=none" in response.headers["set-cookie"]
+        assert "Partitioned" in response.headers["set-cookie"]
 
 
 async def test_guest_session_ownership_csrf_and_expiry(web, test_session):

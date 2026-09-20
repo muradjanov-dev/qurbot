@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models.user import User, VisitorSession
+from app.web.storefront.cookies import set_session_cookie
 from app.web.storefront.session import GUEST_COOKIE
 
 _LIMIT = """
@@ -69,13 +70,12 @@ async def create_visitor(session: AsyncSession, request: Request, lang: str) -> 
     )
     await session.commit()
     response = JSONResponse({"ok": True, "mode": "guest"}, headers={"Cache-Control": "no-store"})
-    response.set_cookie(
+    set_session_cookie(
+        response,
+        request,
         GUEST_COOKIE,
         token,
-        httponly=True,
-        samesite="lax",
         max_age=30 * 86400,
-        secure=request.url.scheme == "https" or settings.webhook_base_url.startswith("https://"),
     )
     return response
 

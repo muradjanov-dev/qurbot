@@ -37,11 +37,25 @@ async def test_signed_launch_preserves_database_role(test_session, monkeypatch, 
         response = await client.post("/auth/webapp", json={"init_data": proof, "next": "/chat"})
         assert response.status_code == 200
         assert response.json()["redirect"] == "/chat"
+        cookie_header = response.headers["set-cookie"].lower()
+        for attribute in ("httponly", "secure", "samesite=none", "partitioned", "path=/"):
+            assert attribute in cookie_header
         signed = read_session(client.cookies.get(SESSION_COOKIE))
         assert signed and signed.user_id == user.id
+        assert (await client.get("/api/cart")).status_code == 200
         assert (await client.get("/api/chat/operator")).status_code == expected
         assert user.role == role
         assert (await client.get("/login?next=/chat")).headers["location"] == "/chat"
+        # SameSite=None must not permit cross-site form writes or logout.
+        for path in ("/logout", "/account/addresses", "/auth/webapp"):
+            denied = await client.post(path, headers={"Origin": "https://attacker.example"})
+            assert denied.status_code == 403
+        assert (await client.get("/api/cart")).status_code == 200
+        assert (await client.post("/api/chat/handoff", json={})).status_code == 403
+        logout = await client.post("/logout", headers={"Origin": "https://shop.example"})
+        assert logout.status_code == 303
+        assert len(logout.headers.get_list("set-cookie")) == 4
+        assert (await client.get("/api/cart")).status_code == 401
 
 
 @pytest.mark.asyncio

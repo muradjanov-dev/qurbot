@@ -10,6 +10,19 @@ from app.core.config import settings
 from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, read_session
 
 
+async def require_same_origin_write(request: Request) -> None:
+    """Do not rely on SameSite cookies to protect legacy HTML form mutations."""
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return
+    origin = request.headers.get("origin")
+    if request.headers.get("sec-fetch-site") == "cross-site":
+        raise HTTPException(403, "origin_rejected")
+    if origin:
+        parsed = urlsplit(origin)
+        if parsed.netloc != request.headers.get("host") or parsed.scheme not in {"http", "https"}:
+            raise HTTPException(403, "origin_rejected")
+
+
 def csrf_token(request: Request) -> str:
     cookie = request.cookies.get(SESSION_COOKIE, "")
     if read_session(cookie) is None:

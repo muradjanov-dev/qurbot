@@ -19,6 +19,7 @@ from app.core.logging import get_logger
 from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
+from app.web.storefront.cookies import clear_session_cookie, set_session_cookie
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.schemas import WebAppLoginIn
 from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, read_session, sign_session
@@ -35,24 +36,14 @@ logger = get_logger(__name__)
 router = APIRouter(tags=["storefront-auth"])
 
 
-def _cookie_is_secure(request: Request) -> bool:
-    """Whether to mark the session cookie Secure.
-
-    Behind Railway's proxy the app often sees plain http even though the
-    browser is on https, so the configured public URL gets a say too.
-    """
-    return request.url.scheme == "https" or settings.webhook_base_url.startswith("https://")
-
-
 def _attach_session(response: Response, request: Request, user: User) -> None:
     assert user.tg_id is not None
-    response.set_cookie(
+    set_session_cookie(
+        response,
+        request,
         SESSION_COOKIE,
         sign_session(user_id=user.id, tg_id=user.tg_id),
         max_age=settings.web_session_max_age_days * 86400,
-        httponly=True,
-        secure=_cookie_is_secure(request),
-        samesite="lax",
     )
 
 
@@ -198,6 +189,6 @@ async def dev_login(
 @router.post("/logout")
 async def logout(request: Request) -> Response:
     response = RedirectResponse("/", status_code=303)
-    response.delete_cookie(SESSION_COOKIE)
-    response.delete_cookie(GUEST_COOKIE)
+    clear_session_cookie(response, request, SESSION_COOKIE)
+    clear_session_cookie(response, request, GUEST_COOKIE)
     return response

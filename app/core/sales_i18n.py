@@ -7,9 +7,9 @@ _LABELS = {
         "Уточните доставку по этому адресу у оператора.",
     ),
     "session_error": (
-        "Ulanib bo'lmadi. Cookie ruxsatini tekshirib, sahifani yangilang.",
-        "Уланиб бўлмади. Cookie рухсатини текшириб, саҳифани янгиланг.",
-        "Не удалось подключиться. Разрешите cookie и обновите страницу.",
+        "Kirish sessiyasini ochib bo'lmadi. Ilovani yopib, botdagi tugmadan qayta oching.",
+        "Кириш сессиясини очиб бўлмади. Иловани ёпиб, ботдаги тугмадан қайта очинг.",
+        "Не удалось открыть сеанс. Закройте приложение и откройте его снова кнопкой в боте.",
     ),
     "inbox": ("Suhbatlar", "Суҳбатлар", "Обращения"),
     "admin_login": ("Administrator kirishi", "Администратор кириши", "Вход для администратора"),

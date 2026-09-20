@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev]" "playwright==1.63.0"
 
       - name: Lint
         run: |
@@ -46,6 +46,9 @@ jobs:
 
       - name: Test
         run: pytest -n auto --junitxml=test-results.xml
+
+      - name: Telegram iframe authentication regression
+        run: python -m scripts.check_embedded_auth
 
       - name: Report test failures
         if: failure()

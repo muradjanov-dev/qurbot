@@ -13,7 +13,7 @@ Telegram identity for customers here.
 
 from pathlib import Path
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.web.storefront.routers import (
@@ -30,11 +30,12 @@ from app.web.storefront.routers import (
     sales_requests,
     shop,
 )
+from app.web.storefront.security import require_same_origin_write
 
 STATIC_DIR = Path(__file__).parent / "static"
 STATIC_URL = "/static/store"
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_same_origin_write)])
 router.include_router(home.router)
 router.include_router(catalog.router)
 router.include_router(basket.router)

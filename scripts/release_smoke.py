@@ -7,12 +7,14 @@ Sequence numbers can advance, as with any rolled-back PostgreSQL insert.
 """
 
 import asyncio
+import hmac
 import json
 import secrets
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from hashlib import sha256
+from urllib.parse import urlencode
 from uuid import uuid4
 
 import httpx
@@ -37,6 +39,31 @@ from app.main import create_app
 from app.services.house_shop import get_house_shop
 from app.web.storefront.security import csrf_token
 from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, sign_session
+
+
+async def check_webapp_login(app, tg_id: int) -> None:
+    fields = {
+        "auth_date": str(int(datetime.now(UTC).timestamp())),
+        "user": json.dumps({"id": tg_id, "first_name": "ROLLBACK auth probe"}),
+    }
+    key = hmac.new(b"WebAppData", settings.bot_token.encode(), sha256).digest()
+    fields["hash"] = hmac.new(
+        key, "\n".join(f"{k}={fields[k]}" for k in sorted(fields)).encode(), sha256
+    ).hexdigest()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="https://release.test"
+    ) as client:
+        response = await client.post("/auth/webapp", json={"init_data": urlencode(fields)})
+        assert response.status_code == 200
+        cookie = response.headers["set-cookie"]
+        assert "SameSite=none" in cookie and "Partitioned" in cookie and "HttpOnly" in cookie
+        assert (await client.get("/api/cart")).status_code == 200
+        assert (await client.get("/api/chat/operator")).status_code == 200
+        assert (
+            await client.post("/logout", headers={"Origin": "https://foreign.test"})
+        ).status_code == 403
+        assert (await client.post("/logout")).status_code == 303
+        assert (await client.get("/api/cart")).status_code == 401
 
 
 async def run(guest: bool = False) -> dict[str, object]:
@@ -256,6 +283,7 @@ async def run(guest: bool = False) -> dict[str, object]:
                         ).status_code == 200
                     history = (await client.get("/api/sales-requests")).json()["requests"]
                     assert history[0]["status"] == "agreed"
+                    await check_webapp_login(app, operator.tg_id)
                     assert (
                         len(
                             (
@@ -290,6 +318,7 @@ async def run(guest: bool = False) -> dict[str, object]:
             "operator_resolution",
             "customer_request_history",
             "manual_request_no_extra_order",
+            "signed_admin_login_cookie_roundtrip_logout",
         ],
         "paid_ai_calls": 0,
     }
