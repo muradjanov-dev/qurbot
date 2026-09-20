@@ -3,9 +3,10 @@
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,7 @@ from app.db.session import get_db_session
 from app.main import create_app
 from app.services.conversation_service import ConversationService
 from app.web.storefront import visitor
+from app.web.storefront.routers import chat as chat_routes
 from app.web.storefront.security import csrf_token
 from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, sign_session
 from tests.integration.test_storefront_web import _seed
@@ -33,7 +35,11 @@ def headers(client):
 
 @pytest.fixture
 async def web(test_session, monkeypatch):
-    monkeypatch.setattr(visitor, "limit", AsyncMock())
+    limiter = AsyncMock()
+    monkeypatch.setattr(visitor, "limit", limiter)
+    monkeypatch.setattr(chat_routes, "limit", limiter)
+    # Never depend on a developer's Redis to make this API fixture pass.
+    monkeypatch.setattr(settings, "redis_url", "redis://127.0.0.1:1/0")
     monkeypatch.setattr(settings, "admin_tg_ids", [])
     monkeypatch.setattr(settings, "enabled_category_slugs", [])
     monkeypatch.setattr(settings, "llm_enabled", False)
@@ -97,6 +103,7 @@ async def test_inbox_consent_claim_read_close_and_notification_channel(web, test
     assert await service.queue(admin) == []
     response = await client.post("/api/chat/handoff", json={}, headers=headers(client))
     assert response.status_code == 200
+    assert chat_routes.limit.await_args.args[1:] == ("handoff:127.0.0.1", 20, 3600)
     await client.post("/api/chat/handoff", json={}, headers=headers(client))
     await client.post(
         "/api/chat/messages", json={"text": "help", "request_id": "human"}, headers=headers(client)
@@ -262,3 +269,26 @@ def test_guest_limit_trusts_only_proxy_hops(peer, forwarded, expected, monkeypat
         }
     )
     assert visitor.ip_key(request) == expected
+
+
+@pytest.mark.parametrize("outcome,status", [(1, None), (0, 429), (RuntimeError("offline"), 503)])
+async def test_guest_limiter_denies_exhausted_or_unavailable_redis(monkeypatch, outcome, status):
+    redis = AsyncMock()
+    if isinstance(outcome, Exception):
+        redis.eval.side_effect = outcome
+    else:
+        redis.eval.return_value = outcome
+    context = MagicMock()
+    context.__aenter__ = AsyncMock(return_value=redis)
+    context.__aexit__ = AsyncMock(return_value=False)
+    monkeypatch.setattr(visitor.Redis, "from_url", lambda *args, **kwargs: context)
+    request = Request({"type": "http", "headers": []})
+    if status is None:
+        await visitor.limit(request, "test", 2, 60)
+    else:
+        with pytest.raises(HTTPException) as error:
+            await visitor.limit(request, "test", 2, 60)
+        assert error.value.status_code == status
+        if status == 429:
+            assert error.value.headers["Retry-After"] == "60"
+    assert redis.eval.await_args.args[-2:] == (2, 60)
