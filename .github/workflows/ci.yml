@@ -45,4 +45,20 @@ jobs:
         run: mypy app
 
       - name: Test
-        run: pytest -n auto
+        run: pytest -n auto --junitxml=test-results.xml
+
+      - name: Report test failures
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          report = Path("test-results.xml")
+          if report.exists():
+              for case in ET.parse(report).iter("testcase"):
+                  for problem in (*case.findall("failure"), *case.findall("error")):
+                      message = f'{case.get("classname")}.{case.get("name")}: {problem.text or problem.get("message", "")}'
+                      message = message[:6000].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+                      print(f"::error::{message}")
+          PY

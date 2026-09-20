@@ -86,3 +86,9 @@ async def limit_guest_message(request: Request, user: User) -> None:
     await limit(request, f"chat-minute:{user.id}", settings.guest_messages_per_minute, 60)
     await limit(request, f"chat-day:{user.id}", settings.guest_messages_per_day, 86400)
     await limit(request, "chat-ip:" + ip_key(request), settings.guest_ip_messages_per_hour, 3600)
+
+
+async def limit_guest_order(request: Request, user: User) -> None:
+    if user.tg_id is None and not user.is_test:
+        await limit(request, f"orders:{user.id}", 5, 3600)
+        await limit(request, "orders-ip:" + ip_key(request), 20, 3600)

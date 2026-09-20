@@ -36,6 +36,7 @@ from app.web.storefront.quoting import optimize, pick_variant, validate_lines, v
 from app.web.storefront.schemas import OrderIn
 from app.web.storefront.security import require_csrf
 from app.web.storefront.throttle import SlidingWindow, client_key
+from app.web.storefront.visitor import limit_guest_order
 
 logger = get_logger(__name__)
 
@@ -266,6 +267,7 @@ async def api_create_order(
             }
 
     comment = (body.comment or "").strip() or None
+    await limit_guest_order(request, user)
     placed = await place_order(
         session,
         user=user,
@@ -331,8 +333,15 @@ async def _resolve_address(
         # Typed with no pin: usable for delivery, but there is nothing durable
         # to anchor a saved place on, so it is used for this order only.
         district_id = body.district_id or user.district_id
-        if district_id and await session.get(District, district_id) is None:
-            return None
+        if district_id:
+            district = await session.get(District, district_id)
+            if district is None:
+                return None
+            if body.district_id is not None:
+                # Guests have no saved profile district. Preserve the selected
+                # destination on the immutable order, not only in its quote.
+                district_name = district.name_ru if lang == "ru" else district.name_uz
+                typed = f"{district.region}, {district_name}, {typed}"
         return typed, district_id, None
 
     service = AddressService(session)

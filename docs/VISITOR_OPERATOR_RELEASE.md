@@ -48,6 +48,9 @@ conversations are read through polling, not copied to Telegram.
 - Shared Redis limits: 6 guest messages/minute, 30/day, 120/IP/hour;
   session creation 20/IP/hour and handoff 20/IP/hour. Redis failure fails closed
   for new visitor activity, never bypasses identity or escalates roles.
+- Guest checkout limits are 5/customer/hour and 20/IP/hour, applied after live
+  quote validation; already-created idempotent retries are exempt. Selected
+  district and region are preserved in the order's delivery address.
 - IP extraction peels trusted proxy hops from the right. Production's backend has
   no public port; default Docker proxy range is `172.16.0.0/12`. Override
   `TRUSTED_PROXY_NETWORKS` when changing the network topology.

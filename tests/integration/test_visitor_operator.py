@@ -169,6 +169,7 @@ async def test_guest_checkout_has_live_delivery_and_replay(web, test_session):
     assert again.json()["order_id"] == order_id and again.json()["replayed"]
     order = await test_session.get(Order, order_id)
     assert order.contact_name == "Guest buyer"
+    assert "Chilonzor" in order.delivery_address and "Test street 12" in order.delivery_address
     assert (await test_session.get(User, order.user_id)).tg_id is None
     assert (await client.get(f"/orders/{order_id}")).status_code == 200
 
