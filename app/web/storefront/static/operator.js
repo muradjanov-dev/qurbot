@@ -45,6 +45,7 @@
     claim.disabled = finish.disabled = busy || stopped;
   }
   function renderList() {
+    const scrollTop = list.scrollTop;
     list.replaceChildren();
     const visible = rows.filter(row => filter === 'waiting' ? row.status === 'waiting' : filter === 'mine' ? row.mine : row.status === 'human' && !row.mine);
     if (!visible.length) list.append(el('p', S.empty, 'empty'));
@@ -57,6 +58,7 @@
       button.addEventListener('click', () => choose(row.id)); list.append(button);
     }
     more.hidden = !next;
+    list.scrollTop = scrollTop;
   }
   async function refreshList(append = false) {
     const scope = filter;
@@ -129,6 +131,7 @@
   root.querySelector('[data-back]').addEventListener('click', () => root.classList.remove('thread-open'));
   root.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
     filter = button.dataset.filter; pages = 1;
+    list.scrollTop = 0;
     root.querySelectorAll('[data-filter]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
     refreshList().catch(() => {status.textContent = S.error;});
   }));

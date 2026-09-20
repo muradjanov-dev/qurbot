@@ -14,7 +14,7 @@ async def test_webapp_launch_is_inline_not_reply_keyboard(monkeypatch, lang):
     message = AsyncMock()
     await launch_webapp(message, lang)
     markup = message.answer.call_args.kwargs["reply_markup"]
-    assert markup.inline_keyboard[0][0].web_app.url == "https://shop.example/chat"
+    assert markup.inline_keyboard[0][0].web_app.url == "https://shop.example"
     assert not hasattr(markup, "keyboard")
 
 

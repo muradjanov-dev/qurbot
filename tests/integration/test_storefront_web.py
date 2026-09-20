@@ -176,11 +176,16 @@ def _basket_line(product_id: int, qty: str = "10") -> dict[str, object]:
 
 @pytest.mark.asyncio
 async def test_home_page_renders(client: TestClient, test_session: AsyncSession) -> None:
-    await _seed(test_session)
+    fixture = await _seed(test_session)
     response = client.get("/")
     assert response.status_code == 200
     assert "QurBot" in response.text
-    assert "data-chat-form" in response.text  # chat-first entry, no registration gate
+    assert "data-chat-form" not in response.text
+    assert "chat.js?v=" not in response.text
+    assert 'href="/chat"' in response.text
+    assert f'href="/catalog/{fixture.category_id}"' in response.text
+    chat = client.get("/chat")
+    assert chat.status_code == 200 and "data-chat-form" in chat.text
 
 
 @pytest.mark.asyncio

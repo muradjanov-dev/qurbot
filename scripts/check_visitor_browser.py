@@ -32,6 +32,7 @@ def main() -> None:
         guest = guest_context.new_page()
         guest.on("pageerror", lambda error: errors.append(str(error)))
         guest.goto(BASE + "/")
+        guest.locator(".hero a[href='/chat']").click()
         guest.wait_for_function("!document.querySelector('#chat-message').disabled")
         assert not guest.locator('a[href^="/login"]').count()
         guest.locator("#chat-message").fill("STAGING browser guest: fanera kerak")

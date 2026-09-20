@@ -2,7 +2,8 @@
 
 ## Customer experience
 
-`/` and `/chat` open the same responsive messenger. No bot registration or login
+`/` opens the home page with catalogue sections and a separate AI chat link.
+`/chat` opens the responsive messenger. No bot registration or login
 is required. Signed Telegram initData is used when available; an unavailable
 Telegram SDK does not block visitor access. A successful HTTP cookie roundtrip
 is verified before reloading, so disabled cookies produce an error, not a loop.
@@ -66,7 +67,7 @@ Schema downgrade intentionally refuses to erase guest-owned data.
 
 ## Removed and retained
 
-Removed the superseded landing-page template/list form code, customer chat login
+Removed the superseded list form code, customer chat login
 gate, stored Telegram-data retry loop and bot operator message-reply implementation.
 The bot's onboarding, historical migrations, shop schema, import provenance,
 catalogue management and legacy cart migration receipts remain in place.
@@ -76,6 +77,8 @@ catalogue management and legacy cart migration receipts remain in place.
 - Python 3.12 lint, formatting, mypy, full tests with isolated PostgreSQL.
 - `scripts.check_chat_layout`: five viewport/language cases, keyboard and scrolling.
 - `scripts.check_checkout_browser`: real browser, mocked API, contact/quote/repricing.
+- `scripts.check_operator_layout`: long inbox/transcript wheel scrolling, retained
+  reader position, Telegram keyboard and window resizing on mobile and desktop.
 - `scripts.check_visitor_browser`: real isolated staging HTTP/worker, blocked Telegram
   SDK, visitor session, handoff, claim, reply, resume and mobile views.
 - `scripts.release_smoke`: real PostgreSQL/ASGI checkout for Telegram and guest test

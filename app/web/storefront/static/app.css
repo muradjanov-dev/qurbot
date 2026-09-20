@@ -420,22 +420,24 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 .sales-summary { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--surface-2); font-size: .9rem; }
 .sales-summary:empty { display: none; }
 .sales-drawer [hidden], .operator-shell [hidden] { display: none !important; }
-.operator-page { height: 100dvh; overflow: hidden; }
-.operator-page .page { max-width: none; width: 100%; height: 100%; margin: 0; padding: 0; }
-.operator-shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); height: 100%; background: var(--surface); }
-.operator-sidebar { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.operator-page { position: fixed; inset: 0; width: 100%; height: 100dvh; overflow: hidden; }
+/* Override the generic page grid: its auto row otherwise grows with the entire
+   transcript, leaving no constrained viewport for the inner scroll containers. */
+.operator-page .page { display: flex; flex-direction: column; gap: 0; min-height: 0; max-width: none; width: 100%; height: 100%; margin: 0; padding: 0; }
+.operator-shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; background: var(--surface); }
+.operator-sidebar { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-right: 1px solid var(--line); }
 .operator-sidebar header { padding: 20px; }
 .operator-sidebar h1 { font-size: 1.2rem; }
 .operator-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--line); }
 .operator-filters [aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
-.operator-list { overflow-y: auto; flex: 1; }
+.operator-list { overflow-y: auto; overscroll-behavior: contain; min-height: 0; flex: 1; }
 .operator-list > .empty { border: 0; padding: 32px 20px; font-size: .9rem; }
 .operator-row { position: relative; display: grid; gap: 6px; text-align: start; width: 100%; padding: 18px 38px 18px 20px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; cursor: pointer; font: inherit; }
 .operator-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; color: var(--ink-2); }
 .operator-row small { color: var(--ink-3); }
 .operator-row.selected, .operator-row:hover { background: var(--accent-soft); }
 .operator-unread { position: absolute; right: 12px; top: 20px; background: var(--accent); color: var(--accent-ink); border-radius: 20px; padding: 2px 7px; font-size: .75rem; }
-.operator-thread { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.operator-thread { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .operator-thread .chat-identity h2 { font-size: 1rem; }
 .operator-back { display: none; }
 @media (min-width: 761px) {
