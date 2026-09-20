@@ -7,13 +7,15 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException, Request
 
 from app.core.config import settings
-from app.web.storefront.session import SESSION_COOKIE, read_session
+from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, read_session
 
 
 def csrf_token(request: Request) -> str:
     cookie = request.cookies.get(SESSION_COOKIE, "")
     if read_session(cookie) is None:
-        return ""
+        cookie = request.cookies.get(GUEST_COOKIE, "")
+        if len(cookie) != 43:
+            return ""
     return hmac.new(settings.web_session_key, f"csrf:{cookie}".encode(), sha256).hexdigest()
 
 

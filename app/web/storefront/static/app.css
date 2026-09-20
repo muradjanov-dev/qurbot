@@ -409,6 +409,50 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 }
 
 /* Shared AI/operator conversation. */
+.sales-drawer { margin: auto 0 auto auto; width: min(100%, 480px); height: 100dvh; max-height: 100dvh; max-width: 100%; border: 0; padding: 24px; color: var(--ink); background: var(--surface); overflow-y: auto; }
+.sales-drawer::backdrop { background: #0b172855; backdrop-filter: blur(3px); }
+.sales-drawer { height: var(--chat-viewport-height, 100dvh); max-height: var(--chat-viewport-height, 100dvh); }
+.sales-drawer .section-head { margin-bottom: 24px; }
+.sales-drawer form { display: grid; gap: 16px; }
+.sales-drawer input, .sales-drawer select { width: 100%; min-height: 44px; padding: 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+.sales-cart-line { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 8px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.sales-cart-line strong { grid-column: 1 / -1; }
+.sales-summary { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--surface-2); font-size: .9rem; }
+.sales-summary:empty { display: none; }
+.sales-drawer [hidden], .operator-shell [hidden] { display: none !important; }
+.operator-page { height: 100dvh; overflow: hidden; }
+.operator-page .page { max-width: none; width: 100%; height: 100%; margin: 0; padding: 0; }
+.operator-shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); height: 100%; background: var(--surface); }
+.operator-sidebar { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.operator-sidebar header { padding: 20px; }
+.operator-sidebar h1 { font-size: 1.2rem; }
+.operator-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--line); }
+.operator-filters [aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.operator-list { overflow-y: auto; flex: 1; }
+.operator-list > .empty { border: 0; padding: 32px 20px; font-size: .9rem; }
+.operator-row { position: relative; display: grid; gap: 6px; text-align: start; width: 100%; padding: 18px 38px 18px 20px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; cursor: pointer; font: inherit; }
+.operator-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; color: var(--ink-2); }
+.operator-row small { color: var(--ink-3); }
+.operator-row.selected, .operator-row:hover { background: var(--accent-soft); }
+.operator-unread { position: absolute; right: 12px; top: 20px; background: var(--accent); color: var(--accent-ink); border-radius: 20px; padding: 2px 7px; font-size: .75rem; }
+.operator-thread { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.operator-thread .chat-identity h2 { font-size: 1rem; }
+.operator-back { display: none; }
+@media (min-width: 761px) {
+  .chat-page { background: var(--surface-2); }
+  .chat-page .page { max-width: 1000px !important; margin-inline: auto !important; border-inline: 1px solid var(--line); }
+  .chat-page .chat-log { padding: 28px; }
+  .chat-message { max-width: min(85%, 660px) !important; }
+}
+@media (max-width: 760px) {
+  .sales-drawer { padding: 18px; }
+  .operator-shell { grid-template-columns: minmax(0, 1fr); }
+  .operator-thread { display: none; }
+  .operator-shell.thread-open .operator-sidebar { display: none; }
+  .operator-shell.thread-open .operator-thread { display: flex; }
+  .operator-back { display: inline-flex; }
+  .operator-thread .chat-header { flex-wrap: wrap; }
+}
 .chat-entry { margin-top: 20px; }
 .chat { max-width: 780px; margin-inline: auto; display: grid; gap: 16px; }
 .chat-page {
@@ -469,6 +513,8 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 .chat-message-you .chat-message-text { background: var(--accent-soft); }
 .chat-message-operator_name .chat-message-text { border-inline-start: 3px solid var(--accent); }
 .chat-product { margin-top: 8px; display: grid; gap: 10px; }
+.chat-product-image { width: 64px; height: 64px; object-fit: contain; border-radius: 10px; background: white; }
+.chat-product-price { font-weight: 700; color: var(--accent); }
 .chat-product-title { font-weight: 640; overflow-wrap: anywhere; text-decoration: underline; }
 .chat-product-actions { flex-wrap: wrap; align-items: end; }
 .chat-product-actions .field { flex: 1 1 90px; max-width: 150px; }

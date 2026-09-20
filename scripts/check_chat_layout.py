@@ -145,7 +145,8 @@ def check_case(browser: Browser, width: int, height: int, lang: str) -> None:
     if width == 390 and height == 700:
         page.locator(".chat-menu summary").click()
         assert page.locator("[data-chat-operator]").is_visible()
-        assert page.locator('.chat-menu a[href="/basket"]').is_visible()
+        assert page.locator("[data-open-cart]").is_visible()
+        page.once("dialog", lambda dialog: dialog.accept())
         page.locator("[data-chat-operator]").click()
         assert not page.locator(".chat-menu").evaluate("menu => menu.open")
         # New messages must not pull someone away from older history.

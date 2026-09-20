@@ -21,6 +21,7 @@ async def launch_webapp(message: Message, lang: str) -> None:
     if not url:
         await message.answer(t("web_login_unavailable", lang=lang))
         return
+    url = url.rstrip("/") + "/chat"
     await message.answer(
         t("open_mini_app", lang=lang),
         reply_markup=InlineKeyboardMarkup(

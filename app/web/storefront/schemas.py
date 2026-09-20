@@ -54,6 +54,8 @@ class OrderIn(BaseModel):
     lines: list[BasketLineIn] = Field(default_factory=list)
     strategy: str | None = None
     phone: str = ""
+    contact_name: str | None = Field(default=None, max_length=100)
+    district_id: int | None = Field(default=None, gt=0)
     comment: str | None = None
     address_id: int | None = None
     address_text: str | None = None
@@ -67,5 +69,5 @@ class OrderIn(BaseModel):
 class WebAppLoginIn(BaseModel):
     """Telegram Mini App init data, presented for verification."""
 
-    init_data: str
-    next: str = "/"
+    init_data: str = Field(default="", max_length=16384)
+    next: str = Field(default="/chat", max_length=1024)

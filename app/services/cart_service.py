@@ -103,9 +103,10 @@ class CartService:
         )
         await self.session.flush()
         snapshot = await self.get(user_id)
-        tg_id = await self.session.scalar(select(User.tg_id).where(User.id == user_id))
+        owner = await self.session.get(User, user_id)
+        test_actor = bool(owner and (owner.is_test or owner.tg_id in settings.test_tg_ids))
         await OpsRepository(self.session).log_event(
-            "test_cart_updated" if tg_id in settings.test_tg_ids else "cart_updated",
+            "test_cart_updated" if test_actor else "cart_updated",
             user_id=user_id,
             props={"revision": snapshot.revision, "items": len(snapshot.lines)},
         )

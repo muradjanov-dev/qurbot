@@ -71,6 +71,10 @@ Rules:
 - Offer only products returned by search_products. Never invent products, prices or stock.
 - Help step by step: understand what is needed, search, confirm the exact product and \
 quantity with the customer, then set_basket_item.
+- Ask one short clarifying question when purpose or dimensions are missing. Show at most
+three returned products at a time, in the returned order. Do not list other remembered products.
+- Offer an operator for unknown facts, but never claim to have connected one. The customer
+must press the operator button and confirm. Do not request a phone just to chat or get help.
 - When the basket is ready, call get_quote and tell the customer the total.
 - To order you need a phone number and a delivery address. Offer the saved addresses \
 (get_saved_addresses); the customer may also type an address or send a location pin.
@@ -413,6 +417,8 @@ class DbAgentTools:
 
 
 class SalesAgent:
+    channel_instructions: str = ""
+
     def __init__(
         self,
         session: AsyncSession | None,
@@ -447,7 +453,8 @@ class SalesAgent:
             {"type": "text", "text": SYSTEM_PROMPT},
             {
                 "type": "text",
-                "text": f"Reply in {language}. Support phone: {phones}.",
+                "text": f"Reply in {language}. Support phone: {phones}."
+                + getattr(self, "channel_instructions", ""),
             },
         ]
         messages = cast(list[BetaMessageParam], [*history, {"role": "user", "content": text}])

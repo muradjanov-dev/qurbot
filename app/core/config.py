@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     storefront_webapp_url: str | None = None
     register_webhook: bool = True
     telegram_notifications_enabled: bool = True
+    guest_sessions_enabled: bool = True
+    guest_messages_per_minute: int = 6
+    guest_messages_per_day: int = 30
+    guest_ip_messages_per_hour: int = 120
+    # Production has no published backend port; Caddy reaches it over Docker.
+    # Narrow/override this list if the deployment uses other proxy networks.
+    trusted_proxy_networks: list[str] = ["172.16.0.0/12"]
     # How often to re-check that Telegram still points at this deployment.
     # Registering once at startup does not survive a rolling deploy's outgoing
     # container deleting the webhook the new one just set -- and that failure

@@ -1,0 +1,21 @@
+<dialog class="sales-drawer" data-cart-dialog aria-labelledby="cart-title">
+  <header class="section-head"><h2 id="cart-title">{{ t('sales_cart', lang=lang) }}</h2>
+    <button type="button" class="btn btn-ghost btn-sm" data-close-cart>{{ t('sales_close', lang=lang) }}</button></header>
+  <div data-cart-lines></div>
+  <form data-chat-checkout>
+    <label class="field">{{ t('sales_name', lang=lang) }}<input name="name" required maxlength="100" autocomplete="name" value="{{ user.full_name if user and user.full_name else '' }}"></label>
+    <label class="field">{{ t('sales_phone', lang=lang) }}<input name="phone" required maxlength="30" type="tel" autocomplete="tel" placeholder="+998"></label>
+    <label class="field">{{ t('sales_district', lang=lang) }}<select name="district" required><option value="">—</option></select></label>
+    <label class="field">{{ t('sales_address', lang=lang) }}<input name="address" required maxlength="500" autocomplete="street-address"></label>
+    <div class="sales-summary" data-checkout-summary></div>
+    <p data-checkout-status role="status"></p>
+    <button class="btn btn-primary btn-block" type="submit" data-checkout-submit>{{ t('sales_calculate', lang=lang) }}</button>
+  </form>
+</dialog>
+<script id="sales-strings" type="application/json">{
+{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total'] %}
+  {{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},
+{% endfor %}
+  "error": {{ t('web_chat_failed', lang=lang)|tojson }},
+  "conflict": {{ t('web_chat_cart_conflict', lang=lang)|tojson }}
+}</script>

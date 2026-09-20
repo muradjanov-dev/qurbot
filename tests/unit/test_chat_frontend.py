@@ -71,8 +71,9 @@ def test_chat_template_accessibility_and_localization(lang: str, authenticated: 
         raw = html.split('<script id="chat-strings" type="application/json">')[1]
         assert json.loads(raw.split("</script>")[0])["retry"] == t("web_chat_retry", lang=lang)
     else:
-        assert 'href="/login?next=/chat"' in html
-        assert "chat.js" not in html
+        assert 'href="/login?next=/chat"' not in html
+        assert "data-chat-form" in html
+        assert "chat.js" in html
 
 
 @pytest.mark.parametrize(

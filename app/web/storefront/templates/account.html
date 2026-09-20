@@ -13,7 +13,7 @@
       <div class="muted tiny">{{ t('web_account_pebbles_hint', lang=lang) }}</div>
     </div>
     <div class="right">
-      <div class="name">{{ user.full_name or user.username or user.tg_id }}</div>
+      <div class="name">{{ user.full_name or user.username or user.tg_id or (t('sales_customer', lang=lang) ~ ' #' ~ user.id) }}</div>
       {% if user.username %}<div class="muted tiny">@{{ user.username }}</div>{% endif %}
     </div>
   </div>

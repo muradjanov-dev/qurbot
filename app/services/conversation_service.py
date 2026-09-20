@@ -18,6 +18,7 @@ from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.config import settings
 from app.core.i18n import t
@@ -27,6 +28,7 @@ from app.db.models.conversation import (
     ConversationJob,
     ConversationMessage,
     ConversationNotification,
+    ConversationRead,
 )
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
@@ -182,6 +184,7 @@ class ConversationService:
         if (pending or 0) >= getattr(settings, "conversation_pending_limit", 5):
             raise ConversationConflict("too_many_pending_messages")
         message = await self._append(conversation, "user", text, channel)
+        conversation.last_customer_channel = channel
         job = ConversationJob(
             conversation_id=conversation.id,
             message_id=message.id,
@@ -189,8 +192,6 @@ class ConversationService:
             status="pending" if conversation.status == "ai" else "human",
         )
         self.session.add(job)
-        if conversation.status != "ai":
-            await self._notify_admins(conversation, f"message:{message.id}", text)
         await self.session.flush()
         await OpsRepository(self.session).log_event(
             "chat_message_submitted",
@@ -229,7 +230,7 @@ class ConversationService:
                 )
             )
         ).all()
-        targets = {admin.tg_id for admin in admins}
+        targets = {admin.tg_id for admin in admins if admin.tg_id is not None}
         targets.update(settings.admin_tg_ids)
         for tg_id in targets:
             self.session.add(
@@ -238,12 +239,13 @@ class ConversationService:
                     tg_id=tg_id,
                     conversation_id=conversation.id,
                     kind="operator",
-                    text=f"#{conversation.id}\n{text}",
+                    text=f"#{conversation.id}\n{t('sales_new_request')}",
                 )
             )
 
-    async def handoff(self, user: User) -> dict[str, Any]:
+    async def handoff(self, user: User, channel: str = "web") -> dict[str, Any]:
         conversation = await self._lock((await self.get_or_create(user)).id)
+        conversation.last_customer_channel = channel
         if conversation.status == "ai":
             conversation.status = "waiting"
             conversation.generation += 1
@@ -285,25 +287,86 @@ class ConversationService:
         if admin.is_blocked or not is_admin(admin):
             raise PermissionError("admin_required")
 
-    async def queue(self, admin: User) -> list[dict[str, Any]]:
+    async def queue(
+        self, admin: User, after_id: int = 0, scope: str = "all"
+    ) -> list[dict[str, Any]]:
         self._admin(admin)
+        condition: ColumnElement[bool] = Conversation.status.in_(["waiting", "human"])
+        if scope == "waiting":
+            condition = Conversation.status == "waiting"
+        elif scope == "mine":
+            condition = (Conversation.status == "human") & (Conversation.operator_id == admin.id)
+        elif scope == "others":
+            condition = (Conversation.status == "human") & (Conversation.operator_id != admin.id)
         rows = (
             await self.session.scalars(
                 select(Conversation)
-                .where(Conversation.status.in_(["waiting", "human"]))
-                .order_by(Conversation.updated_at)
-                .limit(100)
+                .where(condition, Conversation.id > after_id)
+                .order_by(Conversation.id)
+                .limit(50)
             )
         ).all()
-        return [
-            {
-                "id": row.id,
-                "user_id": row.user_id,
-                "status": row.status,
-                "operator_id": row.operator_id,
-            }
-            for row in rows
-        ]
+        result = []
+        for row in rows:
+            customer = await self.session.get(User, row.user_id)
+            last = await self.session.scalar(
+                select(ConversationMessage)
+                .where(ConversationMessage.conversation_id == row.id)
+                .order_by(ConversationMessage.sequence.desc())
+                .limit(1)
+            )
+            read = await self.session.get(ConversationRead, (row.id, admin.id))
+            unread = await self.session.scalar(
+                select(func.count())
+                .select_from(ConversationMessage)
+                .where(
+                    ConversationMessage.conversation_id == row.id,
+                    ConversationMessage.role == "user",
+                    ConversationMessage.sequence > (read.sequence if read else 0),
+                )
+            )
+            result.append(
+                {
+                    "id": row.id,
+                    "user_id": row.user_id,
+                    "status": row.status,
+                    "operator_id": row.operator_id,
+                    "mine": row.operator_id == admin.id,
+                    "name": customer.full_name if customer else None,
+                    "preview": last.text[:160] if last else "",
+                    "updated_at": last.created_at.isoformat()
+                    if last
+                    else row.updated_at.isoformat(),
+                    "unread": unread or 0,
+                }
+            )
+        return result
+
+    async def mark_read(self, admin: User, conversation_id: int, sequence: int) -> None:
+        self._admin(admin)
+        conversation = await self._lock(conversation_id)
+        value = min(sequence, conversation.next_sequence)
+        read = await self.session.get(ConversationRead, (conversation_id, admin.id))
+        if read is None:
+            self.session.add(
+                ConversationRead(conversation_id=conversation_id, admin_id=admin.id, sequence=value)
+            )
+        else:
+            read.sequence = max(read.sequence, value)
+
+    def _customer_notice(
+        self, conversation: Conversation, user: User, message: ConversationMessage, event: str
+    ) -> None:
+        if user.tg_id is not None and conversation.last_customer_channel == "telegram":
+            self.session.add(
+                ConversationNotification(
+                    event_key=f"{event}:{message.id}",
+                    tg_id=user.tg_id,
+                    conversation_id=conversation.id,
+                    kind="customer",
+                    text=message.text,
+                )
+            )
 
     async def claim(self, admin: User, conversation_id: int) -> dict[str, Any]:
         self._admin(admin)
@@ -320,15 +383,7 @@ class ConversationService:
             message = await self._append(
                 conversation, "system", t("web_chat_assigned", lang=user.lang), "operator"
             )
-            self.session.add(
-                ConversationNotification(
-                    event_key=f"claimed:{message.id}",
-                    tg_id=user.tg_id,
-                    conversation_id=conversation.id,
-                    kind="customer",
-                    text=message.text,
-                )
-            )
+            self._customer_notice(conversation, user, message, "claimed")
         await OpsRepository(self.session).log_event(
             "chat_claimed",
             user_id=admin.id,
@@ -379,15 +434,7 @@ class ConversationService:
         )
         user = await self.session.get(User, conversation.user_id)
         if user is not None:
-            self.session.add(
-                ConversationNotification(
-                    event_key=f"reply:{message.id}",
-                    tg_id=user.tg_id,
-                    conversation_id=conversation.id,
-                    kind="customer",
-                    text=message.text,
-                )
-            )
+            self._customer_notice(conversation, user, message, "reply")
         return message_data(message)
 
     async def close(self, admin: User, conversation_id: int) -> dict[str, Any]:
@@ -403,15 +450,7 @@ class ConversationService:
             message = await self._append(
                 conversation, "system", t("chat_closed", lang=user.lang), "operator"
             )
-            self.session.add(
-                ConversationNotification(
-                    event_key=f"closed:{message.id}",
-                    tg_id=user.tg_id,
-                    conversation_id=conversation.id,
-                    kind="customer",
-                    text=message.text,
-                )
-            )
+            self._customer_notice(conversation, user, message, "closed")
         return await self.transcript(conversation)
 
 
@@ -499,6 +538,7 @@ class DurableTools:
             if name == "get_quote" and "error" not in output:
                 cart.quote_revision = snapshot.revision
             if name == "search_products":
+                output["products"] = output.get("products", [])[:3]
                 self.cards = [
                     dict(product, reference=f"/product/{product['id']}")
                     for product in output.get("products", [])[:3]
@@ -627,6 +667,14 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         if not blocked and agent_available():
             async with asyncio.timeout(timeout):
                 agent = DurableAgent(None, tools)
+                if channel == "web":
+                    agent.channel_instructions = (
+                        " This customer is in the website chat. Do not collect personal details "
+                        "or prepare an order through chat. Direct them to the Cart button: its "
+                        "form collects name, phone and delivery address and requires their final "
+                        "confirmation. Do not claim an order confirmation button is "
+                        "under a message."
+                    )
                 try:
                     reply = await agent.reply(text, lang, cart)
                     error = agent.last_error
@@ -672,7 +720,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
             job.status = "completed"
             job.error = error
             job.response_id = response.id
-            if channel == "telegram":
+            if channel == "telegram" and tg_id is not None:
                 session.add(
                     ConversationNotification(
                         event_key=f"reply:{response.id}",
@@ -739,6 +787,11 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                 .returning(ConversationNotification)
             )
             if row is None:
+                continue
+            if row.kind == "operator" and not row.event_key.startswith("handoff:"):
+                # Retire old per-message notifications without forwarding their contents.
+                row.sent_at = now
+                await session.commit()
                 continue
             tg_id, text, kind, conversation_id = row.tg_id, row.text, row.kind, row.conversation_id
             await session.commit()

@@ -11,7 +11,7 @@
   <title>{% block title %}QurBot{% endblock %}</title>
   <link rel="stylesheet" href="{{ static_url }}/app.css?v={{ asset_version }}">
   <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" async></script>
 </head>
 <body class="{% block body_class %}{% endblock %}" data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
   <a class="skip" href="#main">→</a>
@@ -30,7 +30,7 @@
         <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
         <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
         {% if user %}<a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>{% endif %}
-        {% if is_admin %}<a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
+        {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a><a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
       </nav>
 
       <div class="topbar-side">
@@ -48,7 +48,7 @@
         {% if user %}
           <a class="btn btn-ghost btn-sm" href="/account">{{ t('web_nav_account', lang=lang) }}</a>
         {% else %}
-          <a class="btn btn-primary btn-sm" href="/login?next={{ path }}">{{ t('web_login', lang=lang) }}</a>
+          <a class="btn btn-primary btn-sm" href="/chat">{{ t('web_chat_open', lang=lang) }}</a>
         {% endif %}
       </div>
     </div>
@@ -60,7 +60,7 @@
   <main id="main" class="page">
     <p class="notice warn" data-telegram-auth role="status" hidden
        data-missing="{{ t('web_auth_reopen', lang=lang) }}"
-       data-error="{{ t('web_auth_recovery', lang=lang) }}"
+       data-error="{{ t('sales_session_error', lang=lang) }}"
        data-loading="{{ t('web_auth_signing_in', lang=lang) }}"></p>
     {% block content %}{% endblock %}
   </main>
@@ -101,7 +101,8 @@
 
   <div class="toast" data-toast hidden></div>
 
-  <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
+  <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, verified: {{ (user is not none and user.tg_id is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
+  <script src="{{ static_url }}/session.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/app.js?v={{ asset_version }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>

@@ -16,10 +16,13 @@ from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
 from app.db.models.order import Order
+from app.db.models.shop import District
 from app.db.models.user import User
 from app.db.repositories.address_repo import AddressRepository
+from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.domain.normalize.phone import normalize_uz_phone
+from app.domain.optimizer.models import QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
 from app.services.cart_service import CartService, InvalidCartItem
 from app.services.order_service import (
@@ -113,6 +116,60 @@ class DurableOrderIn(OrderIn):
     idempotency_key: str = Field(min_length=1, max_length=120)
 
 
+async def delivery_confirmed(
+    session: AsyncSession, variant: QuoteVariant, district_id: int
+) -> bool:
+    rules = await ShopRepository(session).get_delivery_rules_for_shops(
+        [group.shop_id for group in variant.shop_groups], district_id
+    )
+    return all(
+        (rule := rules.get(group.shop_id)) is not None
+        and not rule.is_pickup_only
+        and group.subtotal_uzs >= rule.min_order
+        for group in variant.shop_groups
+    )
+
+
+@router.get("/api/checkout/options")
+async def checkout_options(
+    session: AsyncSession = Depends(get_db_session),
+    user: User = Depends(require_api_user),
+    lang: str = Depends(current_lang),
+) -> dict[str, Any]:
+    rows = (await session.scalars(select(District).order_by(District.id))).all()
+    return {
+        "districts": [
+            {"id": row.id, "name": row.name_ru if lang == "ru" else row.name_uz} for row in rows
+        ]
+    }
+
+
+@router.post("/api/checkout/preview", dependencies=[Depends(require_csrf)])
+async def checkout_preview(
+    body: DurableOrderIn,
+    session: AsyncSession = Depends(get_db_session),
+    user: User = Depends(require_api_user),
+    lang: str = Depends(current_lang),
+) -> dict[str, Any]:
+    snapshot = await CartService(session).get(user.id)
+    if snapshot.revision != body.cart_revision:
+        return {"ok": False, "code": "cart_conflict"}
+    address = await _resolve_address(session, user, body, lang=lang)
+    if address is None or address[1] is None:
+        return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
+    basket = await validate_lines(session, list(snapshot.lines))
+    if not basket.items or basket.rejected:
+        return {"ok": False, "error": t("web_basket_nothing_confirmed", lang=lang)}
+    variant = pick_variant(
+        await optimize(session, basket.items, district_id=address[1]), body.strategy
+    )
+    if variant is None or variant.missing_lines:
+        return {"ok": False, "error": t("web_quote_empty", lang=lang)}
+    if not await delivery_confirmed(session, variant, address[1]):
+        return {"ok": False, "error": t("sales_delivery_confirm", lang=lang)}
+    return {"ok": True, "variant": variant_payload(variant, lang, delivery_known=True)}
+
+
 @router.post("/api/order", dependencies=[Depends(require_api_user), Depends(require_csrf)])
 async def api_create_order(
     body: DurableOrderIn,
@@ -162,11 +219,15 @@ async def api_create_order(
     phone = normalize_uz_phone(body.phone)
     if phone is None:
         return {"ok": False, "error": t("web_checkout_phone_required", lang=lang)}
+    if user.tg_id is None and not (body.contact_name or "").strip():
+        return {"ok": False, "error": t("sales_name", lang=lang)}
 
     address = await _resolve_address(session, user, body, lang=lang)
     if address is None:
         return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
     address_text, district_id, pin = address
+    if user.tg_id is None and district_id is None:
+        return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
 
     basket = await validate_lines(session, list(snapshot.lines))
     if not basket.items or basket.rejected:
@@ -176,6 +237,11 @@ async def api_create_order(
     variant = pick_variant(variants, body.strategy)
     if variant is None or variant.missing_lines:
         return {"ok": False, "error": t("web_quote_empty", lang=lang)}
+
+    if (body.district_id is not None or user.tg_id is None) and (
+        district_id is None or not await delivery_confirmed(session, variant, district_id)
+    ):
+        return {"ok": False, "error": t("sales_delivery_confirm", lang=lang)}
 
     if body.expected_total is None:
         return {"ok": False, "error": t("web_error_generic", lang=lang)}
@@ -205,6 +271,7 @@ async def api_create_order(
         user=user,
         variant=variant,
         contact_phone=phone,
+        contact_name=(body.contact_name or "").strip() or None,
         delivery_address=address_text,
         delivery_lat=pin[0] if pin else None,
         delivery_lng=pin[1] if pin else None,
@@ -263,7 +330,10 @@ async def _resolve_address(
     if body.lat is None or body.lng is None:
         # Typed with no pin: usable for delivery, but there is nothing durable
         # to anchor a saved place on, so it is used for this order only.
-        return typed, user.district_id, None
+        district_id = body.district_id or user.district_id
+        if district_id and await session.get(District, district_id) is None:
+            return None
+        return typed, district_id, None
 
     service = AddressService(session)
     resolved = await service.resolve(body.lat, body.lng, lang=lang)

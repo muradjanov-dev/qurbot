@@ -21,7 +21,7 @@ class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(PK_BIGINT, primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
+    tg_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True, index=True)
     username: Mapped[str | None] = mapped_column(String(100), nullable=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # uz_latn|uz_cyrl|ru
@@ -33,10 +33,21 @@ class User(Base, TimestampMixin):
         String(32), default="customer", nullable=False
     )  # customer|admin (shop_owner retired in 0015)
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_test: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     referral_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     district: Mapped[District | None] = relationship("District", lazy="selectin")
+
+
+class VisitorSession(Base):
+    __tablename__ = "visitor_sessions"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
 class UserAddress(Base, TimestampMixin):

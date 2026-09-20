@@ -1,5 +1,9 @@
 # Telegram login correction — 2026-09-17
 
+Historical diagnosis. Customer login gates and the stored-initData retry path
+have since been replaced by [visitor sessions](VISITOR_OPERATOR_RELEASE.md).
+Verified Telegram identity remains required for the operator inbox.
+
 The reply keyboard used `KeyboardButton.web_app`, a launch mode without signed
 `WebAppInitData`. The storefront expected signed `initData` to authenticate, so
 even bot admins became anonymous web visitors. The login widget could then

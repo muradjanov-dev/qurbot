@@ -8,8 +8,11 @@ Sequence numbers can advance, as with any rolled-back PostgreSQL insert.
 
 import asyncio
 import json
+import secrets
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from hashlib import sha256
 from uuid import uuid4
 
 import httpx
@@ -27,14 +30,15 @@ from app.db.models import (
     ShopProduct,
     User,
 )
+from app.db.models.user import VisitorSession
 from app.db.session import engine, get_db_session
 from app.main import create_app
 from app.services.house_shop import get_house_shop
 from app.web.storefront.security import csrf_token
-from app.web.storefront.session import SESSION_COOKIE, sign_session
+from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, sign_session
 
 
-async def run() -> dict[str, object]:
+async def run(guest: bool = False) -> dict[str, object]:
     marker = f"release-probe-{uuid4().hex}"
     test_tg_id = -900000001
     settings.llm_enabled = False
@@ -67,7 +71,10 @@ async def run() -> dict[str, object]:
                     search_doc=marker,
                 )
                 user = User(
-                    tg_id=test_tg_id, full_name="ROLLBACK release probe", district_id=district.id
+                    tg_id=None if guest else test_tg_id,
+                    full_name="ROLLBACK release probe",
+                    district_id=district.id,
+                    is_test=True,
                 )
                 session.add_all([product, user])
                 await session.flush()
@@ -102,17 +109,30 @@ async def run() -> dict[str, object]:
 
                 app = create_app()
                 app.dependency_overrides[get_db_session] = db
-                cookie = sign_session(user_id=user.id, tg_id=user.tg_id)
+                cookie_name = SESSION_COOKIE
+                if guest:
+                    cookie_name = GUEST_COOKIE
+                    cookie = secrets.token_urlsafe(32)
+                    session.add(
+                        VisitorSession(
+                            token_hash=sha256(cookie.encode()).hexdigest(),
+                            user_id=user.id,
+                            expires_at=datetime.now(UTC) + timedelta(hours=1),
+                        )
+                    )
+                    await session.commit()
+                else:
+                    cookie = sign_session(user_id=user.id, tg_id=test_tg_id)
                 request = Request(
                     {
                         "type": "http",
-                        "headers": [(b"cookie", f"{SESSION_COOKIE}={cookie}".encode())],
+                        "headers": [(b"cookie", f"{cookie_name}={cookie}".encode())],
                     }
                 )
                 async with httpx.AsyncClient(
                     transport=httpx.ASGITransport(app=app),
                     base_url="http://release.test",
-                    cookies={SESSION_COOKIE: cookie},
+                    cookies={cookie_name: cookie},
                     headers={"X-CSRF-Token": csrf_token(request)},
                 ) as client:
                     page = await client.get(f"/product/{product.id}")
@@ -134,6 +154,8 @@ async def run() -> dict[str, object]:
                     variant = quote["variants"][0]
                     assert Decimal(variant["grand_total_raw"]) == Decimal("25000")
                     body = {
+                        "contact_name": "ROLLBACK test customer",
+                        "district_id": district.id,
                         "phone": "+998900000000",
                         "address_text": "ROLLBACK release test address",
                         "expected_total": "1",
@@ -162,6 +184,7 @@ async def run() -> dict[str, object]:
     await engine.dispose()
     return {
         "ok": True,
+        "actor": "guest" if guest else "telegram",
         "rollback_verified": True,
         "checks": [
             "product",
@@ -179,3 +202,4 @@ async def run() -> dict[str, object]:
 
 if __name__ == "__main__":
     print(json.dumps(asyncio.run(run())))
+    print(json.dumps(asyncio.run(run(guest=True))))

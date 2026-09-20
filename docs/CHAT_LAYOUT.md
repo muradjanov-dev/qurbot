@@ -1,5 +1,9 @@
 # Chat layout — 2026-09-18
 
+Historical release notes. Guest login and rollout behaviour below are superseded
+by [Visitor/operator release](VISITOR_OPERATOR_RELEASE.md). Do not roll back to
+the pre-guest images listed here after visitor accounts have been created.
+
 The authenticated `/chat` is a standalone messenger screen matching the user's
 reference: a light conversation canvas, one compact header with back arrow and
 avatar, and a single composer row at the very bottom. The text field and send

@@ -17,11 +17,21 @@ class Conversation(Base, TimestampMixin):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     status: Mapped[str] = mapped_column(String(24), default="ai", index=True)
     operator_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    last_customer_channel: Mapped[str] = mapped_column(
+        String(16), default="web", server_default="web"
+    )
     generation: Mapped[int] = mapped_column(Integer, default=0)
     next_sequence: Mapped[int] = mapped_column(Integer, default=0)
     agent_state: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict)
     lease_token: Mapped[str | None] = mapped_column(String(36))
     lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ConversationRead(Base):
+    __tablename__ = "conversation_reads"
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), primary_key=True)
+    admin_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    sequence: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class ConversationMessage(Base, TimestampMixin):

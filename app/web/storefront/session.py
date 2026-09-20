@@ -20,6 +20,7 @@ from typing import Any
 from app.core.config import settings
 
 SESSION_COOKIE = "qb_session"
+GUEST_COOKIE = "qb_visitor"
 LANG_COOKIE = "qb_lang"
 
 SUPPORTED_LANGS = ("uz_latn", "uz_cyrl", "ru")

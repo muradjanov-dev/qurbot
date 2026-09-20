@@ -7,6 +7,7 @@ are resolved once here rather than in each route.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -20,19 +21,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.formatters.common import format_catalog_price, format_qty, format_uzs
 from app.core.config import settings
 from app.core.i18n import t
-from app.db.models.user import User
+from app.db.models.user import User, VisitorSession
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
 from app.services.house_shop import is_admin
 from app.web.storefront.security import csrf_token
-from app.web.storefront.session import LANG_COOKIE, SESSION_COOKIE, normalize_lang, read_session
+from app.web.storefront.session import (
+    GUEST_COOKIE,
+    LANG_COOKIE,
+    SESSION_COOKIE,
+    normalize_lang,
+    read_session,
+)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 # Change asset URLs whenever their contents change, including in cached WebViews.
 ASSET_VERSION = sha256(
     b"".join(
         (Path(__file__).parent / "static" / name).read_bytes()
-        for name in ("app.css", "app.js", "chat.js")
+        for name in ("app.css", "app.js", "chat.js", "session.js", "chat_cart.js", "operator.js")
     )
 ).hexdigest()[:16]
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -116,7 +123,13 @@ def safe_next(raw: str | None, fallback: str = "/") -> str:
     so without this the language switcher and the login round trip would both
     be open redirects.
     """
-    if not raw or not raw.startswith("/") or raw.startswith("//"):
+    if (
+        not raw
+        or not raw.startswith("/")
+        or raw.startswith("//")
+        or "\\" in raw
+        or any(ord(c) < 32 for c in raw)
+    ):
         return fallback
     parsed = urlparse(raw)
     if parsed.scheme or parsed.netloc:
@@ -135,7 +148,14 @@ async def current_user(
     """
     data = read_session(request.cookies.get(SESSION_COOKIE))
     if data is None:
-        return None
+        token = request.cookies.get(GUEST_COOKIE, "")
+        if len(token) != 43:
+            return None
+        visitor = await session.get(VisitorSession, sha256(token.encode()).hexdigest())
+        if visitor is None or visitor.expires_at.replace(tzinfo=UTC) <= datetime.now(UTC):
+            return None
+        guest = await session.get(User, visitor.user_id)
+        return guest if guest and guest.tg_id is None and not guest.is_blocked else None
 
     user = await UserRepository(session).get_by_tg_id(data.tg_id)
     if user is None or user.is_blocked or user.id != data.user_id:
@@ -193,4 +213,6 @@ def render(
         "js_messages": js_messages(lang),
     }
     payload.update(context)
-    return templates.TemplateResponse(request, template, payload, status_code=status_code)
+    response = templates.TemplateResponse(request, template, payload, status_code=status_code)
+    response.headers["Cache-Control"] = "no-store"
+    return response

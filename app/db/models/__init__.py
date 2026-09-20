@@ -28,7 +28,7 @@ from app.db.models.shop import (
     ShopProductDraft,
     ShopProductPriceTier,
 )
-from app.db.models.user import User, UserAddress
+from app.db.models.user import User, UserAddress, VisitorSession
 
 __all__ = [
     "Cart",
@@ -59,6 +59,7 @@ __all__ = [
     # User
     "User",
     "UserAddress",
+    "VisitorSession",
     # Order & Basket
     "Basket",
     "BasketLine",

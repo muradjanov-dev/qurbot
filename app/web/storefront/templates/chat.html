@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ t('web_chat_title', lang=lang) }} — QurBot{% endblock %}
-{% block body_class %}{{ 'chat-page' if user else '' }}{% endblock %}
-{% block site_header %}{% if not user %}{{ super() }}{% endif %}{% endblock %}
-{% block site_footer %}{% if not user %}{{ super() }}{% endif %}{% endblock %}
+{% block body_class %}chat-page{% endblock %}
+{% block site_header %}{% endblock %}
+{% block site_footer %}{% endblock %}
 {% block content %}
 <section class="chat" aria-labelledby="chat-title" data-chat>
-  {% if user %}
   <header class="chat-header">
-    <a class="chat-icon" href="/" aria-label="{{ t('web_back', lang=lang) }}">
+    <a class="chat-icon" href="/catalog" aria-label="{{ t('web_nav_catalog', lang=lang) }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>
     </a>
     <span class="chat-avatar" aria-hidden="true">Q</span>
@@ -15,32 +14,26 @@
       <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
       <p data-chat-mode role="status"></p>
     </div>
+    <button class="btn btn-ghost btn-sm" data-open-cart>{{ t('sales_cart', lang=lang) }} <span data-basket-count hidden></span></button>
     <details class="menu chat-menu">
       <summary class="chat-icon" aria-label="{{ t('web_chat_menu', lang=lang) }}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       </summary>
       <div class="menu-body">
         <button type="button" data-chat-operator disabled>{{ t('web_chat_operator', lang=lang) }}</button>
-        <a href="/basket">{{ t('web_nav_basket', lang=lang) }}</a>
-        <a href="/account">{{ t('web_nav_account', lang=lang) }}</a>
+        <a href="/catalog">{{ t('web_nav_catalog', lang=lang) }}</a>
+        <a href="/orders">{{ t('sales_orders', lang=lang) }}</a>
+        {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a>{% endif %}
+        {% for code, label in langs %}<a href="/lang/{{ code }}?next=/chat">{{ label }}</a>{% endfor %}
       </div>
     </details>
   </header>
   <noscript><p role="alert">{{ t('web_chat_no_js', lang=lang) }}</p></noscript>
-  {% else %}
-  <div class="section-head chat-heading">
-    <div>
-      <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
-      {% if not user %}<p class="muted">{{ t('web_chat_intro', lang=lang) }}</p>{% endif %}
-    </div>
-    <a class="btn btn-ghost" href="/basket">{{ t('web_nav_basket', lang=lang) }}</a>
-  </div>
-  {% endif %}
-  {% if user %}
   <div class="chat-log" data-chat-log role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ t('web_chat_history', lang=lang) }}" tabindex="0">
     <div class="chat-empty muted" data-chat-empty hidden>
       <p>{{ t('web_chat_intro', lang=lang) }}</p>
       <p>{{ t('web_chat_empty', lang=lang) }}</p>
+      {% if not user or not user.tg_id %}<small>{{ t('sales_guest_hint', lang=lang) }}</small>{% endif %}
     </div>
   </div>
   <div class="chat-feedback">
@@ -55,22 +48,18 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 7-7 7 7M12 5v15"/></svg>
     </button>
   </form>
-  {% else %}
-  <div class="card">
-    <p>{{ t('web_chat_login', lang=lang) }}</p>
-    <a class="btn btn-primary" href="/login?next=/chat">{{ t('web_login', lang=lang) }}</a>
-  </div>
-  {% endif %}
 </section>
+{% include 'chat_cart.html' %}
 {% endblock %}
 {% block scripts %}
-{% if user %}
 <script id="chat-strings" type="application/json">{
 {% for key in ['title', 'loading', 'sending', 'pending', 'failed', 'connection', 'retry', 'request', 'operator', 'ai', 'requested', 'assigned', 'you', 'assistant', 'operator_name', 'system', 'qty', 'add', 'added', 'cart_error', 'cart_conflict', 'session', 'confirmation'] %}
   {{ key|tojson }}: {{ t('web_chat_' ~ key, lang=lang)|tojson }},
 {% endfor %}
-  "unit_conflict": {{ t('web_chat_unit_conflict', lang=lang)|tojson }}
+  "unit_conflict": {{ t('web_chat_unit_conflict', lang=lang)|tojson }},
+  "limit": {{ t('sales_limit', lang=lang)|tojson }},
+  "handoff_confirm": {{ t('sales_handoff_confirm', lang=lang)|tojson }}
 }</script>
 <script src="{{ static_url }}/chat.js?v={{ asset_version }}" defer></script>
-{% endif %}
+<script src="{{ static_url }}/chat_cart.js?v={{ asset_version }}" defer></script>
 {% endblock %}

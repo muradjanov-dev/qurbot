@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('sales_inbox', lang=lang) }} — QurBot{% endblock %}
+{% block body_class %}operator-page{% endblock %}
+{% block site_header %}{% endblock %}
+{% block site_footer %}{% endblock %}
+{% block content %}
+<section class="operator-shell" data-operator data-admin-id="{{ user.id }}">
+  <aside class="operator-sidebar">
+    <header class="section-head"><h1>{{ t('sales_inbox', lang=lang) }}</h1><a href="/chat" class="btn btn-ghost btn-sm">QurBot</a></header>
+    <nav class="operator-filters" aria-label="{{ t('sales_inbox', lang=lang) }}">
+      {% for key in ['waiting', 'mine', 'others'] %}<button class="btn btn-ghost btn-sm" data-filter="{{ key }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t('sales_' ~ key, lang=lang) }}</button>{% endfor %}
+    </nav>
+    <div class="operator-list" data-inbox></div>
+    <button class="btn btn-ghost" data-more hidden>{{ t('sales_more', lang=lang) }}</button>
+  </aside>
+  <section class="operator-thread">
+    <header class="chat-header">
+      <button class="btn btn-ghost btn-sm operator-back" data-back>{{ t('sales_back', lang=lang) }}</button>
+      <div class="chat-identity"><h2 data-thread-title>{{ t('sales_select', lang=lang) }}</h2><small data-thread-mode></small></div>
+      <button class="btn btn-primary btn-sm" data-claim hidden>{{ t('sales_claim', lang=lang) }}</button>
+      <button class="btn btn-ghost btn-sm" data-finish hidden>{{ t('sales_finish', lang=lang) }}</button>
+    </header>
+    <div class="chat-log" data-thread-log role="log" aria-live="polite" aria-label="{{ t('web_chat_history', lang=lang) }}"></div>
+    <p data-operator-status role="status" class="chat-status"></p>
+    <form class="chat-composer" data-operator-form>
+      <label class="sr-only" for="operator-message">{{ t('web_chat_message', lang=lang) }}</label>
+      <textarea id="operator-message" name="message" rows="1" required maxlength="4000" placeholder="{{ t('web_chat_placeholder', lang=lang) }}" disabled></textarea>
+      <button class="btn btn-primary" type="submit" disabled>{{ t('web_chat_send', lang=lang) }}</button>
+    </form>
+  </section>
+</section>
+{% endblock %}
+{% block scripts %}
+<script id="operator-strings" type="application/json">{
+{% for key in ['waiting', 'mine', 'others', 'empty', 'select', 'customer', 'finish_confirm'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
+"user": {{ t('sales_customer', lang=lang)|tojson }}, "assistant": {{ t('web_chat_assistant', lang=lang)|tojson }},
+"operator": {{ t('web_chat_operator_name', lang=lang)|tojson }}, "system": "QurBot",
+"error": {{ t('chat_claim_conflict', lang=lang)|tojson }}
+}</script>
+<script src="{{ static_url }}/operator.js?v={{ asset_version }}" defer></script>
+{% endblock %}

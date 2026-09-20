@@ -1,5 +1,7 @@
 """Storefront conversation strings, shared by templates and the browser."""
 
+from app.core.sales_i18n import SALES_MESSAGES
+
 _STRINGS = {
     "title": ("AI yordamchi", "AI ёрдамчи", "AI-помощник"),
     "intro": (
@@ -93,6 +95,7 @@ CHAT_MESSAGES: dict[str, dict[str, str]] = {
     f"web_chat_{key}": dict(zip(("uz_latn", "uz_cyrl", "ru"), values, strict=True))
     for key, values in _STRINGS.items()
 }
+CHAT_MESSAGES.update(SALES_MESSAGES)
 
 CHAT_MESSAGES.update(
     {

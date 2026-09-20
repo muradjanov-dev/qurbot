@@ -94,7 +94,7 @@ async def callback_admin_order_decision(
             logger.warning("admin_order_markup_remove_failed", order_id=order.id)
         await callback.message.answer(admin_result)
 
-    if customer is not None:
+    if customer is not None and customer.tg_id is not None:
         try:
             await bot.send_message(
                 customer.tg_id,

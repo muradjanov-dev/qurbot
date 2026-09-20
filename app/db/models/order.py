@@ -116,6 +116,7 @@ class Order(Base, TimestampMixin):
         String(32), default="new", nullable=False
     )  # new|confirmed|partially_fulfilled|fulfilled|cancelled
     contact_phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     delivery_address: Mapped[str] = mapped_column(Text, nullable=False)
     # The pin the customer confirmed, copied onto the order rather than read
     # back through user_addresses: a saved address can be edited or deleted

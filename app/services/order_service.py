@@ -94,6 +94,7 @@ async def place_order(
     variant: QuoteVariant,
     contact_phone: str,
     delivery_address: str,
+    contact_name: str | None = None,
     delivery_lat: Decimal | None = None,
     delivery_lng: Decimal | None = None,
     comment: str | None = None,
@@ -153,11 +154,12 @@ async def place_order(
     await session.flush()
 
     order = Order(
-        is_test=user.tg_id in settings.test_tg_ids,
+        is_test=user.is_test or user.tg_id in settings.test_tg_ids,
         quote_id=quote.id,
         user_id=user.id,
         status="new",
         contact_phone=contact_phone,
+        contact_name=contact_name or user.full_name,
         delivery_address=delivery_address,
         # Only a complete pin is stored: half a coordinate is not a place.
         delivery_lat=delivery_lat if delivery_lng is not None else None,
@@ -252,7 +254,7 @@ async def notify_order(
     if placed.replayed or placed.order.is_test:
         return
     order = placed.order
-    customer_name = user.full_name or str(user.tg_id)
+    customer_name = order.contact_name or user.full_name or f"#{user.id}"
     phone = order.contact_phone
     address = order.delivery_address
 

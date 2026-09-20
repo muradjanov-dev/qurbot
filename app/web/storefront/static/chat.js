@@ -1,6 +1,7 @@
 /* Shared bot/web conversation. All server text is rendered as text nodes. */
-(() => {
+(async () => {
   'use strict';
+  if (window.QB?.ready && !await window.QB.ready) return;
   const root = document.querySelector('[data-chat]');
   const form = root?.querySelector('[data-chat-form]');
   if (!form) return;
@@ -161,12 +162,15 @@
     const title = element('a', 'chat-product-title', product.name || product.name_uz || product.name_ru || id);
     title.href = `/product/${encodeURIComponent(id)}`;
     card.append(title);
+    const photo = element('img', 'chat-product-image');
+    photo.src = `/media/product/${encodeURIComponent(id)}`; photo.alt = ''; photo.loading = 'lazy';
+    photo.addEventListener('error', () => {photo.hidden = true;}); card.prepend(photo);
     if (product.price_from_uzs == null || product.price_on_request || product.stock_unverified || !/^[a-z][a-z0-9]*$/.test(unitCode || '')) {
       card.append(element('p', 'notice warn tiny', strings.confirmation));
       return card;
     }
     if (product.price_from_uzs !== undefined && product.price_from_uzs !== null) {
-      card.append(element('p', 'muted', `${product.price_from_uzs} UZS${product.unit ? ` / ${product.unit}` : ''}`));
+      card.append(element('p', 'chat-product-price', `${new Intl.NumberFormat(document.documentElement.lang).format(Number(product.price_from_uzs))} UZS${product.unit ? ` / ${product.unit}` : ''}`));
     }
     const row = element('form', 'chat-product-actions');
     const label = element('label', 'field', `${strings.qty} (${unitCode})`);
@@ -299,7 +303,7 @@
       status.textContent = '';
     } catch (error) {
       updateRequest({ request_id: item.request_id, status: 'unknown' });
-      if (!stopped) status.textContent = error.status ? strings.failed : strings.connection;
+      if (!stopped) status.textContent = error.status === 429 ? strings.limit : error.status ? strings.failed : strings.connection;
     } finally {
       item.busy = false;
       submitting = false;
@@ -354,6 +358,7 @@
   });
 
   operator.addEventListener('click', async () => {
+    if (!window.confirm(strings.handoff_confirm)) return;
     const menu = operator.closest('details');
     if (menu) menu.open = false;
     operatorBusy = true;

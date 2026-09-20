@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,14 +21,16 @@ from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.schemas import WebAppLoginIn
-from app.web.storefront.session import SESSION_COOKIE, sign_session
+from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, read_session, sign_session
 from app.web.storefront.telegram_auth import (
     TelegramIdentity,
     verify_login_widget,
     verify_webapp_init_data,
 )
+from app.web.storefront.visitor import create_visitor
 
 logger = get_logger(__name__)
+
 
 router = APIRouter(tags=["storefront-auth"])
 
@@ -43,6 +45,7 @@ def _cookie_is_secure(request: Request) -> bool:
 
 
 def _attach_session(response: Response, request: Request, user: User) -> None:
+    assert user.tg_id is not None
     response.set_cookie(
         SESSION_COOKIE,
         sign_session(user_id=user.id, tg_id=user.tg_id),
@@ -81,7 +84,7 @@ async def login_page(
     lang: str = Depends(current_lang),
 ) -> Response:
     target = safe_next(request.query_params.get("next"))
-    if user is not None:
+    if user is not None and user.tg_id is not None:
         return RedirectResponse(target, status_code=303)
 
     return render(
@@ -128,17 +131,41 @@ async def webapp_login(
 ) -> Response:
     """Sign in silently when the site is opened as a Telegram Mini App."""
     identity = verify_webapp_init_data(body.init_data)
-    if identity is None:
+    if identity is not None:
+        user = await _sign_in(session, identity, lang=lang)
+    else:
         return JSONResponse({"ok": False}, status_code=401)
-
-    user = await _sign_in(session, identity, lang=lang)
     if user is None:
         return JSONResponse({"ok": False, "blocked": True}, status_code=403)
 
     payload: dict[str, Any] = {"ok": True, "redirect": safe_next(body.next)}
     response = JSONResponse(payload)
+    response.headers["Cache-Control"] = "no-store"
     _attach_session(response, request, user)
     return response
+
+
+@router.post("/api/session")
+async def bootstrap(
+    request: Request,
+    user: User | None = Depends(current_user),
+    session: AsyncSession = Depends(get_db_session),
+    lang: str = Depends(current_lang),
+) -> Response:
+    from urllib.parse import urlsplit
+
+    origin = request.headers.get("origin")
+    if (
+        request.headers.get("sec-fetch-site") == "cross-site"
+        or (origin and urlsplit(origin).netloc != request.headers.get("host"))
+        or request.headers.get("x-qurbot-bootstrap") != "1"
+    ):
+        raise HTTPException(403, "origin_rejected")
+    if user is not None:
+        return JSONResponse({"ok": True, "mode": "guest" if user.tg_id is None else "telegram"})
+    if read_session(request.cookies.get(SESSION_COOKIE)) is not None:
+        raise HTTPException(403, "account_unavailable")
+    return await create_visitor(session, request, lang)
 
 
 @router.post("/auth/dev")
@@ -172,4 +199,5 @@ async def dev_login(
 async def logout(request: Request) -> Response:
     response = RedirectResponse("/", status_code=303)
     response.delete_cookie(SESSION_COOKIE)
+    response.delete_cookie(GUEST_COOKIE)
     return response

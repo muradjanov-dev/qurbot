@@ -24,8 +24,7 @@ async def home(
     user: User | None = Depends(current_user),
     lang: str = Depends(current_lang),
 ) -> HTMLResponse:
-    categories = await CatalogRepository(session).list_root_categories()
-    return render(request, "home.html", user=user, lang=lang, categories=categories)
+    return render(request, "chat.html", user=user, lang=lang)
 
 
 @router.get("/lang/{code}")

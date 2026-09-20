@@ -19,7 +19,7 @@ from app.db.models.user import User
 
 def is_admin(user: User | None) -> bool:
     """Admins are the only accounts that manage products, prices and orders."""
-    if user is None:
+    if user is None or user.tg_id is None or user.is_blocked:
         return False
     return user.role == "admin" or user.tg_id in settings.admin_tg_ids
 

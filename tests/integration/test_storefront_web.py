@@ -180,7 +180,7 @@ async def test_home_page_renders(client: TestClient, test_session: AsyncSession)
     response = client.get("/")
     assert response.status_code == 200
     assert "QurBot" in response.text
-    assert "Gipsokarton" in response.text  # the section tile
+    assert "data-chat-form" in response.text  # chat-first entry, no registration gate
 
 
 @pytest.mark.asyncio

@@ -1,18 +1,20 @@
 """Authenticated shared chat API; all mutations require session CSRF."""
 
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.conversation import Conversation
+from app.db.models.conversation import Conversation, ConversationJob
 from app.db.models.user import User
 from app.db.session import get_db_session
 from app.services.conversation_service import ConversationConflict, ConversationService
 from app.web.storefront.deps import require_api_user
 from app.web.storefront.security import require_csrf
+from app.web.storefront.visitor import ip_key, limit, limit_guest_message
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -49,9 +51,17 @@ async def history(
 @router.post("/messages", status_code=202, dependencies=[Depends(require_csrf)])
 async def send(
     body: MessageInput,
+    request: Request,
     user: User = Depends(require_api_user),
     chat: ConversationService = Depends(service),
 ) -> dict[str, Any]:
+    existing = await chat.session.scalar(
+        select(ConversationJob.id)
+        .join(Conversation)
+        .where(Conversation.user_id == user.id, ConversationJob.request_id == body.request_id)
+    )
+    if existing is None:
+        await limit_guest_message(request, user)
     return await chat.submit(user, body.text, body.request_id)
 
 
@@ -66,18 +76,24 @@ async def job_status(
 
 @router.post("/handoff", dependencies=[Depends(require_csrf)])
 async def handoff(
+    request: Request,
     user: User = Depends(require_api_user),
     chat: ConversationService = Depends(service),
 ) -> dict[str, Any]:
+    if user.tg_id is None:
+        await limit(request, "handoff:" + ip_key(request), 20, 3600)
     return await chat.handoff(user)
 
 
 @router.get("/operator")
 async def operator_queue(
+    after_id: int = Query(0, ge=0),
+    scope: Literal["all", "waiting", "mine", "others"] = "all",
     user: User = Depends(require_api_user),
     chat: ConversationService = Depends(service),
 ) -> dict[str, Any]:
-    return {"conversations": await chat.queue(user)}
+    rows = await chat.queue(user, after_id, scope)
+    return {"conversations": rows, "next_cursor": rows[-1]["id"] if len(rows) == 50 else None}
 
 
 @router.get("/operator/{conversation_id}")
@@ -89,9 +105,24 @@ async def operator_history(
 ) -> dict[str, Any]:
     chat._admin(user)
     conversation = await chat.session.get(Conversation, conversation_id)
-    if conversation is None:
+    if conversation is None or conversation.status == "ai":
         raise HTTPException(404, "conversation_not_found")
     return await chat.transcript(conversation, after)
+
+
+class ReadInput(BaseModel):
+    sequence: int = Field(ge=0)
+
+
+@router.post("/operator/{conversation_id}/read", dependencies=[Depends(require_csrf)])
+async def mark_read(
+    conversation_id: int,
+    body: ReadInput,
+    user: User = Depends(require_api_user),
+    chat: ConversationService = Depends(service),
+) -> dict[str, bool]:
+    await chat.mark_read(user, conversation_id, body.sequence)
+    return {"ok": True}
 
 
 @router.post("/operator/{conversation_id}/claim", dependencies=[Depends(require_csrf)])
