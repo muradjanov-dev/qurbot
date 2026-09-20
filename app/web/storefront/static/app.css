@@ -378,9 +378,11 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 /* ── Bottom tab bar ──────────────────────────────────────────────────── */
 
 .tabbar { display: none; }
+.operator-shortcut { display: none; }
 
 @media (max-width: 760px) {
   .topnav { display: none; }
+  .operator-shortcut { display: flex; padding: 0 16px 10px; }
   .page { padding-top: 20px; }
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;

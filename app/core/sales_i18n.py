@@ -12,6 +12,7 @@ _LABELS = {
         "Не удалось подключиться. Разрешите cookie и обновите страницу.",
     ),
     "inbox": ("Suhbatlar", "Суҳбатлар", "Обращения"),
+    "admin_login": ("Administrator kirishi", "Администратор кириши", "Вход для администратора"),
     "waiting": ("Kutayotganlar", "Кутаётганлар", "Ожидают"),
     "mine": ("Mening suhbatlarim", "Менинг суҳбатларим", "Мои чаты"),
     "others": ("Boshqa operatorlar", "Бошқа операторлар", "Другие операторы"),

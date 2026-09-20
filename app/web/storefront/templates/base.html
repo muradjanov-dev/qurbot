@@ -52,6 +52,11 @@
         {% endif %}
       </div>
     </div>
+    {% if is_admin %}
+    <nav class="operator-shortcut" aria-label="{{ t('sales_inbox', lang=lang) }}" data-operator-shortcut>
+      <a class="btn btn-primary btn-sm" href="/operator">{{ t('sales_inbox', lang=lang) }} →</a>
+    </nav>
+    {% endif %}
   </header>
   {% endblock %}
 

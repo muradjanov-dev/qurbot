@@ -25,6 +25,10 @@ Missing delivery rules/pickup-only rules do not silently become free delivery.
 
 `/operator` requires a verified Telegram admin, including when a visitor cookie
 already exists. Waiting, own and other assigned chats have separate paged filters.
+Mobile home/catalogue/account headers expose a visible admin-only "Suhbatlar"
+shortcut; the account page also has a prominent inbox link. Guest accounts have
+an explicit administrator-login link in their cabinet; it does not grant access
+or silently merge guest/customer identities. AI chat retains its admin menu link.
 The inbox shows previews, timestamps and unread customer messages. Only the
 claiming operator may reply or close; claiming remains transactional.
 

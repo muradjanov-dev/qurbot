@@ -91,6 +91,35 @@ async def test_guest_session_ownership_csrf_and_expiry(web, test_session):
     assert (await client.get("/api/chat")).status_code == 401
 
 
+@pytest.mark.parametrize("role", ["admin", "configured_admin", "customer", "guest", "blocked"])
+async def test_operator_entry_points_are_role_scoped(web, test_session, monkeypatch, role):
+    client, _ = web
+    if role == "guest":
+        await bootstrap(client)
+    else:
+        user = User(
+            tg_id=992211,
+            role="admin" if role in {"admin", "blocked"} else "customer",
+            is_blocked=role == "blocked",
+        )
+        test_session.add(user)
+        await test_session.commit()
+        if role == "configured_admin":
+            monkeypatch.setattr(settings, "admin_tg_ids", [user.tg_id])
+        client.cookies.set(SESSION_COOKIE, sign_session(user_id=user.id, tg_id=user.tg_id))
+    admin = role in {"admin", "configured_admin"}
+    for path in ["/", "/catalog", "/basket", "/orders", "/account"]:
+        response = await client.get(path)
+        assert ("data-operator-shortcut" in response.text) is admin
+        if path == "/account":
+            assert ("data-account-inbox" in response.text) is admin
+            assert ("data-admin-login" in response.text) is (role == "guest")
+    chat = await client.get("/chat")
+    assert ('href="/operator"' in chat.text) is admin
+    inbox = await client.get("/operator")
+    assert (inbox.status_code == 200) is admin
+
+
 async def test_inbox_consent_claim_read_close_and_notification_channel(web, test_session):
     client, _ = web
     await bootstrap(client)

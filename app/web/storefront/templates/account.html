@@ -17,6 +17,11 @@
       {% if user.username %}<div class="muted tiny">@{{ user.username }}</div>{% endif %}
     </div>
   </div>
+  {% if is_admin %}
+    <a class="btn btn-primary" href="/operator" data-account-inbox>{{ t('sales_inbox', lang=lang) }} →</a>
+  {% elif not user.tg_id %}
+    <a class="muted tiny" href="/login?next=/operator" data-admin-login>{{ t('sales_admin_login', lang=lang) }}</a>
+  {% endif %}
 </section>
 
 <section class="section">

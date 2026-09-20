@@ -25,6 +25,19 @@ def main() -> None:
         admin = admin_context.new_page()
         errors = []
         admin.on("pageerror", lambda error: errors.append(str(error)))
+        # Enter without a notification/deep link, including a narrow MiniApp.
+        for width in [320, 500]:
+            admin.set_viewport_size({"width": width, "height": 760})
+            for path in ["/", "/catalog", "/account"]:
+                admin.goto(BASE + path)
+                entry = admin.locator('[data-operator-shortcut] a[href="/operator"]')
+                assert entry.is_visible()
+                assert admin.evaluate("document.documentElement.scrollWidth <= innerWidth")
+                if path == "/account":
+                    assert admin.locator("[data-account-inbox]").is_visible()
+                entry.click()
+                admin.locator("[data-operator]").wait_for()
+        admin.set_viewport_size({"width": 1280, "height": 850})
         admin.goto(BASE + "/operator")
 
         guest_context = browser.new_context(viewport={"width": 390, "height": 760})
@@ -34,6 +47,7 @@ def main() -> None:
         guest.goto(BASE + "/")
         guest.locator(".hero a[href='/chat']").click()
         guest.wait_for_function("!document.querySelector('#chat-message').disabled")
+        assert guest.locator('a[href="/operator"]').count() == 0
         assert not guest.locator('a[href^="/login"]').count()
         guest.locator("#chat-message").fill("STAGING browser guest: fanera kerak")
         guest.locator("[data-chat-send]").click()
@@ -80,6 +94,7 @@ def main() -> None:
                 "ok": True,
                 "checks": [
                     "no_SDK_guest",
+                    "mobile_admin_navigation",
                     "worker",
                     "consent",
                     "operator_UI",
