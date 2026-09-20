@@ -2,6 +2,8 @@
   <header class="section-head"><h2 id="cart-title">{{ t('sales_cart', lang=lang) }}</h2>
     <button type="button" class="btn btn-ghost btn-sm" data-close-cart>{{ t('sales_close', lang=lang) }}</button></header>
   <div data-cart-lines></div>
+  <p class="notice warn" data-request-hint hidden>{{ t('sales_request_hint', lang=lang) }}</p>
+  <div class="row"><button class="btn btn-ghost" type="button" data-more-products>{{ t('sales_more_products', lang=lang) }}</button><a class="btn btn-ghost" href="/sales-requests">{{ t('sales_requests', lang=lang) }}</a></div>
   <form data-chat-checkout>
     <label class="field">{{ t('sales_name', lang=lang) }}<input name="name" required maxlength="100" autocomplete="name" value="{{ user.full_name if user and user.full_name else '' }}"></label>
     <label class="field">{{ t('sales_phone', lang=lang) }}<input name="phone" required maxlength="30" type="tel" autocomplete="tel" placeholder="+998"></label>
@@ -13,7 +15,7 @@
   </form>
 </dialog>
 <script id="sales-strings" type="application/json">{
-{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total'] %}
+{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum'] %}
   {{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},
 {% endfor %}
   "error": {{ t('web_chat_failed', lang=lang)|tojson }},

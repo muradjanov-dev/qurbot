@@ -66,6 +66,7 @@ def job_data(job: ConversationJob) -> dict[str, Any]:
         "message_id": job.message_id,
         "response_id": job.response_id,
         "error": job.error,
+        "created_at": job.created_at.isoformat(),
     }
 
 
@@ -442,6 +443,14 @@ class ConversationService:
         conversation = await self._lock(conversation_id)
         if conversation.status != "human" or conversation.operator_id != admin.id:
             raise ConversationConflict("not_conversation_owner")
+        from app.db.models.sales_request import SalesRequest
+
+        if await self.session.scalar(
+            select(SalesRequest.id)
+            .where(SalesRequest.conversation_id == conversation_id, SalesRequest.status == "open")
+            .limit(1)
+        ):
+            raise ConversationConflict("open_sales_requests")
         conversation.status = "ai"
         conversation.operator_id = None
         conversation.generation += 1

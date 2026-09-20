@@ -10,7 +10,8 @@
   const status = dialog.querySelector('[data-checkout-status]');
   const submit = dialog.querySelector('[data-checkout-submit]');
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
-  let cart, quote = null, busy = false, key = crypto.randomUUID(), sentBody = null;
+  let cart, quote = null, busy = false, key = crypto.randomUUID(), sentBody = null, requestMode = false;
+  const hint = dialog.querySelector('[data-request-hint]');
   const node = (tag, text, cls) => {const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n;};
   async function api(url, body, method = 'POST') {
     const controller = new AbortController();
@@ -22,13 +23,13 @@
       body: body === undefined ? undefined : JSON.stringify(body)});
     const data = await response.json();
     if (!response.ok || data.ok === false) {
-      const error = new Error(data.code === 'cart_conflict' ? S.conflict : data.error || S.error);
+      const error = new Error((data.code === 'cart_conflict' || data.detail === 'cart_conflict') ? S.conflict : data.error || S.error);
       error.data = data; throw error;
     }
     return data;
     } finally {clearTimeout(timer);}
   }
-  function invalidate() {quote = null; sentBody = null; key = crypto.randomUUID(); summary.replaceChildren(); submit.textContent = S.calculate;}
+  function invalidate() {quote = null; sentBody = null; key = crypto.randomUUID(); summary.replaceChildren(); submit.textContent = requestMode ? S.send_request : S.calculate;}
   function publish() {document.dispatchEvent(new CustomEvent('qurbot:cart-updated', {detail: cart}));}
   function lock(value) {
     busy = value;
@@ -44,21 +45,25 @@
     submit.textContent = S.confirm;
   }
   function draw() {
+    if (!sentBody) requestMode = Boolean(cart.requires_confirmation || cart.lines.some(line => line.requires_confirmation));
+    hint.hidden = !requestMode;
     lines.replaceChildren();
     if (!cart.lines.length) lines.append(node('p', S.empty_cart, 'empty'));
     for (const item of cart.lines) {
       const row = node('div', '', 'sales-cart-line');
       row.append(node('strong', item.canonical_name));
+      if (item.requires_confirmation) row.append(node('small', S.price_request));
       const qty = document.createElement('input'); qty.type = 'text'; qty.inputMode = 'decimal'; qty.value = item.qty;
       qty.setAttribute('aria-label', item.canonical_name + ' ' + item.unit_code);
       const remove = node('button', S.remove, 'btn btn-ghost btn-sm'); remove.type = 'button';
+      qty.disabled = remove.disabled = busy || Boolean(sentBody);
       row.append(qty, node('span', item.unit_code), remove); lines.append(row);
       async function change(amount) {
         if (busy) return;
         lock(true); status.textContent = '';
         try {
           cart = await api(`/api/cart/items/${item.canonical_id}`, {qty: amount, unit_code: item.unit_code, expected_revision: cart.revision}, 'PUT');
-          invalidate(); publish(); draw();
+          await load(); invalidate(); publish();
         } catch (error) {status.textContent = error.message; await load();}
         finally {lock(false);}
       }
@@ -76,6 +81,9 @@
       if (form.elements.district.options.length === 1) {
         const options = await api('/api/checkout/options');
         options.districts.forEach(d => form.elements.district.add(new Option(d.name, d.id)));
+        const contact = options.contact || {};
+        for (const name of ['name', 'phone', 'address']) if (!form.elements[name].value && contact[name]) form.elements[name].value = contact[name];
+        if (contact.district_id && !form.elements.district.value) form.elements.district.value = String(contact.district_id);
       }
       // Preserve the exact body/key after a timeout, so retries cannot duplicate orders.
       if (!sentBody) invalidate();
@@ -83,6 +91,9 @@
     finally {lock(false);}
   });
   dialog.querySelector('[data-close-cart]').addEventListener('click', () => dialog.close());
+  dialog.querySelector('[data-more-products]').addEventListener('click', () => {
+    dialog.close(); location.assign('/catalog');
+  });
   form.addEventListener('input', () => {if (!busy) invalidate();});
   form.addEventListener('submit', async event => {
     event.preventDefault(); if (busy || (!cart?.lines.length && !sentBody)) return;
@@ -92,7 +103,19 @@
       expected_total: quote?.grand_total_raw || null};
     lock(true); status.textContent = '';
     try {
-      if (!quote) {const data = await api('/api/checkout/preview', body); showQuote(data.variant);}
+      if (requestMode) {
+        sentBody = body;
+        const data = await api('/api/sales-requests', body);
+        status.replaceChildren(node('strong', S.request_sent.replace('{id}', data.request.id)));
+        const link = node('a', S.requests); link.href = `/sales-requests#request-${data.request.id}`; status.append(link);
+        sentBody = null; quote = null; key = crypto.randomUUID();
+        cart = await api('/api/cart'); publish(); lines.replaceChildren(); summary.replaceChildren(); hint.hidden = true;
+        form.querySelectorAll('.field').forEach(n => {n.hidden = true;}); submit.hidden = true;
+        document.dispatchEvent(new CustomEvent('qurbot:handoff'));
+      }
+      else if (!quote) {const data = await api('/api/checkout/preview', body);
+        if (data.requires_confirmation) {requestMode = true; hint.hidden = false; invalidate();}
+        else showQuote(data.variant);}
       else {
         sentBody = body;
         const data = await api('/api/order', body);
@@ -105,8 +128,10 @@
     } catch (error) {
       status.textContent = error.message;
       if (error.data?.price_changed) {sentBody = null; key = crypto.randomUUID(); showQuote(error.data.variant);}
-      else if (error.data?.code === 'cart_conflict') {invalidate(); await load();}
+      else if (error.data?.requires_confirmation) {requestMode = true; hint.hidden = false; invalidate();}
+      else if (error.data?.code === 'cart_conflict' || error.data?.detail === 'cart_conflict') {invalidate(); await load(); invalidate();}
       else if (error.data) {sentBody = null;}
     } finally {lock(false);}
   });
+  if (new URLSearchParams(location.search).get('cart') === '1') document.querySelector('[data-open-cart]').click();
 })();

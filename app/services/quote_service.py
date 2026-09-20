@@ -58,6 +58,15 @@ class QuoteService:
         # 3. Convert DB models to pure domain dataclasses
         domain_offers: list[ShopOffer] = []
         for o in db_offers:
+            if (
+                not o.shop
+                or not o.shop.is_active
+                or not o.canonical_product
+                or o.canonical_product.attributes.get("price_on_request")
+                or o.canonical_product.attributes.get("stock_unverified")
+                or o.price_per_pack <= 0
+            ):
+                continue
             rule = db_rules.get(o.shop_id)
             eta = rule.eta_hours if rule else 24
             tier = (

@@ -131,9 +131,8 @@ async def test_catalogue_only_product_has_no_invented_price(test_session: AsyncS
     assert card["reference"] == f"/product/{product_id}"
     assert card["unit_code"] == "dona"
     tools = DbAgentTools(test_session, user)
-    assert await tools.run(
-        "set_basket_item", {"product_id": product_id, "qty": 1}, AgentCart()
-    ) == {"error": "operator_confirmation_required"}
+    added = await tools.run("set_basket_item", {"product_id": product_id, "qty": 1}, AgentCart())
+    assert added["basket"][0]["canonical_id"] == product_id
     cart = AgentCart(
         basket=[{"canonical_id": product_id, "name": "Fanera", "qty": "1", "unit_code": "dona"}]
     )

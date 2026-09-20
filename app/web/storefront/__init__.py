@@ -27,6 +27,7 @@ from app.web.storefront.routers import (
     checkout,
     home,
     orders,
+    sales_requests,
     shop,
 )
 
@@ -41,6 +42,7 @@ router.include_router(cart.router)
 router.include_router(chat.router)
 router.include_router(chat_page.router)
 router.include_router(checkout.router)
+router.include_router(sales_requests.router)
 router.include_router(orders.router)
 router.include_router(account.router)
 router.include_router(auth.router)

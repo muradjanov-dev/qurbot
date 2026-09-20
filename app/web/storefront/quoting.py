@@ -276,7 +276,11 @@ async def optimize(
         return ()
     service = QuoteService(ShopRepository(session), CatalogRepository(session))
     result = await service.optimize_basket(list(items), district_id=district_id)
-    return tuple(variant for variant in result.deduplicated_variants if variant.is_orderable)
+    return tuple(
+        variant
+        for variant in result.deduplicated_variants
+        if variant.is_orderable and not variant.missing_lines
+    )
 
 
 def strategy_label(variant: QuoteVariant, lang: str) -> str:

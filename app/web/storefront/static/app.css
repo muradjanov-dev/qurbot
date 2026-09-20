@@ -419,6 +419,7 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 .sales-drawer input, .sales-drawer select { width: 100%; min-height: 44px; padding: 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font: inherit; }
 .sales-cart-line { display: grid; grid-template-columns: 70px 1fr auto; align-items: center; gap: 8px; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .sales-cart-line strong { grid-column: 1 / -1; }
+.sales-cart-line small { grid-column: 1 / -1; color: var(--ink-2); }
 .sales-summary { display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--surface-2); font-size: .9rem; }
 .sales-summary:empty { display: none; }
 .sales-drawer [hidden], .operator-shell [hidden] { display: none !important; }

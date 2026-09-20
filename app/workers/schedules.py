@@ -6,6 +6,7 @@ from arq import cron
 from arq.cron import CronJob
 
 from app.core.config import settings
+from app.services.chat_progress import update_chat_progress
 from app.services.conversation_service import (
     deliver_conversation_notifications,
     process_conversation_jobs,
@@ -23,6 +24,7 @@ from app.workers.tasks import (
 
 CRON_JOBS: list[CronJob] = [
     cron(process_conversation_jobs, second=set(range(0, 60, 5))),
+    cron(update_chat_progress, second=set(range(0, 60, 5))),
     cron(deliver_conversation_notifications, second=set(range(0, 60, 5))),
     cron(mark_price_staleness, minute=0),  # hourly
     cron(nudge_shops, hour=9, minute=0),  # daily 09:00

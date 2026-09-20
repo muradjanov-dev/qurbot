@@ -21,23 +21,22 @@
         <p class="muted tiny">{{ t('web_product_unit', lang=lang) }}: {{ product.base_unit_code }}</p>
       </div>
 
-      {% if not needs_confirmation %}
+      {% if needs_confirmation %}<p class="notice warn">{{ t('web_product_confirm_hint', lang=lang) }}</p>{% endif %}
       <div class="field-row">
         <div class="qty" data-qty>
-          <button type="button" data-step="-1" aria-label="−">−</button>
-          <input type="text" inputmode="decimal" value="1" min="1" aria-label="{{ t('web_qty', lang=lang) }}">
-          <button type="button" data-step="1" aria-label="+">+</button>
+          <button type="button" data-step="-1" aria-label="−" disabled>−</button>
+          <input type="text" inputmode="decimal" value="1" min="1" aria-label="{{ t('web_qty', lang=lang) }}" disabled>
+          <button type="button" data-step="1" aria-label="+" disabled>+</button>
         </div>
         <span class="muted tiny">{{ product.base_unit_code }}</span>
       </div>
 
-      <button class="btn btn-primary" type="button" data-add-product="{{ product.id }}">
+      <button class="btn btn-primary" type="button" data-add-product="{{ product.id }}" disabled>
         {{ t('web_add_to_basket', lang=lang) }}
       </button>
-      {% else %}
-        <p class="notice warn">{{ t('web_product_confirm_hint', lang=lang) }}</p>
-        <a class="btn btn-primary" href="/chat">{{ t('web_chat_open', lang=lang) }}</a>
-      {% endif %}
+      <p data-product-added role="status"></p>
+      <a class="btn btn-ghost" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }}</a>
+      <a class="btn btn-ghost" href="/catalog">{{ t('sales_more_products', lang=lang) }}</a>
     </div>
   </div>
 </section>

@@ -40,6 +40,37 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     # 1. Seed database
     await seed_database(test_session)
 
+    # The production seed does not offer OSB. Supply an explicit test offer so
+    # this tests a fully priced checkout, not the now-forbidden partial order.
+    from app.db.models.catalog import CanonicalProduct
+    from app.db.models.shop import Shop, ShopProduct
+
+    osb = await test_session.scalar(
+        select(CanonicalProduct).where(CanonicalProduct.slug == "osb-3-9-2500-1250")
+    )
+    if osb is None:
+        osb = await test_session.scalar(
+            select(CanonicalProduct).where(CanonicalProduct.name_uz.like("%OSB%9 mm%"))
+        )
+    assert osb is not None
+    shop = await test_session.scalar(select(Shop).where(Shop.is_active.is_(True)))
+    assert shop is not None
+    test_session.add(
+        ShopProduct(
+            shop_id=shop.id,
+            canonical_id=osb.id,
+            raw_name=osb.name_uz,
+            raw_unit="dona",
+            pack_size=Decimal("1"),
+            pack_unit_code="dona",
+            price_per_pack=Decimal("10000"),
+            price_per_base_unit=Decimal("10000"),
+            stock_status="in_stock",
+            staleness_state="fresh",
+        )
+    )
+    await test_session.commit()
+
     # 2. Setup user and state
     user = User(
         tg_id=987654321,

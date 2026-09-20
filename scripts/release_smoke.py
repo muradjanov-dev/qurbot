@@ -30,6 +30,7 @@ from app.db.models import (
     ShopProduct,
     User,
 )
+from app.db.models.sales_request import SalesRequest
 from app.db.models.user import VisitorSession
 from app.db.session import engine, get_db_session
 from app.main import create_app
@@ -174,6 +175,95 @@ async def run(guest: bool = False) -> dict[str, object]:
                     assert order is not None and order.is_test
                     empty = (await client.get("/api/cart")).json()
                     assert not empty["lines"]
+
+                    # New manual flow: immutable mixed basket, not another order.
+                    unknown = CanonicalProduct(
+                        slug=marker + "-unknown",
+                        name_uz="Test fanera 4 mm",
+                        name_uz_cyrl="Тест фанера 4 мм",
+                        name_ru="Тест фанера 4 мм",
+                        category_id=category.id,
+                        base_unit_code="dona",
+                        search_doc=marker,
+                        attributes={"price_on_request": True, "stock_unverified": True},
+                    )
+                    operator = User(
+                        tg_id=-900000002, full_name="ROLLBACK operator", role="admin", is_test=True
+                    )
+                    session.add_all([unknown, operator])
+                    await session.commit()
+                    for product_id in (product.id, unknown.id):
+                        current = (await client.get("/api/cart")).json()
+                        updated = await client.put(
+                            f"/api/cart/items/{product_id}",
+                            json={
+                                "qty": "155",
+                                "unit_code": "dona",
+                                "expected_revision": current["revision"],
+                            },
+                        )
+                        assert updated.status_code == 200, updated.text
+                    manual = {
+                        **body,
+                        "idempotency_key": marker + "-manual",
+                        "cart_revision": updated.json()["revision"],
+                    }
+                    preview = (await client.post("/api/checkout/preview", json=manual)).json()
+                    assert preview["requires_confirmation"], preview
+                    submitted = (await client.post("/api/sales-requests", json=manual)).json()
+                    assert submitted["ok"], submitted
+                    enquiry = submitted["request"]
+                    repeated = (await client.post("/api/sales-requests", json=manual)).json()
+                    assert repeated["request"]["id"] == enquiry["id"]
+                    assert (
+                        len(enquiry["items"]) == 2
+                        and enquiry["items"][1]["reference_unit_price"] is None
+                    )
+                    assert (await session.get(SalesRequest, enquiry["id"])).is_test
+                    assert not (await client.get("/api/cart")).json()["lines"]
+                    operator_cookie = sign_session(user_id=operator.id, tg_id=operator.tg_id)
+                    op_request = Request(
+                        {
+                            "type": "http",
+                            "headers": [
+                                (b"cookie", f"{SESSION_COOKIE}={operator_cookie}".encode())
+                            ],
+                        }
+                    )
+                    async with httpx.AsyncClient(
+                        transport=httpx.ASGITransport(app=app),
+                        base_url="http://release.test",
+                        cookies={SESSION_COOKIE: operator_cookie},
+                        headers={"X-CSRF-Token": csrf_token(op_request)},
+                    ) as admin_client:
+                        prefix = f"/api/chat/operator/{enquiry['conversation_id']}"
+                        assert (
+                            await admin_client.post(prefix + "/claim", json={})
+                        ).status_code == 200
+                        assert (
+                            await admin_client.post(prefix + "/close", json={})
+                        ).status_code == 409
+                        resolved = await admin_client.post(
+                            f"/api/chat/operator/sales-requests/{enquiry['id']}/resolve",
+                            json={
+                                "outcome": "agreed",
+                                "note": "ROLLBACK synthetic check; no fulfillment",
+                            },
+                        )
+                        assert resolved.status_code == 200, resolved.text
+                        assert (
+                            await admin_client.post(prefix + "/close", json={})
+                        ).status_code == 200
+                    history = (await client.get("/api/sales-requests")).json()["requests"]
+                    assert history[0]["status"] == "agreed"
+                    assert (
+                        len(
+                            (
+                                await session.scalars(select(Order).where(Order.user_id == user.id))
+                            ).all()
+                        )
+                        == 1
+                    )
         finally:
             await transaction.rollback()
     async with AsyncSession(engine) as verify:
@@ -195,6 +285,11 @@ async def run(guest: bool = False) -> dict[str, object]:
             "idempotent_order",
             "test_order",
             "cart_clear",
+            "manual_mixed_cart",
+            "idempotent_request",
+            "operator_resolution",
+            "customer_request_history",
+            "manual_request_no_extra_order",
         ],
         "paid_ai_calls": 0,
     }

@@ -75,7 +75,13 @@ quantity with the customer, then set_basket_item.
 three returned products at a time, in the returned order. Do not list other remembered products.
 - Offer an operator for unknown facts, but never claim to have connected one. The customer
 must press the operator button and confirm. Do not request a phone just to chat or get help.
-- When the basket is ready, call get_quote and tell the customer the total.
+- Unknown-price or unverified-stock products can be added to the basket, but never invent a
+price or call a partial known-price sum the total. If get_quote requires operator confirmation,
+guide the customer to Savatga o'tish -> Operatorga yuborish. The whole basket becomes one
+manual enquiry, not a paid/confirmed order. The customer explicitly submits it with contacts.
+- When the basket is ready, call get_quote and tell the total only if every line is orderable.
+- After adding an item, confirm its name, unit and total quantity and offer the cart or more
+products. Setting quantity replaces the existing amount; never silently add it twice.
 - To order you need a phone number and a delivery address. Offer the saved addresses \
 (get_saved_addresses); the customer may also type an address or send a location pin.
 - Then call prepare_order. A confirm button appears under your message; ask the customer \
@@ -323,10 +329,6 @@ class DbAgentTools:
         product = await CatalogRepository(self.session).get(product_id)
         if product is None:
             return {"error": "product not found"}
-        if qty > 0 and (
-            product.attributes.get("price_on_request") or product.attributes.get("stock_unverified")
-        ):
-            return {"error": "operator_confirmation_required"}
 
         existing = next((line for line in cart.basket if line["canonical_id"] == product_id), None)
         unit = str(
@@ -383,6 +385,10 @@ class DbAgentTools:
             cart.quote = None
             return {"orderable": False, "missing": [i.name_uz for i in items]}
         variant = result.deduplicated_variants[0]
+        if variant.missing_lines or not variant.is_orderable:
+            cart.quote = None
+            cart.order = None
+            return {"error": "operator_confirmation_required"}
         cart.quote = serialize_variant(variant)
         return {
             "orderable": variant.is_orderable,
@@ -403,7 +409,11 @@ class DbAgentTools:
         }
 
     def _prepare_order(self, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
-        if cart.quote is None or not deserialize_variant(cart.quote).is_orderable:
+        if (
+            cart.quote is None
+            or not deserialize_variant(cart.quote).is_orderable
+            or deserialize_variant(cart.quote).missing_lines
+        ):
             return {"error": "call get_quote first; the basket must be orderable"}
         phone = normalize_uz_phone(str(args.get("phone", "")))
         if phone is None:

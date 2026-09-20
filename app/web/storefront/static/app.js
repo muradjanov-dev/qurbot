@@ -252,13 +252,17 @@
       var existing = lines.find(function (line) { return line.canonical_id === result.line.canonical_id; });
       if (existing) {
         if (existing.unit_code !== result.line.unit_code) { toast(T.error); return; }
-        existing.qty = quantityText(quantityUnits(existing.qty) + quantityUnits(result.line.qty));
+        existing.qty = result.line.qty;
       } else {
         lines.push(result.line);
       }
       if (!await basket.save(lines)) return;
+      var feedback = $('[data-product-added]');
+      if (feedback) feedback.textContent = (result.line.canonical_name || result.line.parsed_name) + ' — ' + result.line.qty + ' ' + result.line.unit_code + '. ' + T.added;
       toast(T.added);
     });
+    button.disabled = false;
+    $$("[data-qty] input, [data-qty] button").forEach(function (control) { control.disabled = false; });
   }
 
   /* ── basket page ─────────────────────────────────────────────────── */
@@ -421,6 +425,7 @@
     button.textContent = T.loading;
 
     var result = await postJSON("/api/quote", { lines: payload });
+    if (result.requires_confirmation) { window.location.href = '/chat?cart=1'; return; }
 
     button.disabled = false;
     button.textContent = original;

@@ -76,6 +76,8 @@ def check(browser, width, height, lang):
                     "messages": [m for m in messages if m["sequence"] > after],
                 }
             )
+        elif url.path.endswith("/sales-requests"):
+            r.fulfill(json={"requests": []})
         elif url.path.endswith("/read"):
             r.fulfill(json={"ok": True})
         elif url.path == "/api/cart":

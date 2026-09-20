@@ -57,6 +57,9 @@ class ConversationJob(Base, TimestampMixin):
     request_id: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
     response_id: Mapped[int | None] = mapped_column(ForeignKey("conversation_messages.id"))
+    telegram_status_id: Mapped[int | None] = mapped_column(BigInteger)
+    progress_slot: Mapped[int] = mapped_column(Integer, default=-1, server_default="-1")
+    progress_lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error: Mapped[str | None] = mapped_column(String(64))
     tool_results: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, default=list)
 

@@ -21,6 +21,8 @@
   window.Telegram?.WebApp?.onEvent?.('viewportChanged', fit); fit();
   let rows = [], filter = 'waiting', selected = null, cursor = 0, next = null;
   let pages = 1;
+  let openRequests = false, requestSignature = '';
+  const resolutionDrafts = new Map();
   let busy = false, polling = false, timer, stopped = false, owned = false;
   const drafts = new Map(), requests = new Map(), seen = new Set();
   const el = (tag, text, cls) => {const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n;};
@@ -43,6 +45,45 @@
     form.elements.message.disabled = !owned || busy || stopped;
     form.querySelector('button').disabled = !owned || busy || stopped;
     claim.disabled = finish.disabled = busy || stopped;
+    finish.disabled ||= openRequests;
+    finish.title = openRequests ? S.resolve_first : '';
+  }
+  async function refreshRequests(id) {
+    const data = await api(`/${id}/sales-requests`);
+    if (selected !== id) return;
+    const items = data.requests || [];
+    openRequests = items.some(item => item.status === 'open');
+    const signature = JSON.stringify([items, owned]);
+    if (signature === requestSignature) return;
+    requestSignature = signature;
+    let panel = log.querySelector('[data-sales-requests]');
+    if (!panel) {panel = el('section', '', 'sales-request-panel'); panel.dataset.salesRequests = ''; log.prepend(panel);}
+    panel.replaceChildren();
+    for (const item of items) {
+      const card = el('article', '', 'card chat-product');
+      card.append(el('h3', `${S.requests} #${item.id} · ${S['request_' + item.status]}`));
+      card.append(el('p', `${item.contact_name} · ${item.phone}`), el('p', `${item.district_name || ''}, ${item.address}`));
+      for (const line of item.items) card.append(el('p', `${line.name} — ${line.qty} ${line.unit_code} · ${line.requires_confirmation ? S.price_request : line.reference_unit_price == null ? '' : line.reference_unit_price + ' UZS'}`));
+      if (item.resolution_note) card.append(el('p', item.resolution_note));
+      if (owned && item.status === 'open') {
+        const note = el('textarea'); note.placeholder = S.resolution_note; note.setAttribute('aria-label', S.resolution_note);
+        note.maxLength = 2000; note.value = resolutionDrafts.get(item.id) || '';
+        note.addEventListener('input', () => resolutionDrafts.set(item.id, note.value)); card.append(note);
+        for (const outcome of ['agreed', 'cancelled']) {
+          const button = el('button', S['request_' + outcome], 'btn btn-ghost'); button.type = 'button';
+          button.addEventListener('click', async () => {
+            if (busy || !note.value.trim()) {note.focus(); return;}
+            busy = true; controls(); button.disabled = true;
+            try {
+              await api(`/sales-requests/${item.id}/resolve`, {outcome, note: note.value.trim()});
+              resolutionDrafts.delete(item.id); requestSignature = ''; await refreshThread();
+            } catch (_) {status.textContent = S.error;}
+            finally {busy = false; button.disabled = false; controls();}
+          }); card.append(button);
+        }
+      }
+      panel.append(card);
+    }
   }
   function renderList() {
     const scrollTop = list.scrollTop;
@@ -73,12 +114,14 @@
     rows = loaded; next = after; renderList();
   }
   function clearThread() {
+    openRequests = false; requestSignature = '';
     selected = null; cursor = 0; owned = false; seen.clear(); log.replaceChildren();
     title.textContent = S.select; mode.textContent = ''; claim.hidden = finish.hidden = true;
     root.classList.remove('thread-open'); controls();
   }
   async function choose(id) {
     if (busy) return;
+    openRequests = false; requestSignature = '';
     if (selected) drafts.set(selected, form.elements.message.value);
     selected = id; cursor = 0; owned = false; seen.clear(); log.replaceChildren();
     form.elements.message.value = drafts.get(id) || ''; root.classList.add('thread-open');
@@ -104,6 +147,8 @@
       owned = data.status === 'human' && data.operator_id === adminId;
       mode.textContent = data.status === 'waiting' ? S.waiting : owned ? S.mine : S.others;
       claim.hidden = data.status !== 'waiting'; finish.hidden = !owned;
+      await refreshRequests(id);
+      if (selected !== id) return;
       controls(); if (nearBottom) log.scrollTop = log.scrollHeight;
       if (!document.hidden && cursor) await api(`/${id}/read`, {sequence: cursor});
     } catch (error) {

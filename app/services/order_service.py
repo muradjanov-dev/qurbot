@@ -117,7 +117,7 @@ async def place_order(
         )
         if replay is not None:
             return replay
-    if not variant.is_orderable:
+    if not variant.is_orderable or variant.missing_lines:
         raise InvalidCartItem("quote_not_orderable")
     if cart_revision is not None:
         # Clear in the SAME transaction as order/reward/receipt creation.
@@ -125,6 +125,15 @@ async def place_order(
         snapshot = await cart_service.get(user.id)
         if snapshot.revision != cart_revision:
             raise CartConflict(snapshot.revision)
+        from app.services.cart_policy import assess_lines
+
+        if any(
+            line["requires_confirmation"] for line in await assess_lines(session, snapshot.lines)
+        ):
+            raise InvalidCartItem("operator_confirmation_required")
+        quoted_ids = {line.canonical_id for group in variant.shop_groups for line in group.lines}
+        if quoted_ids != {line["canonical_id"] for line in snapshot.lines}:
+            raise InvalidCartItem("incomplete_quote")
         for product_id in {
             line.canonical_id for group in variant.shop_groups for line in group.lines
         }:

@@ -24,6 +24,7 @@ from app.db.session import get_db_session
 from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.optimizer.models import QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
+from app.services.cart_policy import assess_lines
 from app.services.cart_service import CartService, InvalidCartItem
 from app.services.order_service import (
     checkout_fingerprint,
@@ -138,10 +139,13 @@ async def checkout_options(
     lang: str = Depends(current_lang),
 ) -> dict[str, Any]:
     rows = (await session.scalars(select(District).order_by(District.id))).all()
+    from app.services.sales_request_service import contact_defaults
+
     return {
+        "contact": await contact_defaults(session, user),
         "districts": [
             {"id": row.id, "name": row.name_ru if lang == "ru" else row.name_uz} for row in rows
-        ]
+        ],
     }
 
 
@@ -155,6 +159,8 @@ async def checkout_preview(
     snapshot = await CartService(session).get(user.id)
     if snapshot.revision != body.cart_revision:
         return {"ok": False, "code": "cart_conflict"}
+    if any(line["requires_confirmation"] for line in await assess_lines(session, snapshot.lines)):
+        return {"ok": True, "requires_confirmation": True}
     address = await _resolve_address(session, user, body, lang=lang)
     if address is None or address[1] is None:
         return {"ok": False, "error": t("web_checkout_address_required", lang=lang)}
@@ -165,9 +171,9 @@ async def checkout_preview(
         await optimize(session, basket.items, district_id=address[1]), body.strategy
     )
     if variant is None or variant.missing_lines:
-        return {"ok": False, "error": t("web_quote_empty", lang=lang)}
+        return {"ok": True, "requires_confirmation": True}
     if not await delivery_confirmed(session, variant, address[1]):
-        return {"ok": False, "error": t("sales_delivery_confirm", lang=lang)}
+        return {"ok": True, "requires_confirmation": True}
     return {"ok": True, "variant": variant_payload(variant, lang, delivery_known=True)}
 
 
@@ -218,6 +224,12 @@ async def api_create_order(
             },
         )
     phone = normalize_uz_phone(body.phone)
+    if any(line["requires_confirmation"] for line in await assess_lines(session, snapshot.lines)):
+        return {
+            "ok": False,
+            "requires_confirmation": True,
+            "error": t("sales_request_hint", lang=lang),
+        }
     if phone is None:
         return {"ok": False, "error": t("web_checkout_phone_required", lang=lang)}
     if user.tg_id is None and not (body.contact_name or "").strip():

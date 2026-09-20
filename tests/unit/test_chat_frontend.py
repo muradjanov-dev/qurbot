@@ -85,7 +85,7 @@ def test_chat_template_accessibility_and_localization(lang: str, authenticated: 
         ({"stock_unverified": True}, Decimal("10"), True),
     ],
 )
-def test_unconfirmed_product_has_no_add_control(
+def test_unconfirmed_product_is_selectable_after_session_bootstrap(
     attributes: dict[str, bool],
     price: Decimal | None,
     expected: bool,
@@ -114,6 +114,10 @@ def test_unconfirmed_product_has_no_add_control(
             needs_confirmation=confirmation,
         )
     )
-    assert ("data-add-product" not in html) is expected
+    assert "data-add-product" in html  # Unknown prices are selectable for manual enquiries.
+    # Initial anonymous bootstrap can reload the page. Prevent edits until it is ready.
+    assert 'data-add-product="1" disabled' in html
+    assert 'data-step="-1" aria-label="−" disabled' in html
+    assert f'aria-label="{t("web_qty", lang="ru")}" disabled' in html
     assert (t("web_product_confirm_hint", lang="ru") in html) is expected
     assert "<script>bad</script>" not in html

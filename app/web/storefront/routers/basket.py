@@ -22,6 +22,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.session import get_db_session
 from app.domain.parsing.parser import is_qty_orderable
+from app.services.cart_policy import assess_lines
 from app.services.pdf_service import generate_quote_pdf
 from app.web.storefront.deps import current_lang, current_user, render
 from app.web.storefront.quoting import (
@@ -125,10 +126,24 @@ async def api_quote(
     if not basket.items:
         return {"ok": False, "error": t("web_basket_nothing_confirmed", lang=lang)}
 
+    checked = await assess_lines(
+        session, [line.model_dump() for line in body.lines if line.canonical_id]
+    )
+    if any(line["requires_confirmation"] for line in checked):
+        return {
+            "ok": False,
+            "requires_confirmation": True,
+            "error": t("sales_request_hint", lang=lang),
+        }
+
     district_id = user.district_id if user else None
     variants = await optimize(session, basket.items, district_id=district_id)
-    if not variants:
-        return {"ok": False, "error": t("web_quote_empty", lang=lang)}
+    if not variants or any(variant.missing_lines for variant in variants):
+        return {
+            "ok": False,
+            "requires_confirmation": True,
+            "error": t("sales_request_hint", lang=lang),
+        }
 
     return {
         "ok": True,

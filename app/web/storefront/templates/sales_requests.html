@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('sales_requests', lang=lang) }} — QurBot{% endblock %}
+{% block content %}
+<section class="section">
+  <h1>{{ t('sales_requests', lang=lang) }}</h1>
+  <div class="row"><a class="btn" href="/chat">{{ t('sales_back_chat', lang=lang) }}</a><a class="btn" href="/catalog">{{ t('sales_more_products', lang=lang) }}</a></div>
+  {% for item in sales_requests %}
+  <article class="card" id="request-{{ item.id }}">
+    <h2>#{{ item.id }} · {{ t('sales_request_' ~ item.status, lang=lang) }}</h2>
+    {% for line in item['items'] %}<p>{{ line.name }} — {{ line.qty }} {{ line.unit_code }}{% if line.requires_confirmation %} · {{ t('sales_price_request', lang=lang) }}{% endif %}</p>{% endfor %}
+    <p class="muted">{{ item.contact_name }} · {{ item.phone }} · {{ item.district_name }}, {{ item.address }}</p>
+    {% if item.resolution_note %}<p>{{ item.resolution_note }}</p>{% endif %}
+  </article>
+  {% else %}<p>{{ t('sales_empty', lang=lang) }}</p>{% endfor %}
+</section>
+{% endblock %}

@@ -657,6 +657,20 @@ async def callback_calculate_quotes(
     lang: str,
 ) -> None:
     lines = await _load_durable_cart(state, session)
+    from app.services.cart_policy import assess_lines
+
+    if lines and any(
+        line["requires_confirmation"]
+        for line in await assess_lines(
+            session, [line for line in lines if line.get("canonical_id")]
+        )
+    ):
+        from app.bot.handlers.guided_sales import start_request
+
+        if isinstance(callback.message, Message):
+            await start_request(callback.message, state, session, user, lang)
+        await callback.answer()
+        return
     if not lines:
         if isinstance(callback.message, Message):
             await callback.message.answer(t("prompt_send_basket", lang=lang))
@@ -692,15 +706,22 @@ async def callback_calculate_quotes(
         district_id=user.district_id,
     )
 
-    if not result.deduplicated_variants:
+    complete_variants = [
+        variant
+        for variant in result.deduplicated_variants
+        if variant.is_orderable and not variant.missing_lines
+    ]
+    if not complete_variants:
+        from app.bot.handlers.guided_sales import start_request
+
         if isinstance(callback.message, Message):
-            await callback.message.answer("Do'konlarda ushbu mahsulotlar topilmadi.")
+            await start_request(callback.message, state, session, user, lang)
         await callback.answer()
         return
 
     # Cache variants in state
     cached_variants = []
-    for v in result.deduplicated_variants:
+    for v in complete_variants:
         cached_variants.append(_serialize_variant(v))
 
     data = await state.get_data()
@@ -712,17 +733,17 @@ async def callback_calculate_quotes(
     )
 
     # Render first variant
-    variant_card_text = _format_quote_card(result.deduplicated_variants[0], lang=lang)
+    variant_card_text = _format_quote_card(complete_variants[0], lang=lang)
     if isinstance(callback.message, Message):
         await _safe_edit_text(
             callback.message,
             variant_card_text,
             reply_markup=get_quote_carousel_keyboard(
                 current_index=0,
-                total_variants=len(result.deduplicated_variants),
+                total_variants=len(complete_variants),
                 lang=lang,
-                has_photos=await _variant_has_photos(session, result.deduplicated_variants[0]),
-                is_orderable=result.deduplicated_variants[0].is_orderable,
+                has_photos=await _variant_has_photos(session, complete_variants[0]),
+                is_orderable=True,
             ),
         )
     await callback.answer()
@@ -1280,8 +1301,12 @@ async def callback_confirm_order(
             ),
             None,
         )
-        if fresh is None or not fresh.is_orderable:
-            await callback.answer(t("quote_not_orderable", lang=lang), show_alert=True)
+        if fresh is None or not fresh.is_orderable or fresh.missing_lines:
+            from app.bot.handlers.guided_sales import start_request
+
+            if isinstance(callback.message, Message):
+                await start_request(callback.message, state, session, user, lang)
+            await callback.answer()
             return
         old_lines = [
             (line.canonical_id, line.needed_qty, line.needed_unit, line.line_cost_uzs)

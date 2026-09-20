@@ -141,22 +141,9 @@
     document.dispatchEvent(new CustomEvent('qurbot:cart-updated', { detail: cart }));
   }
 
-  // Decimal string addition avoids rounding quantities through binary floating point.
-  function decimalSum(left, right) {
-    const parts = [String(left), String(right)].map(value => {
-      if (!/^\d+(?:\.\d+)?$/.test(value)) throw new Error('quantity');
-      return value.split('.');
-    });
-    const scale = Math.max(...parts.map(part => (part[1] || '').length));
-    const total = parts.reduce((sum, part) => sum + BigInt(part[0] + (part[1] || '').padEnd(scale, '0')), 0n);
-    if (!scale) return String(total);
-    const digits = String(total).padStart(scale + 1, '0');
-    return `${digits.slice(0, -scale)}.${digits.slice(-scale)}`;
-  }
-
   function productCard(product) {
     const id = String(product.product_id ?? product.canonical_id ?? product.id ?? '');
-    const unitCode = product.price_unit_code || product.unit;
+    const unitCode = product.unit_code || product.price_unit_code || product.unit;
     if (!/^\d+$/.test(id)) return null;
     const card = element('article', 'chat-product card');
     const title = element('a', 'chat-product-title', product.name || product.name_uz || product.name_ru || id);
@@ -167,7 +154,6 @@
     photo.addEventListener('error', () => {photo.hidden = true;}); card.prepend(photo);
     if (product.price_from_uzs == null || product.price_on_request || product.stock_unverified || !/^[a-z][a-z0-9]*$/.test(unitCode || '')) {
       card.append(element('p', 'notice warn tiny', strings.confirmation));
-      return card;
     }
     if (product.price_from_uzs !== undefined && product.price_from_uzs !== null) {
       card.append(element('p', 'chat-product-price', `${new Intl.NumberFormat(document.documentElement.lang).format(Number(product.price_from_uzs))} UZS${product.unit ? ` / ${product.unit}` : ''}`));
@@ -207,9 +193,15 @@
         }
         const result = await api(`/api/cart/items/${encodeURIComponent(id)}`, {
           method: 'PUT',
-          body: JSON.stringify({ expected_revision: cart.revision, qty: decimalSum(existing?.qty || '0', amount), unit_code: unitCode }),
+          body: JSON.stringify({ expected_revision: cart.revision, qty: amount, unit_code: unitCode }),
         });
-        feedback.textContent = strings.added;
+        feedback.replaceChildren(element('strong', '', `${product.name || id} — ${amount} ${unitCode}. ${strings.added}`));
+        const open = element('button', 'btn btn-primary btn-sm', strings.view_cart); open.type = 'button';
+        open.onclick = () => document.querySelector('[data-open-cart]').click();
+        const more = element('button', 'btn btn-ghost btn-sm', strings.more_products); more.type = 'button';
+        more.onclick = () => document.querySelector('#chat-message').focus();
+        const edit = element('button', 'btn btn-ghost btn-sm', strings.edit_qty); edit.type = 'button'; edit.onclick = () => qty.focus();
+        feedback.append(open, more, edit);
         publishCart(result);
       } catch (error) {
         feedback.textContent = stopped ? strings.session : error.status === 409 ? strings.cart_conflict : strings.cart_error;
@@ -256,15 +248,25 @@
       retry.hidden = true;
       retry.addEventListener('click', () => submitRequest(item));
       node.append(label, retry);
+      const handoff = element('button', 'btn btn-ghost btn-sm', operator.textContent);
+      handoff.type = 'button'; handoff.hidden = true;
+      handoff.addEventListener('click', () => operator.click()); node.append(handoff);
       requestsRoot.append(node);
-      item = { request_id: id, node, label, retry };
+      item = { request_id: id, node, label, retry, handoff };
       requests.set(id, item);
     }
     Object.assign(item, record);
     const done = ['completed', 'human', 'cancelled'].includes(item.status);
     const failed = ['failed', 'error', 'unknown'].includes(item.status);
     item.node.hidden = done;
+    item.handoff.hidden = true;
     item.label.textContent = `${strings.request} ${id} · ${strings[failed ? 'failed' : item.status === 'sending' ? 'sending' : 'pending']}`;
+    if (!done && !failed && ['pending', 'running'].includes(item.status)) {
+      const age = Math.max(0, (Date.now() - new Date(item.created_at || Date.now()).getTime()) / 1000);
+      const copy = age >= 60 ? strings.progress_slow : strings[`progress_${((item.job_id || 0) + Math.floor(age / 10)) % 7}`];
+      item.handoff.hidden = age < 60 || mode !== 'ai';
+      item.label.textContent = `${strings[item.status === 'running' ? 'progress_running' : 'progress_queued']} · ${copy}`;
+    }
     item.retry.hidden = !failed;
     item.retry.disabled = stopped || item.busy || false;
     saveRequests();
@@ -375,6 +377,7 @@
   });
   document.addEventListener('visibilitychange', () => document.hidden ? clearTimeout(timer) : schedule(0));
   window.addEventListener('online', () => schedule(0));
+  document.addEventListener('qurbot:handoff', () => schedule(0));
   window.addEventListener('pagehide', () => clearTimeout(timer));
   window.addEventListener('pageshow', () => schedule(0));
   poll();

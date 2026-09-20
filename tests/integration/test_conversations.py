@@ -307,5 +307,12 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
             assert len(quantities) == 3
             callback.data = quantities[0].callback_data
             await set_product_quantity(callback, session, user, "uz_latn")
+            assert not (await CartService(session).get(user.id)).lines
+            from app.bot.handlers.guided_sales import add_quantity
+
+            callback.data = (
+                message.answer.await_args.kwargs["reply_markup"].inline_keyboard[0][0].callback_data
+            )
+            await add_quantity(callback, session, user, AsyncMock(), "uz_latn")
             snapshot = await CartService(session).get(user.id)
             assert snapshot.lines[0]["qty"] == "1"

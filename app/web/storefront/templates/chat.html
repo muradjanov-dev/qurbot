@@ -23,6 +23,7 @@
         <button type="button" data-chat-operator disabled>{{ t('web_chat_operator', lang=lang) }}</button>
         <a href="/catalog">{{ t('web_nav_catalog', lang=lang) }}</a>
         <a href="/orders">{{ t('sales_orders', lang=lang) }}</a>
+        <a href="/sales-requests">{{ t('sales_requests', lang=lang) }}</a>
         {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a>{% endif %}
         {% for code, label in langs %}<a href="/lang/{{ code }}?next=/chat">{{ label }}</a>{% endfor %}
       </div>
@@ -53,6 +54,7 @@
 {% endblock %}
 {% block scripts %}
 <script id="chat-strings" type="application/json">{
+{% for key in ['view_cart', 'more_products', 'edit_qty', 'progress_queued', 'progress_running', 'progress_slow', 'progress_0', 'progress_1', 'progress_2', 'progress_3', 'progress_4', 'progress_5', 'progress_6'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
 {% for key in ['title', 'loading', 'sending', 'pending', 'failed', 'connection', 'retry', 'request', 'operator', 'ai', 'requested', 'assigned', 'you', 'assistant', 'operator_name', 'system', 'qty', 'add', 'added', 'cart_error', 'cart_conflict', 'session', 'confirmation'] %}
   {{ key|tojson }}: {{ t('web_chat_' ~ key, lang=lang)|tojson }},
 {% endfor %}

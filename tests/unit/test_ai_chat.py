@@ -23,8 +23,9 @@ def test_product_choices_keep_full_names_and_stable_numbers() -> None:
 
     message.cards[0]["stock_unverified"] = True
     rows = product_keyboard(message, 7, "uz_latn").inline_keyboard
-    assert rows[0][0].text == f"2. {names[1]}"
-    assert rows[0][0].callback_data == "chat:product:42:1:7"
+    assert rows[0][0].text == f"1. {names[0]}"
+    assert rows[0][0].callback_data == "chat:product:42:0:7"
+    assert rows[1][0].callback_data == "chat:product:42:1:7"
 
 
 def test_agent_filter_accepts_i18n_underscore_context() -> None:

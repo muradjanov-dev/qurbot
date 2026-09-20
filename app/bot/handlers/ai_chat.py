@@ -30,12 +30,6 @@ def product_keyboard(
 ) -> InlineKeyboardMarkup:
     rows = []
     for index, card in enumerate(message.cards[:3]):
-        if (
-            card.get("price_from_uzs") is None
-            or card.get("price_on_request")
-            or card.get("stock_unverified")
-        ):
-            continue
         rows.append(
             [
                 InlineKeyboardButton(
@@ -44,6 +38,9 @@ def product_keyboard(
                 )
             ]
         )
+    rows.append(
+        [InlineKeyboardButton(text=t("sales_view_cart", lang=lang), callback_data="g:cart")]
+    )
     rows.append(
         [
             InlineKeyboardButton(
@@ -62,11 +59,24 @@ def quantity_keyboard(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{qty} {card.get('unit', card.get('unit_code', ''))}",
+                    text=f"{qty} {card.get('unit_code', '')}",
                     callback_data=f"chat:qty:{message.id}:{index}:{qty}:{revision}",
                 )
                 for qty in (1, 5, 10)
             ],
+            [
+                InlineKeyboardButton(
+                    text=t("sales_custom_qty", lang=lang),
+                    callback_data=f"chat:custom:{message.id}:{index}:{revision}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("sales_back_variants", lang=lang),
+                    callback_data=f"chat:variants:{message.id}",
+                )
+            ],
+            [InlineKeyboardButton(text=t("sales_view_cart", lang=lang), callback_data="g:cart")],
             [
                 InlineKeyboardButton(
                     text=t("web_chat_operator", lang=lang), callback_data="chat:operator"
@@ -92,20 +102,19 @@ async def select_product(
         if not 0 <= index < min(3, len(message.cards)):
             raise InvalidCartItem("invalid_card")
         card = message.cards[index]
-        if (
-            card.get("price_from_uzs") is None
-            or card.get("price_on_request")
-            or card.get("stock_unverified")
-        ):
-            raise InvalidCartItem("unverified_product")
     except (InvalidCartItem, KeyError, ValueError):
         await callback.answer(t("web_chat_cart_conflict", lang=lang), show_alert=True)
         return
     await callback.answer()
     if isinstance(callback.message, Message):
+        price = (
+            f"{card['price_from_uzs']} UZS / {card.get('unit', '')}"
+            if card.get("price_from_uzs") is not None
+            else t("sales_price_request", lang=lang)
+        )
         await callback.message.answer(
             f"{index + 1}. {card['name']}\n"
-            f"{card['price_from_uzs']} UZS / {card.get('unit', '')}\n\n"
+            f"{price}\n\n"
             f"{t('chat_choose_quantity', lang=lang)}",
             parse_mode=None,
             reply_markup=quantity_keyboard(message, index, revision, lang),
@@ -148,9 +157,9 @@ async def handle_ai_text(
         "telegram",
     )
     await session.commit()
-    await message.answer(
-        t("chat_waiting" if job["status"] == "human" else "chat_queued", lang=lang)
-    )
+    from app.services.chat_progress import acknowledge
+
+    await acknowledge(message, session, job["id"], lang)
 
 
 @router.callback_query(F.data.startswith("chat:checkout:"))
@@ -196,7 +205,7 @@ async def prepare_confirmation(
 async def handoff_callback(
     callback: CallbackQuery, session: AsyncSession, user: User, lang: str
 ) -> None:
-    await ConversationService(session).handoff(user)
+    await ConversationService(session).handoff(user, channel="telegram")
     await session.commit()
     await callback.answer(t("chat_waiting", lang=lang))
 
@@ -218,27 +227,74 @@ async def set_product_quantity(
             raise InvalidCartItem("invalid_card")
         card = message.cards[index]
         product = await session.get(CanonicalProduct, card["id"])
-        if (
-            product is None
-            or product.attributes.get("price_on_request")
-            or product.attributes.get("stock_unverified")
-            or card.get("price_from_uzs") is None
-        ):
-            raise InvalidCartItem("unverified_product")
-        snapshot = await CartService(session).set_item(
-            user.id,
-            product.id,
-            qty,
-            expected_revision=revision,
-            unit_code=product.base_unit_code,
-        )
-        await session.commit()
+        if product is None:
+            raise InvalidCartItem("invalid_product")
+        await CartService(session)._check(user.id, revision)
+        if isinstance(callback.message, Message):
+            from app.bot.handlers.guided_sales import preview_quantity
+
+            await preview_quantity(callback.message, session, product.id, str(qty), revision, lang)
     except (CartConflict, InvalidCartItem, KeyError, ValueError):
         await session.rollback()
         await callback.answer(t("web_chat_cart_conflict", lang=lang), show_alert=True)
         return
-    await callback.answer(t("web_chat_added", lang=lang))
-    if isinstance(callback.message, Message):
-        await callback.message.edit_reply_markup(
-            reply_markup=quantity_keyboard(message, index, snapshot.revision, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("chat:custom:"))
+async def custom_product_quantity(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession, user: User, lang: str
+) -> None:
+    from app.bot.handlers.guided_sales import GuidedStates, keyboard
+
+    try:
+        _, _, raw_id, raw_index, raw_revision = (callback.data or "").split(":")
+        message = await session.get(ConversationMessage, int(raw_id))
+        conversation = await session.get(Conversation, message.conversation_id) if message else None
+        if (
+            not message
+            or not conversation
+            or conversation.user_id != user.id
+            or not 0 <= int(raw_index) < min(3, len(message.cards))
+        ):
+            raise ValueError("invalid_card")
+        card = message.cards[int(raw_index)]
+        product = await session.get(CanonicalProduct, card["id"])
+        if not product:
+            raise ValueError("invalid_product")
+        await CartService(session)._check(user.id, int(raw_revision))
+        await state.update_data(guided_product=product.id, guided_revision=int(raw_revision))
+        await state.set_state(GuidedStates.quantity)
+        await callback.answer()
+        if isinstance(callback.message, Message):
+            await callback.message.answer(
+                t("sales_enter_qty", lang=lang, unit=product.base_unit_code),
+                reply_markup=keyboard(
+                    (t("sales_back_variants", lang=lang), f"chat:variants:{message.id}"),
+                    (t("sales_view_cart", lang=lang), "g:cart"),
+                ),
+            )
+    except (ValueError, KeyError, CartConflict):
+        await callback.answer(t("web_chat_cart_conflict", lang=lang), show_alert=True)
+
+
+@router.callback_query(F.data.startswith("chat:variants:"))
+async def back_variants(
+    callback: CallbackQuery, state: FSMContext, session: AsyncSession, user: User, lang: str
+) -> None:
+    raw = (callback.data or "").split(":")[-1]
+    message = await session.get(ConversationMessage, int(raw)) if raw.isdigit() else None
+    conversation = await session.get(Conversation, message.conversation_id) if message else None
+    if (
+        message
+        and conversation
+        and conversation.user_id == user.id
+        and isinstance(callback.message, Message)
+    ):
+        await state.set_state(None)
+        cart = await CartService(session).get(user.id)
+        await callback.message.answer(
+            t("sales_choose_product", lang=lang),
+            reply_markup=product_keyboard(message, cart.revision, lang),
         )
+    await callback.answer()

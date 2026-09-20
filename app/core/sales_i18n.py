@@ -64,6 +64,123 @@ _LABELS = {
     ),
 }
 
+_LABELS.update(
+    {
+        "price_request": ("Narxi kelishiladi", "Нархи келишилади", "Цена по запросу"),
+        "request_hint": (
+            "Narx yoki mavjudlikni operator aniqlashtiradi. "
+            "Butun savat bitta ariza bo'lib yuboriladi.",
+            "Нарх ёки мавжудликни оператор аниқлаштиради. Бутун сават битта ариза бўлиб юборилади.",
+            "Оператор уточнит цену и наличие. Вся корзина будет отправлена одной заявкой.",
+        ),
+        "send_request": ("Operatorga yuborish", "Операторга юбориш", "Отправить оператору"),
+        "request_sent": (
+            "Ariza #{id} operatorga yuborildi. Narx va mavjudlik hali tasdiqlanmagan.",
+            "Ариза #{id} операторга юборилди. Нарх ва мавжудлик ҳали тасдиқланмаган.",
+            "Заявка №{id} отправлена оператору. Цена и наличие ещё не подтверждены.",
+        ),
+        "requests": ("Arizalarim", "Аризаларим", "Мои заявки"),
+        "request_open": (
+            "Operator bilan kelishilmoqda",
+            "Оператор билан келишилмоқда",
+            "На согласовании",
+        ),
+        "request_agreed": ("Kelishildi", "Келишилди", "Согласовано"),
+        "request_cancelled": ("Bekor qilindi", "Бекор қилинди", "Отменено"),
+        "resolution_note": (
+            "Kelishuv yoki bekor qilish izohi",
+            "Келишув ёки бекор қилиш изоҳи",
+            "Комментарий к результату",
+        ),
+        "resolve_first": (
+            "Avval ochiq arizalar natijasini belgilang.",
+            "Аввал очиқ аризалар натижасини белгиланг.",
+            "Сначала укажите результат открытых заявок.",
+        ),
+        "more_products": ("Yana mahsulot qo'shish", "Яна маҳсулот қўшиш", "Добавить ещё товар"),
+        "view_cart": ("Savatga o'tish", "Саватга ўтиш", "Перейти в корзину"),
+        "back_chat": ("Suhbatga qaytish", "Суҳбатга қайтиш", "Вернуться в чат"),
+        "back_variants": ("Variantlarga qaytish", "Вариантларга қайтиш", "Назад к вариантам"),
+        "custom_qty": ("Boshqa miqdor", "Бошқа миқдор", "Другое количество"),
+        "enter_qty": (
+            "Nechta {unit} kerak? Masalan: 155",
+            "Нечта {unit} керак? Масалан: 155",
+            "Сколько {unit} нужно? Например: 155",
+        ),
+        "edit_qty": ("Miqdorni o'zgartirish", "Миқдорни ўзгартириш", "Изменить количество"),
+        "in_cart": (
+            "{name} — {qty} {unit} savatda.",
+            "{name} — {qty} {unit} саватда.",
+            "В корзине: {name} — {qty} {unit}.",
+        ),
+        "search_prompt": (
+            "Yana nima kerak? Mahsulot nomini yozing.",
+            "Яна нима керак? Маҳсулот номини ёзинг.",
+            "Что ещё нужно? Напишите название товара.",
+        ),
+        "choose_product": ("Mahsulot tanlash", "Маҳсулот танлаш", "Выбрать товар"),
+        "contact_prompt": ("{field} kiriting:", "{field} киритинг:", "Укажите: {field}"),
+        "contact_confirm": (
+            "Ma'lumotlarni tasdiqlash",
+            "Маълумотларни тасдиқлаш",
+            "Подтвердить данные",
+        ),
+        "contact_edit": (
+            "Ma'lumotlarni o'zgartirish",
+            "Маълумотларни ўзгартириш",
+            "Изменить данные",
+        ),
+        "known_sum": (
+            "Narxi ma'lum qatorlar summasi (yakuniy jami emas)",
+            "Нархи маълум қаторлар суммаси (якуний жами эмас)",
+            "Сумма известных цен (не окончательный итог)",
+        ),
+        "progress_queued": ("Navbatda", "Навбатда", "В очереди"),
+        "progress_running": ("AI javob tayyorlamoqda", "AI жавоб тайёрламоқда", "AI готовит ответ"),
+        "progress_ready": (
+            "Javob tayyor. Suhbatni davom ettirishingiz mumkin.",
+            "Жавоб тайёр. Суҳбатни давом эттиришингиз мумкин.",
+            "Ответ готов. Можно продолжить разговор.",
+        ),
+        "progress_slow": (
+            "Javob odatdagidan uzoqroq kutilmoqda. Operatorni chaqirishingiz mumkin.",
+            "Жавоб одатдагидан узоқроқ кутилмоқда. Операторни чақиришингиз мумкин.",
+            "Ответ занимает больше времени. Можно обратиться к оператору.",
+        ),
+        "progress_0": ("Qabul qildik, xo'jayin 🙂", "Қабул қилдик, хўжайин 🙂", "Принято, шеф 🙂"),
+        "progress_1": (
+            "So'rovingiz bizda — xabarni qayta yuborish shart emas.",
+            "Сўровингиз бизда — хабарни қайта юбориш шарт эмас.",
+            "Запрос у нас — повторно отправлять его не нужно.",
+        ),
+        "progress_2": (
+            "Bir oz sabr 🙂 Javob shu suhbatga keladi.",
+            "Бир оз сабр 🙂 Жавоб шу суҳбатга келади.",
+            "Немного терпения 🙂 Ответ появится в этом чате.",
+        ),
+        "progress_3": (
+            "Yordamchidan javob kelishini kutyapmiz.",
+            "Ёрдамчидан жавоб келишини кутяпмиз.",
+            "Ждём ответ помощника.",
+        ),
+        "progress_4": (
+            "Keyingi qadamni ham ko'rsatamiz — yolg'iz qoldirmaymiz 🙂",
+            "Кейинги қадамни ҳам кўрсатамиз — ёлғиз қолдирмаймиз 🙂",
+            "Подскажем и следующий шаг — не оставим без помощи 🙂",
+        ),
+        "progress_5": (
+            "Savolingiz e'tiborsiz qolmadi, xo'jayin.",
+            "Саволингиз эътиборсиз қолмади, хўжайин.",
+            "Ваш вопрос не остался без внимания, шеф.",
+        ),
+        "progress_6": (
+            "Kutayotganingiz uchun rahmat! Suhbat shu yerda davom etadi.",
+            "Кутаётганингиз учун раҳмат! Суҳбат шу ерда давом этади.",
+            "Спасибо за ожидание! Продолжим разговор здесь.",
+        ),
+    }
+)
+
 SALES_MESSAGES = {
     f"sales_{key}": dict(zip(("uz_latn", "uz_cyrl", "ru"), values, strict=True))
     for key, values in _LABELS.items()

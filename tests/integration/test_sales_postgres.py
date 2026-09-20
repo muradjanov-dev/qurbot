@@ -202,3 +202,63 @@ async def test_postgres_double_checkout_one_order(
 
     ids = await asyncio.gather(checkout(), checkout())
     assert ids[0] == ids[1]
+
+
+@pytest.mark.asyncio
+async def test_postgres_parallel_manual_request_and_resolution(pg_sessions):
+    from app.db.models.sales_request import SalesRequest
+    from app.services.sales_request_service import SalesRequestService
+
+    user_id, product_id, admin_ids = await seed(pg_sessions)
+    async with pg_sessions() as session:
+        district = District(region="Test", name_uz="Test", name_ru="Test")
+        session.add(district)
+        await session.flush()
+        district_id = district.id
+        await CartService(session).set_item(user_id, product_id, "155", expected_revision=0)
+        await session.commit()
+
+    async def submit():
+        async with pg_sessions() as session:
+            row = await SalesRequestService(session).create(
+                await session.get(User, user_id),
+                revision=1,
+                key="parallel",
+                name="Test",
+                phone="+998900000000",
+                district_id=district_id,
+                address="Test address",
+                channel="web",
+            )
+            await session.commit()
+            return row.id, row.conversation_id
+
+    results = await asyncio.wait_for(asyncio.gather(submit(), submit()), timeout=15)
+    assert results[0] == results[1]
+    request_id, conversation_id = results[0]
+    async with pg_sessions() as session:
+        assert not (await CartService(session).get(user_id)).lines
+        await session.commit()  # Release cart lock before acquiring conversation lock.
+        await ConversationService(session).claim(
+            await session.get(User, admin_ids[0]), conversation_id
+        )
+        await session.commit()
+
+    async def resolve(outcome):
+        async with pg_sessions() as session:
+            try:
+                await SalesRequestService(session).resolve(
+                    await session.get(User, admin_ids[0]), request_id, outcome, "Test result"
+                )
+                await session.commit()
+                return True
+            except ConversationConflict:
+                await session.rollback()
+                return False
+
+    assert sorted(
+        await asyncio.wait_for(asyncio.gather(resolve("agreed"), resolve("cancelled")), timeout=15)
+    ) == [False, True]
+    async with pg_sessions() as session:
+        row = await session.get(SalesRequest, request_id)
+        assert row.items[0].qty == Decimal("155") and row.items[0].reference_unit_price is None

@@ -253,7 +253,7 @@ async def test_unconfirmed_delivery_cannot_be_ordered(web, test_session, kind):
         "expected_total": "116000",
     }
     preview = await client.post("/api/checkout/preview", json=body, headers=headers(client))
-    assert not preview.json()["ok"]
+    assert preview.json()["requires_confirmation"] is True
     order = await client.post("/api/order", json=body, headers=headers(client))
     assert not order.json()["ok"]
     assert await test_session.scalar(select(func.count()).select_from(Order)) == 0

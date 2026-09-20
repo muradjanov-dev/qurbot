@@ -15,6 +15,7 @@ from app.db.models.order import (
     OrderShopPart,
     Quote,
 )
+from app.db.models.sales_request import SalesRequest, SalesRequestItem
 from app.db.models.shop import (
     District,
     ImportBatch,
@@ -31,6 +32,8 @@ from app.db.models.shop import (
 from app.db.models.user import User, UserAddress, VisitorSession
 
 __all__ = [
+    "SalesRequest",
+    "SalesRequestItem",
     "Cart",
     "CartItem",
     "CartMerge",

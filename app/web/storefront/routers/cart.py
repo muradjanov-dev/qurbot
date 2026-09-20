@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.i18n import t
 from app.db.models.user import User
 from app.db.session import get_db_session
+from app.services.cart_policy import assess_lines
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 from app.web.storefront.deps import current_lang, require_api_user
 from app.web.storefront.security import require_csrf
@@ -59,8 +60,13 @@ async def get_cart(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     snapshot = await CartService(session).get(user.id)
+    lines = await assess_lines(session, snapshot.lines)
     await session.commit()
-    return snapshot.payload()
+    return {
+        **snapshot.payload(),
+        "lines": lines,
+        "requires_confirmation": any(line["requires_confirmation"] for line in lines),
+    }
 
 
 @router.put(
