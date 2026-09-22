@@ -26,6 +26,7 @@ async def test_native_menu_opens_authenticated_webapp(monkeypatch):
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
     assert menu.type == "web_app"
     assert menu.web_app.url == "https://shop.example"
+    assert menu.text == "🌐 Saytni ochish va buyurtma berish"
 
 
 @pytest.mark.asyncio

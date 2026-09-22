@@ -10,11 +10,17 @@ from app.core.i18n import t
 router = Router(name="webapp_launch")
 router.message.filter(F.chat.type == "private")
 
+# Keyboards already sent before this copy change still send their original text.
+LEGACY_WEBAPP_BUTTONS = ("🌐 Saytni ochish", "🌐 Сайтни очиш", "🌐 Открыть сайт")
+
 
 @router.message(CommandStart(deep_link=True, magic=F.args == "webapp"))
 @router.message(Command("webapp"))
 @router.message(
-    F.text.in_([t("open_mini_app", lang=lang) for lang in ("uz_latn", "uz_cyrl", "ru")])
+    F.text.in_(
+        [t("open_mini_app", lang=lang) for lang in ("uz_latn", "uz_cyrl", "ru")]
+        + list(LEGACY_WEBAPP_BUTTONS)
+    )
 )
 async def launch_webapp(message: Message, lang: str) -> None:
     url = settings.storefront_webapp_url

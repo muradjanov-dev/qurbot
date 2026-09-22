@@ -34,9 +34,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": ("Для подтверждения заказов отправьте номер телефона " "(или можете пропустить):"),
     },
     "open_mini_app": {
-        "uz_latn": "🌐 Saytni ochish",
-        "uz_cyrl": "🌐 Сайтни очиш",
-        "ru": "🌐 Открыть сайт",
+        "uz_latn": "🌐 Saytni ochish va buyurtma berish",
+        "uz_cyrl": "🌐 Сайтни очиш ва буюртма бериш",
+        "ru": "🌐 Открыть сайт и оформить заказ",
     },
     "btn_send_contact": {
         "uz_latn": "📱 Raqamni yuborish",

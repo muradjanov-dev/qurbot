@@ -159,13 +159,15 @@ def test_main_menu_keyboard() -> None:
         mock.storefront_webapp_url = "https://qur.standart-eko.uz"
         kb_cust = get_main_menu_keyboard(lang="uz_latn", is_admin=False)
         assert len(kb_cust.keyboard) == 4
-        assert kb_cust.keyboard[2][0].text == "☎️ Bog'lanish"
+        assert [b.text for b in kb_cust.keyboard[0]] == ["🌐 Saytni ochish va buyurtma berish"]
+        assert kb_cust.keyboard[3][0].text == "☎️ Bog'lanish"
         assert kb_cust.is_persistent is False
 
-        # Admins get one extra row: the products panel beside the admin panel + WebApp row = 5 rows
+        # The WebApp action remains first for admins too.
         kb_admin = get_main_menu_keyboard(lang="uz_latn", is_admin=True)
         assert len(kb_admin.keyboard) == 5
-        assert [b.text for b in kb_admin.keyboard[3]] == ["📦 Mahsulotlar", "🛠 Admin panel"]
+        assert [b.text for b in kb_admin.keyboard[0]] == ["🌐 Saytni ochish va buyurtma berish"]
+        assert [b.text for b in kb_admin.keyboard[4]] == ["📦 Mahsulotlar", "🛠 Admin panel"]
 
     with patch("app.bot.keyboards.reply.settings") as mock:
         mock.storefront_webapp_url = None
@@ -212,21 +214,23 @@ def test_main_menu_webapp_button() -> None:
 
         kb_uz = get_main_menu_keyboard(lang="uz_latn")
         assert any(
-            b.text == "🌐 Saytni ochish" and b.web_app is None
+            b.text == "🌐 Saytni ochish va buyurtma berish" and b.web_app is None
             for row in kb_uz.keyboard
             for b in row
         )
 
         kb_cyrl = get_main_menu_keyboard(lang="uz_cyrl")
         assert any(
-            b.text == "🌐 Сайтни очиш" and b.web_app is None
+            b.text == "🌐 Сайтни очиш ва буюртма бериш" and b.web_app is None
             for row in kb_cyrl.keyboard
             for b in row
         )
 
         kb_ru = get_main_menu_keyboard(lang="ru")
         assert any(
-            b.text == "🌐 Открыть сайт" and b.web_app is None for row in kb_ru.keyboard for b in row
+            b.text == "🌐 Открыть сайт и оформить заказ" and b.web_app is None
+            for row in kb_ru.keyboard
+            for b in row
         )
 
     # 2. URL is None — button omitted and no web_app attached.
@@ -235,5 +239,5 @@ def test_main_menu_webapp_button() -> None:
 
         kb_none = get_main_menu_keyboard(lang="uz_latn")
         texts_none = [btn.text for row in kb_none.keyboard for btn in row]
-        assert "🌐 Saytni ochish" not in texts_none
+        assert "🌐 Saytni ochish va buyurtma berish" not in texts_none
         assert not any(b.web_app for row in kb_none.keyboard for b in row)

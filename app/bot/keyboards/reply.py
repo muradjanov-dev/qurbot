@@ -8,30 +8,25 @@ from app.core.i18n import t
 def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> ReplyKeyboardMarkup:
     """Build main menu reply keyboard.
 
-    "Ro'yxat yuborish" gets its own full-width row because it is the primary
-    action -- everything else in the menu exists to support it. Products and
-    the admin panel share one row, and only admins see it: nobody else manages
-    the catalogue.
+    The WebApp opens from the first full-width row when configured. Sending a
+    list stays on its own row; products and admin controls remain admin-only.
     """
     builder = ReplyKeyboardBuilder()
+    has_webapp = bool(settings.storefront_webapp_url)
+    if has_webapp:
+        # Reply-keyboard WebApps have no signed user initData. This text button
+        # requests an inline WebApp launch with signed identity instead.
+        builder.button(text=t("open_mini_app", lang=lang))
     builder.button(text=t("menu_send_list", lang=lang))
     builder.button(text=t("menu_price_check", lang=lang))
     builder.button(text=t("menu_cabinet", lang=lang))
     builder.button(text=t("menu_contact", lang=lang))
 
-    extra_rows = []
     if is_admin:
         builder.button(text=t("menu_shop_portal", lang=lang))
         builder.button(text=t("menu_admin_panel", lang=lang))
-        extra_rows.append(2)
 
-    if settings.storefront_webapp_url:
-        # Reply-keyboard WebApps have no signed user initData. This plain
-        # button asks the bot for an inline WebApp launch instead.
-        builder.button(text=t("open_mini_app", lang=lang))
-        extra_rows.append(1)  # Place on its own row
-
-    builder.adjust(1, 2, 1, *extra_rows)
+    builder.adjust(*([1] if has_webapp else []), 1, 2, 1, *([2] if is_admin else []))
     # A persistent reply keyboard asks Telegram clients to reopen it whenever
     # it is hidden. On Android that can consume the system Back action instead
     # of leaving the bot chat, so keep the menu available but user-hideable.
