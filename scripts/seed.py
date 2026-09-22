@@ -40,6 +40,7 @@ from app.db.models import (
 )
 from app.db.session import async_session_factory
 from app.domain.normalize.text import normalize_query, normalize_text
+from app.domain.normalize.translit import latin_to_cyrillic_uz
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("seed")
@@ -517,6 +518,227 @@ DISTRICTS_DATA = [
         "lat": Decimal("41.3000"),
         "lng": Decimal("69.4000"),
     },
+]
+
+
+# Every other region of Uzbekistan, as region -> districts in Uzbek Latin.
+#
+# `name_ru` is generated as the Cyrillic transliteration of the Uzbek name
+# ("Асака тумани") rather than the official Russian adjectival form
+# ("Асакинский район"): a generated name cannot drift from the Uzbek one as
+# districts are renamed, and a Russian reader still identifies the place. The
+# twelve Tashkent city districts above keep their hand-written Russian names.
+#
+# Centroids are deliberately absent. A district centroid is what a dropped
+# location pin is snapped to (settings.district_match_max_km), so a guessed
+# coordinate would quietly deliver to the wrong district -- worse than no
+# coordinate at all, which simply asks the customer to pick from the list.
+REGIONAL_DISTRICTS: dict[str, tuple[str, ...]] = {
+    "Qoraqalpog'iston Respublikasi": (
+        "Nukus shahri",
+        "Amudaryo tumani",
+        "Beruniy tumani",
+        "Chimboy tumani",
+        "Ellikqal'a tumani",
+        "Kegeyli tumani",
+        "Mo'ynoq tumani",
+        "Nukus tumani",
+        "Qanliko'l tumani",
+        "Qo'ng'irot tumani",
+        "Qorao'zak tumani",
+        "Shumanay tumani",
+        "Taxiatosh tumani",
+        "Taxtako'pir tumani",
+        "To'rtko'l tumani",
+        "Xo'jayli tumani",
+    ),
+    "Andijon viloyati": (
+        "Andijon shahri",
+        "Xonobod shahri",
+        "Andijon tumani",
+        "Asaka tumani",
+        "Baliqchi tumani",
+        "Bo'ston tumani",
+        "Buloqboshi tumani",
+        "Izboskan tumani",
+        "Jalaquduq tumani",
+        "Marhamat tumani",
+        "Oltinko'l tumani",
+        "Paxtaobod tumani",
+        "Qo'rg'ontepa tumani",
+        "Shahrixon tumani",
+        "Ulug'nor tumani",
+    ),
+    "Buxoro viloyati": (
+        "Buxoro shahri",
+        "Kogon shahri",
+        "Buxoro tumani",
+        "G'ijduvon tumani",
+        "Jondor tumani",
+        "Kogon tumani",
+        "Olot tumani",
+        "Peshku tumani",
+        "Qorako'l tumani",
+        "Qorovulbozor tumani",
+        "Romitan tumani",
+        "Shofirkon tumani",
+        "Vobkent tumani",
+    ),
+    "Farg'ona viloyati": (
+        "Farg'ona shahri",
+        "Marg'ilon shahri",
+        "Qo'qon shahri",
+        "Quvasoy shahri",
+        "Bag'dod tumani",
+        "Beshariq tumani",
+        "Buvayda tumani",
+        "Dang'ara tumani",
+        "Farg'ona tumani",
+        "Furqat tumani",
+        "Oltiariq tumani",
+        "Quva tumani",
+        "Rishton tumani",
+        "So'x tumani",
+        "Toshloq tumani",
+        "Uchko'prik tumani",
+        "O'zbekiston tumani",
+        "Yozyovon tumani",
+    ),
+    "Jizzax viloyati": (
+        "Jizzax shahri",
+        "Arnasoy tumani",
+        "Baxmal tumani",
+        "Do'stlik tumani",
+        "Forish tumani",
+        "G'allaorol tumani",
+        "Mirzacho'l tumani",
+        "Paxtakor tumani",
+        "Sharof Rashidov tumani",
+        "Yangiobod tumani",
+        "Zafarobod tumani",
+        "Zarbdor tumani",
+        "Zomin tumani",
+    ),
+    "Namangan viloyati": (
+        "Namangan shahri",
+        "Chortoq tumani",
+        "Chust tumani",
+        "Davlatobod tumani",
+        "Kosonsoy tumani",
+        "Mingbuloq tumani",
+        "Namangan tumani",
+        "Norin tumani",
+        "Pop tumani",
+        "To'raqo'rg'on tumani",
+        "Uchqo'rg'on tumani",
+        "Uychi tumani",
+        "Yangiqo'rg'on tumani",
+    ),
+    "Navoiy viloyati": (
+        "Navoiy shahri",
+        "Zarafshon shahri",
+        "Karmana tumani",
+        "Konimex tumani",
+        "Navbahor tumani",
+        "Nurota tumani",
+        "Qiziltepa tumani",
+        "Tomdi tumani",
+        "Uchquduq tumani",
+        "Xatirchi tumani",
+    ),
+    "Qashqadaryo viloyati": (
+        "Qarshi shahri",
+        "Shahrisabz shahri",
+        "Chiroqchi tumani",
+        "Dehqonobod tumani",
+        "G'uzor tumani",
+        "Kasbi tumani",
+        "Kitob tumani",
+        "Koson tumani",
+        "Ko'kdala tumani",
+        "Mirishkor tumani",
+        "Muborak tumani",
+        "Nishon tumani",
+        "Qamashi tumani",
+        "Qarshi tumani",
+        "Shahrisabz tumani",
+        "Yakkabog' tumani",
+    ),
+    "Samarqand viloyati": (
+        "Samarqand shahri",
+        "Kattaqo'rg'on shahri",
+        "Bulung'ur tumani",
+        "Ishtixon tumani",
+        "Jomboy tumani",
+        "Kattaqo'rg'on tumani",
+        "Narpay tumani",
+        "Nurobod tumani",
+        "Oqdaryo tumani",
+        "Pastdarg'om tumani",
+        "Paxtachi tumani",
+        "Payariq tumani",
+        "Qo'shrabot tumani",
+        "Samarqand tumani",
+        "Toyloq tumani",
+        "Urgut tumani",
+    ),
+    "Sirdaryo viloyati": (
+        "Guliston shahri",
+        "Shirin shahri",
+        "Yangiyer shahri",
+        "Boyovut tumani",
+        "Guliston tumani",
+        "Mirzaobod tumani",
+        "Oqoltin tumani",
+        "Sardoba tumani",
+        "Sayxunobod tumani",
+        "Sirdaryo tumani",
+        "Xovos tumani",
+    ),
+    "Surxondaryo viloyati": (
+        "Termiz shahri",
+        "Angor tumani",
+        "Bandixon tumani",
+        "Boysun tumani",
+        "Denov tumani",
+        "Jarqo'rg'on tumani",
+        "Muzrabot tumani",
+        "Oltinsoy tumani",
+        "Qiziriq tumani",
+        "Qumqo'rg'on tumani",
+        "Sariosiyo tumani",
+        "Sherobod tumani",
+        "Sho'rchi tumani",
+        "Termiz tumani",
+        "Uzun tumani",
+    ),
+    "Xorazm viloyati": (
+        "Urganch shahri",
+        "Xiva shahri",
+        "Bog'ot tumani",
+        "Gurlan tumani",
+        "Hazorasp tumani",
+        "Xonqa tumani",
+        "Qo'shko'pir tumani",
+        "Shovot tumani",
+        "Tuproqqal'a tumani",
+        "Urganch tumani",
+        "Xiva tumani",
+        "Yangiariq tumani",
+        "Yangibozor tumani",
+    ),
+}
+
+DISTRICTS_DATA += [
+    {
+        "region": region,
+        "name_uz": name,
+        "name_ru": latin_to_cyrillic_uz(name),
+        "lat": None,
+        "lng": None,
+    }
+    for region, names in REGIONAL_DISTRICTS.items()
+    for name in names
 ]
 
 # --- 4. Sample Users ---
@@ -2296,7 +2518,13 @@ async def seed_database(session: AsyncSession, catalog_only: bool = False) -> No
     logger.info("Seeding districts...")
     district_objs: list[District] = []
     for d in DISTRICTS_DATA:
-        stmt = select(District).where(District.name_uz == d["name_uz"])
+        # Keyed on (region, name) rather than name alone: district names are
+        # unique across Uzbekistan today, but nothing guarantees a future
+        # "Yangiobod tumani" in a second region would not silently reuse this
+        # row and move a whole region's customers.
+        stmt = select(District).where(
+            District.region == d["region"], District.name_uz == d["name_uz"]
+        )
         res = await session.execute(stmt)
         dist = res.scalars().first()
         if not dist:

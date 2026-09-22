@@ -27,10 +27,24 @@ class ShopRepository(BaseRepository[Shop]):
     async def get_district(self, id: int) -> District | None:
         return await self.session.get(District, id)
 
-    async def list_districts(self) -> Sequence[District]:
+    async def list_districts(self, region: str | None = None) -> Sequence[District]:
         stmt = select(District).order_by(District.name_uz)
+        if region is not None:
+            stmt = stmt.where(District.region == region)
         result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    async def list_regions(self) -> Sequence[str]:
+        """Every region that has at least one district, Tashkent city first.
+
+        Two hundred districts do not fit in one inline keyboard, so the picker
+        asks for the region first. Tashkent leads because that is where the
+        warehouse is and where nearly every order goes; the rest are
+        alphabetical so a customer can scan for their own.
+        """
+        rows = (await self.session.scalars(select(District.region).distinct())).all()
+        lead = [r for r in ("Toshkent", "Toshkent viloyati") if r in rows]
+        return [*lead, *sorted(r for r in rows if r not in lead)]
 
     async def list_active_shops(self) -> Sequence[Shop]:
         stmt = select(Shop).where(Shop.is_active.is_(True)).order_by(Shop.name)
