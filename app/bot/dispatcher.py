@@ -30,7 +30,6 @@ from app.bot.middlewares import (
     UserContextMiddleware,
 )
 from app.core.config import settings
-from app.core.i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ async def setup_bot_commands(bot: Bot) -> None:
         try:
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(
-                    text=t("open_mini_app", lang="uz_latn"),
+                    text="QurBot",
                     web_app=WebAppInfo(url=settings.storefront_webapp_url),
                 )
             )
