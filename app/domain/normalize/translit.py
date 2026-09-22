@@ -257,12 +257,36 @@ def cyrillic_to_latin_uz(text: str) -> str:
     return "".join(UZ_CYRL_TO_LATN_SINGLE.get(ch, ch) for ch in out)
 
 
+# Latin runs, apostrophes included so "o'" and "g'" stay one token.
+_LATIN_WORD = re.compile(r"[A-Za-z']+")
+
+
+def _word_to_cyrillic(word: str) -> str:
+    """Transliterate one word, resolving the positional vowels first.
+
+    Uzbek Cyrillic writes /e/ and /ye/ by position rather than letter by
+    letter: a word-initial "e" is э ("emas" -> "эмас"), a word-initial "ye" is
+    a plain е ("yer" -> "ер"), and anywhere else е is correct ("kel" -> "кел").
+    Mapping the letters independently produced "емас" and "йер" -- wrong in
+    every transliterated district name and every rotating status line.
+    """
+    prefix, rest = "", word
+    lowered = word.lower()
+    if lowered.startswith("ye"):
+        prefix, rest = ("Е" if word[0].isupper() else "е"), word[2:]
+    elif lowered.startswith("e"):
+        prefix, rest = ("Э" if word[0].isupper() else "э"), word[1:]
+    for lat, cyrl in UZ_LATN_TO_CYRL_MULTI:
+        rest = rest.replace(lat, cyrl)
+    return prefix + "".join(UZ_LATN_TO_CYRL_SINGLE.get(ch, ch) for ch in rest)
+
+
 def latin_to_cyrillic_uz(text: str) -> str:
     """Transliterate Uzbek Latin text to Uzbek Cyrillic."""
-    out = normalize_apostrophes(text)
-    for lat, cyrl in UZ_LATN_TO_CYRL_MULTI:
-        out = out.replace(lat, cyrl)
-    return "".join(UZ_LATN_TO_CYRL_SINGLE.get(ch, ch) for ch in out)
+    return _LATIN_WORD.sub(
+        lambda match: _word_to_cyrillic(match.group(0)),
+        normalize_apostrophes(text),
+    )
 
 
 def transliterate_ru_to_lat(text: str) -> str:

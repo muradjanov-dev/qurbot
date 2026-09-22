@@ -59,3 +59,24 @@ def test_roundtrip_uz() -> None:
         cyrl = latin_to_cyrillic_uz(w)
         lat = normalize_apostrophes(cyrillic_to_latin_uz(cyrl))
         assert lat == w
+
+
+def test_word_initial_e_and_ye_uz() -> None:
+    """Uzbek Cyrillic spells /e/ and /ye/ by position, not by letter.
+
+    A word starting with "e" takes э ("emas" -> "эмас"); a word starting with
+    "ye" takes е ("yer" -> "ер"). Mapping the letters independently produced
+    "емас" and "йер", which is what a Cyrillic reader saw in the waiting
+    messages and in every transliterated district name.
+    """
+    assert latin_to_cyrillic_uz("emas") == "эмас"
+    assert latin_to_cyrillic_uz("eng") == "энг"
+    assert latin_to_cyrillic_uz("Eshik") == "Эшик"
+    assert latin_to_cyrillic_uz("yer") == "ер"
+    assert latin_to_cyrillic_uz("yetkazish") == "етказиш"
+    assert latin_to_cyrillic_uz("Yetti") == "Етти"
+    # Mid-word the plain е is correct in both cases.
+    assert latin_to_cyrillic_uz("kel") == "кел"
+    assert latin_to_cyrillic_uz("sement") == "семент"
+    assert latin_to_cyrillic_uz("shart emas") == "шарт эмас"
+    assert latin_to_cyrillic_uz("eng qulay yer") == "энг қулай ер"
