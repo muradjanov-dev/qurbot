@@ -8,14 +8,14 @@
     <label class="field">{{ t('sales_name', lang=lang) }}<input name="name" required maxlength="100" autocomplete="name" value="{{ user.full_name if user and user.full_name else '' }}"></label>
     <label class="field">{{ t('sales_phone', lang=lang) }}<input name="phone" required maxlength="30" type="tel" autocomplete="tel" placeholder="+998"></label>
     <label class="field">{{ t('sales_district', lang=lang) }}<select name="district" required><option value="">—</option></select></label>
-    <label class="field">{{ t('sales_address', lang=lang) }}<input name="address" required maxlength="500" autocomplete="street-address"></label>
+    <label class="field">{{ t('sales_address', lang=lang) }}<input name="address" required minlength="5" maxlength="500" autocomplete="street-address" aria-describedby="cart-address-hint"><small id="cart-address-hint">{{ t('sales_address_invalid', lang=lang) }}</small></label>
     <div class="sales-summary" data-checkout-summary></div>
     <p data-checkout-status role="status"></p>
     <button class="btn btn-primary btn-block" type="submit" data-checkout-submit>{{ t('sales_calculate', lang=lang) }}</button>
   </form>
 </dialog>
 <script id="sales-strings" type="application/json">{
-{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum'] %}
+{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum', 'address_invalid', 'contact_invalid', 'phone_invalid', 'name_invalid', 'district_invalid', 'session_error'] %}
   {{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},
 {% endfor %}
   "error": {{ t('web_chat_failed', lang=lang)|tojson }},

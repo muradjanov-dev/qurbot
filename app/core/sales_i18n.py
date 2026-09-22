@@ -1,6 +1,23 @@
 """Visitor checkout and operator inbox labels."""
 
 _LABELS = {
+    "address_invalid": (
+        "Yetkazish manzilini to'liqroq yozing (kamida 5 belgi).",
+        "Етказиш манзилини тўлиқроқ ёзинг (камида 5 белги).",
+        "Укажите адрес доставки подробнее (не менее 5 символов).",
+    ),
+    "contact_invalid": (
+        "Ism, telefon, tuman va yetkazish manzilini tekshiring.",
+        "Исм, телефон, туман ва етказиш манзилини текширинг.",
+        "Проверьте имя, телефон, район и адрес доставки.",
+    ),
+    "phone_invalid": (
+        "Telefon raqamini +998 bilan to'liq kiriting.",
+        "Телефон рақамини +998 билан тўлиқ киритинг.",
+        "Введите полный номер телефона с +998.",
+    ),
+    "name_invalid": ("Ismingizni kiriting.", "Исмингизни киритинг.", "Введите имя."),
+    "district_invalid": ("Tumanni tanlang.", "Туманни танланг.", "Выберите район."),
     "delivery_confirm": (
         "Bu manzilga yetkazishni operator bilan aniqlashtiring.",
         "Бу манзилга етказишни оператор билан аниқлаштиринг.",

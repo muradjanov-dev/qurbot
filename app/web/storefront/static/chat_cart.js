@@ -23,7 +23,14 @@
       body: body === undefined ? undefined : JSON.stringify(body)});
     const data = await response.json();
     if (!response.ok || data.ok === false) {
-      const error = new Error((data.code === 'cart_conflict' || data.detail === 'cart_conflict') ? S.conflict : data.error || S.error);
+      const fieldErrors = {address_text: S.address_invalid, contact_name: S.name_invalid,
+        phone: S.phone_invalid, district_id: S.district_invalid};
+      const field = Array.isArray(data.detail) ? data.detail.find(item => fieldErrors[item.loc?.at(-1)])?.loc.at(-1) : null;
+      const message = (data.code === 'cart_conflict' || data.detail === 'cart_conflict') ? S.conflict
+        : response.status === 401 || response.status === 403 ? S.session_error
+        : field ? fieldErrors[field]
+        : response.status === 422 && data.detail === 'invalid_contact' ? S.contact_invalid : data.error || S.error;
+      const error = new Error(message);
       error.data = data; throw error;
     }
     return data;
@@ -94,9 +101,19 @@
   dialog.querySelector('[data-more-products]').addEventListener('click', () => {
     dialog.close(); location.assign('/catalog');
   });
-  form.addEventListener('input', () => {if (!busy) invalidate();});
+  function validateContact() {
+    const address = form.elements.address;
+    address.setCustomValidity(address.value.trim().length < 5 ? S.address_invalid : '');
+    const name = form.elements.name;
+    name.setCustomValidity(!name.value.trim() ? S.name_invalid : '');
+  }
+  form.addEventListener('input', () => {validateContact(); if (!busy) invalidate();});
   form.addEventListener('submit', async event => {
     event.preventDefault(); if (busy || (!cart?.lines.length && !sentBody)) return;
+    if (!sentBody) {
+      validateContact();
+      if (!form.reportValidity()) return;
+    }
     const body = sentBody || {contact_name: form.elements.name.value.trim(), phone: form.elements.phone.value.trim(),
       district_id: Number(form.elements.district.value), address_text: form.elements.address.value.trim(),
       cart_revision: cart.revision, idempotency_key: key, strategy: quote?.strategy || null,
