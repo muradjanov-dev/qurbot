@@ -2,10 +2,10 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 
 
-def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> ReplyKeyboardMarkup:
+def get_main_menu_keyboard(lang: str = DEFAULT_LANG, is_admin: bool = False) -> ReplyKeyboardMarkup:
     """Build main menu reply keyboard.
 
     The WebApp opens from the first full-width row when configured. Sending a
@@ -33,7 +33,7 @@ def get_main_menu_keyboard(lang: str = "uz_latn", is_admin: bool = False) -> Rep
     return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
-def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
+def get_cabinet_keyboard(lang: str = DEFAULT_LANG) -> ReplyKeyboardMarkup:
     """Build the cabinet submenu: orders, addresses, settings, reregister, and a way back."""
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("menu_my_orders", lang=lang))
@@ -45,7 +45,7 @@ def get_cabinet_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
-def get_shop_panel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
+def get_shop_panel_keyboard(lang: str = DEFAULT_LANG) -> ReplyKeyboardMarkup:
     """Build the products panel keyboard.
 
     Carries the entry point for the product upload wizard, which is otherwise
@@ -58,7 +58,7 @@ def get_shop_panel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True, is_persistent=False)
 
 
-def get_phone_request_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
+def get_phone_request_keyboard(lang: str = DEFAULT_LANG) -> ReplyKeyboardMarkup:
     """Build phone request keyboard with contact sharing and skip button."""
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("btn_send_contact", lang=lang), request_contact=True)
@@ -67,7 +67,7 @@ def get_phone_request_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_cancel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
+def get_cancel_keyboard(lang: str = DEFAULT_LANG) -> ReplyKeyboardMarkup:
     """Build simple cancel keyboard."""
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("btn_cancel", lang=lang))
@@ -76,7 +76,7 @@ def get_cancel_keyboard(lang: str = "uz_latn") -> ReplyKeyboardMarkup:
 
 
 def get_location_request_keyboard(
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     *,
     manual_key: str = "btn_choose_district_instead",
 ) -> ReplyKeyboardMarkup:

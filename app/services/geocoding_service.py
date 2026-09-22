@@ -27,6 +27,7 @@ from typing import Any
 import httpx
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -48,7 +49,7 @@ class GeocodingService:
     def __init__(self, client: httpx.AsyncClient | None = None) -> None:
         self._client = client
 
-    async def reverse_geocode(self, lat: float, lng: float, lang: str = "uz_latn") -> str | None:
+    async def reverse_geocode(self, lat: float, lng: float, lang: str = DEFAULT_LANG) -> str | None:
         """Best-effort address for a pin. None when nothing usable came back."""
         try:
             if settings.yandex_geocoder_api_key:

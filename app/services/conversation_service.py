@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.core.logging import get_logger
 from app.db.models.conversation import (
     Conversation,
@@ -821,7 +821,7 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                         )
                     )
                     customer = await session.scalar(select(User).where(User.tg_id == tg_id))
-                    lang = customer.lang if customer else "uz_latn"
+                    lang = customer.lang if customer else DEFAULT_LANG
                 markup = InlineKeyboardMarkup(
                     inline_keyboard=[
                         [

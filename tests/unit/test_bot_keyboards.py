@@ -25,13 +25,14 @@ from app.domain.matching.models import CandidateMatch
 def test_language_keyboard() -> None:
     kb = get_language_keyboard()
     assert len(kb.inline_keyboard) == 3
-    assert kb.inline_keyboard[0][0].callback_data == "set_lang:uz_latn"
-    assert kb.inline_keyboard[1][0].callback_data == "set_lang:uz_cyrl"
+    # The default script leads the list.
+    assert kb.inline_keyboard[0][0].callback_data == "set_lang:uz_cyrl"
+    assert kb.inline_keyboard[1][0].callback_data == "set_lang:uz_latn"
     assert kb.inline_keyboard[2][0].callback_data == "set_lang:ru"
 
     kb_back = get_language_keyboard(change_only=True, show_back=True, lang="uz_latn")
     assert len(kb_back.inline_keyboard) == 4
-    assert kb_back.inline_keyboard[0][0].callback_data == "chg_lang:uz_latn"
+    assert kb_back.inline_keyboard[0][0].callback_data == "chg_lang:uz_cyrl"
     assert kb_back.inline_keyboard[3][0].callback_data == "settings:back"
 
 

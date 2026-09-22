@@ -6,14 +6,14 @@ from decimal import Decimal
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 
 # Units offered as one-tap answers. Ordered by how often construction materials
 # are actually sold that way, so the common case is the first button.
 COMMON_PACK_UNITS: tuple[str, ...] = ("qop", "dona", "kg", "m2", "m3", "litr", "metr", "quti")
 
 
-def get_saved_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_saved_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_listing_another", lang=lang), callback_data="lst_new")
     builder.button(text=t("btn_back", lang=lang), callback_data="back_to_menu")
@@ -22,7 +22,7 @@ def get_saved_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
 
 
 def get_pack_keyboard(
-    suggestions: Sequence[tuple[Decimal, str]], lang: str = "uz_latn"
+    suggestions: Sequence[tuple[Decimal, str]], lang: str = DEFAULT_LANG
 ) -> InlineKeyboardMarkup:
     """One-tap pack choices, drawn from how the product is actually sold."""
     builder = InlineKeyboardBuilder()
@@ -35,7 +35,7 @@ def get_pack_keyboard(
     return builder.as_markup()
 
 
-def get_price_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_price_confirm_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_price_correct", lang=lang), callback_data="lst_price_ok")
     builder.button(text=t("btn_price_fix", lang=lang), callback_data="lst_price_fix")

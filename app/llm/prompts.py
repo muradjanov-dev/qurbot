@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from app.core.i18n import DEFAULT_LANG
 from app.llm.models import BatchLineInput, DisambiguationCandidateInput
 
 DISAMBIGUATION_SYSTEM_PROMPT = """You are an expert construction material classifier for QurBot \
@@ -135,16 +136,16 @@ Rules:
 # The bot's language codes, spelled out for the model. Uzbek customers read
 # Latin or Cyrillic and will not accept an answer in the other script.
 _ANSWER_LANGUAGES = {
-    "uz_latn": "Uzbek, Latin script",
-    "uz_cyrl": "Uzbek, Cyrillic script",
-    "ru": "Russian",
+    "uz_latn": "Uzbek written in the Latin alphabet (example: 'Fanera 12 mm topildi')",
+    "uz_cyrl": ("Uzbek written in the Cyrillic alphabet " "(example: 'Фанера 12 мм топилди')"),
+    "ru": "Russian (example: 'Фанера 12 мм найдена')",
 }
 
 
 def format_batch_disambiguation_prompt(lines: list[BatchLineInput], lang: str) -> str:
     """Build the user prompt for one batched pass over a basket's unresolved lines."""
     payload = {
-        "answer_language": _ANSWER_LANGUAGES.get(lang, _ANSWER_LANGUAGES["uz_latn"]),
+        "answer_language": _ANSWER_LANGUAGES.get(lang, _ANSWER_LANGUAGES[DEFAULT_LANG]),
         "lines": [
             {
                 "line_no": line.line_no,
@@ -208,7 +209,7 @@ Rules:
 def format_customer_guide_prompt(message_text: str, lang: str) -> str:
     """Build the user prompt for guiding a customer whose message did not parse."""
     payload = {
-        "answer_language": _ANSWER_LANGUAGES.get(lang, _ANSWER_LANGUAGES["uz_latn"]),
+        "answer_language": _ANSWER_LANGUAGES.get(lang, _ANSWER_LANGUAGES[DEFAULT_LANG]),
         "customer_message": message_text,
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)

@@ -4,7 +4,7 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 
 
 class I18nMiddleware(BaseMiddleware):
@@ -16,7 +16,7 @@ class I18nMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        lang = data.get("lang", "uz_latn")
+        lang = data.get("lang", DEFAULT_LANG)
 
         # Provide a translation helper bound to the current language
         def translate(key: str, **kwargs: Any) -> str:

@@ -12,19 +12,27 @@ import json
 import pytest
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG
 from app.llm.client import LLMClient
-from app.llm.prompts import format_customer_guide_prompt
+from app.llm.prompts import _ANSWER_LANGUAGES, format_customer_guide_prompt
 
 
 def test_guide_prompt_carries_the_message_and_the_language() -> None:
     payload = json.loads(format_customer_guide_prompt("salom, fanera bormi?", "ru"))
     assert payload["customer_message"] == "salom, fanera bormi?"
-    assert payload["answer_language"] == "Russian"
+    assert payload["answer_language"].startswith("Russian")
 
 
-def test_guide_prompt_falls_back_to_uzbek_latin() -> None:
+def test_guide_prompt_falls_back_to_the_default_language() -> None:
+    """An unknown code gets the configured default, named with its alphabet.
+
+    The bare label "Uzbek, Cyrillic script" was not enough to stop the model
+    replying in Latin -- both are Uzbek -- so the prompt carries a sample.
+    """
     payload = json.loads(format_customer_guide_prompt("salom", "de"))
-    assert payload["answer_language"] == "Uzbek, Latin script"
+    assert payload["answer_language"] == _ANSWER_LANGUAGES[DEFAULT_LANG]
+    assert "Cyrillic" in payload["answer_language"]
+    assert "example:" in payload["answer_language"]
 
 
 async def test_guidance_tells_the_customer_the_format() -> None:

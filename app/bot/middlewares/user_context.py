@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message, TelegramObject
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares._unwrap import unwrap_event
+from app.core.i18n import DEFAULT_LANG
 from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 
@@ -41,7 +42,7 @@ class UserContextMiddleware(BaseMiddleware):
                 tg_id=from_user.id,
                 username=from_user.username,
                 full_name=from_user.full_name or from_user.first_name,
-                lang="uz_latn",
+                lang=DEFAULT_LANG,
                 role="customer",
                 is_blocked=False,
             )
@@ -58,5 +59,5 @@ class UserContextMiddleware(BaseMiddleware):
 
         data["user"] = user
         data["user_repo"] = user_repo
-        data["lang"] = user.lang or "uz_latn"
+        data["lang"] = user.lang or DEFAULT_LANG
         return await handler(event, data)

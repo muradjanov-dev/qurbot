@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import format_catalog_price, format_qty, format_uzs
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.user import User, VisitorSession
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
@@ -181,8 +181,8 @@ def current_lang(request: Request, user: User | None = Depends(current_user)) ->
     if chosen:
         return chosen
     if user is not None:
-        return normalize_lang(user.lang) or "uz_latn"
-    return "uz_latn"
+        return normalize_lang(user.lang) or DEFAULT_LANG
+    return DEFAULT_LANG
 
 
 async def require_api_user(user: User | None = Depends(current_user)) -> User:

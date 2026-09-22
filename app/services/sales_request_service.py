@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import localized_name
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
@@ -156,7 +157,7 @@ class SalesRequestService:
             phone=normalized,
             district_id=district_id,
             district_name=f"{district.region}, "
-            + (district.name_ru if user.lang == "ru" else district.name_uz),
+            + localized_name(district.name_uz, district.name_ru, user.lang),
             address=address.strip(),
             lat=lat,
             lng=lng,
@@ -170,7 +171,12 @@ class SalesRequestService:
             row.items.append(
                 SalesRequestItem(
                     canonical_id=product.id,
-                    name=product.name_ru if user.lang == "ru" else product.name_uz,
+                    name=localized_name(
+                        product.name_uz,
+                        product.name_ru,
+                        user.lang,
+                        name_uz_cyrl=product.name_uz_cyrl,
+                    ),
                     attributes=dict(product.attributes),
                     qty=Decimal(line["qty"]),
                     unit_code=line["unit_code"],

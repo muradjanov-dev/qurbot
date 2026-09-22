@@ -3,7 +3,8 @@
 from decimal import ROUND_HALF_UP, Decimal
 from html import escape as html_escape
 
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
+from app.domain.normalize.translit import latin_to_cyrillic_uz
 
 
 def format_uzs(amount: Decimal) -> str:
@@ -73,7 +74,7 @@ def format_catalog_price(
     live_price: Decimal | None,
     reference_price: Decimal | None,
     *,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """Render the price to show against a catalogue row.
 
@@ -88,3 +89,32 @@ def format_catalog_price(
     if reference_price is not None:
         return f"~{format_uzs(reference_price)} {t('currency_suffix', lang=lang)}"
     return t("price_negotiable", lang=lang)
+
+
+def localized_name(
+    name_uz: str,
+    name_ru: str,
+    lang: str,
+    *,
+    name_uz_cyrl: str | None = None,
+) -> str:
+    """Pick the right spelling of a catalogue or geography name for `lang`.
+
+    Only two of the three scripts are ever stored: districts and categories
+    carry `name_uz` and `name_ru`, and canonical products additionally carry a
+    hand-written `name_uz_cyrl`. Without this helper every call site fell back
+    to the Latin name for a Cyrillic reader, so a customer who picked Ўзбекча
+    got a district list and product cards in Latin -- the one place the bot
+    visibly forgot which language it was speaking.
+
+    Where no Cyrillic spelling is stored the Latin one is transliterated. That
+    is exact for Uzbek place names ("Mirzo Ulug'bek" -> "Мирзо Улуғбек"), which
+    is what the district list needs; a product with an editorial Cyrillic name
+    should pass `name_uz_cyrl` so the stored spelling wins over the mechanical
+    one.
+    """
+    if lang == "ru":
+        return name_ru
+    if lang == "uz_cyrl":
+        return name_uz_cyrl or latin_to_cyrillic_uz(name_uz)
+    return name_uz

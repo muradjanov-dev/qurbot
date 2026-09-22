@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.i18n import DEFAULT_LANG
 from app.db.models.user import User
 from app.db.repositories.base import BaseRepository
 
@@ -22,7 +23,7 @@ class UserRepository(BaseRepository[User]):
         tg_id: int,
         username: str | None = None,
         full_name: str | None = None,
-        lang: str = "uz_latn",
+        lang: str = DEFAULT_LANG,
         referral_source: str | None = None,
     ) -> User:
         now = datetime.now(UTC)

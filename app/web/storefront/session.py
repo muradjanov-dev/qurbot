@@ -18,12 +18,14 @@ from hashlib import sha256
 from typing import Any
 
 from app.core.config import settings
+from app.core.i18n import SUPPORTED_LANGS as _SUPPORTED_LANGS
 
 SESSION_COOKIE = "qb_session"
 GUEST_COOKIE = "qb_visitor"
 LANG_COOKIE = "qb_lang"
 
-SUPPORTED_LANGS = ("uz_latn", "uz_cyrl", "ru")
+# Re-exported so callers importing it from here keep working.
+SUPPORTED_LANGS = _SUPPORTED_LANGS
 
 
 @dataclass(frozen=True, slots=True)

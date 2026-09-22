@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
 from app.db.models.ops import PebbleAward
 from app.db.models.order import Order, OrderItem, OrderShopPart
@@ -194,7 +194,9 @@ async def test_catalog_and_product_pages(client: TestClient, test_session: Async
 
     listing = client.get(f"/catalog/{data.category_id}")
     assert listing.status_code == 200
-    assert "Gipsokarton 12.5mm" in listing.text
+    # Default script is Cyrillic, and the stored name_uz_cyrl wins over
+    # a mechanical transliteration.
+    assert "Гипсокартон 12.5мм" in listing.text
 
     detail = client.get(f"/product/{data.product_id}")
     assert detail.status_code == 200
@@ -568,7 +570,10 @@ async def test_admin_answers_an_order_and_the_customer_sees_it(
     ).json()
     assert placed["ok"] is True
 
-    # The customer's own page renders the order they just placed.
+    # The customer's own page renders the order they just placed. Order lines
+    # are an immutable snapshot taken at checkout, not a catalogue lookup, so
+    # they keep the name recorded then rather than following the reader's
+    # current script.
     detail = client.get(f"/orders/{placed['order_id']}")
     assert detail.status_code == 200
     assert "Gipsokarton 12.5mm" in detail.text
@@ -678,7 +683,7 @@ async def test_quote_does_not_promise_free_delivery_before_an_address(
 
     assert body["ok"] is True
     variant = body["variants"][0]
-    assert variant["delivery_total"] == t("web_quote_delivery_unknown", lang="uz_latn")
+    assert variant["delivery_total"] == t("web_quote_delivery_unknown", lang=DEFAULT_LANG)
     assert variant["delivery_note"]
 
     # ...and a customer whose district is known sees the real fee.

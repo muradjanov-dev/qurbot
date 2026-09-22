@@ -33,6 +33,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG
 from app.core.logging import get_logger
 from app.core.metrics import llm_cost_usd_total
 from app.db.models.catalog import CanonicalProduct
@@ -58,10 +59,16 @@ logger = get_logger(__name__)
 
 _PLACEHOLDER_KEYS = frozenset({"", "changeme", "placeholder_anthropic_key"})
 _FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# The sample matters more than the label. Told only "Uzbek, Cyrillic script",
+# the model kept answering a Cyrillic customer in Latin -- both are Uzbek, so
+# the instruction read as satisfied. Showing the script settles it.
 _LANGUAGES = {
-    "uz_latn": "Uzbek, Latin script",
-    "uz_cyrl": "Uzbek, Cyrillic script",
-    "ru": "Russian",
+    "uz_latn": ("Uzbek written in the Latin alphabet", "Kechirasiz, bu mahsulot topilmadi."),
+    "uz_cyrl": (
+        "Uzbek written in the Cyrillic alphabet",
+        "Кечирасиз, бу маҳсулот топилмади.",
+    ),
+    "ru": ("Russian", "Извините, этот товар не найден."),
 }
 
 SYSTEM_PROMPT = """You are QurBot, a sales assistant in a Telegram chat. QurBot sells \
@@ -457,13 +464,21 @@ class SalesAgent:
             return None
 
         history = trim_history(cart.history, settings.agent_history_max_messages - 1)
-        language = _LANGUAGES.get(lang, _LANGUAGES["uz_latn"])
+        language, sample = _LANGUAGES.get(lang, _LANGUAGES[DEFAULT_LANG])
         phones = ", ".join(settings.support_phones)
         system: list[BetaTextBlockParam] = [
             {"type": "text", "text": SYSTEM_PROMPT},
             {
                 "type": "text",
-                "text": f"Reply in {language}. Support phone: {phones}."
+                "text": (
+                    f"Write every reply in {language}, with no exceptions. "
+                    f'A reply in this style is correct: "{sample}" '
+                    "Use that alphabet for the whole message, including product "
+                    "names you repeat back from search results. Never switch "
+                    "alphabet mid-message and never answer in another language, "
+                    "even if the customer writes in one. "
+                    f"Support phone: {phones}."
+                )
                 + getattr(self, "channel_instructions", ""),
             },
         ]

@@ -1372,7 +1372,12 @@ async def callback_confirm_order(
         if pebbles > 0:
             await callback.message.answer(t("pebbles_earned", lang=lang, pebbles=pebbles))
         await callback.message.answer(
-            t("welcome_done", lang=lang),
+            t(
+                "welcome_done",
+                lang=lang,
+                eta_min=settings.delivery_eta_min_hours,
+                eta_max=settings.delivery_eta_max_hours,
+            ),
             reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
         )
     await callback.answer()

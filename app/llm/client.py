@@ -27,6 +27,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG
 from app.core.metrics import llm_cost_usd_total, llm_outcome_total
 from app.db.models.ops import LLMCall
 from app.db.repositories.ops_repo import OpsRepository
@@ -282,7 +283,7 @@ class LLMClient:
     async def disambiguate_batch(
         self,
         lines: list[BatchLineInput],
-        lang: str = "uz_latn",
+        lang: str = DEFAULT_LANG,
     ) -> BatchDisambiguationResult:
         """Stage 3 for a whole basket: every unresolved line in one request.
 
@@ -419,7 +420,7 @@ class LLMClient:
 
         return self._deserialize_parse_lines(response_dict)
 
-    async def guide_customer(self, message_text: str, lang: str = "uz_latn") -> str | None:
+    async def guide_customer(self, message_text: str, lang: str = DEFAULT_LANG) -> str | None:
         """Turn a message the parser could not read into a next step the customer can take.
 
         The fixed "I did not understand" is where people leave: it says nothing

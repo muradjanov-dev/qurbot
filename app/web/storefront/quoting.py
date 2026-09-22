@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import format_catalog_price, format_qty, format_uzs
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.catalog import CanonicalProduct
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -96,7 +96,7 @@ async def parse_basket_text(
     *,
     start_no: int = 0,
     user_id: int | None = None,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> list[dict[str, Any]]:
     """Run the free-text list through the same parse+match cascade the bot uses."""
     catalog_service = CatalogService(CatalogRepository(session), OpsRepository(session))

@@ -1,4 +1,4 @@
-from app.core.i18n import MESSAGES, t
+from app.core.i18n import DEFAULT_LANG, MESSAGES, SUPPORTED_LANGS, t
 
 
 def test_i18n_all_keys_have_three_languages() -> None:
@@ -22,8 +22,15 @@ def test_i18n_translation_formatting() -> None:
 
 
 def test_i18n_fallback_for_unknown_lang() -> None:
-    res = t("btn_cancel", lang="unknown_lang")
-    assert res == "❌ Bekor qilish"
+    """An unrecognised code falls back to the configured default, not to Latin."""
+    assert t("btn_cancel", lang="unknown_lang") == t("btn_cancel", lang=DEFAULT_LANG)
+    assert t("btn_cancel", lang="unknown_lang") == "❌ Бекор қилиш"
+
+
+def test_default_language_is_uzbek_cyrillic() -> None:
+    """The script the bot leads with; every other default reads it from here."""
+    assert DEFAULT_LANG == "uz_cyrl"
+    assert DEFAULT_LANG in SUPPORTED_LANGS
 
 
 def test_i18n_fallback_for_missing_key() -> None:

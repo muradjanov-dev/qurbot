@@ -5,6 +5,7 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import esc
@@ -12,6 +13,7 @@ from app.bot.keyboards.inline import (
     get_address_confirm_keyboard,
     get_district_keyboard,
     get_language_keyboard,
+    get_region_keyboard,
     get_reregister_confirm_keyboard,
     get_settings_inline_keyboard,
 )
@@ -22,12 +24,14 @@ from app.bot.keyboards.reply import (
 )
 from app.bot.states import RegistrationStates
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
+from app.db.models.conversation import Conversation
 from app.db.models.user import User
 from app.db.repositories.address_repo import AddressRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.services.address_service import AddressService, ResolvedLocation
+from app.services.cart_service import CartService
 from app.services.house_shop import is_admin as user_is_admin
 
 router = Router(name="common")
@@ -52,7 +56,7 @@ async def cmd_start(
     await state.clear()
     await state.set_state(RegistrationStates.waiting_for_language)
     await message.answer(
-        t("choose_language", lang=lang or "uz_latn"),
+        t("choose_language", lang=lang or DEFAULT_LANG),
         reply_markup=get_language_keyboard(),
     )
 
@@ -81,7 +85,12 @@ async def callback_set_lang(
         is_admin = user_is_admin(user)
         await callback.message.edit_text(t("language_changed", lang=new_lang))
         await callback.message.answer(
-            t("welcome_done", lang=new_lang),
+            t(
+                "welcome_done",
+                lang=new_lang,
+                eta_min=settings.delivery_eta_min_hours,
+                eta_max=settings.delivery_eta_max_hours,
+            ),
             reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )
         await callback.answer()
@@ -173,13 +182,46 @@ async def msg_registration_district_fallback(
     lang: str,
 ) -> None:
     """Declining to share a location must not be a dead end."""
-    shop_repo = ShopRepository(session)
-    districts = await shop_repo.list_districts()
+    regions = await ShopRepository(session).list_regions()
     await state.set_state(RegistrationStates.waiting_for_district)
     await message.answer(
-        t("choose_district", lang=lang),
-        reply_markup=get_district_keyboard(districts, lang=lang),
+        t("choose_region", lang=lang),
+        reply_markup=get_region_keyboard(regions, lang=lang),
     )
+
+
+@router.callback_query(F.data.startswith("set_region:"), RegistrationStates.waiting_for_district)
+async def callback_set_region(
+    callback: CallbackQuery,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    """Second step of the picker: the districts inside the chosen region."""
+    region = (callback.data or "").split(":", 1)[1]
+    districts = await ShopRepository(session).list_districts(region)
+    if not districts or not isinstance(callback.message, Message):
+        await callback.answer(t("error_generic", lang=lang), show_alert=True)
+        return
+    await callback.message.edit_text(
+        t("choose_district", lang=lang),
+        reply_markup=get_district_keyboard(districts, lang=lang, back_data="region:back"),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "region:back", RegistrationStates.waiting_for_district)
+async def callback_region_back(
+    callback: CallbackQuery,
+    session: AsyncSession,
+    lang: str,
+) -> None:
+    regions = await ShopRepository(session).list_regions()
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(
+            t("choose_region", lang=lang),
+            reply_markup=get_region_keyboard(regions, lang=lang),
+        )
+    await callback.answer()
 
 
 async def _handle_location(
@@ -304,7 +346,12 @@ async def _finish_registration(message: Message, user: User, lang: str) -> None:
     """Signup ends here -- the phone is collected at checkout, where it is used."""
     is_admin = user_is_admin(user)
     await message.answer(
-        t("welcome_done", lang=lang),
+        t(
+            "welcome_done",
+            lang=lang,
+            eta_min=settings.delivery_eta_min_hours,
+            eta_max=settings.delivery_eta_max_hours,
+        ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
@@ -346,7 +393,12 @@ async def msg_contact(
     await state.clear()
     is_admin = user_is_admin(user)
     await message.answer(
-        t("welcome_done", lang=lang),
+        t(
+            "welcome_done",
+            lang=lang,
+            eta_min=settings.delivery_eta_min_hours,
+            eta_max=settings.delivery_eta_max_hours,
+        ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
@@ -363,7 +415,12 @@ async def msg_skip_phone(
     await state.clear()
     is_admin = user_is_admin(user)
     await message.answer(
-        t("welcome_done", lang=lang),
+        t(
+            "welcome_done",
+            lang=lang,
+            eta_min=settings.delivery_eta_min_hours,
+            eta_max=settings.delivery_eta_max_hours,
+        ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
@@ -400,7 +457,12 @@ async def menu_back_to_main(message: Message, user: User, state: FSMContext, lan
     await state.clear()
     is_admin = user_is_admin(user)
     await message.answer(
-        t("welcome_done", lang=lang),
+        t(
+            "welcome_done",
+            lang=lang,
+            eta_min=settings.delivery_eta_min_hours,
+            eta_max=settings.delivery_eta_max_hours,
+        ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
 
@@ -523,13 +585,27 @@ async def _start_reregistration(
     user.district_id = None
     address_repo = AddressRepository(session)
     await address_repo.delete_all_for_user(user.id)
+
+    # Starting over means starting over. The shared cart outlives FSM state by
+    # design (it is a table, not wizard data), so without this the customer
+    # came back through the welcome screen and found the basket they had
+    # before -- products they had already stopped wanting, still priced and
+    # still one tap from an order. The agent's own copy of the basket lives in
+    # `conversations.agent_state` and has to go with it.
+    cart = CartService(session)
+    snapshot = await cart.get(user.id)
+    if snapshot.lines:
+        await cart.clear(user.id, expected_revision=snapshot.revision)
+    conversation = await session.scalar(select(Conversation).where(Conversation.user_id == user.id))
+    if conversation is not None:
+        conversation.agent_state = {}
     await session.flush()
 
     # 2. Clear state and enter registration language state
     await state.clear()
     await state.set_state(RegistrationStates.waiting_for_language)
 
-    text = t("choose_language", lang=lang or "uz_latn")
+    text = t("choose_language", lang=lang or DEFAULT_LANG)
     markup = get_language_keyboard(change_only=False)
 
     if is_callback:
@@ -555,7 +631,12 @@ async def callback_change_language(
     if isinstance(callback.message, Message):
         await callback.message.edit_text(t("language_changed", lang=new_lang))
         await callback.message.answer(
-            t("welcome_done", lang=new_lang),
+            t(
+                "welcome_done",
+                lang=new_lang,
+                eta_min=settings.delivery_eta_min_hours,
+                eta_max=settings.delivery_eta_max_hours,
+            ),
             reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )
     await callback.answer()

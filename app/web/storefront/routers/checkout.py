@@ -11,7 +11,8 @@ from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import format_uzs
+from app.bot.formatters.common import format_uzs, localized_name
+from app.bot.keyboards.inline import region_label
 from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
@@ -146,7 +147,7 @@ async def checkout_options(
     return {
         "contact": await contact_defaults(session, user),
         "districts": [
-            {"id": row.id, "name": row.name_ru if lang == "ru" else row.name_uz} for row in rows
+            {"id": row.id, "name": localized_name(row.name_uz, row.name_ru, lang)} for row in rows
         ],
     }
 
@@ -356,8 +357,11 @@ async def _resolve_address(
             if body.district_id is not None:
                 # Guests have no saved profile district. Preserve the selected
                 # destination on the immutable order, not only in its quote.
-                district_name = district.name_ru if lang == "ru" else district.name_uz
-                typed = f"{district.region}, {district_name}, {typed}"
+                # Region and district travel together on the order, so they
+                # have to be in one script: "Toshkent, Чилонзор" is nobody's
+                # address.
+                district_name = localized_name(district.name_uz, district.name_ru, lang)
+                typed = f"{region_label(district.region, lang)}, {district_name}, {typed}"
         return typed, district_id, None
 
     service = AddressService(session)

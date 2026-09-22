@@ -12,6 +12,13 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
 
+    # The script everyone sees until they choose otherwise: a new Telegram
+    # user before the language picker, an anonymous web visitor, any keyboard
+    # rendered before the account is loaded. Read it through
+    # `app.core.i18n.DEFAULT_LANG` rather than repeating the literal.
+    # Existing accounts keep whatever they already picked.
+    default_lang: Literal["uz_latn", "uz_cyrl", "ru"] = "uz_cyrl"
+
     # Telegram
     bot_token: str = "placeholder_token"
     webhook_secret: str = "placeholder_secret"
@@ -215,6 +222,15 @@ class Settings(BaseSettings):
     report_utc_offset_hours: int = 5
     ai_cost_report_hour_utc: int = 18  # 23:55 in Tashkent
     ai_cost_report_minute: int = 55
+
+    # The waiting indicator is the only sign the bot is still working, so it
+    # moves often enough to read as progress rather than as a stuck message.
+    # The worker cron must fire at least this often or the edit simply lands
+    # late; `update_chat_progress` is scheduled to match.
+    chat_progress_rotate_seconds: int = 3
+    # When to stop cycling encouragement and admit the answer is slow, which
+    # also puts the "call an operator" button under the message.
+    chat_progress_slow_after_seconds: int = 60
 
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5

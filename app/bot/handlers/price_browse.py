@@ -17,7 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_catalog_price, format_qty
+from app.bot.formatters.common import esc, format_catalog_price, format_qty, localized_name
 from app.bot.handlers.customer import _format_parse_table
 from app.bot.keyboards.inline import (
     get_all_products_keyboard,
@@ -137,7 +137,7 @@ async def callback_price_category(
         for p in products
     ]
 
-    category_name = category.name_ru if lang == "ru" else category.name_uz
+    category_name = localized_name(category.name_uz, category.name_ru, lang)
     await _replace_catalog_screen(
         callback.message,
         t("price_browse_header", lang=lang, category=category_name),

@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG
 from app.core.metrics import match_method_total
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -71,7 +72,7 @@ class CatalogService:
         self.llm_client = llm_client or LLMClient(session=catalog_repo.session)
         self._ai_deadline: float | None = None
 
-    async def guide_customer(self, message_text: str, lang: str = "uz_latn") -> str | None:
+    async def guide_customer(self, message_text: str, lang: str = DEFAULT_LANG) -> str | None:
         """What to tell a customer whose message could not be read as an order.
 
         Returns None when the model has nothing to offer, so the caller can fall
@@ -435,7 +436,7 @@ class CatalogService:
         parsed_line: ParsedLine,
         user_id: int | None = None,
         category_ids: Sequence[int] | None = None,
-        lang: str = "uz_latn",
+        lang: str = DEFAULT_LANG,
         *,
         require_offers: bool = False,
     ) -> tuple[ParsedLine, MatchDecision]:
@@ -466,7 +467,7 @@ class CatalogService:
         self,
         raw_text: str,
         user_id: int | None = None,
-        lang: str = "uz_latn",
+        lang: str = DEFAULT_LANG,
         *,
         require_offers: bool = False,
     ) -> list[tuple[ParsedLine, MatchDecision]]:

@@ -1,15 +1,25 @@
 """Internationalization (i18n) module for QurBot.
 
 Supports:
-- uz_latn: O'zbekcha (Lotin) [Default]
-- uz_cyrl: Ўзбекча (Кирилл)
+- uz_latn: O'zbekcha (Lotin)
+- uz_cyrl: Ўзбекча (Кирилл) [Default]
 - ru: Русский
+
+`DEFAULT_LANG` is the one place the fallback script is decided. Every call site
+that needs a language it does not yet know -- a brand new Telegram user, an
+anonymous web visitor, a keyboard rendered before the account is loaded -- must
+read it from here rather than repeating a literal, so switching the default is
+one edit and not sixty.
 """
 
 from typing import Any
 
 from app.core.chat_i18n import CHAT_MESSAGES
+from app.core.config import settings
 from app.core.manage_i18n import MANAGE_MESSAGES
+
+SUPPORTED_LANGS: tuple[str, ...] = ("uz_latn", "uz_cyrl", "ru")
+DEFAULT_LANG: str = settings.default_lang
 
 MESSAGES: dict[str, dict[str, str]] = {
     # Onboarding & Language
@@ -17,6 +27,11 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_latn": "Assalomu alaykum! QurBot ga xush kelibsiz. Iltimos, tilni tanlang:",
         "uz_cyrl": "Ассалому алайкум! QurBot га хуш келибсиз. Илтимос, тилни танланг:",
         "ru": "Здравствуйте! Добро пожаловать в QurBot. Пожалуйста, выберите язык:",
+    },
+    "choose_region": {
+        "uz_latn": "🗺 Qaysi viloyatdasiz? Avval viloyatni tanlang:",
+        "uz_cyrl": "🗺 Қайси вилоятдасиз? Аввал вилоятни танланг:",
+        "ru": "🗺 В какой вы области? Сначала выберите область:",
     },
     "choose_district": {
         "uz_latn": "Yetkazib berish tumanini tanlang:",
@@ -60,28 +75,42 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "welcome_done": {
         "uz_latn": (
-            "Xush kelibsiz! Endi siz qurilish materiallari ro'yxatini erkin matn "
-            "shaklida yuborishingiz mumkin. Masalan:\n\n"
-            "«<b>10 dona fanera 12mm, 5 dona osb 9mm, 20 dona dvp 3.2</b>»\n\n"
-            "Qurilish mollaringizni ro'yxatini yuboring va biz Sizga ularni "
-            "topib, jamlab, yetkazib beramiz."
+            "🏗 <b>Xush kelibsiz!</b> QurBot qurilish mollaringizni topib, narxini "
+            "hisoblab, eshigingizgacha yetkazadi.\n"
+            "\n"
+            "📝 Kerakli mollarni oddiy matn bilan yozing. Masalan:\n"
+            "«<b>10 dona fanera 12mm, 5 dona osb 9mm, 20 dona dvp 3.2</b>»\n"
+            "\n"
+            "🧱 Taxta, fanera, plita · 🔧 mix, shurup, mahkamlagich\n"
+            "🚚 Yetkazib berish {eta_min}–{eta_max} soat ichida\n"
+            "\n"
+            "Ro'yxatingizni yuboring — qolganini bizga qo'yib bering 😊"
         ),
         "uz_cyrl": (
-            "Хуш келибсиз! Энди сиз қурилиш материаллари рўйхатини эркин матн "
-            "шаклида юборишингиз мумкин. Масалан:\n\n"
-            "«<b>10 дона фанера 12мм, 5 дона осб 9мм, 20 дона двп 3.2</b>»\n\n"
-            "Қурилиш молларингизни рўйхатини юборинг ва биз Сизга уларни "
-            "топиб, жамлаб, етказиб берамиз."
+            "🏗 <b>Хуш келибсиз!</b> QurBot қурилиш молларингизни топиб, нархини "
+            "ҳисоблаб, эшигингизгача етказади.\n"
+            "\n"
+            "📝 Керакли молларни оддий матн билан ёзинг. Масалан:\n"
+            "«<b>10 дона фанера 12мм, 5 дона осб 9мм, 20 дона двп 3.2</b>»\n"
+            "\n"
+            "🧱 Тахта, фанера, плита · 🔧 мих, шуруп, маҳкамлагич\n"
+            "🚚 Етказиб бериш {eta_min}–{eta_max} соат ичида\n"
+            "\n"
+            "Рўйхатингизни юборинг — қолганини бизга қўйиб беринг 😊"
         ),
         "ru": (
-            "Добро пожаловать! Теперь вы можете отправить список стройматериалов "
-            "простым текстом. Например:\n\n"
-            "«<b>10 шт фанера 12мм, 5 шт осб 9мм, 20 шт двп 3.2</b>»\n\n"
-            "Отправьте список стройматериалов, а мы найдём их, "
-            "соберём и доставим вам."
+            "🏗 <b>Добро пожаловать!</b> QurBot найдёт стройматериалы, посчитает цену и "
+            "довезёт до двери.\n"
+            "\n"
+            "📝 Напишите нужное простым текстом. Например:\n"
+            "«<b>10 шт фанера 12мм, 5 шт осб 9мм, 20 шт двп 3.2</b>»\n"
+            "\n"
+            "🧱 Доска, фанера, плита · 🔧 гвозди, саморезы, крепёж\n"
+            "🚚 Доставка за {eta_min}–{eta_max} часов\n"
+            "\n"
+            "Отправьте список — остальное за нами 😊"
         ),
     },
-    # ── Location & saved addresses ────────────────────────────────────────
     "request_location": {
         "uz_latn": (
             "📍 Yetkazib berish manzilingizni yuboring.\n\n"
@@ -635,8 +664,8 @@ MESSAGES: dict[str, dict[str, str]] = {
     # Named for what the customer gets, not for how it is sourced: a single
     # supplier means one delivery, and the supplier itself is never shown.
     "quote_header_single_shop": {
-        "uz_latn": "📦 <b>BIR YETKAZIBDA</b>",
-        "uz_cyrl": "📦 <b>БИР ЕТКАЗИБДА</b>",
+        "uz_latn": "📦 <b>BIR YETKAZISHDA</b>",
+        "uz_cyrl": "📦 <b>БИР ЕТКАЗИШДА</b>",
         "ru": "📦 <b>ОДНОЙ ДОСТАВКОЙ</b>",
     },
     "quote_header_fastest": {
@@ -2491,16 +2520,16 @@ MESSAGES.update(
 )
 
 
-def t(key: str, lang: str = "uz_latn", **kwargs: Any) -> str:
+def t(key: str, lang: str = DEFAULT_LANG, **kwargs: Any) -> str:
     """Retrieve localized message string by key, formatted with kwargs."""
-    if lang not in ("uz_latn", "uz_cyrl", "ru"):
-        lang = "uz_latn"
+    if lang not in SUPPORTED_LANGS:
+        lang = DEFAULT_LANG
 
     entry = MESSAGES.get(key)
     if not entry:
         return key
 
-    template = entry.get(lang) or entry.get("uz_latn") or key
+    template = entry.get(lang) or entry.get(DEFAULT_LANG) or entry.get("uz_latn") or key
     if kwargs:
         try:
             return template.format(**kwargs)

@@ -9,11 +9,14 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import localized_name
+from app.bot.keyboards.inline import region_label
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.sales_request import SalesRequest
 from app.db.models.shop import District
 from app.db.models.user import User
+from app.db.repositories.shop_repo import ShopRepository
 from app.domain.normalize.phone import normalize_uz_phone
 from app.services.cart_policy import assess_lines
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
@@ -61,7 +64,7 @@ async def preview_quantity(
         raise InvalidCartItem("invalid_product")
     amount, unit = await CartService(session)._validate(product.id, qty, product.base_unit_code)
     amount_text = format(amount.normalize(), "f")
-    name = product.name_ru if lang == "ru" else product.name_uz
+    name = localized_name(product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl)
     await message.answer(
         f"{name}\n{amount_text} {unit}",
         parse_mode=None,
@@ -140,7 +143,10 @@ async def add_quantity(
         )
         product = await session.get(CanonicalProduct, int(raw_id))
         assert product is not None
-        name, unit = product.name_ru if lang == "ru" else product.name_uz, product.base_unit_code
+        name = localized_name(
+            product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
+        )
+        unit = product.base_unit_code
         await session.commit()
         await state.set_state(None)
         await state.update_data(
@@ -222,7 +228,7 @@ async def ask_contact(
         await state.update_data(guided_field=field)
         if field == "district_id":
             await state.set_state(GuidedStates.district)
-            await district_page(message, session, 0, lang)
+            await region_page(message, session, lang)
         else:
             await state.set_state(GuidedStates.contact)
             await message.answer(
@@ -232,7 +238,7 @@ async def ask_contact(
         return
     await state.set_state(GuidedStates.confirmation)
     district = await session.get(District, contact["district_id"])
-    district_name = (district.name_ru if lang == "ru" else district.name_uz) if district else ""
+    district_name = localized_name(district.name_uz, district.name_ru, lang) if district else ""
     await message.answer(
         f"{contact['name']}\n{contact['phone']}\n{district_name}, {contact['address']}\n\n"
         + t("sales_request_hint", lang=lang),
@@ -245,16 +251,34 @@ async def ask_contact(
     )
 
 
-async def district_page(message: Message, session: AsyncSession, page: int, lang: str) -> None:
-    rows = (
-        await session.scalars(select(District).order_by(District.id).offset(page * 15).limit(16))
-    ).all()
-    buttons = [(r.name_ru if lang == "ru" else r.name_uz, f"g:district:{r.id}") for r in rows[:15]]
-    if page:
-        buttons.append(("←", f"g:districtpage:{page - 1}"))
-    if len(rows) > 15:
-        buttons.append(("→", f"g:districtpage:{page + 1}"))
+async def region_page(message: Message, session: AsyncSession, lang: str) -> None:
+    """Ask for the region first: the country has 200 districts, not fifteen."""
+    regions = await ShopRepository(session).list_regions()
+    buttons = [(region_label(r, lang), f"g:region:{r}") for r in regions]
     buttons.append((t("sales_back", lang=lang), "g:cart"))
+    await message.answer(t("choose_region", lang=lang), reply_markup=keyboard(*buttons))
+
+
+async def district_page(
+    message: Message, session: AsyncSession, region: str, page: int, lang: str
+) -> None:
+    rows = (
+        await session.scalars(
+            select(District)
+            .where(District.region == region)
+            .order_by(District.name_uz)
+            .offset(page * 15)
+            .limit(16)
+        )
+    ).all()
+    buttons = [
+        (localized_name(r.name_uz, r.name_ru, lang), f"g:district:{r.id}") for r in rows[:15]
+    ]
+    if page:
+        buttons.append(("←", f"g:districtpage:{page - 1}:{region}"))
+    if len(rows) > 15:
+        buttons.append(("→", f"g:districtpage:{page + 1}:{region}"))
+    buttons.append((t("sales_back", lang=lang), "g:regions"))
     await message.answer(t("sales_district", lang=lang), reply_markup=keyboard(*buttons))
 
 
@@ -336,13 +360,17 @@ async def navigate(
         if (await state.get_data()).get("guided_key"):
             await state.update_data(guided_contact={})
             await ask_contact(callback.message, state, session, lang)
+    elif action == "regions" and await state.get_state() == GuidedStates.district.state:
+        await region_page(callback.message, session, lang)
+    elif action.startswith("region:") and await state.get_state() == GuidedStates.district.state:
+        await district_page(callback.message, session, action.split(":", 1)[1], 0, lang)
     elif (
         action.startswith("districtpage:")
         and await state.get_state() == GuidedStates.district.state
     ):
-        page = action.split(":")[1]
+        _, page, region = action.split(":", 2)
         if page.isdigit() and int(page) <= 100:
-            await district_page(callback.message, session, int(page), lang)
+            await district_page(callback.message, session, region, int(page), lang)
     elif action.startswith("district:") and await state.get_state() == GuidedStates.district.state:
         raw = action.split(":")[1]
         if raw.isdigit() and (await session.get(District, int(raw))) is not None:

@@ -6,7 +6,7 @@ from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from app.bot.middlewares._unwrap import unwrap_event
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class ErrorMiddleware(BaseMiddleware):
                 "Unhandled error processing event [correlation_id=%s]: %s", corr_id, exc
             )
 
-            lang = data.get("lang", "uz_latn")
+            lang = data.get("lang", DEFAULT_LANG)
             msg_text = t("error_generic", lang=lang)
 
             inner = unwrap_event(event)

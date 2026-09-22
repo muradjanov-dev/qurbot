@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import format_catalog_price, format_uzs
+from app.bot.formatters.common import format_catalog_price, format_uzs, localized_name
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
@@ -155,7 +155,9 @@ async def _render_products(
     products = [
         {
             "id": product.id,
-            "name": product.name_ru if lang == "ru" else product.name_uz,
+            "name": localized_name(
+                product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
+            ),
             "brand": product.brand,
             "unit": product.base_unit_code,
             "price": (
@@ -220,7 +222,9 @@ async def product_detail(
         user=user,
         lang=lang,
         product=product,
-        product_name=product.name_ru if lang == "ru" else product.name_uz,
+        product_name=localized_name(
+            product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
+        ),
         price_label=price_label,
         has_live_offer=bool(prices),
         needs_confirmation=needs_confirmation,

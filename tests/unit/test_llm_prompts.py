@@ -3,6 +3,7 @@
 import json
 from decimal import Decimal
 
+from app.core.i18n import DEFAULT_LANG
 from app.llm.cache import compute_llm_input_hash
 from app.llm.client import LLMClient
 from app.llm.models import (
@@ -13,6 +14,7 @@ from app.llm.models import (
     LLMParseResult,
 )
 from app.llm.prompts import (
+    _ANSWER_LANGUAGES,
     format_batch_disambiguation_prompt,
     format_disambiguation_prompt,
     format_whole_message_prompt,
@@ -97,15 +99,16 @@ def _batch_lines() -> list[BatchLineInput]:
 def test_batch_prompt_carries_every_line_and_the_answer_language() -> None:
     payload = json.loads(format_batch_disambiguation_prompt(_batch_lines(), lang="ru"))
 
-    assert payload["answer_language"] == "Russian"
+    assert payload["answer_language"].startswith("Russian")
     assert [line["line_no"] for line in payload["lines"]] == [1, 2]
     assert payload["lines"][0]["customer_text"] == "10 qop tsement"
     assert [c["id"] for c in payload["lines"][0]["candidates"]] == [10, 11]
 
 
-def test_batch_prompt_defaults_to_uzbek_latin_for_an_unknown_language() -> None:
+def test_batch_prompt_defaults_to_the_configured_language() -> None:
     payload = json.loads(format_batch_disambiguation_prompt(_batch_lines(), lang="de"))
-    assert payload["answer_language"] == "Uzbek, Latin script"
+    assert payload["answer_language"] == _ANSWER_LANGUAGES[DEFAULT_LANG]
+    assert "Cyrillic" in payload["answer_language"]
 
 
 def test_batch_response_keeps_the_question_and_drops_broken_rows() -> None:

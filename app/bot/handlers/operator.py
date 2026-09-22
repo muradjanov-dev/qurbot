@@ -12,7 +12,7 @@ from aiogram.types import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.user import User
 from app.services.conversation_service import ConversationService
 from app.services.house_shop import is_admin
@@ -22,7 +22,7 @@ router.message.filter(F.chat.type == "private")
 router.callback_query.filter(F.message.chat.type == "private")
 
 
-def operator_keyboard(conversation_id: int, lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def operator_keyboard(conversation_id: int, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [

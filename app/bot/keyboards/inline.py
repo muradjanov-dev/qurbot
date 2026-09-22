@@ -3,16 +3,17 @@ from collections.abc import Sequence
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.bot.formatters.common import shorten_button_label
+from app.bot.formatters.common import localized_name, shorten_button_label
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.catalog import CanonicalProduct, Category
 from app.db.models.shop import District, ShopProduct
 from app.db.models.user import UserAddress
 from app.domain.matching.models import CandidateMatch
+from app.domain.normalize.translit import latin_to_cyrillic_uz
 
 
-def get_upload_template_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_upload_template_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Offered alongside the upload prompt.
 
     "Send your Excel here" is not enough on its own: nothing on that screen
@@ -25,7 +26,7 @@ def get_upload_template_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_shop_panel_inline_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Actions for the admin products panel, as buttons instead of typed commands."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("shp_btn_quick_price", lang=lang), callback_data="shp:quick_price")
@@ -39,7 +40,7 @@ def get_shop_panel_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarku
 
 
 def get_admin_panel_keyboard(
-    lang: str = "uz_latn", is_super_admin: bool = False
+    lang: str = DEFAULT_LANG, is_super_admin: bool = False
 ) -> InlineKeyboardMarkup:
     """Build the in-bot admin panel menu.
 
@@ -59,13 +60,13 @@ def get_admin_panel_keyboard(
     return builder.as_markup()
 
 
-def get_admin_back_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_admin_back_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_back", lang=lang), callback_data="adm:home")
     return builder.as_markup()
 
 
-def get_admin_admins_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_admin_admins_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text=t("adm_btn_add_admin", lang=lang), callback_data="adm:add_admin")
     builder.button(text=t("btn_back", lang=lang), callback_data="adm:home")
@@ -75,13 +76,13 @@ def get_admin_admins_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
 
 def get_price_category_keyboard(
     categories: Sequence[Category],
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     parent_id: int | None = None,
 ) -> InlineKeyboardMarkup:
     """Build the category picker for the read-only price browser."""
     builder = InlineKeyboardBuilder()
     for cat in categories:
-        label = cat.name_ru if lang == "ru" else cat.name_uz
+        label = localized_name(cat.name_uz, cat.name_ru, lang)
         icon = f"{cat.icon} " if cat.icon else ""
         builder.button(text=f"{icon}{label}", callback_data=f"price_cat:{cat.id}")
     builder.adjust(2)
@@ -112,7 +113,7 @@ def _row_label(name: str, suffix: str) -> str:
 
 def get_product_picker_keyboard(
     products: Sequence[tuple["CanonicalProduct", str]],
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Product list where each row is tappable and shows its price.
 
@@ -134,7 +135,7 @@ def get_all_products_keyboard(
     products: Sequence[tuple["CanonicalProduct", str]],
     page: int,
     pages: int,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """One page of the whole catalogue, for customers rather than operators."""
     builder = InlineKeyboardBuilder()
@@ -157,7 +158,7 @@ def get_all_products_keyboard(
 
 def get_product_detail_keyboard(
     category_id: int | None,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     canonical_id: int | None = None,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -177,7 +178,7 @@ def get_product_detail_keyboard(
 def get_language_keyboard(
     change_only: bool = False,
     show_back: bool = False,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Build language selection keyboard.
 
@@ -187,8 +188,9 @@ def get_language_keyboard(
     """
     prefix = "chg_lang" if change_only else "set_lang"
     builder = InlineKeyboardBuilder()
-    builder.button(text="🇺🇿 O'zbekcha (lotin)", callback_data=f"{prefix}:uz_latn")
+    # Cyrillic leads because it is the default script (settings.default_lang).
     builder.button(text="🇺🇿 Ўзбекча (кирилл)", callback_data=f"{prefix}:uz_cyrl")
+    builder.button(text="🇺🇿 O'zbekcha (lotin)", callback_data=f"{prefix}:uz_latn")
     builder.button(text="🇷🇺 Русский", callback_data=f"{prefix}:ru")
     builder.adjust(1)
     if show_back:
@@ -198,7 +200,7 @@ def get_language_keyboard(
     return builder.as_markup()
 
 
-def get_settings_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_settings_inline_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Build settings menu keyboard with language change and re-registration options."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_change_language", lang=lang), callback_data="settings:language")
@@ -207,7 +209,7 @@ def get_settings_inline_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_reregister_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_reregister_confirm_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Build confirmation buttons for re-registering from scratch."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_confirm_reregister", lang=lang), callback_data="reregister:confirm")
@@ -216,15 +218,57 @@ def get_reregister_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMark
     return builder.as_markup()
 
 
+# How a region's own name is shown to a customer. The stored value is an
+# identifier ("Toshkent" is the city, not the surrounding province), so the
+# list would read as two indistinguishable entries without this.
+REGION_LABELS: dict[str, tuple[str, str]] = {
+    "Toshkent": ("Toshkent shahri", "Тошкент шаҳри"),
+}
+
+
+def region_label(region: str, lang: str) -> str:
+    override = REGION_LABELS.get(region)
+    if override is None:
+        return latin_to_cyrillic_uz(region) if lang == "uz_cyrl" else region
+    return override[1] if lang == "uz_cyrl" else override[0]
+
+
+def get_region_keyboard(
+    regions: Sequence[str],
+    lang: str = DEFAULT_LANG,
+    *,
+    prefix: str = "set_region",
+    back_data: str | None = None,
+) -> InlineKeyboardMarkup:
+    """Pick a region before a district.
+
+    Two hundred districts cannot be one keyboard, and even the thirty-odd
+    around Tashkent scrolled past the point a customer would keep reading.
+    """
+    builder = InlineKeyboardBuilder()
+    for region in regions:
+        builder.button(text=region_label(region, lang), callback_data=f"{prefix}:{region}")
+    builder.adjust(1)
+    if back_data:
+        builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data=back_data))
+    return builder.as_markup()
+
+
 def get_district_keyboard(
-    districts: Sequence[District], lang: str = "uz_latn"
+    districts: Sequence[District],
+    lang: str = DEFAULT_LANG,
+    *,
+    prefix: str = "set_district",
+    back_data: str | None = None,
 ) -> InlineKeyboardMarkup:
     """Build district selection keyboard in 2 columns."""
     builder = InlineKeyboardBuilder()
     for d in districts:
-        name = d.name_ru if lang == "ru" else d.name_uz
-        builder.button(text=name, callback_data=f"set_district:{d.id}")
+        name = localized_name(d.name_uz, d.name_ru, lang)
+        builder.button(text=name, callback_data=f"{prefix}:{d.id}")
     builder.adjust(2)
+    if back_data:
+        builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data=back_data))
     return builder.as_markup()
 
 
@@ -235,7 +279,7 @@ MAX_PER_LINE_ROWS = 8
 
 
 def get_basket_actions_keyboard(
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     line_numbers: Sequence[int] | None = None,
 ) -> InlineKeyboardMarkup:
     """Build action buttons for parsed basket view.
@@ -276,7 +320,7 @@ def get_basket_actions_keyboard(
     return builder.as_markup()
 
 
-def get_order_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_order_confirm_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     """Build confirm/cancel buttons for the final order review screen."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_confirm_order", lang=lang), callback_data="confirm_order")
@@ -288,7 +332,7 @@ def get_order_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
 def get_candidate_picker_keyboard(
     line_no: int,
     candidates: Sequence[CandidateMatch],
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Build inline candidate picker for ambiguous lines (⚠️)."""
     builder = InlineKeyboardBuilder()
@@ -305,7 +349,7 @@ def get_candidate_picker_keyboard(
 def get_quote_carousel_keyboard(
     current_index: int,
     total_variants: int,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     *,
     has_photos: bool = False,
     is_orderable: bool = True,
@@ -396,7 +440,7 @@ def get_admin_order_decision_keyboard(order_id: int) -> InlineKeyboardMarkup:
 
 
 def get_product_edit_keyboard(
-    product_id: int, is_active: bool, lang: str = "uz_latn"
+    product_id: int, is_active: bool, lang: str = DEFAULT_LANG
 ) -> InlineKeyboardMarkup:
     """Edit actions for a single shop product."""
     builder = InlineKeyboardBuilder()
@@ -419,7 +463,7 @@ def get_product_edit_keyboard(
     return builder.as_markup()
 
 
-def get_stock_status_keyboard(product_id: int, lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_stock_status_keyboard(product_id: int, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for code in ("in_stock", "low", "on_order", "out"):
         builder.button(
@@ -435,7 +479,7 @@ def get_import_batch_keyboard(
     batch_id: int,
     auto_count: int,
     manual_count: int,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Build import batch confirmation/review/cancel buttons."""
     builder = InlineKeyboardBuilder()
@@ -460,7 +504,7 @@ def get_import_preview_keyboard(
     batch_id: int,
     page: int,
     total_pages: int,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Page through a staged price list, then confirm or cancel the whole of it.
 
@@ -502,7 +546,7 @@ def get_import_preview_keyboard(
 def get_unmatched_row_keyboard(
     row_id: int,
     candidates: list[tuple[int, str, float]],
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
 ) -> InlineKeyboardMarkup:
     """Build candidate picker for unmatched import row.
 
@@ -528,7 +572,7 @@ def get_price_nudge_keyboard() -> InlineKeyboardMarkup:
 def get_product_list_keyboard(
     page: int,
     total_pages: int,
-    lang: str = "uz_latn",
+    lang: str = DEFAULT_LANG,
     products: Sequence["ShopProduct"] | None = None,
 ) -> InlineKeyboardMarkup:
     """Paginated product list where each row opens that product for editing."""
@@ -560,7 +604,7 @@ def get_product_list_keyboard(
     return builder.as_markup()
 
 
-def get_address_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
+def get_address_confirm_keyboard(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text=t("btn_address_confirm", lang=lang), callback_data="addr_ok")
     builder.button(text=t("btn_address_edit", lang=lang), callback_data="addr_edit")
@@ -569,7 +613,7 @@ def get_address_confirm_keyboard(lang: str = "uz_latn") -> InlineKeyboardMarkup:
 
 
 def get_address_picker_keyboard(
-    addresses: Sequence["UserAddress"], lang: str = "uz_latn"
+    addresses: Sequence["UserAddress"], lang: str = DEFAULT_LANG
 ) -> InlineKeyboardMarkup:
     """Saved places to deliver to, plus a way to add another.
 
@@ -589,7 +633,7 @@ def get_address_picker_keyboard(
 
 
 def get_admin_products_keyboard(
-    page: int, pages: int, lang: str = "uz_latn"
+    page: int, pages: int, lang: str = DEFAULT_LANG
 ) -> InlineKeyboardMarkup:
     """Paging for the catalogue list, so an admin can reach every product."""
     builder = InlineKeyboardBuilder()

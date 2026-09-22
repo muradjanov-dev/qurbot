@@ -13,6 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
 from app.db.base import PK_BIGINT, Base, TimestampMixin
 from app.db.models.shop import District
 
@@ -25,7 +26,9 @@ class User(Base, TimestampMixin):
     username: Mapped[str | None] = mapped_column(String(100), nullable=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # uz_latn|uz_cyrl|ru
-    lang: Mapped[str] = mapped_column(String(16), default="uz_latn", nullable=False)
+    # Follows settings.default_lang so a new row starts in whatever script the
+    # deployment leads with; an existing row keeps the language its owner picked.
+    lang: Mapped[str] = mapped_column(String(16), default=settings.default_lang, nullable=False)
     district_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("districts.id"), nullable=True, index=True
     )
