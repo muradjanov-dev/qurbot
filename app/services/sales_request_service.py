@@ -32,6 +32,8 @@ def request_data(row: SalesRequest) -> dict[str, Any]:
         "district_id": row.district_id,
         "district_name": row.district_name,
         "address": row.address,
+        "lat": float(row.lat) if row.lat is not None else None,
+        "lng": float(row.lng) if row.lng is not None else None,
         "created_at": row.created_at.isoformat(),
         "resolution_note": row.resolution_note,
         "items": [
@@ -94,19 +96,23 @@ class SalesRequestService:
         district_id: int,
         address: str,
         channel: str,
+        lat: Decimal | None = None,
+        lng: Decimal | None = None,
     ) -> SalesRequest:
         if not key or len(key) > 160 or channel not in {"web", "telegram"}:
             raise InvalidCartItem("invalid_request")
-        fingerprint = checkout_fingerprint(
-            {
-                "revision": revision,
-                "name": name.strip(),
-                "phone": phone,
-                "district": district_id,
-                "address": address.strip(),
-                "channel": channel,
-            }
-        )
+        fingerprint_fields = {
+            "revision": revision,
+            "name": name.strip(),
+            "phone": phone,
+            "district": district_id,
+            "address": address.strip(),
+            "channel": channel,
+        }
+        # Preserve fingerprints of pre-migration enquiries without a pin.
+        if lat is not None and lng is not None:
+            fingerprint_fields.update(lat=str(lat), lng=str(lng))
+        fingerprint = checkout_fingerprint(fingerprint_fields)
         chat = ConversationService(self.session)
         # Shared lock order: conversation -> cart, as used by AI tools.
         conversation = await chat._lock((await chat.get_or_create(user)).id)
@@ -126,7 +132,10 @@ class SalesRequestService:
         normalized = normalize_uz_phone(phone)
         district = await self.session.get(District, district_id)
         if (
-            not normalized
+            (lat is None) != (lng is None)
+            or (lat is not None and (not lat.is_finite() or not -90 <= lat <= 90))
+            or (lng is not None and (not lng.is_finite() or not -180 <= lng <= 180))
+            or not normalized
             or not name.strip()
             or len(name.strip()) > 100
             or not district
@@ -149,6 +158,8 @@ class SalesRequestService:
             district_name=f"{district.region}, "
             + (district.name_ru if user.lang == "ru" else district.name_uz),
             address=address.strip(),
+            lat=lat,
+            lng=lng,
             is_test=user.is_test or user.tg_id in settings.test_tg_ids,
             items=[],
         )

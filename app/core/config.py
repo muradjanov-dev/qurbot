@@ -264,8 +264,15 @@ class Settings(BaseSettings):
     web_catalog_page_size: int = 24
     web_orders_page_size: int = 20
     web_shop_products_page_size: int = 20
+    web_manage_products_page_size: int = 30
     # Largest price file the web upload accepts, mirroring what the bot takes.
     web_max_upload_bytes: int = 5 * 1024 * 1024
+    map_tile_url: str = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    map_tile_attribution: str = (
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    )
+    map_default_lat: float = 41.3111
+    map_default_lng: float = 69.2797
 
     @model_validator(mode="after")
     def reject_unsafe_production_defaults(self) -> Self:

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('manage_users', lang=lang) }} — QurBot{% endblock %}
+{% block content %}<section class="section">
+  <a href="/manage">← {{ t('manage_title', lang=lang) }}</a>
+  <h1>{{ t('manage_users', lang=lang) }}</h1>
+  <div class="list">{% for item in users %}<div class="list-row"><span>{{ item.full_name or item.username or item.tg_id }}</span><span>{{ item.role }}</span></div>{% endfor %}</div>
+</section>{% endblock %}

@@ -9,6 +9,7 @@ Supports:
 from typing import Any
 
 from app.core.chat_i18n import CHAT_MESSAGES
+from app.core.manage_i18n import MANAGE_MESSAGES
 
 MESSAGES: dict[str, dict[str, str]] = {
     # Onboarding & Language
@@ -2448,6 +2449,36 @@ MESSAGES: dict[str, dict[str, str]] = {
 
 
 MESSAGES.update(CHAT_MESSAGES)
+MESSAGES.update(MANAGE_MESSAGES)
+MESSAGES.update(
+    {
+        "web_location_map": {
+            "uz_latn": "Xaritadan tanlash",
+            "uz_cyrl": "Харитадан танлаш",
+            "ru": "Выбрать на карте",
+        },
+        "web_location_use_address": {
+            "uz_latn": "Xaritadagi manzilni ishlatish",
+            "uz_cyrl": "Харитадаги манзилни ишлатиш",
+            "ru": "Использовать адрес с карты",
+        },
+        "web_location_selected": {
+            "uz_latn": "Nuqta tanlandi. Yozma manzilni tekshiring.",
+            "uz_cyrl": "Нуқта танланди. Ёзма манзилни текширинг.",
+            "ru": "Точка выбрана. Проверьте адрес.",
+        },
+        "web_location_failed": {
+            "uz_latn": "Lokatsiya olinmadi. Manzilni yozib davom eting.",
+            "uz_cyrl": "Локация олинмади. Манзилни ёзиб давом этинг.",
+            "ru": "Геолокация недоступна. Введите адрес вручную.",
+        },
+        "web_location_map_failed": {
+            "uz_latn": "Xarita ochilmadi. Manzilni yozib davom eting.",
+            "uz_cyrl": "Харита очилмади. Манзилни ёзиб давом этинг.",
+            "ru": "Карта недоступна. Введите адрес вручную.",
+        },
+    }
+)
 
 
 def t(key: str, lang: str = "uz_latn", **kwargs: Any) -> str:

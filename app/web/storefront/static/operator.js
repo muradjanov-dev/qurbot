@@ -63,6 +63,11 @@
       const card = el('article', '', 'card chat-product');
       card.append(el('h3', `${S.requests} #${item.id} · ${S['request_' + item.status]}`));
       card.append(el('p', `${item.contact_name} · ${item.phone}`), el('p', `${item.district_name || ''}, ${item.address}`));
+      if (item.lat != null && item.lng != null) {
+        const pin = el('a', `${item.lat}, ${item.lng}`, 'btn btn-ghost btn-sm');
+        pin.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(item.lat)}&mlon=${encodeURIComponent(item.lng)}#map=16/${encodeURIComponent(item.lat)}/${encodeURIComponent(item.lng)}`;
+        pin.target = '_blank'; pin.rel = 'noopener'; card.append(pin);
+      }
       for (const line of item.items) card.append(el('p', `${line.name} — ${line.qty} ${line.unit_code} · ${line.requires_confirmation ? S.price_request : line.reference_unit_price == null ? '' : line.reference_unit_price + ' UZS'}`));
       if (item.resolution_note) card.append(el('p', item.resolution_note));
       if (owned && item.status === 'open') {

@@ -39,7 +39,17 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 ASSET_VERSION = sha256(
     b"".join(
         (Path(__file__).parent / "static" / name).read_bytes()
-        for name in ("app.css", "app.js", "chat.js", "session.js", "chat_cart.js", "operator.js")
+        for name in (
+            "app.css",
+            "app.js",
+            "chat.js",
+            "session.js",
+            "chat_cart.js",
+            "operator.js",
+            "location.js",
+            "leaflet.js",
+            "leaflet.css",
+        )
     )
 ).hexdigest()[:16]
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -69,6 +79,7 @@ FLASH_KEYS = frozenset(
         "web_shop_import_too_big",
         "web_shop_import_applied",
         "web_added_to_basket",
+        "manage_district_required",
     }
 )
 
@@ -99,6 +110,7 @@ JS_MESSAGE_KEYS: dict[str, str] = {
     "loginRequired": "web_checkout_login_required",
     "phoneRequired": "web_checkout_phone_required",
     "addressRequired": "web_checkout_address_required",
+    "districtRequired": "manage_district_required",
     "priceChanged": "web_checkout_price_changed",
     "detecting": "web_checkout_detecting",
     "detectFailed": "web_checkout_detect_failed",

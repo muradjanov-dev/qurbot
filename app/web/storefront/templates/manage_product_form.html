@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name_uz if product else t('manage_new_product', lang=lang) }} — QurBot{% endblock %}
+{% block content %}<section class="section">
+  <a href="/manage/products">← {{ t('adm_btn_products', lang=lang) }}</a>
+  <h1>{{ product.name_uz if product else t('manage_new_product', lang=lang) }}</h1>
+  {% if error %}<p class="notice warn" role="alert">{{ error }}</p>{% endif %}
+  {% if candidates %}<div class="list">{% for item in candidates %}<a class="list-row" href="/manage/products/{{ item.id }}">{{ item.name_uz }}</a>{% endfor %}</div>{% endif %}
+  <form method="post" enctype="multipart/form-data" action="{{ '/manage/products/' ~ product.id if product else '/manage/products/new' }}" class="card grid">
+    <label class="field">{{ t('manage_name', lang=lang) }} <input name="name" maxlength="255" required value="{{ values.get('name', product.name_uz if product else '') }}"></label>
+    <label class="field">{{ t('manage_uz_cyrl_name', lang=lang) }} <input name="name_uz_cyrl" maxlength="255" value="{{ values.get('name_uz_cyrl', product.name_uz_cyrl if product else '') }}"></label>
+    <label class="field">{{ t('manage_ru_name', lang=lang) }} <input name="name_ru" maxlength="255" value="{{ values.get('name_ru', product.name_ru if product else '') }}"></label>
+    <label class="field">{{ t('manage_category', lang=lang) }} <select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}" {{ 'selected' if (values.get('category_id', product.category_id if product else '')|string) == (category.id|string) }}>{{ category.name_uz }}</option>{% endfor %}</select></label>
+    <label class="field">{{ t('manage_unit', lang=lang) }} <select name="unit_code" required>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('unit_code', product.base_unit_code if product else '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
+    <label class="field">{{ t('manage_size', lang=lang) }} <input name="size" value="{{ values.get('size', product.attributes.get('size', '') if product else '') }}"></label>
+    <label class="field">{{ t('manage_thickness', lang=lang) }} <input name="thickness" inputmode="decimal" value="{{ values.get('thickness', product.attributes.get('thickness_mm', '') if product else '') }}"></label>
+    <label class="field">{{ t('manage_brand', lang=lang) }} <input name="brand" value="{{ values.get('brand', product.brand or '' if product else '') }}"></label>
+    <label class="field">{{ t('manage_description', lang=lang) }} <textarea name="description">{{ values.get('description', product.attributes.get('description', '') if product else '') }}</textarea></label>
+    <label class="field">{{ t('manage_photo', lang=lang) }} <input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
+    {% if product %}
+      <label><input type="checkbox" name="active" value="true" {{ 'checked' if product.is_active }}> {{ t('manage_active', lang=lang) }}</label>
+      {% if product.image_url %}<img src="{{ product.image_url }}" alt="" style="max-width:180px">{% endif %}
+    {% else %}<label><input type="checkbox" name="force_new" value="true"> {{ t('manage_confirm_new', lang=lang) }}</label>{% endif %}
+    {% if not product %}
+      <label class="field">{{ t('web_shop_price', lang=lang) }} ({{ t('manage_optional', lang=lang) }}) <input name="price" inputmode="decimal" value="{{ values.get('price', '') }}"></label>
+      <label class="field">{{ t('manage_pack', lang=lang) }} <input name="pack_size" inputmode="decimal" value="{{ values.get('pack_size', '1') }}"></label>
+      <label class="field">{{ t('manage_unit', lang=lang) }} <select name="pack_unit_code"><option value="">{{ t('manage_unit', lang=lang) }}</option>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('pack_unit_code', '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status"><option value="out">{{ t('web_shop_stock_out', lang=lang) }}</option><option value="in_stock">{{ t('web_shop_stock_in_stock', lang=lang) }}</option><option value="low">{{ t('web_shop_stock_low', lang=lang) }}</option><option value="on_order">{{ t('web_shop_stock_on_order', lang=lang) }}</option></select></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} <input name="stock_qty" inputmode="decimal" value="{{ values.get('stock_qty', '') }}"></label>
+    {% endif %}
+    <button class="btn btn-primary" type="submit">{{ t('web_save', lang=lang) }}</button>
+  </form>
+  {% if product %}
+    <h2>{{ t('manage_offer', lang=lang) }}</h2>
+    <form class="card grid" method="post" action="/manage/products/{{ product.id }}/offers">
+      <label class="field">{{ t('manage_pack', lang=lang) }} <input name="pack_size" inputmode="decimal" value="1" required></label>
+      <label class="field">{{ t('manage_unit', lang=lang) }} <select name="pack_unit_code">{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if unit.code == product.base_unit_code }}>{{ unit.code }}</option>{% endfor %}</select></label>
+      <label class="field">{{ t('web_shop_price', lang=lang) }} <input name="price" inputmode="decimal" required></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status" required><option value="out">{{ t('web_shop_stock_out', lang=lang) }}</option><option value="in_stock">{{ t('web_shop_stock_in_stock', lang=lang) }}</option><option value="low">{{ t('web_shop_stock_low', lang=lang) }}</option><option value="on_order">{{ t('web_shop_stock_on_order', lang=lang) }}</option></select></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} ({{ t('manage_unit', lang=lang) }}) <input name="stock_qty" inputmode="decimal"></label>
+      <label class="field">{{ t('manage_description', lang=lang) }} <textarea name="description"></textarea></label>
+      <button class="btn btn-primary" type="submit">{{ t('manage_offer', lang=lang) }}</button>
+    </form>
+    {% for offer in offers %}<form class="card field-row" method="post" action="/manage/offers/{{ offer.id }}">
+      <span>{{ offer.pack_size }} {{ offer.pack_unit_code }}</span>
+      <label class="field">{{ t('web_shop_price', lang=lang) }} <input name="price" inputmode="decimal" value="{{ offer.price_per_pack }}" required></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status">
+        {% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if offer.stock_status == status }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}
+      </select></label>
+      <label class="field">{{ t('manage_stock', lang=lang) }} <input name="stock_qty" inputmode="decimal" value="{{ offer.stock_qty if offer.stock_qty is not none else '' }}"></label>
+      <label><input type="checkbox" name="active" value="true" {{ 'checked' if offer.is_active }}> {{ t('manage_active', lang=lang) }}</label>
+      <button class="btn btn-sm" type="submit">{{ t('web_save', lang=lang) }}</button>
+    </form>{% endfor %}
+  {% endif %}
+</section>{% endblock %}

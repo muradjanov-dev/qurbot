@@ -34,16 +34,22 @@
       </div>
     </div>
 
-    <div class="field" data-new-address>
+    <div class="field" data-new-address data-location-picker
+         data-tile-url="{{ settings.map_tile_url }}" data-tile-attribution="{{ settings.map_tile_attribution|e }}"
+         data-default-lat="{{ settings.map_default_lat }}" data-default-lng="{{ settings.map_default_lng }}">
       <div class="field-row">
         <label class="field" style="flex:1;">
           <span class="muted tiny">{{ t('web_checkout_address_placeholder', lang=lang) }}</span>
           <input type="text" data-address-text placeholder="{{ t('web_checkout_address_placeholder', lang=lang) }}">
         </label>
-        <button class="btn btn-sm" type="button" data-detect>{{ t('web_checkout_detect', lang=lang) }}</button>
       </div>
-      <input type="hidden" data-lat>
-      <input type="hidden" data-lng>
+      {% include 'location_picker.html' %}
+      <label class="field">{{ t('sales_district', lang=lang) }}
+        <select data-district name="district_id">
+          <option value="">—</option>
+          {% for district in districts %}<option value="{{ district.id }}" {{ 'selected' if user and user.district_id == district.id }}>{{ district.name_uz }}</option>{% endfor %}
+        </select>
+      </label>
     </div>
 
     <label class="field">

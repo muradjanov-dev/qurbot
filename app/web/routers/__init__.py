@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
 from app.web.routers import (
@@ -10,13 +10,14 @@ from app.web.routers import (
     products,
     unmatched,
 )
+from app.web.storefront.security import require_same_origin_write
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_same_origin_write)])
 
 
 @router.get("/admin")
 async def admin_root() -> RedirectResponse:
-    return RedirectResponse("/admin/unmatched")
+    return RedirectResponse("/manage")
 
 
 router.include_router(unmatched.router)

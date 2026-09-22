@@ -27,6 +27,8 @@ class SalesRequest(Base, TimestampMixin):
     district_id: Mapped[int] = mapped_column(ForeignKey("districts.id"))
     district_name: Mapped[str] = mapped_column(String(300))
     address: Mapped[str] = mapped_column(Text)
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
+    lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
     is_test: Mapped[bool] = mapped_column(Boolean, default=False)
     resolution_note: Mapped[str | None] = mapped_column(Text)
     resolved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))

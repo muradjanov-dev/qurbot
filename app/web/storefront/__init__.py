@@ -26,6 +26,7 @@ from app.web.storefront.routers import (
     chat_page,
     checkout,
     home,
+    manage,
     orders,
     sales_requests,
     shop,
@@ -48,6 +49,7 @@ router.include_router(orders.router)
 router.include_router(account.router)
 router.include_router(auth.router)
 router.include_router(shop.router)
+router.include_router(manage.router)
 
 
 def install_storefront(app: FastAPI) -> None:

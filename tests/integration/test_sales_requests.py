@@ -187,3 +187,28 @@ async def test_unknown_request_revision_replay_and_new_cart(web, test_session): 
     await test_session.commit()
     assert (await contact_defaults(test_session, user))["address"] == body["address_text"]
     assert await test_session.scalar(select(func.count()).select_from(Order)) == 0
+
+
+async def test_optional_request_pin_is_visible_to_the_assigned_operator(web, test_session):  # noqa: F811
+    client, app = web
+    body, _, conversation = await basket(client, test_session)
+    with_pin = {**body, "lat": "41.2500000", "lng": "69.2000000"}
+    response = await client.post("/api/sales-requests", json=with_pin, headers=headers(client))
+    assert response.status_code == 200, response.text
+    request = response.json()["request"]
+    assert request["lat"] == 41.25 and request["lng"] == 69.2
+    stored = await test_session.get(SalesRequest, request["id"])
+    assert stored is not None and stored.conversation_id == conversation.id
+    assert stored.lat == Decimal("41.25") and stored.lng == Decimal("69.2")
+
+    admin = User(tg_id=887711, role="admin", full_name="Operator")
+    test_session.add(admin)
+    await test_session.commit()
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="https://shop.test"
+    ) as operator:
+        operator.cookies.set(SESSION_COOKIE, sign_session(user_id=admin.id, tg_id=admin.tg_id))
+        rows = await operator.get(f"/api/chat/operator/{conversation.id}/sales-requests")
+        assert rows.status_code == 200
+        assert rows.json()["requests"][0]["lat"] == 41.25
+        assert rows.json()["requests"][0]["lng"] == 69.2

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('manage_title', lang=lang) }} — QurBot{% endblock %}
+{% block content %}
+<section class="section">
+  <h1>{{ t('manage_title', lang=lang) }}</h1>
+  <div class="grid cols-2">
+    <a class="tile" href="/manage/products"><strong>{{ t('adm_btn_products', lang=lang) }}</strong><span>{{ counts.products }}</span></a>
+    <a class="tile" href="/manage/products/new"><strong>{{ t('manage_new_product', lang=lang) }}</strong></a>
+    <a class="tile" href="/shop/{{ shop.id }}/products"><strong>{{ t('web_shop_products', lang=lang) }}</strong><span>{{ counts.offers }}</span></a>
+    <a class="tile" href="/shop/{{ shop.id }}/import"><strong>{{ t('web_shop_import', lang=lang) }}</strong></a>
+    <a class="tile" href="/shop/{{ shop.id }}/orders"><strong>{{ t('web_shop_orders', lang=lang) }}</strong><span>{{ counts.orders }}</span></a>
+    <div class="tile"><strong>{{ t('manage_gmv', lang=lang) }}</strong><span>{{ format_uzs(counts.gmv) }} {{ t('web_currency', lang=lang) }}</span></div>
+    <a class="tile" href="/shop/{{ shop.id }}/delivery"><strong>{{ t('web_shop_delivery', lang=lang) }}</strong></a>
+    <a class="tile" href="/operator"><strong>{{ t('sales_inbox', lang=lang) }}</strong></a>
+    <a class="tile" href="/manage/users"><strong>{{ t('manage_users', lang=lang) }}</strong><span>{{ counts.users }}</span></a>
+    <a class="tile" href="/admin/unmatched"><strong>{{ t('adm_btn_unmatched', lang=lang) }}</strong><span>{{ counts.unmatched }}</span></a>
+    <a class="tile" href="/admin/aliases"><strong>{{ t('manage_aliases', lang=lang) }}</strong></a>
+    <a class="tile" href="/admin/listings"><strong>{{ t('manage_photos', lang=lang) }}</strong></a>
+    <a class="tile" href="/admin/offers"><strong>{{ t('web_shop_products', lang=lang) }}</strong></a>
+    <a class="tile" href="/admin/dashboard"><strong>{{ t('adm_btn_stats', lang=lang) }}</strong></a>
+    <a class="tile" href="/admin/llm-cost"><strong>AI</strong></a>
+    {% if is_super_admin %}<a class="tile" href="/manage/admins"><strong>{{ t('manage_admins', lang=lang) }}</strong></a>{% endif %}
+  </div>
+</section>
+{% endblock %}

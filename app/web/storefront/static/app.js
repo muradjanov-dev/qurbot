@@ -605,9 +605,12 @@
         var text = $("[data-address-text]").value.trim();
         if (!text) { toast(T.addressRequired); return; }
         body.address_text = text;
+        var district = $("[data-district]")?.value;
+        if (district) body.district_id = Number(district);
         var lat = $("[data-lat]").value;
         var lng = $("[data-lng]").value;
         if (lat && lng) { body.lat = Number(lat); body.lng = Number(lng); }
+        else if (!district) { toast(T.districtRequired); return; }
       }
 
       confirm.disabled = true;

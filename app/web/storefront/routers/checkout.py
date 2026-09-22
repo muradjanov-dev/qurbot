@@ -61,12 +61,14 @@ async def checkout_page(
 
     addresses = await AddressService(session).list_for(user)
     last_phone = await _last_used_phone(session, user)
+    districts = await ShopRepository(session).list_districts()
     return render(
         request,
         "checkout.html",
         user=user,
         lang=lang,
         addresses=addresses,
+        districts=districts,
         last_phone=last_phone,
         strategy=strategy or "",
     )
@@ -335,7 +337,9 @@ async def _resolve_address(
         stored = await repo.get(body.address_id)
         if stored is None or stored.user_id != user.id:
             return None
-        return stored.address_text, stored.district_id, (stored.lat, stored.lng)
+        lat, lng = stored.lat, stored.lng
+        pin = (lat, lng) if lat is not None and lng is not None else None
+        return stored.address_text, stored.district_id, pin
 
     typed = (body.address_text or "").strip()
     if not typed:
@@ -358,15 +362,21 @@ async def _resolve_address(
 
     service = AddressService(session)
     resolved = await service.resolve(body.lat, body.lng, lang=lang)
+    district_id = resolved.district_id
+    if district_id is None and (body.district_id is not None or user.district_id is not None):
+        chosen = await session.get(District, body.district_id or user.district_id)
+        district_id = chosen.id if chosen is not None else None
+    if district_id is None:
+        return None
     saved = await service.save(
         user,
         ResolvedLocation(
             lat=resolved.lat,
             lng=resolved.lng,
             address_text=typed,
-            district_id=resolved.district_id,
+            district_id=district_id,
         ),
         typed,
         make_default=not await repo.get_default(user.id),
     )
-    return saved.address_text, saved.district_id, (saved.lat, saved.lng)
+    return saved.address_text, saved.district_id, (resolved.lat, resolved.lng)

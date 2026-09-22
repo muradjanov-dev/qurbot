@@ -541,6 +541,10 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
 .chat-status:empty, .chat-requests:empty { display: none; }
 .chat-request { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .chat-request p { overflow-wrap: anywhere; }
+.location-map { height: 260px; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 10px; }
+.location-marker { background: var(--accent); width: 20px; height: 20px; border: 3px solid white; border-radius: 50%; box-shadow: 0 1px 7px #3338; }
+.location-picker { display: grid; gap: 8px; }
+.location-picker [hidden] { display: none !important; }
 .chat [hidden] { display: none !important; }
 .chat :focus-visible, .chat-entry:focus-visible, .topnav a:focus-visible, .tabbar a:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 3px;

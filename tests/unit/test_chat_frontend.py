@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from jinja2 import Environment, FileSystemLoader
 
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
 from app.web.storefront.deps import ASSET_VERSION
@@ -35,7 +36,9 @@ class PageAudit(HTMLParser):
 
 def template_env() -> Environment:
     env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=True)
-    env.globals.update(t=t, csrf_token=lambda request: "test-csrf", asset_version=ASSET_VERSION)
+    env.globals.update(
+        t=t, csrf_token=lambda request: "test-csrf", asset_version=ASSET_VERSION, settings=settings
+    )
     return env
 
 

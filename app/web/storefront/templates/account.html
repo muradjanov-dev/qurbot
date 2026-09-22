@@ -57,20 +57,26 @@
     <div class="empty">{{ t('web_account_addresses_empty', lang=lang) }}</div>
   {% endif %}
 
-  <form class="card" method="post" action="/account/addresses" data-new-address-form>
+  <form class="card" method="post" action="/account/addresses" data-new-address-form data-location-picker
+        data-tile-url="{{ settings.map_tile_url }}" data-tile-attribution="{{ settings.map_tile_attribution|e }}"
+        data-default-lat="{{ settings.map_default_lat }}" data-default-lng="{{ settings.map_default_lng }}">
     <div class="field-row">
       <label class="field" style="flex:2;">
         <span>{{ t('web_checkout_address_placeholder', lang=lang) }}</span>
-        <input type="text" name="address_text" data-address-text required>
+        <input type="text" name="address_text" data-address-text required minlength="5">
       </label>
       <label class="field" style="max-width:150px;">
         <span>{{ t('web_checkout_address_new', lang=lang) }}</span>
         <input type="text" name="label" placeholder="Ofis / Obyekt">
       </label>
-      <button class="btn btn-sm" type="button" data-detect>{{ t('web_checkout_detect', lang=lang) }}</button>
     </div>
-    <input type="hidden" name="lat" data-lat required>
-    <input type="hidden" name="lng" data-lng required>
+    <label class="field">{{ t('sales_district', lang=lang) }}
+      <select name="district_id" data-district>
+        <option value="">—</option>
+        {% for district in districts %}<option value="{{ district.id }}">{{ district.name_uz }}</option>{% endfor %}
+      </select>
+    </label>
+    {% include 'location_picker.html' %}
     <button class="btn btn-primary btn-sm" type="submit" style="margin-top:12px;">
       {{ t('web_save', lang=lang) }}
     </button>
@@ -91,12 +97,7 @@
         {{ t('web_account_open_bot', lang=lang) }}
       </a>
     {% endif %}
-    {% if is_admin %}
-      <a class="btn btn-sm" href="/shop">{{ t('web_shop_title', lang=lang) }}</a>
-    {% endif %}
-    {% if is_admin %}
-      <a class="btn btn-sm" href="/admin">Admin</a>
-    {% endif %}
+    {% if is_admin %}<a class="btn btn-sm" href="/manage">{{ t('manage_title', lang=lang) }}</a>{% endif %}
     <form method="post" action="/logout">
       <button class="btn btn-sm btn-danger" type="submit">{{ t('web_logout', lang=lang) }}</button>
     </form>

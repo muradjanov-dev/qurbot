@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('adm_btn_products', lang=lang) }} — QurBot{% endblock %}
+{% block content %}<section class="section">
+  <a href="/manage">← {{ t('manage_title', lang=lang) }}</a>
+  <div class="section-head"><h1>{{ t('adm_btn_products', lang=lang) }} ({{ total }})</h1><a class="btn btn-primary" href="/manage/products/new">{{ t('manage_new_product', lang=lang) }}</a></div>
+  <form method="get" action="/manage/products" class="field-row"><input name="q" value="{{ q }}" type="search" aria-label="{{ t('web_catalog_title', lang=lang) }}"><button class="btn" type="submit">🔍</button></form>
+  <div class="list">{% for product, offer_count, price in products %}
+    <a href="/manage/products/{{ product.id }}" class="list-row"><span class="grow"><strong>{{ product.name_uz }}</strong><small class="muted"> · {{ product.source_ref or product.source }} · {{ offer_count }}</small></span><span>{{ format_catalog_price(price, product.reference_price, lang=lang) }}</span></a>
+  {% endfor %}</div>
+  <div class="row">{% if page > 1 %}<a class="btn" href="?page={{ page-1 }}&q={{ q|urlencode }}">←</a>{% endif %}{% if page * page_size < total %}<a class="btn" href="?page={{ page+1 }}&q={{ q|urlencode }}">→</a>{% endif %}</div>
+</section>{% endblock %}

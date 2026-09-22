@@ -7,6 +7,7 @@
     <h1>{{ t('web_shop_import', lang=lang) }}</h1>
     <a class="muted tiny" href="/shop/{{ shop.id }}">← {{ shop.name }}</a>
   </div>
+  <a class="btn btn-ghost btn-sm" href="/manage/import-template">{{ t('shp_btn_template', lang=lang) }}</a>
 
   <form class="card" method="post" action="/shop/{{ shop.id }}/import" enctype="multipart/form-data">
     <p class="muted tiny" style="margin-bottom:12px;">{{ t('web_shop_upload_hint', lang=lang) }}</p>

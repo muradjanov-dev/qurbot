@@ -1,5 +1,6 @@
 """Owned manual enquiries and assigned-operator resolution."""
 
+from decimal import Decimal
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -30,6 +31,8 @@ class RequestIn(BaseModel):
     phone: str = Field(max_length=32)
     district_id: int = Field(gt=0)
     address_text: str = Field(min_length=5, max_length=500)
+    lat: Decimal | None = None
+    lng: Decimal | None = None
 
 
 class ResolutionIn(BaseModel):
@@ -61,6 +64,8 @@ async def create_request(
             phone=body.phone,
             district_id=body.district_id,
             address=body.address_text,
+            lat=body.lat,
+            lng=body.lng,
             channel="web",
         )
         result = request_data(row)

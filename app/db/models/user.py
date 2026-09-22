@@ -70,8 +70,8 @@ class UserAddress(Base, TimestampMixin):
         BigInteger, ForeignKey("users.id"), nullable=False, index=True
     )
     label: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    lat: Mapped[Decimal] = mapped_column(Numeric(10, 7), nullable=False)
-    lng: Mapped[Decimal] = mapped_column(Numeric(10, 7), nullable=False)
+    lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
+    lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7), nullable=True)
     # What the customer confirmed, which may be the geocoder's suggestion or
     # their own correction of it. Their wording wins -- they know the place.
     address_text: Mapped[str] = mapped_column(Text, nullable=False)

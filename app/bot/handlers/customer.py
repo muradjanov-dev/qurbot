@@ -980,8 +980,8 @@ async def callback_checkout_pick_address(
 
     await state.update_data(
         delivery_address=address.address_text,
-        delivery_lat=str(address.lat),
-        delivery_lng=str(address.lng),
+        delivery_lat=str(address.lat) if address.lat is not None else None,
+        delivery_lng=str(address.lng) if address.lng is not None else None,
         delivery_district_id=address.district_id,
     )
     await state.set_state(OrderCheckoutStates.entering_comment)

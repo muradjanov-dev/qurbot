@@ -68,7 +68,7 @@ async def shop_root(
     shop = await shop_for_admin(user, session)
     if shop is None:
         raise HTTPException(status_code=404, detail="shop_not_found")
-    return RedirectResponse(f"/shop/{shop.id}", status_code=303)
+    return RedirectResponse("/manage", status_code=303)
 
 
 @router.get("/{shop_id}")

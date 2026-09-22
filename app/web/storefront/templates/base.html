@@ -10,6 +10,7 @@
   <meta name="description" content="{{ t('web_tagline', lang=lang) }}">
   <title>{% block title %}QurBot{% endblock %}</title>
   <link rel="stylesheet" href="{{ static_url }}/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="{{ static_url }}/leaflet.css?v={{ asset_version }}">
   <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
 </head>
@@ -30,7 +31,7 @@
         <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
         <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
         {% if user %}<a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>{% endif %}
-        {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a><a href="/shop" class="{{ 'is-active' if path.startswith('/shop') }}">{{ t('web_nav_shop', lang=lang) }}</a>{% endif %}
+        {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a><a href="/manage" class="{{ 'is-active' if path.startswith('/manage') or path.startswith('/shop') or path.startswith('/admin') }}">{{ t('manage_title', lang=lang) }}</a>{% endif %}
       </nav>
 
       <div class="topbar-side">
@@ -109,6 +110,8 @@
   <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, verified: {{ (user is not none and user.tg_id is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
   <script src="{{ static_url }}/session.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/app.js?v={{ asset_version }}" defer></script>
+  <script src="{{ static_url }}/leaflet.js?v={{ asset_version }}" defer></script>
+  <script src="{{ static_url }}/location.js?v={{ asset_version }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -198,7 +198,7 @@ async def test_dashboard_and_llm_cost_render_empty(admin_client: TestClient) -> 
 
 
 @pytest.mark.asyncio
-async def test_admin_root_redirects_to_unmatched(admin_client: TestClient) -> None:
+async def test_admin_root_redirects_to_unified_panel(admin_client: TestClient) -> None:
     response = admin_client.get("/admin", auth=AUTH, follow_redirects=False)
     assert response.status_code in (302, 307)
-    assert response.headers["location"] == "/admin/unmatched"
+    assert response.headers["location"] == "/manage"

@@ -1,0 +1,14 @@
+<div class="location-picker" data-selected="{{ t('web_location_selected', lang=lang) }}"
+     data-failed="{{ t('web_location_failed', lang=lang) }}"
+     data-district-required="{{ t('manage_district_required', lang=lang) }}"
+     data-map-failed="{{ t('web_location_map_failed', lang=lang) }}">
+  <div class="row">
+    <button class="btn btn-sm" type="button" data-location-current>{{ t('web_checkout_detect', lang=lang) }}</button>
+    <button class="btn btn-sm" type="button" data-location-map-toggle>{{ t('web_location_map', lang=lang) }}</button>
+  </div>
+  <div class="location-map" data-location-map hidden></div>
+  <p class="muted tiny" data-location-status role="status"></p>
+  <button class="btn btn-sm" type="button" data-location-suggestion hidden>{{ t('web_location_use_address', lang=lang) }}</button>
+  <input type="hidden" name="lat" data-lat>
+  <input type="hidden" name="lng" data-lng>
+</div>

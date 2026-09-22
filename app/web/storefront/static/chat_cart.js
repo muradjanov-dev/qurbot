@@ -116,6 +116,8 @@
     }
     const body = sentBody || {contact_name: form.elements.name.value.trim(), phone: form.elements.phone.value.trim(),
       district_id: Number(form.elements.district.value), address_text: form.elements.address.value.trim(),
+      lat: form.elements.lat.value ? Number(form.elements.lat.value) : null,
+      lng: form.elements.lng.value ? Number(form.elements.lng.value) : null,
       cart_revision: cart.revision, idempotency_key: key, strategy: quote?.strategy || null,
       expected_total: quote?.grand_total_raw || null};
     lock(true); status.textContent = '';

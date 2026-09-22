@@ -4,11 +4,14 @@
   <div data-cart-lines></div>
   <p class="notice warn" data-request-hint hidden>{{ t('sales_request_hint', lang=lang) }}</p>
   <div class="row"><button class="btn btn-ghost" type="button" data-more-products>{{ t('sales_more_products', lang=lang) }}</button><a class="btn btn-ghost" href="/sales-requests">{{ t('sales_requests', lang=lang) }}</a></div>
-  <form data-chat-checkout>
+  <form data-chat-checkout data-location-picker
+        data-tile-url="{{ settings.map_tile_url }}" data-tile-attribution="{{ settings.map_tile_attribution|e }}"
+        data-default-lat="{{ settings.map_default_lat }}" data-default-lng="{{ settings.map_default_lng }}">
     <label class="field">{{ t('sales_name', lang=lang) }}<input name="name" required maxlength="100" autocomplete="name" value="{{ user.full_name if user and user.full_name else '' }}"></label>
     <label class="field">{{ t('sales_phone', lang=lang) }}<input name="phone" required maxlength="30" type="tel" autocomplete="tel" placeholder="+998"></label>
     <label class="field">{{ t('sales_district', lang=lang) }}<select name="district" required><option value="">—</option></select></label>
     <label class="field">{{ t('sales_address', lang=lang) }}<input name="address" required minlength="5" maxlength="500" autocomplete="street-address" aria-describedby="cart-address-hint"><small id="cart-address-hint">{{ t('sales_address_invalid', lang=lang) }}</small></label>
+    {% include 'location_picker.html' %}
     <div class="sales-summary" data-checkout-summary></div>
     <p data-checkout-status role="status"></p>
     <button class="btn btn-primary btn-block" type="submit" data-checkout-submit>{{ t('sales_calculate', lang=lang) }}</button>

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('manage_admins', lang=lang) }} — QurBot{% endblock %}
+{% block content %}<section class="section">
+  <a href="/manage">← {{ t('manage_title', lang=lang) }}</a>
+  <h1>{{ t('manage_admins', lang=lang) }}</h1>
+  <div class="list">{% for item in admins %}<div class="list-row"><span>{{ item.full_name or item.username or item.tg_id }}</span><span>{{ item.tg_id }}</span></div>{% endfor %}</div>
+  <form method="post" action="/manage/admins" class="card field-row">
+    <label class="field">{{ t('manage_telegram_id', lang=lang) }} <input name="tg_id" inputmode="numeric" required></label>
+    <button class="btn btn-primary" type="submit">{{ t('manage_promote', lang=lang) }}</button>
+  </form>
+</section>{% endblock %}

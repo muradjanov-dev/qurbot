@@ -12,12 +12,15 @@ from urllib.parse import urlsplit
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import Browser, Route, sync_playwright
 
+from app.core.config import settings
 from app.core.i18n import t
 
 ROOT = Path(__file__).resolve().parents[1]
 (ROOT / ".artifacts").mkdir(exist_ok=True)
 env = Environment(loader=FileSystemLoader(ROOT / "app/web/storefront/templates"), autoescape=True)
-env.globals.update(t=t, csrf_token=lambda request: "test-csrf", asset_version="browser-check")
+env.globals.update(
+    t=t, csrf_token=lambda request: "test-csrf", asset_version="browser-check", settings=settings
+)
 
 
 def check_case(browser: Browser, width: int, height: int, lang: str) -> None:

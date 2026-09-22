@@ -516,7 +516,7 @@ async def test_every_products_page_renders_for_an_admin(
 
     root = client.get("/shop", follow_redirects=False)
     assert root.status_code == 303
-    assert root.headers["location"] == f"/shop/{data.shop_id}"
+    assert root.headers["location"] == "/manage"
 
     for path in ("", "/products", "/orders", "/delivery", "/import"):
         response = client.get(f"/shop/{data.shop_id}{path}")

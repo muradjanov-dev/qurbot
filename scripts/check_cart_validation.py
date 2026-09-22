@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import Browser, Route, sync_playwright
 
+from app.core.config import settings
 from app.core.i18n import t
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,7 @@ def check(browser: Browser, lang: str) -> None:
         loader=FileSystemLoader(ROOT / "app/web/storefront/templates"), autoescape=True
     )
     env.globals["t"] = t
+    env.globals["settings"] = settings
     html = '<meta name="csrf-token" content="test"><button data-open-cart>Cart</button>'
     html += env.get_template("chat_cart.html").render(lang=lang, user=None)
     html += '<script src="/chat_cart.js"></script>'
