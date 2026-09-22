@@ -11,6 +11,8 @@ from aiogram.fsm.storage.memory import MemoryStorage, StorageKey
 from aiogram.types import Chat, Message
 
 from app.bot.handlers.guided_sales import GuidedStates, add_quantity, custom_quantity, navigate
+from app.core.config import settings
+from app.core.i18n import t
 from app.db.models.conversation import ConversationJob
 from app.db.models.user import User
 from app.services import chat_progress
@@ -82,7 +84,8 @@ async def test_durable_progress_restart_terminal_and_edit_failure(database, monk
     bot = SimpleNamespace(edit_message_text=AsyncMock())
     await chat_progress.update_chat_progress({"bot": bot})
     call = bot.edit_message_text.await_args.kwargs
-    assert call["message_id"] == 99 and "AI javob" in call["text"]
+    running_label = t("sales_progress_running", lang=settings.default_lang)
+    assert call["message_id"] == 99 and running_label in call["text"]
     assert call["reply_markup"].inline_keyboard[0][0].callback_data == "chat:operator"
     async with database() as session:
         job = await session.get(ConversationJob, result["id"])
@@ -91,7 +94,7 @@ async def test_durable_progress_restart_terminal_and_edit_failure(database, monk
         await session.commit()
     bot.edit_message_text.side_effect = RuntimeError("Telegram unavailable")
     await chat_progress.update_chat_progress({"bot": bot})
-    assert "AI javob" not in bot.edit_message_text.await_args.kwargs["text"]
+    assert running_label not in bot.edit_message_text.await_args.kwargs["text"]
     calls = bot.edit_message_text.await_count
     await chat_progress.update_chat_progress({"bot": bot})
     assert bot.edit_message_text.await_count == calls
@@ -99,13 +102,48 @@ async def test_durable_progress_restart_terminal_and_edit_failure(database, monk
         assert (await session.get(ConversationJob, result["id"])).status == "human"
 
 
-def test_all_seven_progress_phrases_and_terminal():
+def test_every_progress_phrase_is_reachable_and_terminal():
     now = datetime.now(UTC)
+    count = chat_progress.PHRASE_COUNT
+    assert count >= 20, "the carousel is meant to be long enough not to repeat"
     texts = set()
-    for job_id in range(7):
+    for job_id in range(count):
         job = ConversationJob(id=job_id, status="pending", created_at=now)
         texts.add(chat_progress.progress(job, "uz_latn", now)[1])
         assert chat_progress.progress(job, "ru", now + timedelta(seconds=60))[2]
         job.status = "completed"
-        assert chat_progress.progress(job, "uz_cyrl", now)[0] == 100
-    assert len(texts) == 7
+        assert chat_progress.progress(job, "uz_cyrl", now)[0] == chat_progress._DONE_SLOT
+    assert len(texts) == count
+
+
+def test_progress_text_rotates_every_configured_interval():
+    """The visible line has to move, and its slot with it, or no edit is sent."""
+    now = datetime.now(UTC)
+    step = settings.chat_progress_rotate_seconds
+    job = ConversationJob(id=0, status="pending", created_at=now)
+    seen = [
+        chat_progress.progress(job, "uz_cyrl", now + timedelta(seconds=step * n))
+        for n in range(chat_progress.PHRASE_COUNT)
+    ]
+    slots = [slot for slot, _text, _slow in seen]
+    assert len(set(slots)) == len(slots), "each interval must change the slot"
+    assert len({text for _slot, text, _slow in seen}) == chat_progress.PHRASE_COUNT
+    # One second in, nothing has moved yet.
+    assert chat_progress.progress(job, "uz_cyrl", now + timedelta(seconds=1))[0] == slots[0]
+
+
+def test_queued_and_running_never_share_a_slot():
+    now = datetime.now(UTC)
+    job = ConversationJob(id=0, status="pending", created_at=now)
+
+    def slots() -> set[int]:
+        return {
+            chat_progress.progress(job, "ru", now + timedelta(seconds=3 * n))[0]
+            for n in range(chat_progress.PHRASE_COUNT)
+        }
+
+    queued = slots()
+    job.status = "running"
+    running = slots()
+    assert not queued & running
+    assert chat_progress._DONE_SLOT not in queued | running

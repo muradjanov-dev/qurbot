@@ -8,13 +8,31 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.i18n import t
+from app.core.i18n import MESSAGES, t
 from app.core.logging import get_logger
 from app.db.models.conversation import Conversation, ConversationJob
 from app.db.models.user import User
 from app.db.session import async_session_factory
 
 logger = get_logger(__name__)
+
+
+def _phrase_count() -> int:
+    """How many rotating phrases the catalogue actually carries."""
+    count = 0
+    while f"sales_progress_{count}" in MESSAGES:
+        count += 1
+    return count
+
+
+# Derived once: adding a phrase to the catalogue lengthens the carousel with
+# no second place to update.
+PHRASE_COUNT = _phrase_count()
+
+# Slot is only a change-detector for "has the visible text moved?", so it has
+# to distinguish the same phase in the queued and running states. Multiplying
+# leaves room for both and stays clear of the terminal value below.
+_DONE_SLOT = 100
 
 
 def progress(job: ConversationJob, lang: str, now: datetime) -> tuple[int, str, bool]:
@@ -30,18 +48,21 @@ def progress(job: ConversationJob, lang: str, now: datetime) -> tuple[int, str, 
             if job.status == "failed"
             else "sales_progress_ready"
         )
-        return 100, t(key, lang=lang), False
-    # Offset by job ID lets all seven approved phrases appear across requests.
-    phase = min(age // 10, 6)
+        return _DONE_SLOT, t(key, lang=lang), False
+    slow = age >= settings.chat_progress_slow_after_seconds
+    # Offset by job ID so two customers waiting at the same moment do not read
+    # the same line, and every phrase gets used across requests.
+    phase = min(age // settings.chat_progress_rotate_seconds, PHRASE_COUNT - 1)
     copy = (
         t("sales_progress_slow", lang=lang)
-        if age >= 60
-        else t(f"sales_progress_{(job.id + phase) % 7}", lang=lang)
+        if slow
+        else t(f"sales_progress_{(job.id + phase) % PHRASE_COUNT}", lang=lang)
     )
     state = t(
         "sales_progress_running" if job.status == "running" else "sales_progress_queued", lang=lang
     )
-    return phase + (10 if job.status == "running" else 0), f"{state}\n{copy}", age >= 60
+    slot = phase * 2 + (1 if job.status == "running" else 0)
+    return slot, f"{state}\n{copy}", slow
 
 
 async def acknowledge(message: Message, session: AsyncSession, job_id: int, lang: str) -> None:
@@ -85,7 +106,7 @@ async def update_chat_progress(ctx: dict[str, Any]) -> None:
                     select(ConversationJob.id)
                     .where(
                         ConversationJob.telegram_status_id.is_not(None),
-                        ConversationJob.progress_slot != 100,
+                        ConversationJob.progress_slot != _DONE_SLOT,
                         or_(
                             ConversationJob.progress_lease_until.is_(None),
                             ConversationJob.progress_lease_until < now,
@@ -154,6 +175,10 @@ async def update_chat_progress(ctx: dict[str, Any]) -> None:
             await session.execute(
                 update(ConversationJob)
                 .where(ConversationJob.id == job_id)
-                .values(progress_slot=slot, progress_lease_until=now + timedelta(seconds=5))
+                .values(
+                    progress_slot=slot,
+                    progress_lease_until=now
+                    + timedelta(seconds=settings.chat_progress_rotate_seconds - 1),
+                )
             )
             await session.commit()
