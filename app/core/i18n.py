@@ -38,6 +38,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "🌐 Сайтни очиш ва буюртма бериш",
         "ru": "🌐 Открыть сайт и оформить заказ",
     },
+    "open_mini_app_prompt": {
+        "uz_latn": "Saytni oching 👇",
+        "uz_cyrl": "Сайтни очинг 👇",
+        "ru": "Откройте сайт 👇",
+    },
+    "open_mini_app_inline": {
+        "uz_latn": "🌐 Saytni ochish",
+        "uz_cyrl": "🌐 Сайтни очиш",
+        "ru": "🌐 Открыть сайт",
+    },
     "btn_send_contact": {
         "uz_latn": "📱 Raqamni yuborish",
         "uz_cyrl": "📱 Рақамни юбориш",

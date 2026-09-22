@@ -8,12 +8,21 @@ from app.core.config import settings
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("lang", ["uz_latn", "uz_cyrl", "ru"])
-async def test_webapp_launch_is_inline_not_reply_keyboard(monkeypatch, lang):
+@pytest.mark.parametrize(
+    ("lang", "prompt", "button"),
+    [
+        ("uz_latn", "Saytni oching 👇", "🌐 Saytni ochish"),
+        ("uz_cyrl", "Сайтни очинг 👇", "🌐 Сайтни очиш"),
+        ("ru", "Откройте сайт 👇", "🌐 Открыть сайт"),
+    ],
+)
+async def test_webapp_launch_is_inline_not_reply_keyboard(monkeypatch, lang, prompt, button):
     monkeypatch.setattr(settings, "storefront_webapp_url", "https://shop.example")
     message = AsyncMock()
     await launch_webapp(message, lang)
     markup = message.answer.call_args.kwargs["reply_markup"]
+    assert message.answer.call_args.args[0] == prompt
+    assert markup.inline_keyboard[0][0].text == button
     assert markup.inline_keyboard[0][0].web_app.url == "https://shop.example"
     assert not hasattr(markup, "keyboard")
 

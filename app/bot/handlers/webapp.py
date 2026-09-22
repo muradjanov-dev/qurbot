@@ -29,12 +29,12 @@ async def launch_webapp(message: Message, lang: str) -> None:
         return
     url = url.rstrip("/")
     await message.answer(
-        t("open_mini_app", lang=lang),
+        t("open_mini_app_prompt", lang=lang),
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text=t("open_mini_app", lang=lang), web_app=WebAppInfo(url=url)
+                        text=t("open_mini_app_inline", lang=lang), web_app=WebAppInfo(url=url)
                     )
                 ]
             ]
