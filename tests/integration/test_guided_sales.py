@@ -152,10 +152,10 @@ def test_queued_and_running_never_share_a_slot():
 async def test_waiting_customer_is_offered_the_way_back_on_every_message(database, monkeypatch):
     """The escape hatch has to be where a stuck customer actually looks.
 
-    Offering it only at the moment of handoff misses everyone who is already
-    waiting: their next message is filed to the operator queue and answered
-    with "an operator has been requested", and without a button on that reply
-    the same thing happens to every message after it.
+    Once an admin has claimed the conversation the assistant stands down, so
+    every later message is filed to the operator queue. Without a button on
+    that reply, an admin who claimed and went quiet holds the customer
+    indefinitely.
     """
     monkeypatch.setattr(chat_progress, "async_session_factory", database)
     message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=12, type="private"))
@@ -166,6 +166,12 @@ async def test_waiting_customer_is_offered_the_way_back_on_every_message(databas
         service = ConversationService(session)
         user = await session.get(User, 1)
         await service.handoff(user, channel="telegram")
+        # An admin takes it over; only then does the assistant stand down, and
+        # only then does the customer need a way back.
+        admin = User(tg_id=917456291, role="admin")
+        session.add(admin)
+        await session.flush()
+        await service.claim(admin, (await service.get_or_create(user)).id)
         result = await service.submit(user, "g'isht kerak", "stuck-one", "telegram")
         await session.commit()
         assert result["status"] == "human"

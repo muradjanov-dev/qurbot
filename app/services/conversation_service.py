@@ -191,7 +191,12 @@ class ConversationService:
             conversation_id=conversation.id,
             message_id=message.id,
             request_id=request_id,
-            status="pending" if conversation.status == "ai" else "human",
+            # Asking for a human does not switch the assistant off. There are
+            # no dedicated operators here -- only admins, who answer when they
+            # can -- so a request that merely pings them must not leave the
+            # customer with nobody. Only a conversation an admin has actually
+            # claimed stands the assistant down.
+            status="human" if conversation.status == "human" else "pending",
         )
         self.session.add(job)
         await self.session.flush()
@@ -249,10 +254,10 @@ class ConversationService:
         conversation = await self._lock((await self.get_or_create(user)).id)
         conversation.last_customer_channel = channel
         if conversation.status == "ai":
+            # Only a flag that the admins have been pinged. The assistant keeps
+            # answering until one of them actually claims the conversation, so
+            # nothing in flight is cancelled here and no generation is burned.
             conversation.status = "waiting"
-            conversation.generation += 1
-            conversation.lease_token = None
-            conversation.lease_until = None
             await OpsRepository(self.session).log_event(
                 "chat_handoff",
                 user_id=user.id,
@@ -260,24 +265,12 @@ class ConversationService:
                     "conversation_id": conversation.id,
                 },
             )
-            await self.session.execute(
-                update(ConversationNotification)
-                .where(
-                    ConversationNotification.conversation_id == conversation.id,
-                    ConversationNotification.kind.in_(["ai", "checkout"]),
-                    ConversationNotification.sent_at.is_(None),
-                )
-                .values(sent_at=datetime.now(UTC))
+            await self._append(
+                conversation,
+                "system",
+                t("web_chat_operator_requested", lang=user.lang, phone=settings.support_phone_text),
+                "web",
             )
-            await self.session.execute(
-                update(ConversationJob)
-                .where(
-                    ConversationJob.conversation_id == conversation.id,
-                    ConversationJob.status.in_(["pending", "running"]),
-                )
-                .values(status="human")
-            )
-            await self._append(conversation, "system", t("chat_waiting", lang=user.lang), "web")
             await self._notify_admins(
                 conversation,
                 f"handoff:{conversation.id}:{conversation.generation}",
@@ -295,14 +288,13 @@ class ConversationService:
         later message was filed straight to the operator queue and answered
         with "an operator has been requested", forever.
 
-        Only `waiting` is reversible. If an operator has actually joined
-        (`human`), the customer is mid-conversation with a person and this must
-        not pull the rug out from under them; they can ask the operator to
-        finish instead.
+        It is the customer's own conversation, so it works from `human` too: an
+        admin who claimed it and then went quiet would otherwise hold it
+        indefinitely. The admin sees the conversation leave their queue.
         """
         conversation = await self._lock((await self.get_or_create(user)).id)
         conversation.last_customer_channel = channel
-        if conversation.status != "waiting":
+        if conversation.status == "ai":
             return await self.transcript(conversation)
         conversation.status = "ai"
         conversation.operator_id = None
@@ -415,7 +407,28 @@ class ConversationService:
             raise ConversationConflict("already_claimed")
         conversation.status = "human"
         conversation.operator_id = admin.id
+        # Taking over is what stops the assistant: a reply already in flight
+        # would otherwise land on top of the operator's own first message.
         conversation.generation += 1
+        conversation.lease_token = None
+        conversation.lease_until = None
+        await self.session.execute(
+            update(ConversationNotification)
+            .where(
+                ConversationNotification.conversation_id == conversation.id,
+                ConversationNotification.kind.in_(["ai", "checkout"]),
+                ConversationNotification.sent_at.is_(None),
+            )
+            .values(sent_at=datetime.now(UTC))
+        )
+        await self.session.execute(
+            update(ConversationJob)
+            .where(
+                ConversationJob.conversation_id == conversation.id,
+                ConversationJob.status.in_(["pending", "running"]),
+            )
+            .values(status="human")
+        )
         user = await self.session.get(User, conversation.user_id)
         if user is not None:
             message = await self._append(
@@ -516,7 +529,7 @@ class DurableTools:
             service = ConversationService(session)
             conversation = await service._lock(self.conversation_id)
             if (
-                conversation.status != "ai"
+                conversation.status == "human"
                 or conversation.generation != self.generation
                 or conversation.lease_token != self.token
             ):
@@ -656,7 +669,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
             update(Conversation)
             .where(
                 Conversation.id == conversation_id,
-                Conversation.status == "ai",
+                Conversation.status.in_(["ai", "waiting"]),
                 or_(Conversation.lease_until.is_(None), Conversation.lease_until < now),
             )
             .values(lease_token=token, lease_until=now + timedelta(seconds=timeout + 30))
@@ -759,7 +772,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
             return
         conversation.lease_token = None
         conversation.lease_until = None
-        if conversation.status != "ai" or conversation.generation != generation or blocked:
+        if conversation.status == "human" or conversation.generation != generation or blocked:
             if job.status == "running":
                 job.status = "cancelled"
         else:

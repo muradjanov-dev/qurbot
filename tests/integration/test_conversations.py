@@ -114,7 +114,13 @@ async def test_claim_is_atomic_and_only_owner_may_reply_close(database):
         assert (await session.get(Conversation, first["conversation_id"])).status == "ai"
 
 
-async def test_handoff_during_network_fences_reply_without_waiting_for_model(database, monkeypatch):
+async def test_claim_during_network_fences_reply_without_waiting_for_model(database, monkeypatch):
+    """An admin taking over cuts off a reply still in flight.
+
+    The fence sits on `claim`, not on `handoff`: merely asking for a human
+    pings the admins and leaves the assistant working, so cancelling there
+    would throw away an answer the customer still wants.
+    """
     first = await submit(database)
     started, release = asyncio.Event(), asyncio.Event()
 
@@ -128,13 +134,46 @@ async def test_handoff_during_network_fences_reply_without_waiting_for_model(dat
     task = asyncio.create_task(module.process_conversation({}, first["conversation_id"]))
     await asyncio.wait_for(started.wait(), 5)
     async with database() as session:
-        await asyncio.wait_for(ConversationService(session).handoff(await session.get(User, 1)), 2)
+        service = ConversationService(session)
+        await asyncio.wait_for(service.handoff(await session.get(User, 1)), 2)
+        admin = User(tg_id=917456291, role="admin")
+        session.add(admin)
+        await session.flush()
+        await service.claim(admin, first["conversation_id"])
         await session.commit()
     release.set()
     await task
     async with database() as session:
         messages = (await session.scalars(select(ConversationMessage))).all()
         assert not any(message.text == "must never appear" for message in messages)
+
+
+async def test_handoff_alone_keeps_the_assistant_answering(database, monkeypatch):
+    """Asking for a human must not leave the customer with nobody.
+
+    There are no dedicated operators here, only admins who answer when they
+    can. A request that merely pings them used to switch the assistant off,
+    so every later message was filed to the queue and answered with "an
+    operator has been requested" -- indefinitely, if nobody claimed it.
+    """
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+
+    async def reply(self, text, lang, cart):
+        return "still here"
+
+    monkeypatch.setattr(module.DurableAgent, "reply", reply)
+    async with database() as session:
+        await ConversationService(session).handoff(await session.get(User, 1))
+        await session.commit()
+
+    job = await submit(database, text="fanera", request="after-handoff", channel="telegram")
+    assert job["status"] == "pending", "the assistant still takes the message"
+    await module.process_conversation({}, job["conversation_id"])
+    async with database() as session:
+        stored = await session.get(ConversationJob, job["id"])
+        assert stored.status == "completed"
+        answer = await session.get(ConversationMessage, stored.response_id)
+        assert answer.text == "still here"
 
 
 async def test_expired_worker_lease_is_recovered(database):
@@ -404,8 +443,12 @@ async def test_customer_can_take_back_an_unclaimed_handoff(database):
         assert job["status"] == "pending"
 
 
-async def test_resume_does_not_interrupt_an_operator(database):
-    """Once a person has joined, the customer is mid-conversation with them."""
+async def test_customer_can_leave_a_claimed_conversation(database):
+    """It is the customer's conversation, so they can take it back.
+
+    An admin who claims it and then goes quiet would otherwise hold it
+    indefinitely, which is the same dead end in a different costume.
+    """
     async with database() as session:
         service = ConversationService(session)
         user = await session.get(User, 1)
@@ -420,4 +463,5 @@ async def test_resume_does_not_interrupt_an_operator(database):
         user = await session.get(User, 1)
         result = await service.resume_ai(user, channel="telegram")
         await session.commit()
-        assert result["status"] == "human"
+        assert result["status"] == "ai"
+        assert (await service.get_or_create(user)).operator_id is None

@@ -35,6 +35,23 @@ _STRINGS = {
     ),
     "retry": ("Qayta urinish", "Қайта уриниш", "Повторить"),
     "request": ("So'rov", "Сўров", "Запрос"),
+    "operator_requested": (
+        (
+            "✅ Xabaringiz adminlarga yuborildi — ular ko'rib, shu "
+            "chatda javob beradi.\n\nShu orada AI yordamchi bilan davom "
+            "etavering, u ishlayapti.\n\nShoshilinch bo'lsa: {phone}"
+        ),
+        (
+            "✅ Хабарингиз админларга юборилди — улар кўриб, шу чатда "
+            "жавоб беради.\n\nШу орада AI ёрдамчи билан давом этаверинг, "
+            "у ишлаяпти.\n\nШошилинч бўлса: {phone}"
+        ),
+        (
+            "✅ Ваше сообщение отправлено админам — они посмотрят и "
+            "ответят в этом чате.\n\nПока можно продолжать с "
+            "AI-помощником, он работает.\n\nЕсли срочно: {phone}"
+        ),
+    ),
     "ai_fallback_found": (
         (
             "AI yordamchi hozir javob bera olmadi 🙁 Lekin katalogdan "

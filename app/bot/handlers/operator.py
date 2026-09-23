@@ -47,7 +47,10 @@ async def request_operator(message: Message, user: User, session: AsyncSession, 
         return
     await ConversationService(session).handoff(user, channel="telegram")
     await session.commit()
-    await message.answer(t("chat_waiting", lang=lang))
+    await message.answer(
+        t("web_chat_operator_requested", lang=lang, phone=settings.support_phone_text),
+        parse_mode=None,
+    )
 
 
 @router.callback_query(F.data.startswith("operator:"))

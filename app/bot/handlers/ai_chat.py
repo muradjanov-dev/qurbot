@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.handlers.customer import _format_quote_card, _not_a_menu_button
 from app.bot.keyboards.inline import get_order_confirm_keyboard
 from app.bot.states import BasketStates
+from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.conversation import Conversation, ConversationJob, ConversationMessage
@@ -224,12 +225,15 @@ async def handoff_callback(
 ) -> None:
     await ConversationService(session).handoff(user, channel="telegram")
     await session.commit()
-    await callback.answer(t("chat_waiting", lang=lang))
+    await callback.answer()
     if isinstance(callback.message, Message):
         await callback.message.answer(
-            t("chat_waiting", lang=lang) + "\n" + t("web_chat_waiting_hint", lang=lang),
+            t(
+                "web_chat_operator_requested",
+                lang=lang,
+                phone=settings.support_phone_text,
+            ),
             parse_mode=None,
-            reply_markup=resume_keyboard(lang),
         )
 
 
