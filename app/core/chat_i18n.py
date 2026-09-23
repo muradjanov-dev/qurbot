@@ -35,6 +35,54 @@ _STRINGS = {
     ),
     "retry": ("Qayta urinish", "Қайта уриниш", "Повторить"),
     "request": ("So'rov", "Сўров", "Запрос"),
+    "ai_fallback_found": (
+        (
+            "AI yordamchi hozir javob bera olmadi 🙁 Lekin katalogdan "
+            "shularni topdim — tanlang va savatga qo'shing:"
+        ),
+        (
+            "AI ёрдамчи ҳозир жавоб бера олмади 🙁 Лекин каталогдан "
+            "шуларни топдим — танланг ва саватга қўшинг:"
+        ),
+        (
+            "AI-помощник сейчас не ответил 🙁 Но вот что нашлось в "
+            "каталоге — выберите и добавьте в корзину:"
+        ),
+    ),
+    "ai_fallback_none": (
+        (
+            "AI yordamchi hozir javob bera olmadi 🙁\n\nMahsulot nomini "
+            "aniqroq yozing (masalan «fanera 12mm»), «🛒 Mahsulotlar va "
+            "narxlar» dan tanlang yoki operatorni chaqiring.\n\nTelefon: "
+            "{phone}"
+        ),
+        (
+            "AI ёрдамчи ҳозир жавоб бера олмади 🙁\n\nМаҳсулот номини "
+            "аниқроқ ёзинг (масалан «фанера 12мм»), «🛒 Маҳсулотлар ва "
+            "нархлар» дан танланг ёки операторни чақиринг.\n\nТелефон: "
+            "{phone}"
+        ),
+        (
+            "AI-помощник сейчас не ответил 🙁\n\nНапишите название точнее "
+            "(например «фанера 12мм»), выберите в «🛒 Товары и цены» или "
+            "позовите оператора.\n\nТелефон: {phone}"
+        ),
+    ),
+    "ai_resumed": (
+        "AI yordamchi suhbatni davom ettiradi. Operator kerak bo'lsa, yana chaqiring.",
+        "AI ёрдамчи суҳбатни давом эттиради. Оператор керак бўлса, яна чақиринг.",
+        "АИ-помощник продолжит разговор. Если нужен оператор — позовите снова.",
+    ),
+    "back_to_ai": (
+        "🤖 AI bilan davom etish",
+        "🤖 AI билан давом этиш",
+        "🤖 Продолжить с АИ",
+    ),
+    "waiting_hint": (
+        "Operator ulanguncha AI yordamchi bilan davom etishingiz mumkin.",
+        "Оператор улангунча AI ёрдамчи билан давом этишингиз мумкин.",
+        "Пока оператор подключается, можно продолжить с AI-помощником.",
+    ),
     "operator": ("Operatorni chaqirish", "Операторни чақириш", "Позвать оператора"),
     "ai": ("AI yordamchi bilan suhbat", "AI ёрдамчи билан суҳбат", "Чат с AI-помощником"),
     "requested": (

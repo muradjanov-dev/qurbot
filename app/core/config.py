@@ -232,6 +232,11 @@ class Settings(BaseSettings):
     # also puts the "call an operator" button under the message.
     chat_progress_slow_after_seconds: int = 60
 
+    # How often the admins may be told the assistant is failing. An
+    # outage fails every message at once, so a per-message alert would
+    # bury the operator inbox exactly when operators are needed most.
+    ai_outage_alert_interval_minutes: int = 30
+
     # Background Jobs (arq) — thresholds & weights (§10)
     price_staleness_aging_days: int = 5
     price_staleness_stale_days: int = 7

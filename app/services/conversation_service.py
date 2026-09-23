@@ -33,6 +33,7 @@ from app.db.models.conversation import (
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.session import async_session_factory
+from app.services.ai_fallback import deterministic_reply, warn_admins_of_ai_outage
 from app.services.cart_service import CartService, InvalidCartItem
 from app.services.house_shop import is_admin
 from app.services.sales_agent import AgentCart, DbAgentTools, SalesAgent, agent_available
@@ -282,6 +283,42 @@ class ConversationService:
                 f"handoff:{conversation.id}:{conversation.generation}",
                 t("chat_waiting", lang=user.lang),
             )
+        return await self.transcript(conversation)
+
+    async def resume_ai(self, user: User, channel: str = "web") -> dict[str, Any]:
+        """Let the customer take an unclaimed handoff back.
+
+        Asking for an operator used to be a one-way door: `handoff` moves
+        ai -> waiting, and the only route back is `close`, which an admin can
+        only call once they have claimed the conversation. A request nobody
+        claimed therefore left the customer with no assistant at all -- every
+        later message was filed straight to the operator queue and answered
+        with "an operator has been requested", forever.
+
+        Only `waiting` is reversible. If an operator has actually joined
+        (`human`), the customer is mid-conversation with a person and this must
+        not pull the rug out from under them; they can ask the operator to
+        finish instead.
+        """
+        conversation = await self._lock((await self.get_or_create(user)).id)
+        conversation.last_customer_channel = channel
+        if conversation.status != "waiting":
+            return await self.transcript(conversation)
+        conversation.status = "ai"
+        conversation.operator_id = None
+        # A new generation so any operator reply racing this lands on the old
+        # one and is discarded, exactly as handoff does in the other direction.
+        conversation.generation += 1
+        conversation.lease_token = None
+        conversation.lease_until = None
+        await self._append(
+            conversation, "system", t("web_chat_ai_resumed", lang=user.lang), channel
+        )
+        await OpsRepository(self.session).log_event(
+            "chat_handoff_cancelled",
+            user_id=user.id,
+            props={"conversation_id": conversation.id},
+        )
         return await self.transcript(conversation)
 
     def _admin(self, admin: User) -> None:
@@ -648,6 +685,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         message = await session.get(ConversationMessage, job.message_id)
         assert user is not None and message is not None
         job_id, generation, lang = job.id, conversation.generation, user.lang
+        conversation_user_id = conversation.user_id
         text, channel, tg_id = message.text, message.channel, user.tg_id
         blocked = user.is_blocked
         cart = AgentCart.from_dict(conversation.agent_state)
@@ -699,9 +737,16 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         # No exception text or model content is exposed to customers.
         error = "timeout" if isinstance(exc, TimeoutError) else "tool_or_worker_error"
         logger.warning("conversation_agent_failed", conversation_id=conversation_id, cause=error)
+    fallback_cards: list[dict[str, Any]] = []
     if not reply:
-        reply = t("chat_ai_unavailable", lang=lang)
+        # The model is not the only thing that can answer. Everything the bot
+        # did before the agent existed still works, so fall back to the
+        # deterministic catalogue search and hand back the same product cards
+        # the agent would have -- the selection and quantity keyboards are
+        # identical, so the customer can still fill a basket and order.
         error = error or "agent_unavailable"
+        reply, fallback_cards = await deterministic_reply(conversation_user_id, text, lang)
+        await warn_admins_of_ai_outage(error)
         cart.quote = None
         cart.order = None
 
@@ -729,7 +774,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
                 "assistant",
                 reply[: settings.agent_reply_max_chars],
                 channel,
-                tools.cards if error is None else [],
+                tools.cards if error is None else fallback_cards,
             )
             conversation.agent_state = cart.to_dict()
             job.status = "completed"

@@ -323,3 +323,101 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
             await add_quantity(callback, session, user, AsyncMock(), "uz_latn")
             snapshot = await CartService(session).get(user.id)
             assert snapshot.lines[0]["qty"] == "1"
+
+
+async def test_failed_ai_falls_back_to_catalogue_search_with_buttons(database, monkeypatch):
+    """A model failure must not end the conversation.
+
+    Before this the customer got "the AI could not answer" and nothing else --
+    no products, no buttons, no way to carry on -- while the admins were told
+    nothing at all.
+    """
+    from app.services import ai_fallback
+    from tests.integration.test_sales_agent_tools import _seed
+
+    monkeypatch.setattr(module.settings, "enabled_category_slugs", [])
+    async with database() as session:
+        await _seed(session)
+        await session.commit()
+
+    monkeypatch.setattr(ai_fallback, "async_session_factory", database)
+    monkeypatch.setattr(module, "async_session_factory", database)
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+
+    warned: list[str] = []
+
+    async def record(error: str) -> bool:
+        warned.append(error)
+        return True
+
+    monkeypatch.setattr(module, "warn_admins_of_ai_outage", record)
+
+    async def broken_reply(self, text, lang, cart):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(module.DurableAgent, "reply", broken_reply)
+
+    first = await submit(database, text="fanera", request="broken", channel="telegram")
+    await module.process_conversation({}, first["conversation_id"])
+
+    async with database() as session:
+        job = await session.get(ConversationJob, first["id"])
+        assert job.status == "completed" and job.error
+        answer = await session.get(ConversationMessage, job.response_id)
+        # The catalogue answered, and the cards carry the same shape the agent
+        # produces, so the existing product keyboards still apply.
+        assert "fanera" in answer.text.lower() or "фанера" in answer.text.lower()
+        assert answer.cards and answer.cards[0]["id"]
+
+    # The admins hear about the outage once, not once per customer message.
+    assert warned == ["tool_or_worker_error"]
+
+
+async def test_customer_can_take_back_an_unclaimed_handoff(database):
+    """Asking for an operator must not be a one-way door.
+
+    `handoff` moves ai -> waiting and only `close` returns it, which an admin
+    can call solely after claiming. A request nobody claimed therefore left the
+    customer with no assistant at all: every later message was filed to the
+    operator queue and answered with "an operator has been requested".
+    """
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        await service.handoff(user, channel="telegram")
+        await session.commit()
+        assert (await service.get_or_create(user)).status == "waiting"
+
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        resumed = await service.resume_ai(user, channel="telegram")
+        await session.commit()
+        assert resumed["status"] == "ai"
+
+    # A message now reaches the assistant again instead of the operator queue.
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        job = await service.submit(user, "fanera kerak", "after-resume", "telegram")
+        await session.commit()
+        assert job["status"] == "pending"
+
+
+async def test_resume_does_not_interrupt_an_operator(database):
+    """Once a person has joined, the customer is mid-conversation with them."""
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        await service.handoff(user, channel="telegram")
+        conversation = await service.get_or_create(user)
+        conversation.status = "human"
+        conversation.operator_id = 2
+        await session.commit()
+
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        result = await service.resume_ai(user, channel="telegram")
+        await session.commit()
+        assert result["status"] == "human"

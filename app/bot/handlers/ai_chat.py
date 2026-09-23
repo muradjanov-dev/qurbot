@@ -206,6 +206,25 @@ async def prepare_confirmation(
         )
 
 
+def resume_keyboard(lang: str) -> InlineKeyboardMarkup:
+    """Offered wherever the customer is told an operator was requested.
+
+    Asking for a human used to be irreversible: until an admin claimed and
+    closed the conversation, every later message was filed to the operator
+    queue and answered with "an operator has been requested". If nobody
+    claimed it, that was the end of the bot for that customer.
+    """
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("web_chat_back_to_ai", lang=lang), callback_data="chat:resume_ai"
+                )
+            ]
+        ]
+    )
+
+
 @router.callback_query(F.data == "chat:operator")
 async def handoff_callback(
     callback: CallbackQuery, session: AsyncSession, user: User, lang: str
@@ -213,6 +232,28 @@ async def handoff_callback(
     await ConversationService(session).handoff(user, channel="telegram")
     await session.commit()
     await callback.answer(t("chat_waiting", lang=lang))
+    if isinstance(callback.message, Message):
+        await callback.message.answer(
+            t("chat_waiting", lang=lang) + "\n" + t("web_chat_waiting_hint", lang=lang),
+            parse_mode=None,
+            reply_markup=resume_keyboard(lang),
+        )
+
+
+@router.callback_query(F.data == "chat:resume_ai")
+async def resume_ai_callback(
+    callback: CallbackQuery, session: AsyncSession, user: User, lang: str
+) -> None:
+    result = await ConversationService(session).resume_ai(user, channel="telegram")
+    await session.commit()
+    await callback.answer()
+    if isinstance(callback.message, Message):
+        await callback.message.answer(
+            t("web_chat_ai_resumed", lang=lang)
+            if result["status"] == "ai"
+            else t("web_chat_assigned", lang=lang),
+            parse_mode=None,
+        )
 
 
 @router.callback_query(F.data.startswith("chat:qty:"))
