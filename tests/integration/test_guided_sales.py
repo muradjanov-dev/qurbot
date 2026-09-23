@@ -147,3 +147,49 @@ def test_queued_and_running_never_share_a_slot():
     running = slots()
     assert not queued & running
     assert chat_progress._DONE_SLOT not in queued | running
+
+
+async def test_waiting_customer_is_offered_the_way_back_on_every_message(database, monkeypatch):
+    """The escape hatch has to be where a stuck customer actually looks.
+
+    Offering it only at the moment of handoff misses everyone who is already
+    waiting: their next message is filed to the operator queue and answered
+    with "an operator has been requested", and without a button on that reply
+    the same thing happens to every message after it.
+    """
+    monkeypatch.setattr(chat_progress, "async_session_factory", database)
+    message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=12, type="private"))
+    answer = AsyncMock(return_value=SimpleNamespace(message_id=77))
+    monkeypatch.setattr(Message, "answer", answer)
+
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        await service.handoff(user, channel="telegram")
+        result = await service.submit(user, "g'isht kerak", "stuck-one", "telegram")
+        await session.commit()
+        assert result["status"] == "human"
+        await chat_progress.acknowledge(message, session, result["id"], "uz_cyrl")
+
+    markup = answer.await_args.kwargs["reply_markup"]
+    assert markup is not None, "a waiting customer must be offered the way back"
+    assert markup.inline_keyboard[0][0].callback_data == "chat:resume_ai"
+    assert t("web_chat_waiting_hint", lang="uz_cyrl") in answer.await_args.args[0]
+
+
+async def test_answered_message_carries_no_resume_button(database, monkeypatch):
+    """The offer belongs to the operator queue, not to an ordinary AI reply."""
+    monkeypatch.setattr(chat_progress, "async_session_factory", database)
+    message = Message(message_id=2, date=datetime.now(UTC), chat=Chat(id=13, type="private"))
+    answer = AsyncMock(return_value=SimpleNamespace(message_id=78))
+    monkeypatch.setattr(Message, "answer", answer)
+
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        result = await service.submit(user, "fanera", "normal-one", "telegram")
+        await session.commit()
+        assert result["status"] == "pending"
+        await chat_progress.acknowledge(message, session, result["id"], "uz_cyrl")
+
+    assert answer.await_args.kwargs["reply_markup"] is None

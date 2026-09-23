@@ -35,6 +35,24 @@ PHRASE_COUNT = _phrase_count()
 _DONE_SLOT = 100
 
 
+def resume_markup(lang: str) -> InlineKeyboardMarkup:
+    """The way back to the assistant from an unclaimed handoff.
+
+    Built here rather than imported from the handlers: this module is loaded by
+    the worker, and reaching into `app.bot.handlers` from it would drag the
+    whole dispatcher in behind it.
+    """
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("web_chat_back_to_ai", lang=lang), callback_data="chat:resume_ai"
+                )
+            ]
+        ]
+    )
+
+
 def progress(job: ConversationJob, lang: str, now: datetime) -> tuple[int, str, bool]:
     created = (
         job.created_at.replace(tzinfo=UTC) if job.created_at.tzinfo is None else job.created_at
@@ -82,7 +100,14 @@ async def acknowledge(message: Message, session: AsyncSession, job_id: int, lang
         assert job is not None
         slot, text, _ = progress(job, lang, datetime.now(UTC))
         await session.commit()
-        sent = await message.answer(text, parse_mode=None)
+        # A message filed to the operator queue means the conversation is not
+        # with the assistant. Offer the way back here as well as at the moment
+        # of handoff: someone already waiting only ever sees this reply, and
+        # without the button their next message gets the same answer forever.
+        markup = resume_markup(lang) if job.status == "human" else None
+        if markup is not None:
+            text = f"{text}\n{t('web_chat_waiting_hint', lang=lang)}"
+        sent = await message.answer(text, parse_mode=None, reply_markup=markup)
         await session.execute(
             update(ConversationJob)
             .where(ConversationJob.id == job_id)

@@ -18,6 +18,7 @@ from app.db.models.conversation import Conversation, ConversationJob, Conversati
 from app.db.models.user import User
 from app.domain.optimizer.serde import deserialize_variant
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
+from app.services.chat_progress import resume_markup
 from app.services.conversation_service import ConversationService
 from app.services.sales_agent import AgentCart, agent_available
 
@@ -207,22 +208,14 @@ async def prepare_confirmation(
 
 
 def resume_keyboard(lang: str) -> InlineKeyboardMarkup:
-    """Offered wherever the customer is told an operator was requested.
+    """The way back from an unclaimed handoff.
 
-    Asking for a human used to be irreversible: until an admin claimed and
-    closed the conversation, every later message was filed to the operator
-    queue and answered with "an operator has been requested". If nobody
-    claimed it, that was the end of the bot for that customer.
+    Defined once in `chat_progress`, which the worker also uses when it
+    acknowledges a message that went to the operator queue -- the customer must
+    see the same offer whether they just asked for an operator or asked
+    yesterday and is still waiting.
     """
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=t("web_chat_back_to_ai", lang=lang), callback_data="chat:resume_ai"
-                )
-            ]
-        ]
-    )
+    return resume_markup(lang)
 
 
 @router.callback_query(F.data == "chat:operator")
