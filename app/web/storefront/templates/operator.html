@@ -32,6 +32,7 @@
 {% endblock %}
 {% block scripts %}
 <script id="operator-strings" type="application/json">{
+"currency": {{ t('web_currency', lang=lang)|tojson }},
 {% for key in ['waiting', 'mine', 'others', 'empty', 'select', 'customer', 'finish_confirm', 'requests', 'request_open', 'request_agreed', 'request_cancelled', 'resolution_note', 'resolve_first', 'price_request'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
 "user": {{ t('sales_customer', lang=lang)|tojson }}, "assistant": {{ t('web_chat_assistant', lang=lang)|tojson }},
 "operator": {{ t('web_chat_operator_name', lang=lang)|tojson }}, "system": "QurBot",

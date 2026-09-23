@@ -11,6 +11,7 @@ import hashlib
 import json
 import time
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
@@ -20,6 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.bot.formatters.common import format_uzs
 from app.core.config import settings
 from app.core.i18n import DEFAULT_LANG, t
 from app.core.logging import get_logger
@@ -33,7 +35,13 @@ from app.db.models.conversation import (
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.session import async_session_factory
-from app.services.ai_fallback import deterministic_reply, warn_admins_of_ai_outage
+from app.domain.normalize.text import normalize_query
+from app.services.ai_fallback import (
+    continue_clarification,
+    deterministic_reply,
+    missing_spec,
+    warn_admins_of_ai_outage,
+)
 from app.services.cart_service import CartService, InvalidCartItem
 from app.services.house_shop import is_admin
 from app.services.sales_agent import AgentCart, DbAgentTools, SalesAgent, agent_available
@@ -52,7 +60,7 @@ def message_data(message: ConversationMessage) -> dict[str, Any]:
         "role": message.role,
         "channel": message.channel,
         "text": message.text,
-        "cards": message.cards[:3],
+        "cards": message.cards[: settings.agent_search_limit],
         "created_at": message.created_at.isoformat(),
     }
 
@@ -120,7 +128,7 @@ class ConversationService:
             role=role,
             text=text,
             channel=channel,
-            cards=(cards or [])[:3],
+            cards=(cards or [])[: settings.agent_search_limit],
         )
         self.session.add(message)
         await self.session.flush()
@@ -610,10 +618,10 @@ class DurableTools:
                 cart.basket = []
                 cart.revision = (await shared.get(user.id)).revision
             if name == "search_products":
-                output["products"] = output.get("products", [])[:3]
+                output["products"] = output.get("products", [])[: settings.agent_search_limit]
                 self.cards = [
                     dict(product, reference=f"/product/{product['id']}")
-                    for product in output.get("products", [])[:3]
+                    for product in output.get("products", [])[: settings.agent_search_limit]
                 ]
             job.tool_results = [
                 *receipts,
@@ -733,12 +741,37 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         ]
         await session.commit()
 
+    effective_text = text
+    clarification: str | None = None
+    if not blocked:
+        if cart.clarification_query and cart.clarification_key:
+            continued = continue_clarification(
+                cart.clarification_query, cart.clarification_key, text
+            )
+            if continued is None:
+                clarification = cart.clarification_key
+            else:
+                effective_text = continued
+                clarification = missing_spec(effective_text)
+        else:
+            clarification = missing_spec(text)
+            if clarification:
+                effective_text = normalize_query(text).text_norm + " kerak"
+        if clarification:
+            cart.clarification_query = effective_text
+            cart.clarification_key = clarification
+        else:
+            cart.clarification_query = None
+            cart.clarification_key = None
+
     tools = DurableTools(conversation_id, generation, token, job_id)
     reply: str | None = None
     error: str | None = None
     started = time.monotonic()
     try:
-        if not blocked and agent_available():
+        if clarification:
+            reply = t(f"sales_clarify_{clarification}", lang=lang)
+        elif not blocked and agent_available():
             async with asyncio.timeout(timeout):
                 agent = DurableAgent(None, tools)
                 if channel == "web":
@@ -750,7 +783,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
                         "under a message."
                     )
                 try:
-                    reply = await agent.reply(text, lang, cart)
+                    reply = await agent.reply(effective_text, lang, cart)
                     error = agent.last_error
                 finally:
                     await agent.client.close()
@@ -766,7 +799,9 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         # the agent would have -- the selection and quantity keyboards are
         # identical, so the customer can still fill a basket and order.
         error = error or "agent_unavailable"
-        reply, fallback_cards = await deterministic_reply(conversation_user_id, text, lang)
+        reply, fallback_cards = await deterministic_reply(
+            conversation_user_id, effective_text, lang
+        )
         await warn_admins_of_ai_outage(error)
         cart.quote = None
         cart.order = None
@@ -916,10 +951,12 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                         markup = product_keyboard(response, snapshot.revision, customer.lang)
                         if response.cards:
                             text = text[:2800]
-                        for index, card in enumerate(response.cards[:3]):
+                        for index, card in enumerate(response.cards[: settings.agent_search_limit]):
                             price = card.get("price_from_uzs")
                             label = (
-                                f"{price} UZS / {card.get('unit', '')}"
+                                f"{format_uzs(Decimal(str(price)))} "
+                                f"{t('currency_suffix', lang=customer.lang)} / "
+                                f"{card.get('unit', '')}"
                                 if price is not None
                                 else t("web_product_confirm_required", lang=customer.lang)
                             )

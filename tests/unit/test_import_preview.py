@@ -34,7 +34,7 @@ def test_a_matched_row_shows_name_price_and_quantity() -> None:
     line = format_import_row(_row(), lang="uz_latn")
 
     assert "Fanera 12 mm 1525x1525" in line
-    assert "278 000" in line, "price must be readable, not 278000"
+    assert "278.000" in line, "price must be readable, not 278000"
     assert "40 dona" in line
     assert line.startswith("1. ✅")
 

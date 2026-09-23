@@ -86,9 +86,14 @@ The path, in order:
 1. UNDERSTAND. Work out what they are building and which material that needs. Ask one
    short question at a time when purpose or dimensions are missing -- never a list of
    questions.
-2. FIND. Call search_products. Offer only what it returns, at most three at a time, in
+2. FIND. Call search_products. Offer only what it returns, at most seven at a time, in
    the order returned. Never invent a product, a price or stock. If nothing fits, say so
    plainly and give the support phone.
+   For a broad request such as "taxta kerak" or "fanera va OSB kerak", ask for one
+   missing size at a time before naming specific variants. Format UZS with dot
+   thousands groups and no decimal tail (113.500 so'm).
+   When two different materials are requested together, search each one after
+   its size is clear and keep both in the reply; do not drop the second item.
 3. CONFIRM. Name the exact product, its unit and the quantity, and get a yes.
 4. ADD. Call set_basket_item yourself as soon as they agree -- do not ask them to add it.
    The quantity you set replaces the line; it never adds twice. Then say what is in the
@@ -258,6 +263,8 @@ class AgentCart:
     # answer a question about bricks when the customer had just asked about
     # boards.
     history_from: int = 0
+    clarification_query: str | None = None
+    clarification_key: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> AgentCart:
@@ -271,6 +278,8 @@ class AgentCart:
             quote_revision=data.get("quote_revision"),
             district_id=data.get("district_id"),
             history_from=int(data.get("history_from") or 0),
+            clarification_query=data.get("clarification_query"),
+            clarification_key=data.get("clarification_key"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -283,6 +292,8 @@ class AgentCart:
             "quote_revision": self.quote_revision,
             "district_id": self.district_id,
             "history_from": self.history_from,
+            "clarification_query": self.clarification_query,
+            "clarification_key": self.clarification_key,
         }
 
 

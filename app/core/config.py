@@ -206,7 +206,7 @@ class Settings(BaseSettings):
     agent_max_tool_rounds: int = 6
     # Plain-text messages remembered between turns (re-sent on every call).
     agent_history_max_messages: int = 12
-    agent_search_limit: int = 5
+    agent_search_limit: int = 7
     # Prompt-cache token prices relative to the model's input price
     # (per-model list prices live in `app.llm.pricing.RATES`).
     agent_cache_read_price_ratio: Decimal = Decimal("0.1")

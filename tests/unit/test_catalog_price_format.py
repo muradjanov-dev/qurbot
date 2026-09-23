@@ -13,12 +13,12 @@ from app.bot.formatters.common import format_catalog_price
 def test_live_offer_price_wins() -> None:
     """A shop's live price is the one someone will honour today."""
     assert (
-        format_catalog_price(Decimal("150000"), Decimal("157000"), lang="uz_latn") == "150 000 so'm"
+        format_catalog_price(Decimal("150000"), Decimal("157000"), lang="uz_latn") == "150.000 so'm"
     )
 
 
 def test_falls_back_to_the_supplier_list_price() -> None:
-    assert format_catalog_price(None, Decimal("157000"), lang="uz_latn") == "~157 000 so'm"
+    assert format_catalog_price(None, Decimal("157000"), lang="uz_latn") == "~157.000 so'm"
 
 
 def test_list_price_is_marked_so_it_does_not_read_as_a_quote() -> None:
@@ -33,5 +33,9 @@ def test_no_price_at_all_is_negotiable_not_zero() -> None:
 
 
 def test_currency_follows_the_language() -> None:
-    assert format_catalog_price(Decimal("60000"), None, lang="ru") == "60 000 сум"
-    assert format_catalog_price(Decimal("60000"), None, lang="uz_cyrl") == "60 000 сўм"
+    assert format_catalog_price(Decimal("60000"), None, lang="ru") == "60.000 сум"
+    assert format_catalog_price(Decimal("60000"), None, lang="uz_cyrl") == "60.000 сўм"
+
+
+def test_large_price_has_dot_groups_and_no_decimal_tail() -> None:
+    assert format_catalog_price(Decimal("1124670.0000"), None, lang="uz_latn") == "1.124.670 so'm"

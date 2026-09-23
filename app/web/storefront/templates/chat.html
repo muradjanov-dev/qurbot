@@ -59,6 +59,7 @@
   {{ key|tojson }}: {{ t('web_chat_' ~ key, lang=lang)|tojson }},
 {% endfor %}
   "unit_conflict": {{ t('web_chat_unit_conflict', lang=lang)|tojson }},
+  "currency": {{ t('web_currency', lang=lang)|tojson }},
   "limit": {{ t('sales_limit', lang=lang)|tojson }},
   "handoff_confirm": {{ t('sales_handoff_confirm', lang=lang)|tojson }}
 }</script>

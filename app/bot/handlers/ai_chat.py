@@ -1,5 +1,6 @@
 """Telegram adapter for the same durable conversation used by the storefront."""
 
+from decimal import Decimal
 from typing import Any
 
 from aiogram import F, Router
@@ -9,6 +10,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import format_uzs
 from app.bot.handlers.customer import _format_quote_card, _not_a_menu_button
 from app.bot.keyboards.inline import get_order_confirm_keyboard
 from app.bot.states import BasketStates
@@ -31,7 +33,7 @@ def product_keyboard(
     message: ConversationMessage, revision: int, lang: str
 ) -> InlineKeyboardMarkup:
     rows = []
-    for index, card in enumerate(message.cards[:3]):
+    for index, card in enumerate(message.cards[: settings.agent_search_limit]):
         rows.append(
             [
                 InlineKeyboardButton(
@@ -101,7 +103,7 @@ async def select_product(
         conversation = await session.get(Conversation, message.conversation_id) if message else None
         if message is None or conversation is None or conversation.user_id != user.id:
             raise InvalidCartItem("invalid_message")
-        if not 0 <= index < min(3, len(message.cards)):
+        if not 0 <= index < min(settings.agent_search_limit, len(message.cards)):
             raise InvalidCartItem("invalid_card")
         card = message.cards[index]
     except (InvalidCartItem, KeyError, ValueError):
@@ -110,7 +112,8 @@ async def select_product(
     await callback.answer()
     if isinstance(callback.message, Message):
         price = (
-            f"{card['price_from_uzs']} UZS / {card.get('unit', '')}"
+            f"{format_uzs(Decimal(str(card['price_from_uzs'])))} "
+            f"{t('currency_suffix', lang=lang)} / {card.get('unit', '')}"
             if card.get("price_from_uzs") is not None
             else t("sales_price_request", lang=lang)
         )
@@ -317,7 +320,7 @@ async def custom_product_quantity(
             not message
             or not conversation
             or conversation.user_id != user.id
-            or not 0 <= int(raw_index) < min(3, len(message.cards))
+            or not 0 <= int(raw_index) < min(settings.agent_search_limit, len(message.cards))
         ):
             raise ValueError("invalid_card")
         card = message.cards[int(raw_index)]

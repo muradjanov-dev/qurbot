@@ -28,6 +28,7 @@ from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import format_uzs
 from app.bot.keyboards.inline import get_admin_order_decision_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -275,12 +276,13 @@ async def notify_order(
         delivery_total += part.delivery_fee
         lines_str = "\n".join(
             f"   • {escape(line.product_name)} × {_format_qty(line.billed_qty)} "
-            f"{escape(line.pack_unit)} — {line.line_cost_uzs:,.0f} so'm"
+            f"{escape(line.pack_unit)} — {format_uzs(line.line_cost_uzs)} so'm"
             for line in group.lines
         )
         admin_sections.append(
             f"{lines_str}\n"
-            f"   <i>Jami: {part.subtotal:,.0f} + dostavka {part.delivery_fee:,.0f} so'm</i>"
+            f"   <i>Jami: {format_uzs(part.subtotal)} + dostavka "
+            f"{format_uzs(part.delivery_fee)} so'm</i>"
         )
 
     comment_line = f"💬 Izoh: {escape(order.comment)}\n" if order.comment else ""
@@ -293,9 +295,9 @@ async def notify_order(
         f"{comment_line}"
         f"\n" + "\n\n".join(admin_sections) + "\n\n"
         f"──────────────────────────\n"
-        f"Mahsulotlar: {items_total:,.0f} so'm\n"
-        f"Dostavka: {delivery_total:,.0f} so'm\n"
-        f"<b>JAMI: {order.grand_total_quoted:,.0f} so'm</b>"
+        f"Mahsulotlar: {format_uzs(items_total)} so'm\n"
+        f"Dostavka: {format_uzs(delivery_total)} so'm\n"
+        f"<b>JAMI: {format_uzs(order.grand_total_quoted)} so'm</b>"
     )
     lat, lng = order.delivery_lat, order.delivery_lng
     for admin_id in settings.admin_tg_ids:

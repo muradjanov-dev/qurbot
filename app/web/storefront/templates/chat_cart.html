@@ -18,9 +18,10 @@
   </form>
 </dialog>
 <script id="sales-strings" type="application/json">{
-{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum', 'address_invalid', 'contact_invalid', 'phone_invalid', 'name_invalid', 'district_invalid', 'session_error'] %}
+{% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum', 'address_invalid', 'contact_invalid', 'phone_invalid', 'name_invalid', 'district_invalid', 'session_error', 'estimated_line_total'] %}
   {{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},
 {% endfor %}
   "error": {{ t('web_chat_failed', lang=lang)|tojson }},
+  "currency": {{ t('web_currency', lang=lang)|tojson }},
   "conflict": {{ t('web_chat_cart_conflict', lang=lang)|tojson }}
 }</script>

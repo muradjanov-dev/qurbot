@@ -45,6 +45,7 @@ ASSET_VERSION = sha256(
             "chat.js",
             "session.js",
             "chat_cart.js",
+            "money.js",
             "operator.js",
             "location.js",
             "leaflet.js",

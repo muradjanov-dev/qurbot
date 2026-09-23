@@ -8,14 +8,9 @@ from app.domain.normalize.translit import latin_to_cyrillic_uz
 
 
 def format_uzs(amount: Decimal) -> str:
-    """Render a UZS amount as '1 520 000'.
-
-    Grouped with spaces rather than commas: a comma is a decimal separator in
-    both Uzbek and Russian convention, so '1,520,000' reads wrong to the people
-    actually using this bot.
-    """
+    """Render a whole-UZS amount with dot thousands groups."""
     whole = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    return f"{whole:,}".replace(",", " ")
+    return f"{whole:,}".replace(",", ".")
 
 
 def format_qty(value: Decimal) -> str:

@@ -200,7 +200,7 @@ async def test_catalog_and_product_pages(client: TestClient, test_session: Async
 
     detail = client.get(f"/product/{data.product_id}")
     assert detail.status_code == 200
-    assert "58 000" in detail.text  # cheapest live offer, space-grouped
+    assert "58.000" in detail.text  # cheapest live offer, dot-grouped
 
     assert client.get("/product/999999").status_code == 404
 
@@ -690,4 +690,4 @@ async def test_quote_does_not_promise_free_delivery_before_an_address(
     _sign_in(client, data.user_id)
     known = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
     assert known["variants"][0]["delivery_note"] is None
-    assert "40 000" in known["variants"][0]["delivery_total"]
+    assert "40.000" in known["variants"][0]["delivery_total"]

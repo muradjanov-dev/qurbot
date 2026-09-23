@@ -52,6 +52,36 @@ _LABELS = {
     "back": ("◀️ Orqaga", "◀️ Орқага", "◀️ Назад"),
     "close": ("✖️ Yopish", "✖️ Ёпиш", "✖️ Закрыть"),
     "cart": ("Savat", "Сават", "Корзина"),
+    "estimated_line_total": (
+        "Mahsulot jami (taxminiy)",
+        "Маҳсулот жами (тахминий)",
+        "Итого по товару (предварительно)",
+    ),
+    "clarify_fanera_thickness": (
+        "Fanera qalinligi necha mm? Masalan: 12 mm.",
+        "Фанера қалинлиги неча мм? Масалан: 12 мм.",
+        "Какая толщина фанеры в мм? Например: 12 мм.",
+    ),
+    "clarify_fanera_sheet_size": (
+        "Fanera listi qaysi o'lchamda kerak: 1525×1525 yoki 2440×1220 mm?",
+        "Фанера листи қайси ўлчамда керак: 1525×1525 ёки 2440×1220 мм?",
+        "Какой размер листа фанеры нужен: 1525×1525 или 2440×1220 мм?",
+    ),
+    "clarify_osb_thickness": (
+        "OSB qalinligi necha mm? Masalan: 9 mm.",
+        "OSB қалинлиги неча мм? Масалан: 9 мм.",
+        "Какая толщина OSB в мм? Например: 9 мм.",
+    ),
+    "clarify_taxta_size": (
+        "Taxta o'lchami qanday? Masalan: 38×168×6000 mm.",
+        "Тахта ўлчами қандай? Масалан: 38×168×6000 мм.",
+        "Какой размер доски нужен? Например: 38×168×6000 мм.",
+    ),
+    "clarify_anker_size": (
+        "Anker o'lchami qanday? Masalan: 10×112 mm.",
+        "Анкер ўлчами қандай? Масалан: 10×112 мм.",
+        "Какой размер анкера нужен? Например: 10×112 мм.",
+    ),
     "remove": ("🗑 O'chirish", "🗑 Ўчириш", "🗑 Удалить"),
     "name": ("Ismingiz", "Исмингиз", "Ваше имя"),
     "phone": ("Telefon", "Телефон", "Телефон"),

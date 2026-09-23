@@ -45,6 +45,62 @@ async def submit(factory, text="hello", request="one", channel="web"):
         return result
 
 
+async def test_seven_search_cards_survive_storage_and_web_snapshot(database) -> None:
+    async with database() as session:
+        user = await session.get(User, 1)
+        service = ConversationService(session)
+        conversation = await service.get_or_create(user)
+        cards = [{"id": n, "name": f"Oq anker 10x{n}"} for n in range(7)]
+        message = await service._append(conversation, "assistant", "Variants", "telegram", cards)
+        await session.commit()
+        from app.services.conversation_service import message_data
+
+        assert len(message_data(message)["cards"]) == 7
+        snapshot = await service.snapshot(user)
+        assert len(snapshot["messages"][0]["cards"]) == 7
+
+
+@pytest.mark.parametrize("first", ["fanera va OSB kerak", "fanera va taxta kerak"])
+async def test_multi_product_request_asks_each_missing_size(database, monkeypatch, first):
+    search = AsyncMock(return_value=("Mos mahsulotlar", []))
+    monkeypatch.setattr(module, "deterministic_reply", search)
+    monkeypatch.setattr(module, "warn_admins_of_ai_outage", AsyncMock())
+    replies = ["12 mm", "1525x1525", "9 mm" if "OSB" in first else "38x168x6000 mm"]
+    expected = ["sales_clarify_fanera_thickness", "sales_clarify_fanera_sheet_size"]
+    expected.append("sales_clarify_osb_thickness" if "OSB" in first else "sales_clarify_taxta_size")
+    from app.core.i18n import t
+
+    for index, text in enumerate([first, *replies]):
+        result = await submit(database, text, f"multi-{index}")
+        await module.process_conversation({}, result["conversation_id"])
+        async with database() as session:
+            snapshot = await ConversationService(session).snapshot(await session.get(User, 1))
+        answer = snapshot["messages"][-1]["text"]
+        assert answer == (t(expected[index]) if index < 3 else "Mos mahsulotlar")
+    search.assert_awaited_once()
+    assert "fanera" in search.call_args.args[1]
+    assert "1525x1525" in search.call_args.args[1]
+
+
+async def test_catalog_fallback_keeps_both_materials(database, monkeypatch):
+    from app.services import ai_fallback
+    from app.services.sales_agent import DbAgentTools
+
+    monkeypatch.setattr(ai_fallback, "async_session_factory", database)
+
+    async def search(self, name, args, cart):
+        family = "fanera" if "fanera" in args["query"] else "osb"
+        product_id = 1 if family == "fanera" else 2
+        return {"products": [{"id": product_id, "name": family, "price_from_uzs": "1135"}]}
+
+    monkeypatch.setattr(DbAgentTools, "run", search)
+    answer, cards = await ai_fallback.deterministic_reply(
+        1, "fanera 12 mm 1525x1525 va OSB 9 mm kerak", "uz_latn"
+    )
+    assert [card["name"] for card in cards] == ["fanera", "osb"]
+    assert "1.135" in answer
+
+
 async def test_channels_share_history_and_replays_do_not_duplicate(database):
     first = await submit(database)
     assert await submit(database) == first
@@ -166,7 +222,9 @@ async def test_handoff_alone_keeps_the_assistant_answering(database, monkeypatch
         await ConversationService(session).handoff(await session.get(User, 1))
         await session.commit()
 
-    job = await submit(database, text="fanera", request="after-handoff", channel="telegram")
+    job = await submit(
+        database, text="fanera 10 mm 1525x1525", request="after-handoff", channel="telegram"
+    )
     assert job["status"] == "pending", "the assistant still takes the message"
     await module.process_conversation({}, job["conversation_id"])
     async with database() as session:
@@ -324,7 +382,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
     prefix = "chat:checkout:" if checkout else "chat:product:"
     target = next(button for button in buttons if (button.callback_data or "").startswith(prefix))
     if not checkout:
-        assert "151000 UZS" in call.args[1]
+        assert "151.000" in call.args[1]
     message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=11, type="private"))
     callback = SimpleNamespace(data=target.callback_data, answer=AsyncMock(), message=message)
     monkeypatch.setattr(Message, "answer", AsyncMock())
@@ -348,7 +406,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
             assert not (await CartService(session).get(user.id)).lines
             selection = message.answer.await_args
             assert "1. " in selection.args[0]
-            assert "151000 UZS" in selection.args[0]
+            assert "151.000 so'm" in selection.args[0]
             quantities = selection.kwargs["reply_markup"].inline_keyboard[0]
             assert len(quantities) == 3
             callback.data = quantities[0].callback_data
@@ -396,7 +454,9 @@ async def test_failed_ai_falls_back_to_catalogue_search_with_buttons(database, m
 
     monkeypatch.setattr(module.DurableAgent, "reply", broken_reply)
 
-    first = await submit(database, text="fanera", request="broken", channel="telegram")
+    first = await submit(
+        database, text="fanera 10 mm 1525x1525", request="broken", channel="telegram"
+    )
     await module.process_conversation({}, first["conversation_id"])
 
     async with database() as session:
@@ -498,7 +558,9 @@ async def test_resumed_assistant_does_not_reanswer_the_backlog(database, monkeyp
         await service.resume_ai(await session.get(User, 1), channel="telegram")
         await session.commit()
 
-    job = await submit(database, text="taxta kerak", request="after", channel="telegram")
+    job = await submit(
+        database, text="taxta 38x168x6000 mm kerak", request="after", channel="telegram"
+    )
     await module.process_conversation({}, job["conversation_id"])
 
     assert seen, "the assistant ran"

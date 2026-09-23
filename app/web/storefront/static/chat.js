@@ -156,7 +156,7 @@
       card.append(element('p', 'notice warn tiny', strings.confirmation));
     }
     if (product.price_from_uzs !== undefined && product.price_from_uzs !== null) {
-      card.append(element('p', 'chat-product-price', `${new Intl.NumberFormat(document.documentElement.lang).format(Number(product.price_from_uzs))} UZS${product.unit ? ` / ${product.unit}` : ''}`));
+      card.append(element('p', 'chat-product-price', `${window.qurbotFormatUzs(product.price_from_uzs)} ${strings.currency}${product.unit ? ` / ${product.unit}` : ''}`));
     }
     const row = element('form', 'chat-product-actions');
     const label = element('label', 'field', `${strings.qty} (${unitCode})`);

@@ -65,6 +65,14 @@
       const remove = node('button', S.remove, 'btn btn-ghost btn-sm'); remove.type = 'button';
       qty.disabled = remove.disabled = busy || Boolean(sentBody);
       row.append(qty, node('span', item.unit_code), remove); lines.append(row);
+      if (item.line_total_uzs != null) {
+        if (item.display_unit_price_uzs != null) {
+          row.append(node('small', `${window.qurbotFormatUzs(item.display_unit_price_uzs)} ${S.currency} / ${item.unit_code}`));
+        } else if (item.display_pack_price_uzs != null) {
+          row.append(node('small', `${window.qurbotFormatUzs(item.display_pack_price_uzs)} ${S.currency} / ${item.display_pack_size} ${item.display_pack_unit}`));
+        }
+        row.append(node('strong', `${S.estimated_line_total}: ${window.qurbotFormatUzs(item.line_total_uzs)} ${S.currency}`));
+      }
       async function change(amount) {
         if (busy) return;
         lock(true); status.textContent = '';

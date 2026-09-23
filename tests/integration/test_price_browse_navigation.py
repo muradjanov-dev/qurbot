@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.price_browse import callback_price_category
+from app.bot.keyboards.inline import get_product_picker_keyboard
 
 
 def _callback(*, has_photo: bool) -> CallbackQuery:
@@ -37,6 +38,7 @@ async def test_back_from_product_card_restores_the_category(
     product = SimpleNamespace(
         id=11,
         name_uz="Fanera 12 mm",
+        name_ru="Fanera 12 mm",
         reference_price=None,
     )
 
@@ -68,4 +70,20 @@ async def test_back_from_product_card_restores_the_category(
         message.edit_text.assert_awaited_once()
         message.delete.assert_not_awaited()
         message.answer.assert_not_awaited()
+        text = message.edit_text.await_args.args[0]
+        assert "1. Fanera 12 mm —" in text
     callback.answer.assert_awaited_once()
+
+
+def test_long_timber_name_is_full_in_message_and_identifiable_on_button() -> None:
+    product = SimpleNamespace(
+        id=99,
+        name_uz="Taxta listvennitsa 45x140x6000 mm",
+        name_uz_cyrl=None,
+        name_ru="Доска лиственница 45x140x6000 мм",
+    )
+    markup = get_product_picker_keyboard([(product, "Kelishiladi")], lang="uz_latn")
+    button = markup.inline_keyboard[0][0]
+    assert button.callback_data == "price_prod:99"
+    assert "45x140x6000" in button.text
+    assert len(button.text) <= 34

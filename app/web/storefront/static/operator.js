@@ -68,7 +68,7 @@
         pin.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(item.lat)}&mlon=${encodeURIComponent(item.lng)}#map=16/${encodeURIComponent(item.lat)}/${encodeURIComponent(item.lng)}`;
         pin.target = '_blank'; pin.rel = 'noopener'; card.append(pin);
       }
-      for (const line of item.items) card.append(el('p', `${line.name} — ${line.qty} ${line.unit_code} · ${line.requires_confirmation ? S.price_request : line.reference_unit_price == null ? '' : line.reference_unit_price + ' UZS'}`));
+      for (const line of item.items) card.append(el('p', `${line.name} — ${line.qty} ${line.unit_code} · ${line.requires_confirmation ? S.price_request : line.reference_unit_price == null ? '' : window.qurbotFormatUzs(line.reference_unit_price) + ' ' + S.currency}`));
       if (item.resolution_note) card.append(el('p', item.resolution_note));
       if (owned && item.status === 'open') {
         const note = el('textarea'); note.placeholder = S.resolution_note; note.setAttribute('aria-label', S.resolution_note);

@@ -17,7 +17,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_catalog_price, format_qty, localized_name
+from app.bot.formatters.common import (
+    esc,
+    format_catalog_price,
+    format_qty,
+    format_uzs,
+    localized_name,
+)
 from app.bot.handlers.customer import _format_parse_table
 from app.bot.keyboards.inline import (
     get_all_products_keyboard,
@@ -29,6 +35,7 @@ from app.bot.keyboards.inline import (
 from app.bot.states import BasketStates
 from app.core.config import settings
 from app.core.i18n import t
+from app.db.models.catalog import CanonicalProduct
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.domain.parsing.parser import is_qty_orderable
@@ -38,6 +45,22 @@ logger = logging.getLogger(__name__)
 router = Router(name="price_browse")
 
 _MAX_PRODUCTS = 30
+
+
+def _full_product_list(
+    products: list[tuple[CanonicalProduct, str]], lang: str, *, start: int = 1
+) -> str:
+    """The message carries full names and prices; buttons carry short numbered choices."""
+    rows = []
+    for number, (product, price) in enumerate(products, start=start):
+        name = localized_name(
+            product.name_uz,
+            product.name_ru,
+            lang,
+            name_uz_cyrl=getattr(product, "name_uz_cyrl", None),
+        )
+        rows.append(f"{number}. {esc(name)} — {esc(price)}")
+    return "\n".join(rows)
 
 
 async def _replace_catalog_screen(
@@ -140,7 +163,9 @@ async def callback_price_category(
     category_name = localized_name(category.name_uz, category.name_ru, lang)
     await _replace_catalog_screen(
         callback.message,
-        t("price_browse_header", lang=lang, category=category_name),
+        t("price_browse_header", lang=lang, category=category_name)
+        + "\n\n"
+        + _full_product_list(listed, lang),
         get_product_picker_keyboard(listed, lang=lang),
     )
     await callback.answer()
@@ -187,7 +212,8 @@ async def callback_all_products(
     await _replace_catalog_screen(
         callback.message,
         f"{t('all_products_header', lang=lang, count=total)}\n"
-        f"{t('price_reference_hint', lang=lang)}",
+        f"{t('price_reference_hint', lang=lang)}\n\n"
+        + _full_product_list(listed, lang, start=page * page_size + 1),
         get_all_products_keyboard(listed, page=page, pages=pages, lang=lang),
     )
     await callback.answer()
@@ -224,8 +250,8 @@ async def callback_product_detail(
             lang=lang,
             name=esc(product.name_uz),
             brand=esc(product.brand or "—"),
-            min_price=f"{min(prices):,.0f}",
-            max_price=f"{max(prices):,.0f}",
+            min_price=format_uzs(min(prices)),
+            max_price=format_uzs(max(prices)),
             unit=product.base_unit_code,
         )
     else:

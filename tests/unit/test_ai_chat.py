@@ -40,3 +40,17 @@ def test_agent_filter_accepts_i18n_underscore_context() -> None:
     # context without binding it to the event argument a second time.
     with patch("app.bot.handlers.ai_chat.agent_available", return_value=True):
         assert _agent_is_available(event, _=lambda key: key, lang="uz_latn") is True
+
+
+def test_seven_catalog_variants_have_selection_buttons() -> None:
+    message = ConversationMessage(
+        id=42,
+        cards=[
+            {"name": f"Oq anker 10x{length}", "id": index}
+            for index, length in enumerate((72, 92, 112, 132, 152, 182, 202), start=1)
+        ],
+    )
+    rows = product_keyboard(message, 7, "uz_latn").inline_keyboard
+    assert [row[0].callback_data for row in rows[:7]] == [
+        f"chat:product:42:{index}:7" for index in range(7)
+    ]

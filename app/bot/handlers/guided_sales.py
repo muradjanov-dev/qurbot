@@ -1,5 +1,6 @@
 """Deterministic quantity, cart navigation and manual enquiry wizard (no AI calls)."""
 
+from decimal import Decimal
 from uuid import uuid4
 
 from aiogram import F, Router
@@ -9,7 +10,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import localized_name
+from app.bot.formatters.common import format_uzs, localized_name
 from app.bot.keyboards.inline import region_label
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
@@ -82,12 +83,25 @@ async def show_cart(message: Message, session: AsyncSession, user: User, lang: s
     text = t("sales_cart", lang=lang) + "\n\n"
     buttons = []
     for line in lines:
-        label = (
-            t("sales_price_request", lang=lang)
-            if line["requires_confirmation"]
-            else f"{line['reference_unit_price']} UZS / {line['price_unit_code']}"
-        )
-        text += f"{line['canonical_name']} — {line['qty']} {line['unit_code']}\n{label}\n\n"
+        currency = t("currency_suffix", lang=lang)
+        if line["requires_confirmation"]:
+            label = t("sales_price_request", lang=lang)
+        elif line["display_unit_price_uzs"] is not None:
+            price = format_uzs(Decimal(line["display_unit_price_uzs"]))
+            label = f"{price} {currency} / {line['unit_code']}"
+        elif line["display_pack_price_uzs"] is not None:
+            price = format_uzs(Decimal(line["display_pack_price_uzs"]))
+            label = f"{price} {currency} / {line['display_pack_size']} {line['display_pack_unit']}"
+        else:
+            price = format_uzs(Decimal(line["reference_unit_price"]))
+            label = f"{price} {currency} / {line['price_unit_code']}"
+        text += f"{line['canonical_name']} — {line['qty']} {line['unit_code']}\n{label}\n"
+        if line["line_total_uzs"] is not None:
+            text += (
+                f"{t('sales_estimated_line_total', lang=lang)}: "
+                f"{format_uzs(Decimal(line['line_total_uzs']))} {currency}\n"
+            )
+        text += "\n"
         buttons.extend(
             [
                 (

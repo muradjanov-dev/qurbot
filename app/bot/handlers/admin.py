@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
@@ -6,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_catalog_price
+from app.bot.formatters.common import esc, format_catalog_price, format_uzs
 from app.bot.keyboards.inline import (
     get_admin_admins_keyboard,
     get_admin_back_keyboard,
@@ -214,7 +216,7 @@ async def cb_admin_stats(
             skus=skus or 0,
             offers=offers or 0,
             orders=orders or 0,
-            gmv=f"{gmv or 0:,.0f}",
+            gmv=format_uzs(gmv or Decimal(0)),
             unmatched=unmatched or 0,
         ),
         reply_markup=get_admin_back_keyboard(lang=lang),

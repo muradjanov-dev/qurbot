@@ -2,6 +2,7 @@
 # ruff: noqa: F811
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -10,7 +11,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage, StorageKey
 from aiogram.types import Chat, Message
 
-from app.bot.handlers.guided_sales import GuidedStates, add_quantity, custom_quantity, navigate
+from app.bot.handlers.guided_sales import (
+    GuidedStates,
+    add_quantity,
+    custom_quantity,
+    navigate,
+    show_cart,
+)
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.conversation import ConversationJob
@@ -20,6 +27,22 @@ from app.services.cart_service import CartService
 from app.services.conversation_service import ConversationService
 from tests.integration.test_conversations import database  # noqa: F401
 from tests.integration.test_unified_cart import seeded  # noqa: F401
+
+
+async def test_hundred_anchors_show_correct_cart_total(test_session, seeded, monkeypatch) -> None:
+    user, product, offer = seeded
+    product.name_uz = "Oq anker 10x112"
+    offer.price_per_pack = offer.price_per_base_unit = Decimal("1135")
+    await test_session.flush()
+    await CartService(test_session).set_item(user.id, product.id, "100", expected_revision=0)
+    message = Message(message_id=99, date=datetime.now(UTC), chat=Chat(id=701, type="private"))
+    answer = AsyncMock()
+    monkeypatch.setattr(Message, "answer", answer)
+    await show_cart(message, test_session, user, "uz_latn")
+    rendered = answer.await_args.args[0]
+    assert "1.135 so'm / dona" in rendered
+    assert "113.500 so'm" in rendered
+    assert "1135.0000" not in rendered
 
 
 @pytest.mark.parametrize("raw", ["155", "155,5", "-1", "0", "NaN", "1000001", "0.0000001", "hello"])

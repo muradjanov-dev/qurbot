@@ -14,7 +14,7 @@ from aiogram.types import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_qty
+from app.bot.formatters.common import esc, format_qty, format_uzs
 from app.bot.formatters.import_preview import (
     ImportPreviewRow,
     format_import_page,
@@ -145,15 +145,16 @@ async def cmd_shop_orders(
     for part in pending_parts:
         lines_text = "\n".join(
             f"• Mahsulot #{item.canonical_id} — {item.qty:g} {item.unit_code} "
-            f"({item.line_total:,.0f} so'm)"
+            f"({format_uzs(item.line_total)} so'm)"
             for item in part.items
         )
         total_sum = part.subtotal + part.delivery_fee
         msg_text = (
             f"🔔 <b>Yangi buyurtma #{part.order_id} (Qism #{part.id})</b>\n\n"
             f"{lines_text}\n\n"
-            f"Jami: <b>{total_sum:,.0f} so'm</b> "
-            f"(Mahsulotlar: {part.subtotal:,.0f} + Yetkazish: {part.delivery_fee:,.0f})"
+            f"Jami: <b>{format_uzs(total_sum)} so'm</b> "
+            f"(Mahsulotlar: {format_uzs(part.subtotal)} + "
+            f"Yetkazish: {format_uzs(part.delivery_fee)})"
         )
         await message.answer(msg_text, reply_markup=get_shop_order_decision_keyboard(part.id))
 
@@ -293,7 +294,7 @@ async def handle_quick_price_update(
 
     prod_name = decision.candidates[0].name_uz if decision.candidates else prod_phrase
     await message.answer(
-        t("price_updated_success", lang=lang, product_name=prod_name, price=f"{price_val:,.0f}")
+        t("price_updated_success", lang=lang, product_name=prod_name, price=format_uzs(price_val))
     )
 
 
@@ -826,7 +827,7 @@ def _format_product_list(
                 unit_str = p.pack_unit_code or "dona"
                 lines.append(
                     f"{staleness_badge} <b>{esc(p.raw_name)}</b>\n"
-                    f"   💰 {p.price_per_pack:,.0f} so'm / {p.pack_size:g} {unit_str}\n"
+                    f"   💰 {format_uzs(p.price_per_pack)} so'm / {p.pack_size:g} {unit_str}\n"
                     f"   📦 {p.stock_status}"
                 )
     return "\n".join(lines)
@@ -860,10 +861,10 @@ async def cmd_delivery_rules(
     if rules:
         for r in rules:
             district_name = r.district.name_uz if r.district else "Barcha tumanlar"
-            free_info = f", bepul {r.free_above:,.0f}+ dan" if r.free_above else ""
-            min_info = f", min {r.min_order:,.0f}" if r.min_order > 0 else ""
+            free_info = f", bepul {format_uzs(r.free_above)}+ dan" if r.free_above else ""
+            min_info = f", min {format_uzs(r.min_order)}" if r.min_order > 0 else ""
             text += (
-                f"📍 <b>{district_name}</b>: {r.fee:,.0f} so'm{free_info}{min_info} "
+                f"📍 <b>{district_name}</b>: {format_uzs(r.fee)} so'm{free_info}{min_info} "
                 f"({r.eta_hours}h)\n"
             )
     else:
@@ -1057,7 +1058,7 @@ def _render_product_card(product: ShopProduct, lang: str) -> str:
         "prod_card",
         lang=lang,
         name=esc(product.raw_name),
-        price=f"{product.price_per_pack:,.0f}",
+        price=format_uzs(product.price_per_pack),
         pack=f"{format_qty(product.pack_size)} {esc(unit)}",
         stock=t(f"prod_stock_{product.stock_status}", lang=lang),
         active=t("prod_yes" if product.is_active else "prod_no", lang=lang),
@@ -1143,7 +1144,7 @@ async def handle_product_price_value(
     await session.commit()
     await state.set_state(None)
 
-    await message.answer(t("prod_price_updated", lang=lang, price=f"{price:,.0f}"))
+    await message.answer(t("prod_price_updated", lang=lang, price=format_uzs(price)))
     await message.answer(
         _render_product_card(product, lang),
         reply_markup=get_product_edit_keyboard(product.id, product.is_active, lang=lang),

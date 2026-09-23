@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.bot.formatters.common import esc, format_qty
+from app.bot.formatters.common import esc, format_qty, format_uzs
 from app.core.i18n import t
 
 
@@ -33,7 +33,7 @@ def _price_part(row: ImportPreviewRow, lang: str) -> str:
     if row.price is None:
         return t("import_row_no_price", lang=lang)
     unit = f" / {esc(row.unit)}" if row.unit else ""
-    return f"<b>{row.price:,.0f}</b> so'm{unit}".replace(",", " ")
+    return f"<b>{format_uzs(row.price)}</b> so'm{unit}"
 
 
 def format_import_row(row: ImportPreviewRow, lang: str) -> str:

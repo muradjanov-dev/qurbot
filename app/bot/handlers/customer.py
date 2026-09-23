@@ -19,7 +19,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import esc, format_qty, shorten_button_label
+from app.bot.formatters.common import esc, format_qty, format_uzs, shorten_button_label
 from app.bot.handlers.shop_listing import send_listing_photos
 from app.bot.keyboards.inline import (
     get_address_confirm_keyboard,
@@ -312,7 +312,7 @@ async def _process_basket_input(
             if item["status"] in ("ask_user", "unresolved"):
                 for cand in item["candidates"]:
                     price = min_price_by_canonical.get(cand["canonical_id"])
-                    cand["min_price"] = f"{price:,.0f}" if price is not None else None
+                    cand["min_price"] = format_uzs(price) if price is not None else None
 
     serialized_lines = (existing_lines or []) + new_lines
     if not await _persist_bot_cart(state, session, serialized_lines):
@@ -1366,7 +1366,7 @@ async def callback_confirm_order(
                 "order_created_success",
                 lang=lang,
                 order_id=order.id,
-                total=f"{order.grand_total_quoted:,.0f}",
+                total=format_uzs(order.grand_total_quoted),
             ),
         )
         if pebbles > 0:
@@ -1397,7 +1397,7 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
     text_lines = ["📦 <b>Sizning buyurtmalaringiz:</b>\n"]
     for o in orders[:5]:
         text_lines.append(
-            f"• <b>#{o.id}</b> — {o.grand_total_quoted:,.0f} so'm ({o.status})\n"
+            f"• <b>#{o.id}</b> — {format_uzs(o.grand_total_quoted)} so'm ({o.status})\n"
             f"  Manzil: {o.delivery_address}"
         )
     await message.answer("\n\n".join(text_lines))
@@ -1534,7 +1534,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     # parts and the shop notifications, where it is actually needed.
     item_lines = [
         f"• {esc(line.product_name)} × {format_qty(line.billed_qty)} {esc(line.pack_unit)} "
-        f"....... {line.line_cost_uzs:,.0f}"
+        f"....... {format_uzs(line.line_cost_uzs)}"
         for group in variant.shop_groups
         for line in group.lines
     ]
@@ -1545,7 +1545,7 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
         t(
             "quote_savings",
             lang=lang,
-            amount=f"{variant.savings_vs_worst_uzs:,.0f}",
+            amount=format_uzs(variant.savings_vs_worst_uzs),
             pct=f"{variant.savings_pct:.1f}",
         )
         if variant.savings_vs_worst_uzs > Decimal("0")
@@ -1563,9 +1563,9 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
 
     summary = (
         f"{divider}\n"
-        f"{t('quote_items_total', lang=lang)}      {variant.items_total_uzs:,.0f} so'm\n"
-        f"{t('quote_delivery_total', lang=lang)}   {variant.delivery_total_uzs:,.0f} so'm\n"
-        f"<b>{t('quote_grand_total', lang=lang)}   {variant.grand_total_uzs:,.0f} so'm</b>\n"
+        f"{t('quote_items_total', lang=lang)}      {format_uzs(variant.items_total_uzs)} so'm\n"
+        f"{t('quote_delivery_total', lang=lang)}   {format_uzs(variant.delivery_total_uzs)} so'm\n"
+        f"<b>{t('quote_grand_total', lang=lang)}   {format_uzs(variant.grand_total_uzs)} so'm</b>\n"
         f"{savings_str}\n"
         f"{coverage_str}\n"
         f"{eta_str}"

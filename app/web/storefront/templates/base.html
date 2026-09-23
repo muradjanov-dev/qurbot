@@ -109,6 +109,7 @@
 
   <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, verified: {{ (user is not none and user.tg_id is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
   <script src="{{ static_url }}/session.js?v={{ asset_version }}" defer></script>
+  <script src="{{ static_url }}/money.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/app.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/leaflet.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/location.js?v={{ asset_version }}" defer></script>

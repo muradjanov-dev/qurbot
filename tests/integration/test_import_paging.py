@@ -77,7 +77,7 @@ async def test_the_first_page_shows_the_rows_not_a_count(test_session: AsyncSess
     text, keyboard = await _render_import_page(test_session, batch_id, 1, "uz_latn")
 
     assert "Fanera 12 mm 1525x1525" in text, "a matched row shows the catalogue name"
-    assert "278 000" in text, "the price is what the owner was asked to check"
+    assert "278.000" in text, "the price is what the owner was asked to check"
     assert "1/2" in str(keyboard), "navigation says where in the file this is"
     assert f"{ROW_COUNT}" in text
 

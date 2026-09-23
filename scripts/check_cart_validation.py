@@ -21,12 +21,19 @@ def check(browser: Browser, lang: str) -> None:
     env.globals["settings"] = settings
     html = '<meta name="csrf-token" content="test"><button data-open-cart>Cart</button>'
     html += env.get_template("chat_cart.html").render(lang=lang, user=None)
-    html += '<script src="/chat_cart.js"></script>'
+    html += '<script src="/money.js"></script><script src="/chat_cart.js"></script>'
     cart = {
         "revision": 1,
         "requires_confirmation": True,
         "lines": [
-            {"canonical_id": 1, "canonical_name": "Test product", "qty": "1", "unit_code": "dona"}
+            {
+                "canonical_id": 1,
+                "canonical_name": "Test product",
+                "qty": "100",
+                "unit_code": "dona",
+                "display_unit_price_uzs": "1135",
+                "line_total_uzs": "113500",
+            }
         ],
     }
     posts = []
@@ -38,6 +45,8 @@ def check(browser: Browser, lang: str) -> None:
             r.fulfill(body=html, content_type="text/html")
         elif path == "/chat_cart.js":
             r.fulfill(path=str(ROOT / "app/web/storefront/static/chat_cart.js"))
+        elif path == "/money.js":
+            r.fulfill(path=str(ROOT / "app/web/storefront/static/money.js"))
         elif path == "/api/cart":
             r.fulfill(json=cart)
         elif path == "/api/checkout/options":
@@ -59,6 +68,7 @@ def check(browser: Browser, lang: str) -> None:
     page.goto("https://cart.test/")
     page.locator("[data-open-cart]").click()
     page.wait_for_function("!document.querySelector('[data-checkout-submit]').disabled")
+    assert "113.500" in page.locator("[data-cart-lines]").inner_text()
     page.locator("[name=name]").fill("Test User")
     page.locator("[name=phone]").fill("+998900000000")
     page.locator("[name=district]").select_option("1")

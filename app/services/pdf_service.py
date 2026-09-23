@@ -24,12 +24,12 @@ from reportlab.platypus import (  # type: ignore[import-untyped]
     TableStyle,
 )
 
-from app.bot.formatters.common import format_qty
+from app.bot.formatters.common import format_qty, format_uzs
 from app.domain.optimizer.models import QuoteVariant
 
 
 def _fmt_uzs(amount: Decimal) -> str:
-    return f"{amount:,.0f} so'm"
+    return f"{format_uzs(amount)} so'm"
 
 
 def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> bytes:

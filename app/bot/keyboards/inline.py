@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.bot.formatters.common import localized_name, shorten_button_label
+from app.bot.formatters.common import format_uzs, localized_name, shorten_button_label
 from app.core.config import settings
 from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.catalog import CanonicalProduct, Category
@@ -111,6 +111,12 @@ def _row_label(name: str, suffix: str) -> str:
     return f"{shorten_button_label(name, max(room, 8))} — {suffix}"
 
 
+def _picker_label(name: str, number: int) -> str:
+    """Keep the numbered choice and variant size legible on a phone."""
+    prefix = f"{number}. "
+    return prefix + shorten_button_label(name, settings.inline_button_max_chars - len(prefix))
+
+
 def get_product_picker_keyboard(
     products: Sequence[tuple["CanonicalProduct", str]],
     lang: str = DEFAULT_LANG,
@@ -121,9 +127,17 @@ def get_product_picker_keyboard(
     it came from -- a live offer, a supplier's list, or nothing at all.
     """
     builder = InlineKeyboardBuilder()
-    for product, price_text in products:
+    for number, (product, _price_text) in enumerate(products, start=1):
         builder.button(
-            text=_row_label(product.name_uz, price_text),
+            text=_picker_label(
+                localized_name(
+                    product.name_uz,
+                    product.name_ru,
+                    lang,
+                    name_uz_cyrl=getattr(product, "name_uz_cyrl", None),
+                ),
+                number,
+            ),
             callback_data=f"price_prod:{product.id}",
         )
     builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
@@ -139,9 +153,18 @@ def get_all_products_keyboard(
 ) -> InlineKeyboardMarkup:
     """One page of the whole catalogue, for customers rather than operators."""
     builder = InlineKeyboardBuilder()
-    for product, price_text in products:
+    start = page * settings.customer_products_page_size + 1
+    for number, (product, _price_text) in enumerate(products, start=start):
         builder.button(
-            text=_row_label(product.name_uz, price_text),
+            text=_picker_label(
+                localized_name(
+                    product.name_uz,
+                    product.name_ru,
+                    lang,
+                    name_uz_cyrl=getattr(product, "name_uz_cyrl", None),
+                ),
+                number,
+            ),
             callback_data=f"price_prod:{product.id}",
         )
     builder.adjust(1)
@@ -581,7 +604,7 @@ def get_product_list_keyboard(
     for product in products or ():
         builder.row(
             InlineKeyboardButton(
-                text=f"{product.raw_name} — {product.price_per_pack:,.0f}",
+                text=f"{product.raw_name} — {format_uzs(product.price_per_pack)}",
                 callback_data=f"prod:view:{product.id}",
             )
         )

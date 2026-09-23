@@ -17,6 +17,7 @@ from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import format_uzs
 from app.bot.keyboards.inline import get_admin_order_decision_keyboard, get_price_nudge_keyboard
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -217,7 +218,7 @@ async def _admin_digest_impl(session: AsyncSession, bot: Bot, day_start: datetim
     used_percent = round(tokens_used / token_budget * 100) if token_budget else 0
 
     lines = ["📋 <b>Kunlik hisobot</b>\n"]
-    lines.append(f"• Kecha buyurtmalar: <b>{order_count}</b>, GMV: <b>{gmv:,.0f} so'm</b>")
+    lines.append(f"• Kecha buyurtmalar: <b>{order_count}</b>, GMV: <b>{format_uzs(gmv)} so'm</b>")
     lines.append(f"• Eskirgan narxlar: <b>{stale_offer_count}</b>")
     lines.append(
         f"• AI sarfi (24 soat): <b>{tokens_used:,}</b> / {token_budget:,} token "
@@ -315,7 +316,7 @@ async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutof
         text = (
             f"\u23f0 <b>Buyurtma #{order.id} hali tasdiqlanmagan</b>\n\n"
             f"{waiting_minutes} daqiqadan beri kutmoqda.\n"
-            f"Summa: <b>{order.grand_total_quoted:,.0f} so'm</b>\n"
+            f"Summa: <b>{format_uzs(order.grand_total_quoted)} so'm</b>\n"
             f"\U0001f4de Tel: {order.contact_phone}\n"
             f"\U0001f4cd Manzil: {order.delivery_address}\n\n"
             f"Iltimos, mijozga qo'ng'iroq qilib tasdiqlang."
