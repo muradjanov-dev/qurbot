@@ -254,6 +254,13 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
         await self.tools.run("search_products", {"query": "fanera"}, cart)
         if checkout:
             await self.tools.run("set_basket_item", {"product_id": product_id, "qty": 2}, cart)
+            # Delivery is priced per district, so the agent settles where the
+            # order is going before it can quote or take contact details.
+            listed = await self.tools.run("get_delivery_options", {"region": "Toshkent"}, cart)
+            chosen = await self.tools.run(
+                "set_delivery_district", {"district_id": listed["districts"][0]["id"]}, cart
+            )
+            assert chosen["ok"], chosen
             await self.tools.run("get_quote", {}, cart)
             result = await self.tools.run(
                 "prepare_order",
@@ -263,7 +270,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
                 },
                 cart,
             )
-            assert result["ok"]
+            assert result.get("ok"), result
         return "Fanera"
 
     monkeypatch.setattr(module, "agent_available", lambda: True)

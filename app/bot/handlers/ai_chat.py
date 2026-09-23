@@ -182,12 +182,17 @@ async def prepare_confirmation(
         await callback.answer(t("quote_not_orderable", lang=lang), show_alert=True)
         return
     variant = deserialize_variant(cart.quote)
+    raw_district = cart.order.get("district_id")
     await state.update_data(
         quotes=[cart.quote],
         selected_quote_idx=0,
         contact_phone=cart.order["phone"],
         delivery_address=cart.order["address"],
         order_comment=cart.order["comment"],
+        # The confirm handler re-prices the basket, and it must do so for the
+        # district the agent agreed with the customer rather than the one on
+        # their profile -- a site is often not where they live.
+        delivery_district_id=int(raw_district) if raw_district else user.district_id,
         cart_revision=snapshot.revision,
         quote_cart_revision=snapshot.revision,
         checkout_key=f"chat:{job.id}" if job else None,

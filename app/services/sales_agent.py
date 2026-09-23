@@ -32,12 +32,13 @@ from anthropic.types.beta import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import localized_name
 from app.core.config import settings
 from app.core.i18n import DEFAULT_LANG
 from app.core.logging import get_logger
 from app.core.metrics import llm_cost_usd_total
 from app.db.models.catalog import CanonicalProduct
-from app.db.models.shop import Shop, ShopDeliveryRule
+from app.db.models.shop import District, Shop, ShopDeliveryRule
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -52,6 +53,7 @@ from app.domain.pricing.units import STANDARD_UNITS
 from app.llm.evaluation import reserve_agent_evaluation
 from app.llm.pricing import RATES
 from app.services.address_service import AddressService
+from app.services.cart_service import CartConflict, InvalidCartItem
 from app.services.catalog_service import CatalogService
 from app.services.quote_service import QuoteService
 
@@ -74,27 +76,51 @@ _LANGUAGES = {
 SYSTEM_PROMPT = """You are QurBot, a sales assistant in a Telegram chat. QurBot sells \
 construction materials (plywood, boards, timber, fasteners) and delivers them.
 
-Rules:
-- Offer only products returned by search_products. Never invent products, prices or stock.
-- Help step by step: understand what is needed, search, confirm the exact product and \
-quantity with the customer, then set_basket_item.
-- Ask one short clarifying question when purpose or dimensions are missing. Show at most
-three returned products at a time, in the returned order. Do not list other remembered products.
-- Offer an operator for unknown facts, but never claim to have connected one. The customer
-must press the operator button and confirm. Do not request a phone just to chat or get help.
-- Unknown-price or unverified-stock products can be added to the basket, but never invent a
-price or call a partial known-price sum the total. If get_quote requires operator confirmation,
-guide the customer to Savatga o'tish -> Operatorga yuborish. The whole basket becomes one
-manual enquiry, not a paid/confirmed order. The customer explicitly submits it with contacts.
-- When the basket is ready, call get_quote and tell the total only if every line is orderable.
-- After adding an item, confirm its name, unit and total quantity and offer the cart or more
-products. Setting quantity replaces the existing amount; never silently add it twice.
-- To order you need a phone number and a delivery address. Offer the saved addresses \
-(get_saved_addresses); the customer may also type an address or send a location pin.
-- Then call prepare_order. A confirm button appears under your message; ask the customer \
-to press it. Never say the order is placed.
-- If a product is not found, say so briefly and give the support phone.
-- Call get_knowledge for delivery and support policy. Ask an operator about unknown terms.
+You are not an FAQ. You take the customer all the way from "I need something" to a
+finished order, doing the work yourself instead of telling them which button to press.
+Drive the conversation: at every point either you are asking the one thing you still
+need, or you are calling the tool that gets you the next thing.
+
+The path, in order:
+
+1. UNDERSTAND. Work out what they are building and which material that needs. Ask one
+   short question at a time when purpose or dimensions are missing -- never a list of
+   questions.
+2. FIND. Call search_products. Offer only what it returns, at most three at a time, in
+   the order returned. Never invent a product, a price or stock. If nothing fits, say so
+   plainly and give the support phone.
+3. CONFIRM. Name the exact product, its unit and the quantity, and get a yes.
+4. ADD. Call set_basket_item yourself as soon as they agree -- do not ask them to add it.
+   The quantity you set replaces the line; it never adds twice. Then say what is in the
+   basket now and ask whether they need anything else.
+5. DESTINATION. Before any total, you need a district. Use the one already chosen if
+   get_delivery_options reports one. Otherwise call get_delivery_options for the regions,
+   ask which region, call it again for that region's districts, ask which district, then
+   call set_delivery_district with its id. Never guess an id.
+6. PRICE. Call get_quote. Give the total only when every line is orderable.
+7. DETAILS. Ask for the phone number, then the street address. Offer saved addresses first
+   (get_saved_addresses). Ask for these only when an order is actually being placed.
+8. CONFIRM BUTTON. Call prepare_order. A confirm button appears under your message. Ask
+   them to press it. You never place the order yourself, and you never say it is placed,
+   paid or reserved.
+
+When a price is unknown (get_quote answers operator_confirmation_required, or a product
+is marked price on request or unverified stock):
+
+- Say honestly that this item has to be priced by an operator. Never invent a price, and
+  never present a partial sum of the known lines as the total.
+- Offer to send the enquiry for them. If they agree, collect name, phone, district and
+  address the same way as above, then call submit_sales_request yourself. Do not send
+  them to a button to do it.
+- An enquiry is not an order: nothing is sold, charged or reserved, and an operator
+  replies in this chat. Say that. After submitting, say the request number and stop --
+  the conversation is with an operator now.
+
+Also:
+- Offer a human operator for anything you cannot answer, but never claim to have
+  connected one; the customer presses the operator button themselves.
+- Never ask for a phone number just to chat or to answer a question.
+- Call get_knowledge for delivery and support policy rather than stating it from memory.
 - Write short, friendly plain text. No markdown."""
 
 TOOLS: list[BetaToolParam] = [
@@ -141,6 +167,36 @@ TOOLS: list[BetaToolParam] = [
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
+        "name": "get_delivery_options",
+        "description": (
+            "Where we deliver. With no region, lists the regions; with a region, lists that "
+            "region's districts with their ids. Also reports the district already chosen."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "region": {
+                    "type": "string",
+                    "description": "Region name exactly as returned, e.g. 'Toshkent'.",
+                }
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "set_delivery_district",
+        "description": (
+            "Set where this order is going. Required before a quote can include delivery. "
+            "Use an id from get_delivery_options; never guess one."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"district_id": {"type": "integer"}},
+            "required": ["district_id"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "prepare_order",
         "description": "Store contact details and show the customer the confirm button.",
         "input_schema": {
@@ -151,6 +207,26 @@ TOOLS: list[BetaToolParam] = [
                 "comment": {"type": "string"},
             },
             "required": ["phone", "address"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "submit_sales_request",
+        "description": (
+            "Send the whole basket to an operator as a manual enquiry, for when a product has "
+            "no confirmed price or stock. This is NOT an order: nothing is sold, charged or "
+            "reserved. An operator works out the price and comes back to the customer. "
+            "Only call it after the customer has agreed and given all four details."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "phone": {"type": "string"},
+                "district_id": {"type": "integer"},
+                "address": {"type": "string"},
+            },
+            "required": ["name", "phone", "district_id", "address"],
             "additionalProperties": False,
         },
     },
@@ -167,6 +243,11 @@ class AgentCart:
     order: dict[str, str | None] | None = None
     revision: int | None = None
     quote_revision: int | None = None
+    # Where this basket is going. Separate from users.district_id because a
+    # customer may order to a site that is not their saved district, and a
+    # guest has no saved district at all -- without it the agent could not
+    # price delivery and had no way to ask.
+    district_id: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> AgentCart:
@@ -178,6 +259,7 @@ class AgentCart:
             order=data.get("order"),
             revision=data.get("revision"),
             quote_revision=data.get("quote_revision"),
+            district_id=data.get("district_id"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -188,6 +270,7 @@ class AgentCart:
             "order": self.order,
             "revision": self.revision,
             "quote_revision": self.quote_revision,
+            "district_id": self.district_id,
         }
 
 
@@ -246,9 +329,118 @@ class DbAgentTools:
         if name == "get_saved_addresses":
             addresses = await AddressService(self.session).list_for(self.user)
             return {"addresses": [a.address_text for a in addresses]}
+        if name == "get_delivery_options":
+            return await self._delivery_options(args, cart)
+        if name == "set_delivery_district":
+            return await self._set_district(args, cart)
         if name == "prepare_order":
             return self._prepare_order(args, cart)
+        if name == "submit_sales_request":
+            return await self._submit_request(args, cart)
         return {"error": f"unknown tool {name}"}
+
+    def _district_id(self, cart: AgentCart) -> int | None:
+        """What this basket is being delivered to, chosen over the saved default."""
+        return cart.district_id if cart.district_id is not None else self.user.district_id
+
+    async def _delivery_options(self, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
+        shops = ShopRepository(self.session)
+        chosen_id = self._district_id(cart)
+        chosen = await self.session.get(District, chosen_id) if chosen_id else None
+        current = (
+            {
+                "district_id": chosen.id,
+                "district": localized_name(chosen.name_uz, chosen.name_ru, self.user.lang),
+                "region": chosen.region,
+            }
+            if chosen
+            else None
+        )
+        region = str(args.get("region") or "").strip()
+        if not region:
+            return {
+                "regions": list(await shops.list_regions()),
+                "current": current,
+                "next_step": "Ask which region, then call this again with that region.",
+            }
+        districts = await shops.list_districts(region)
+        if not districts:
+            return {
+                "error": "unknown region",
+                "regions": list(await shops.list_regions()),
+            }
+        return {
+            "region": region,
+            "districts": [
+                {
+                    "id": row.id,
+                    "name": localized_name(row.name_uz, row.name_ru, self.user.lang),
+                }
+                for row in districts
+            ],
+            "current": current,
+        }
+
+    async def _set_district(self, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
+        try:
+            district_id = int(args["district_id"])
+        except (KeyError, TypeError, ValueError):
+            return {"error": "district_id must be an id from get_delivery_options"}
+        district = await self.session.get(District, district_id)
+        if district is None:
+            return {"error": "no such district; call get_delivery_options"}
+        # Delivery is priced per district, so an existing quote is stale the
+        # moment the destination moves.
+        if cart.district_id != district_id:
+            cart.quote = None
+            cart.order = None
+        cart.district_id = district_id
+        return {
+            "ok": True,
+            "district": localized_name(district.name_uz, district.name_ru, self.user.lang),
+            "region": district.region,
+        }
+
+    async def _submit_request(self, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
+        """Hand the basket to an operator as a priced-by-hand enquiry.
+
+        Deliberately separate from `prepare_order`: an enquiry sells nothing,
+        so it needs no quote and no confirm button, and the customer must not
+        be told it is an order.
+        """
+        from app.services.sales_request_service import SalesRequestService
+
+        if not cart.basket:
+            return {"error": "basket is empty"}
+        try:
+            district_id = int(args["district_id"])
+        except (KeyError, TypeError, ValueError):
+            return {"error": "district_id must be an id from get_delivery_options"}
+        try:
+            row = await SalesRequestService(self.session).create(
+                self.user,
+                revision=cart.revision if cart.revision is not None else -1,
+                key=f"agent:{self.user.id}:{cart.revision}:{district_id}",
+                name=str(args.get("name", "")),
+                phone=str(args.get("phone", "")),
+                district_id=district_id,
+                address=str(args.get("address", "")),
+                channel="telegram" if self.user.tg_id is not None else "web",
+            )
+        except CartConflict:
+            return {"error": "the basket changed; call get_quote again and re-confirm"}
+        except InvalidCartItem as exc:
+            return {"error": f"cannot submit: {exc.message}"}
+        # The enquiry hands the conversation to an operator, so this must be
+        # the last tool of the turn.
+        cart.quote = None
+        cart.order = None
+        return {
+            "ok": True,
+            "request_id": row.id,
+            "handed_to_operator": True,
+            "tell_customer": "An operator will work out the price and reply here.",
+        }
 
     async def _search(self, query: str) -> dict[str, Any]:
         if not query.strip():
@@ -387,7 +579,7 @@ class DbAgentTools:
             for index, line in enumerate(cart.basket, start=1)
         ]
         service = QuoteService(ShopRepository(self.session), CatalogRepository(self.session))
-        result = await service.optimize_basket(items, district_id=self.user.district_id)
+        result = await service.optimize_basket(items, district_id=self._district_id(cart))
         if not result.deduplicated_variants:
             cart.quote = None
             return {"orderable": False, "missing": [i.name_uz for i in items]}
@@ -428,8 +620,18 @@ class DbAgentTools:
         address = str(args.get("address", "")).strip()
         if len(address) < settings.min_delivery_address_length:
             return {"error": "address too short, ask for street and house"}
+        district_id = self._district_id(cart)
+        if district_id is None:
+            return {"error": "no delivery district; call get_delivery_options first"}
         comment = str(args.get("comment") or "").strip() or None
-        cart.order = {"phone": phone, "address": address, "comment": comment}
+        cart.order = {
+            "phone": phone,
+            "address": address,
+            "comment": comment,
+            # Carried onto the confirm step so the order is re-priced for the
+            # district the customer actually chose, not their saved default.
+            "district_id": str(district_id),
+        }
         return {"ok": True, "confirm_button_shown": True}
 
 

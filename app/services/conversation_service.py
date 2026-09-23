@@ -546,6 +546,12 @@ class DurableTools:
                 cart.revision = snapshot.revision
             if name == "get_quote" and "error" not in output:
                 cart.quote_revision = snapshot.revision
+            if name == "submit_sales_request" and "error" not in output:
+                # The enquiry cleared the cart and handed the conversation to an
+                # operator. Keep the agent's view consistent with that rather
+                # than letting the next tool act on a basket that is gone.
+                cart.basket = []
+                cart.revision = (await shared.get(user.id)).revision
             if name == "search_products":
                 output["products"] = output.get("products", [])[:3]
                 self.cards = [
