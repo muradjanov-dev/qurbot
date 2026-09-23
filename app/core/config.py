@@ -193,7 +193,14 @@ class Settings(BaseSettings):
     agent_model: str = "claude-opus-5"
     # Chat replies do not need deep reasoning; low effort keeps the bill small.
     agent_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
-    agent_max_tokens: int = 2000
+    # Output tokens cost five times input on this model, and one customer
+    # message can take up to agent_max_tool_rounds + 1 calls, so this cap is
+    # multiplied by seven before it reaches the bill. A chat reply is 150-250
+    # tokens and the catalogue shows at most three products, so 2000 bought
+    # nothing but the worst case: it put roughly $0.35 of headroom behind every
+    # message. A tool call is smaller still. 700 also lands under
+    # agent_reply_max_chars, so nothing downstream has to trim.
+    agent_max_tokens: int = 700
     agent_timeout_seconds: float = 60.0
     # Tool calls per customer message before the agent must answer.
     agent_max_tool_rounds: int = 6
