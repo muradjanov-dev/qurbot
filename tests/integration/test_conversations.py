@@ -465,3 +465,42 @@ async def test_customer_can_leave_a_claimed_conversation(database):
         await session.commit()
         assert result["status"] == "ai"
         assert (await service.get_or_create(user)).operator_id is None
+
+
+async def test_resumed_assistant_does_not_reanswer_the_backlog(database, monkeypatch):
+    """Coming back must not mean working through what a human was holding.
+
+    A customer who asked about bricks while the conversation sat with an admin,
+    then asked about boards once the assistant returned, got a reply that
+    opened by reporting on the bricks.
+    """
+    seen: list[list[dict[str, str]]] = []
+
+    async def reply(self, text, lang, cart):
+        seen.append(list(cart.history))
+        return "ok"
+
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+    monkeypatch.setattr(module.DurableAgent, "reply", reply)
+
+    async with database() as session:
+        service = ConversationService(session)
+        user = await session.get(User, 1)
+        await service.handoff(user, channel="telegram")
+        conversation = await service.get_or_create(user)
+        conversation.status = "human"
+        conversation.operator_id = 2
+        await service.submit(user, "g'isht kerak", "held-one", "telegram")
+        await session.commit()
+
+    async with database() as session:
+        service = ConversationService(session)
+        await service.resume_ai(await session.get(User, 1), channel="telegram")
+        await session.commit()
+
+    job = await submit(database, text="taxta kerak", request="after", channel="telegram")
+    await module.process_conversation({}, job["conversation_id"])
+
+    assert seen, "the assistant ran"
+    carried = " ".join(entry["content"] for entry in seen[0])
+    assert "g'isht" not in carried, "the backlog is not the assistant's to answer"

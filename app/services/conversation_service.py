@@ -303,6 +303,13 @@ class ConversationService:
         conversation.generation += 1
         conversation.lease_token = None
         conversation.lease_until = None
+        # Everything said while a human held the conversation belongs to that
+        # exchange. The assistant picks up from here rather than working
+        # through a backlog of messages it never saw.
+        conversation.agent_state = {
+            **(conversation.agent_state or {}),
+            "history_from": conversation.next_sequence,
+        }
         await self._append(
             conversation, "system", t("web_chat_ai_resumed", lang=user.lang), channel
         )
@@ -709,6 +716,7 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
                     ConversationMessage.conversation_id == conversation_id,
                     ConversationMessage.id != message.id,
                     ConversationMessage.role.in_(["user", "assistant", "operator"]),
+                    ConversationMessage.sequence > cart.history_from,
                     # Later queued user messages must not leak into an earlier turn.
                     or_(
                         ConversationMessage.role != "user",
@@ -916,6 +924,11 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                                 else t("web_product_confirm_required", lang=customer.lang)
                             )
                             text += f"\n\n{index + 1}. {card.get('name', '')}\n{label}"
+                        if response.cards:
+                            # The buttons look like the only way out of this
+                            # step. They are not -- the chat is always open --
+                            # but nothing on the screen said so.
+                            text += "\n\n" + t("web_chat_keep_writing", lang=customer.lang)
                         await session.commit()
             await bot.send_message(tg_id, text, parse_mode=None, reply_markup=markup)
         except TelegramAPIError:

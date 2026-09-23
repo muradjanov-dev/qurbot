@@ -35,6 +35,11 @@ _STRINGS = {
     ),
     "retry": ("Qayta urinish", "Қайта уриниш", "Повторить"),
     "request": ("So'rov", "Сўров", "Запрос"),
+    "keep_writing": (
+        "💬 Savolingiz bo'lsa, shu yerda yozib turavering — men javob beraman.",
+        "💬 Саволингиз бўлса, шу ерда ёзиб тураверинг — мен жавоб бераман.",
+        "💬 Если есть вопрос — просто пишите здесь, я отвечу.",
+    ),
     "operator_requested": (
         (
             "✅ Xabaringiz adminlarga yuborildi — ular ko'rib, shu "
@@ -100,7 +105,7 @@ _STRINGS = {
         "Оператор улангунча AI ёрдамчи билан давом этишингиз мумкин.",
         "Пока оператор подключается, можно продолжить с AI-помощником.",
     ),
-    "operator": ("Operatorni chaqirish", "Операторни чақириш", "Позвать оператора"),
+    "operator": ("🙋 Operatorni chaqirish", "🙋 Операторни чақириш", "🙋 Позвать оператора"),
     "ai": ("AI yordamchi bilan suhbat", "AI ёрдамчи билан суҳбат", "Чат с AI-помощником"),
     "requested": (
         "Operator so'raldi. Ulanishi kutilmoqda.",
@@ -117,7 +122,7 @@ _STRINGS = {
     "operator_name": ("Operator", "Оператор", "Оператор"),
     "system": ("QurBot", "QurBot", "QurBot"),
     "qty": ("Miqdor", "Миқдор", "Количество"),
-    "add": ("Savatga qo'shish", "Саватга қўшиш", "Добавить в корзину"),
+    "add": ("➕ Savatga qo'shish", "➕ Саватга қўшиш", "➕ Добавить в корзину"),
     "added": ("Savat yangilandi.", "Сават янгиланди.", "Корзина обновлена."),
     "cart_error": (
         "Savatni yangilab bo'lmadi. Miqdorni tekshirib, qayta urining.",

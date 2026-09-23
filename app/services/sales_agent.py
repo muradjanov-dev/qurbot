@@ -117,6 +117,10 @@ is marked price on request or unverified stock):
   the conversation is with an operator now.
 
 Also:
+- Answer the customer's latest message. Earlier turns are background for what they
+  mean now, not a queue to work through: if they asked about bricks and then about
+  boards, they are asking about boards. Do not open a reply by reporting on an older
+  question they have moved on from.
 - Offer a human operator for anything you cannot answer, but never claim to have
   connected one; the customer presses the operator button themselves.
 - Never ask for a phone number just to chat or to answer a question.
@@ -248,6 +252,12 @@ class AgentCart:
     # guest has no saved district at all -- without it the agent could not
     # price delivery and had no way to ask.
     district_id: int | None = None
+    # Messages at or below this sequence are not the assistant's to answer.
+    # Set when it rejoins a conversation a human was holding: the customer's
+    # unanswered backlog is context at most, and replaying it made the agent
+    # answer a question about bricks when the customer had just asked about
+    # boards.
+    history_from: int = 0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> AgentCart:
@@ -260,6 +270,7 @@ class AgentCart:
             revision=data.get("revision"),
             quote_revision=data.get("quote_revision"),
             district_id=data.get("district_id"),
+            history_from=int(data.get("history_from") or 0),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -271,6 +282,7 @@ class AgentCart:
             "revision": self.revision,
             "quote_revision": self.quote_revision,
             "district_id": self.district_id,
+            "history_from": self.history_from,
         }
 
 
@@ -500,7 +512,14 @@ class DbAgentTools:
             products.append(
                 {
                     "id": cand.canonical_id,
-                    "name": cand.name_uz,
+                    # The card is read by the customer, so it follows their
+                    # script; the match itself is done on the Latin name.
+                    "name": localized_name(
+                        product.name_uz,
+                        product.name_ru,
+                        self.user.lang,
+                        name_uz_cyrl=product.name_uz_cyrl,
+                    ),
                     "price_from_uzs": f"{price[0]:.0f}" if price else None,
                     "unit": (f"{price[2]:f} {price[1]}" if price[2] != 1 else price[1])
                     if price
