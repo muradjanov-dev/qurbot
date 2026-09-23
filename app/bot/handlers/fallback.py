@@ -11,10 +11,14 @@ says what to do instead.
 """
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.i18n import t
+from app.db.models.user import User
+from app.services.sales_agent import agent_available
 
 router = Router(name="fallback")
 
@@ -28,6 +32,30 @@ async def msg_voice_not_supported(message: Message, lang: str) -> None:
     listen, it says so plainly and offers the two ways that do work.
     """
     await message.answer(t("fallback_voice", lang=lang, phone=settings.support_phone_text))
+
+
+@router.message(F.text & ~F.text.startswith("/"))
+async def msg_text_to_assistant(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    user: User,
+    lang: str,
+) -> None:
+    """Typed text nobody claimed belongs to the assistant, not to an apology.
+
+    The AI handler is state-filtered so it cannot eat a wizard step, which
+    meant text typed from any other state fell all the way through here and
+    was answered with "I could not read this message" -- for a perfectly
+    readable sentence. Every wizard has already declined it by this point, so
+    routing it to the assistant cannot steal anyone's input.
+    """
+    from app.bot.handlers.ai_chat import route_to_assistant
+
+    if not agent_available():
+        await message.answer(t("fallback_unknown", lang=lang, phone=settings.support_phone_text))
+        return
+    await route_to_assistant(message, state, session, user, lang)
 
 
 @router.message()

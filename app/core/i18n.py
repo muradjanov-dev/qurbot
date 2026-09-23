@@ -427,42 +427,56 @@ MESSAGES: dict[str, dict[str, str]] = {
     # unhandled kind of message is indistinguishable from a broken bot.
     "fallback_voice": {
         "uz_latn": (
-            "\U0001f3a4 Kechirasiz, hozircha ovozli xabarni tinglay olmayman.\n\n"
-            "Kerakli mollarni <b>yozib</b> yuboring. Masalan:\n"
-            "10 dona fanera 12mm\n\n"
-            "Yoki qo'ng'iroq qiling: <b>{phone}</b>"
+            "🎤 Uzr, ovozli xabarlarni hozircha tinglay olmayman.\n"
+            "\n"
+            "Kerakli mollarni matn bilan yozib yuboring, men darrov topaman. Masalan:\n"
+            "10 dona fanera 12mm\n"
+            "\n"
+            "Iltimos, qulayroq bo'lsa qo'ng'iroq qiling: {phone}"
         ),
         "uz_cyrl": (
-            "\U0001f3a4 Кечирасиз, ҳозирча овозли хабарни тинглай олмайман.\n\n"
-            "Керакли молларни <b>ёзиб</b> юборинг. Масалан:\n"
-            "10 дона фанера 12мм\n\n"
-            "Ёки қўнғироқ қилинг: <b>{phone}</b>"
+            "🎤 Узр, овозли хабарларни ҳозирча тинглай олмайман.\n"
+            "\n"
+            "Керакли молларни матн билан ёзиб юборинг, мен дарров топаман. Масалан:\n"
+            "10 дона фанера 12мм\n"
+            "\n"
+            "Илтимос, қулайроқ бўлса қўнғироқ қилинг: {phone}"
         ),
         "ru": (
-            "\U0001f3a4 Извините, голосовые сообщения я пока не понимаю.\n\n"
-            "Напишите нужные товары <b>текстом</b>. Например:\n"
-            "10 шт фанера 12мм\n\n"
-            "Или позвоните: <b>{phone}</b>"
+            "🎤 Извините, голосовые сообщения я пока не понимаю.\n"
+            "\n"
+            "Напишите нужные товары текстом — я сразу их найду. Например:\n"
+            "10 шт фанера 12мм\n"
+            "\n"
+            "Пожалуйста, если удобнее, позвоните: {phone}"
         ),
     },
     "fallback_unknown": {
         "uz_latn": (
-            "Bu xabarni o'qiy olmadim \U0001f642\n\n"
-            "Qurilish mollari ro'yxatini matn bilan yozing. Masalan:\n"
-            "10 dona fanera 12mm\n\n"
-            "Savol bo'lsa: <b>{phone}</b>"
+            "Kechirasiz, bu xabarni o'qiy olmadim 🙂\n"
+            "\n"
+            "Kerakli qurilish mollarini matn bilan yozib yuborsangiz, darrov topib "
+            "beraman. Masalan:\n"
+            "10 dona fanera 12mm\n"
+            "\n"
+            "Iltimos, qo'shimcha savollaringiz bo'lsa bizga bog'laning: {phone}"
         ),
         "uz_cyrl": (
-            "Бу хабарни ўқий олмадим \U0001f642\n\n"
-            "Қурилиш моллари рўйхатини матн билан ёзинг. Масалан:\n"
-            "10 дона фанера 12мм\n\n"
-            "Савол бўлса: <b>{phone}</b>"
+            "Кечирасиз, бу хабарни ўқий олмадим 🙂\n"
+            "\n"
+            "Керакли қурилиш молларини матн билан ёзиб юборсангиз, дарров топиб "
+            "бераман. Масалан:\n"
+            "10 дона фанера 12мм\n"
+            "\n"
+            "Илтимос, қўшимча саволларингиз бўлса бизга боғланинг: {phone}"
         ),
         "ru": (
-            "Не смог прочитать это сообщение \U0001f642\n\n"
-            "Напишите список стройматериалов текстом. Например:\n"
-            "10 шт фанера 12мм\n\n"
-            "Вопросы: <b>{phone}</b>"
+            "Извините, я не смог прочитать это сообщение 🙂\n"
+            "\n"
+            "Напишите нужные стройматериалы текстом — я сразу их найду. Например:\n"
+            "10 шт фанера 12мм\n"
+            "\n"
+            "Пожалуйста, если есть дополнительные вопросы, свяжитесь с нами: {phone}"
         ),
     },
     "parsing_in_progress": {
@@ -473,21 +487,39 @@ MESSAGES: dict[str, dict[str, str]] = {
     "basket_not_understood": {
         "uz_latn": (
             "Kechirasiz, tushunmadim 🙂\n"
-            "QurBot qurilish mollari narxini hisoblaydi. Har bir mahsulotni "
-            "yangi qatordan, <b>miqdor + birlik + nom</b> tartibida yozing. Masalan:\n\n"
-            "10 dona fanera 12mm\n5 dona osb 9mm\n20 dona dvp 3.2"
+            "\n"
+            "Har bir mahsulotni yangi qatordan, <b>miqdor + birlik + nom</b> tartibida "
+            "yozsangiz bo'ldi. Masalan:\n"
+            "\n"
+            "10 dona fanera 12mm\n"
+            "5 dona osb 9mm\n"
+            "20 dona dvp 3.2\n"
+            "\n"
+            "Iltimos, qiynalsangiz bizga bog'laning: {phone}"
         ),
         "uz_cyrl": (
             "Кечирасиз, тушунмадим 🙂\n"
-            "QurBot қурилиш моллари нархини ҳисоблайди. Ҳар бир маҳсулотни "
-            "янги қатордан, <b>миқдор + бирлик + ном</b> тартибида ёзинг. Масалан:\n\n"
-            "10 дона фанера 12мм\n5 дона осб 9мм\n20 дона двп 3.2"
+            "\n"
+            "Ҳар бир маҳсулотни янги қатордан, <b>миқдор + бирлик + ном</b> тартибида "
+            "ёзсангиз бўлди. Масалан:\n"
+            "\n"
+            "10 дона фанера 12мм\n"
+            "5 дона осб 9мм\n"
+            "20 дона двп 3.2\n"
+            "\n"
+            "Илтимос, қийналсангиз бизга боғланинг: {phone}"
         ),
         "ru": (
             "Извините, не понял 🙂\n"
-            "QurBot считает цены на стройматериалы. Пишите каждый товар с новой "
-            "строки в формате <b>количество + единица + название</b>. Например:\n\n"
-            "10 шт фанера 12мм\n5 шт осб 9мм\n20 шт двп 3.2"
+            "\n"
+            "Пишите каждый товар с новой строки в формате <b>количество + единица + "
+            "название</b>. Например:\n"
+            "\n"
+            "10 шт фанера 12мм\n"
+            "5 шт осб 9мм\n"
+            "20 шт двп 3.2\n"
+            "\n"
+            "Пожалуйста, если возникнут сложности, свяжитесь с нами: {phone}"
         ),
     },
     "qty_out_of_range": {

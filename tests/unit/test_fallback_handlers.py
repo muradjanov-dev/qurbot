@@ -54,3 +54,50 @@ def test_the_fallback_router_is_registered_last() -> None:
 
     assert names[-1] == "fallback"
     assert "customer" in names and names.index("customer") < names.index("fallback")
+
+
+async def test_unclaimed_text_reaches_the_assistant(monkeypatch) -> None:
+    """Readable text must not be answered with "I could not read this".
+
+    The AI handler is state-filtered so it cannot swallow a wizard step, which
+    left ordinary text typed from any other state falling all the way through
+    to the apology -- what a customer saw after writing "taxta kere".
+    """
+    from app.bot.handlers import fallback
+
+    routed: list[str] = []
+
+    async def record(message, state, session, user, lang):
+        routed.append(message.text)
+
+    monkeypatch.setattr(fallback, "agent_available", lambda: True)
+    monkeypatch.setattr("app.bot.handlers.ai_chat.route_to_assistant", record, raising=True)
+
+    message = AsyncMock(spec=Message)
+    message.text = "taxta kere"
+    message.answer = AsyncMock()
+
+    await fallback.msg_text_to_assistant(
+        message, state=AsyncMock(), session=AsyncMock(), user=AsyncMock(), lang="uz_cyrl"
+    )
+
+    assert routed == ["taxta kere"]
+    message.answer.assert_not_called()
+
+
+async def test_unclaimed_text_without_an_assistant_still_gets_help(monkeypatch) -> None:
+    """With no assistant configured, say something useful rather than nothing."""
+    from app.bot.handlers import fallback
+
+    monkeypatch.setattr(fallback, "agent_available", lambda: False)
+    message = AsyncMock(spec=Message)
+    message.text = "taxta kere"
+    message.answer = AsyncMock()
+
+    await fallback.msg_text_to_assistant(
+        message, state=AsyncMock(), session=AsyncMock(), user=AsyncMock(), lang="uz_latn"
+    )
+
+    sent = message.answer.call_args[0][0]
+    assert settings.support_phone_text in sent
+    assert "10 dona fanera 12mm" in sent

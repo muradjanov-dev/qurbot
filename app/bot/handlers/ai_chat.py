@@ -151,6 +151,25 @@ async def handle_ai_text(
     user: User,
     lang: str,
 ) -> None:
+    await route_to_assistant(message, state, session, user, lang)
+
+
+async def route_to_assistant(
+    message: Message,
+    state: FSMContext,
+    session: AsyncSession,
+    user: User,
+    lang: str,
+) -> None:
+    """Hand one typed message to the durable conversation.
+
+    Shared with the fallback router. The state filter on the handler above is
+    deliberately narrow so it cannot swallow a wizard step, but that left
+    ordinary text typed from any other state with nobody to answer it: the
+    customer wrote "taxta kere" and was told the bot could not read the
+    message. Anything that reaches the fallback has already been declined by
+    every wizard, so by then the assistant is the right place for it.
+    """
     await CartService(session).migrate_legacy(user.id, await state.get_data())
     job = await ConversationService(session).submit(
         user,
