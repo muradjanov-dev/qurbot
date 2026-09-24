@@ -82,6 +82,52 @@ async def test_multi_product_request_asks_each_missing_size(database, monkeypatc
     assert "1525x1525" in search.call_args.args[1]
 
 
+async def test_clarification_keeps_original_request_after_unrelated_answer(database):
+    """A wrong answer must not replace the product request being clarified."""
+    from app.core.i18n import t
+
+    expected = [
+        t("sales_clarify_fanera_thickness"),
+        t("sales_clarify_fanera_thickness"),
+        t("sales_clarify_fanera_sheet_size"),
+    ]
+    for index, text in enumerate(["fanera va OSB kerak", "bilmayman", "12mm"]):
+        result = await submit(database, text, f"clarify-retry-{index}")
+        await module.process_conversation({}, result["conversation_id"])
+        async with database() as session:
+            snapshot = await ConversationService(session).snapshot(await session.get(User, 1))
+        assert snapshot["messages"][-1]["text"] == expected[index]
+
+
+async def test_clarification_accepts_new_material_request(database):
+    from app.core.i18n import t
+
+    for index, text in enumerate(["fanera kerak", "OSB kerak"]):
+        result = await submit(database, text, f"change-material-{index}")
+        await module.process_conversation({}, result["conversation_id"])
+    async with database() as session:
+        snapshot = await ConversationService(session).snapshot(await session.get(User, 1))
+    assert snapshot["messages"][-1]["text"] == t("sales_clarify_osb_thickness")
+
+
+async def test_clarification_repairs_existing_inconsistent_state(database):
+    from app.core.i18n import t
+
+    async with database() as session:
+        user = await session.get(User, 1)
+        conversation = await ConversationService(session).get_or_create(user)
+        conversation.agent_state = {
+            "clarification_query": "fanera 12 mm 1525x1525 va osb kerak",
+            "clarification_key": "fanera_thickness",
+        }
+        await session.commit()
+    job = await submit(database, "bilmayman", "repair-clarification")
+    await module.process_conversation({}, job["conversation_id"])
+    async with database() as session:
+        snapshot = await ConversationService(session).snapshot(await session.get(User, 1))
+    assert snapshot["messages"][-1]["text"] == t("sales_clarify_osb_thickness")
+
+
 async def test_catalog_fallback_keeps_both_materials(database, monkeypatch):
     from app.services import ai_fallback
     from app.services.sales_agent import DbAgentTools

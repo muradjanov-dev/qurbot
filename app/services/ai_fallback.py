@@ -87,6 +87,13 @@ def missing_spec(text: str) -> str | None:
     return None
 
 
+def switches_product_family(text: str, pending_key: str) -> bool:
+    """A named new material replaces an unfinished sizing question."""
+    normalized = normalize_query(text).text_norm
+    current_family = pending_key.split("_", 1)[0]
+    return any(key != current_family and pattern.search(normalized) for key, pattern in _FAMILIES)
+
+
 def continue_clarification(query: str, key: str, answer: str) -> str | None:
     """Add one customer's answer to the matching item of a multi-product request."""
     if len(answer) > 120 or len(query) > 700:

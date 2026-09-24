@@ -40,6 +40,7 @@ from app.services.ai_fallback import (
     continue_clarification,
     deterministic_reply,
     missing_spec,
+    switches_product_family,
     warn_admins_of_ai_outage,
 )
 from app.services.cart_service import CartService, InvalidCartItem
@@ -745,14 +746,25 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
     clarification: str | None = None
     if not blocked:
         if cart.clarification_query and cart.clarification_key:
-            continued = continue_clarification(
-                cart.clarification_query, cart.clarification_key, text
-            )
-            if continued is None:
-                clarification = cart.clarification_key
+            pending = missing_spec(cart.clarification_query)
+            cart.clarification_key = pending
+            if pending is None:
+                cart.clarification_query = None
+        if cart.clarification_query and cart.clarification_key:
+            if switches_product_family(text, cart.clarification_key):
+                clarification = missing_spec(text)
+                if clarification:
+                    effective_text = normalize_query(text).text_norm + " kerak"
             else:
-                effective_text = continued
-                clarification = missing_spec(effective_text)
+                continued = continue_clarification(
+                    cart.clarification_query, cart.clarification_key, text
+                )
+                if continued is None:
+                    clarification = cart.clarification_key
+                    effective_text = cart.clarification_query
+                else:
+                    effective_text = continued
+                    clarification = missing_spec(effective_text)
         else:
             clarification = missing_spec(text)
             if clarification:
