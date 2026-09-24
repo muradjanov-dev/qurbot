@@ -165,6 +165,12 @@ SHA. The script starts the web and worker services with Docker Compose; the web
 service runs predeploy migrations and catalogue seeding before uvicorn starts,
 and the worker waits for the web service healthcheck.
 
+When the only changed files are Markdown under `docs/` or the root README,
+CI checks the patch without installing application dependencies or rerunning the
+full suite. Changes to code, dependencies, agent instructions or workflows run
+all checks; the full suite also runs weekly. Deploy still builds a commit-tagged
+image and checks the two live services before reporting success.
+
 ## Load testing
 
 ```bash
