@@ -1,5 +1,8 @@
 # QurBot Operations Runbook
 
+Production deployment follows `master` → GitHub Actions → GHCR → netcup.
+The Railway deployment commands in this document are historical.
+
 Phase 8 ops surface: scheduled jobs, admin web panel, `/metrics`, and Railway deploy.
 
 ## Health and readiness
