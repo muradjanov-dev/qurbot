@@ -152,20 +152,18 @@ fast and safe to run on every save.
 
 ## Deploying
 
-Railway config lives at repo root: `railway.json` (web service) and
-`railway.worker.json` (worker service — the CLI has no way to set a per-service
-config-as-code path, so deploying the worker means temporarily swapping which
-file is named `railway.json`, or setting the worker service's Config-as-code
-Path to `railway.worker.json` once in the dashboard). See `OPERATIONS.md` for
-the full runbook, scheduled jobs, admin panel access, and rollback steps.
+Pull requests run [CI](../.github/workflows/ci.yml): lint, type checks, tests,
+and the Telegram iframe authentication regression check. A push to `master`
+(or a manual workflow dispatch) starts the
+[deploy workflow](../.github/workflows/deploy.yml). It runs the same CI workflow
+and builds a Docker image, then pushes the image to GHCR with both the commit
+SHA and `latest` tags.
 
-Two things Railway needs that aren't obvious from the config files alone:
-- A `PORT` env var matching the container's listen port — `railway domain --port`
-  alone does not reliably bind the domain's target port before a first successful
-  deployment exists.
-- `healthcheckTimeout` needs enough headroom for cold start (image pull + Python
-  imports + the Telegram `setWebhook` call) — 30s was too tight in practice; 60s+
-  is safer.
+After CI and the image build succeed, the deploy job connects to the netcup
+server over SSH and runs `/srv/stack/scripts/deploy.sh qurbot` with that commit
+SHA. The script starts the web and worker services with Docker Compose; the web
+service runs predeploy migrations and catalogue seeding before uvicorn starts,
+and the worker waits for the web service healthcheck.
 
 ## Load testing
 
