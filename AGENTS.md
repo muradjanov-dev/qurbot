@@ -1,10 +1,22 @@
 # QurBot agent guide
 
 QurBot is the Telegram and web sales assistant for construction materials.
-Read `CLAUDE.md` and the relevant section of `docs/SPEC.md` before editing a
-business rule. `docs/OPERATIONS.md` contains domain behavior but has old Railway
-deployment text; `.github/workflows/{ci,deploy}.yml` are the current deployment
+Read the relevant section of `docs/SPEC.md` before editing a business rule.
+`docs/OPERATIONS.md` contains domain behavior but has old Railway deployment
+text; `.github/workflows/{ci,deploy}.yml` are the current deployment
 source. Production uses the `master` branch, GitHub Actions and netcup.
+
+## Working style
+
+- Understand the request, repository guidance and relevant code before editing.
+  Ask one focused question if a material product decision is unclear; otherwise
+  state the assumption.
+- Prefer the simplest change that meets the task; avoid unrelated refactors and
+  dependencies.
+- Keep edits within the requested behavior and preserve existing business,
+  safety and release rules.
+- Run relevant checks and report what changed, what passed, and anything that
+  could not be verified.
 
 ## Where to work
 

@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md — QurBot
 
 ## Read first
