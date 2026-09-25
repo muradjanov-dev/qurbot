@@ -811,9 +811,9 @@ class SalesAgent:
         usage = response.usage
         cache_read = usage.cache_read_input_tokens or 0
         cache_write = usage.cache_creation_input_tokens or 0
-        cache_write_1h = getattr(
-            getattr(usage, "cache_creation", None), "ephemeral_1h_input_tokens", 0
-        ) or 0
+        cache_write_1h = (
+            getattr(getattr(usage, "cache_creation", None), "ephemeral_1h_input_tokens", 0) or 0
+        )
         cache_write_5m = cache_write - cache_write_1h
         # A refusal fallback may answer on another model; bill what actually ran.
         model = str(getattr(response, "model", None) or settings.agent_model)
