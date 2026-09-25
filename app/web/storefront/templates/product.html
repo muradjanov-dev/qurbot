@@ -3,12 +3,12 @@
 
 {% block content %}
 <section class="section">
-  <a class="muted tiny" href="/catalog/{{ product.category_id }}">← {{ t('web_back', lang=lang) }}</a>
+  <a class="muted tiny" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>← {{ t('web_back', lang=lang) }}</a>
 
   <div class="grid cols-2">
     <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product_name }}">
 
-    <div class="card" style="display:grid; gap:14px; align-content:start;">
+    <div class="card product-info" style="display:grid; gap:14px; align-content:start;">
       <div>
         <h1>{{ product_name }}</h1>
         {% if product.brand %}
@@ -36,8 +36,9 @@
       </button>
       <p data-product-added role="status"></p>
       <a class="btn btn-ghost" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }}</a>
-      <a class="btn btn-ghost" href="/catalog">{{ t('sales_more_products', lang=lang) }}</a>
+      <a class="btn btn-ghost" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>{{ t('sales_more_products', lang=lang) }}</a>
     </div>
   </div>
 </section>
 {% endblock %}
+{% block scripts %}<script src="{{ static_url }}/catalog.js?v={{ asset_version }}" defer></script>{% endblock %}

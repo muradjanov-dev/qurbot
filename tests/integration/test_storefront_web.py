@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from decimal import Decimal
+from urllib.parse import quote
 
 import pytest
 from fastapi.testclient import TestClient
@@ -202,7 +203,48 @@ async def test_catalog_and_product_pages(client: TestClient, test_session: Async
     assert detail.status_code == 200
     assert "58.000" in detail.text  # cheapest live offer, dot-grouped
 
+    image = client.get(f"/media/product/{data.product_id}")
+    assert image.status_code == 200
+    assert image.headers["content-type"] == "image/webp"
+    assert len(image.content) > 1000
+    assert client.get("/image-credits").status_code == 200
+
     assert client.get("/product/999999").status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_product_return_preserves_catalogue_page(
+    client: TestClient, test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = await _seed(test_session)
+    other = CanonicalProduct(
+        slug="gipsokarton-15",
+        name_uz="Gipsokarton 15mm",
+        name_uz_cyrl="Гипсокартон 15мм",
+        name_ru="Гипсокартон 15мм",
+        category_id=data.category_id,
+        base_unit_code="dona",
+        search_doc="gipsokarton 15mm",
+    )
+    test_session.add(other)
+    await test_session.flush()
+    monkeypatch.setattr(settings, "web_catalog_page_size", 1)
+
+    for listing_url in ("/catalog/all?page=2", f"/catalog/{data.category_id}?page=2"):
+        listing = client.get(listing_url)
+        assert listing.status_code == 200
+        expected = f"/product/{other.id}?from={quote(listing_url, safe='')}"
+        assert expected in listing.text
+        detail = client.get(expected)
+        assert detail.status_code == 200
+        assert detail.text.count(f'href="{listing_url}" data-catalog-return') == 2
+
+    direct = client.get(f"/product/{other.id}")
+    assert f'href="/catalog/{data.category_id}"' in direct.text
+    assert "data-catalog-return" not in direct.text
+    malicious = client.get(f"/product/{other.id}?from=https://example.com")
+    assert f'href="/catalog/{data.category_id}"' in malicious.text
+    assert "data-catalog-return" not in malicious.text
 
 
 @pytest.mark.asyncio

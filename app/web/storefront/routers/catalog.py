@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
@@ -19,6 +21,12 @@ from app.db.session import get_db_session
 from app.web.storefront.deps import current_lang, current_user, render
 
 router = APIRouter(tags=["storefront"])
+CATALOG_RETURN = re.compile(r"/catalog/(?:all|[1-9][0-9]*)(?:\?page=[1-9][0-9]*)?\Z")
+
+
+def _catalog_return(raw: str | None, fallback: str) -> str:
+    """Accept only catalogue list URLs from the product card's return link."""
+    return raw if raw and CATALOG_RETURN.fullmatch(raw) else fallback
 
 
 def _needs_confirmation(product: CanonicalProduct, live_price: Decimal | None) -> bool:
@@ -152,9 +160,11 @@ async def _render_products(
             current = sellable_prices.get(offer.canonical_id, offer.price_per_pack)
             sellable_prices[offer.canonical_id] = min(current, offer.price_per_pack)
 
+    return_path = str(request.url.path) + (f"?page={page}" if page > 1 else "")
     products = [
         {
             "id": product.id,
+            "href": f"/product/{product.id}?from={quote(return_path, safe='')}",
             "name": localized_name(
                 product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
             ),
@@ -186,6 +196,7 @@ async def _render_products(
 async def product_detail(
     canonical_id: int,
     request: Request,
+    from_catalog: str | None = Query(None, alias="from"),
     session: AsyncSession = Depends(get_db_session),
     user: User | None = Depends(current_user),
     lang: str = Depends(current_lang),
@@ -222,6 +233,8 @@ async def product_detail(
         user=user,
         lang=lang,
         product=product,
+        return_to=_catalog_return(from_catalog, f"/catalog/{product.category_id}"),
+        restore_position=bool(from_catalog and CATALOG_RETURN.fullmatch(from_catalog)),
         product_name=localized_name(
             product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
         ),

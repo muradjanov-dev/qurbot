@@ -1,0 +1,1967 @@
+[
+  {
+    "slug": "qizilqum-sement-m400-50kg",
+    "name": "Qizilqum Sement M400 (50 kg)",
+    "category": "sement-va-qorishmalar"
+  },
+  {
+    "slug": "pishgan-gisht-m100",
+    "name": "Pishgan qizil g'isht M100",
+    "category": "gisht-va-bloklar"
+  },
+  {
+    "slug": "taxta-25x150x6000",
+    "name": "Taxta 25x150x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "keramik-plitka-30x30",
+    "name": "Keramik Plitka 30x30",
+    "category": "plitka"
+  },
+  {
+    "slug": "gipsokarton-knauf-devor-12-5mm",
+    "name": "Knauf Gipsokarton devoriy 12.5 mm 2500x1200",
+    "category": "gipsokarton"
+  },
+  {
+    "slug": "boyoq-emal-pf115-qizil-5kg",
+    "name": "Emal PF-115 Qizil (5 kg)",
+    "category": "boyoq-va-lak"
+  },
+  {
+    "slug": "fanera-laminat-sibply-18mm-2440x1220",
+    "name": "Fanera laminatsiyalangan SibPly 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-laminat-siyply-18mm-2440x1220",
+    "name": "Fanera laminatsiyalangan SiyPly 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-laminat-murashinsky-18mm-2440x1220",
+    "name": "Fanera laminatsiyalangan Murashinsky 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-laminat-segezha-18mm-2440x1220",
+    "name": "Fanera laminatsiyalangan SEGEZHA 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-laminat-xitoy-18mm-2440x1220",
+    "name": "Fanera laminatsiyalangan (Xitoy) 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-3mm-1525x1525",
+    "name": "Fanera berezovaya 2x4 3 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-4mm-1525x1525",
+    "name": "Fanera berezovaya 2x4 4 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-3mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 3 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-4mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 4 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-5mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 5 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-6mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 6 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-8mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 8 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-10mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 10 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-12mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 12 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-15mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 15 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-18mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 18 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-21mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 21 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-4x4-3mm-1525x1525",
+    "name": "Fanera berezovaya 4x4 3 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-4x4-4mm-1525x1525",
+    "name": "Fanera berezovaya 4x4 4 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-4x4-14mm-1525x1525",
+    "name": "Fanera berezovaya 4x4 14 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-3mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 3 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-4mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 4 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-5mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 5 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-6mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 6 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-6-5mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 6.5 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-8mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 8 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-9mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 9 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-10mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 10 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-12mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 12 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-15mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 15 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-18mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 18 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-21mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 21 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-24mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 24 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-27mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 27 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-2x4-30mm-2440x1220",
+    "name": "Fanera berezovaya 2x4 30 mm (2440x1220)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "hdf-kronospan-2-5mm-2440x1830",
+    "name": "HDF plita Kronospan 2.5 mm (2440x1830)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "hdf-kronospan-3-2mm-2800x2070",
+    "name": "HDF plita Kronospan 3.2 mm (2800x2070)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "hdf-kronospan-oq-3-2mm-2800x2071",
+    "name": "HDF plita Kronospan oq 3.2 mm (2800x2071)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dvp-t-2-5mm-2745x1700",
+    "name": "DVP plita (T markasi) 2.5 mm (2745x1700)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dvp-t-3-2mm-2745x1700",
+    "name": "DVP plita (T markasi) 3.2 mm (2745x1700)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-6mm-2500x1250",
+    "name": "OSB-3 plita 6 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-8mm-2500x1250",
+    "name": "OSB-3 plita 8 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-9mm-2500x1250",
+    "name": "OSB-3 plita 9 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-12mm-2500x1250",
+    "name": "OSB-3 plita 12 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-15mm-2500x1250",
+    "name": "OSB-3 plita 15 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-18mm-2500x1250",
+    "name": "OSB-3 plita 18 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "osb3-21mm-2500x1250",
+    "name": "OSB-3 plita 21 mm (2500x1250)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dsp-kronospan-1-6mm-2750x1830",
+    "name": "DSP plita Kronospan 1.6 mm (2750x1830)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dsp-yekaterinburg-1-6mm-3500x1750",
+    "name": "DSP plita Yekaterinburg 1.6 mm (3500x1750)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dsp-murim-1-6mm-3500x1750",
+    "name": "DSP plita Murim 1.6 mm (3500x1750)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "dsp-perm-1-6mm-3500x1750",
+    "name": "DSP plita Perm 1.6 mm (3500x1750)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-14mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 14 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "fanera-bereza-3x3-30mm-1525x1525",
+    "name": "Fanera berezovaya 3x3 30 mm (1525x1525)",
+    "category": "plita-va-fanera"
+  },
+  {
+    "slug": "taxta-3-4-17x110x6000",
+    "name": "Taxta 17x110x6000 mm 3/4 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-3-4-17x140x6000",
+    "name": "Taxta 17x140x6000 mm 3/4 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x90x6000",
+    "name": "Taxta 20x90x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x108x6000",
+    "name": "Taxta 20x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x110x6000",
+    "name": "Taxta 20x110x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x135x6000",
+    "name": "Taxta 20x135x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x140x6000",
+    "name": "Taxta 20x140x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-20x170x6000",
+    "name": "Taxta 20x170x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-31x108x6000",
+    "name": "Taxta 31x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-31x135x6000",
+    "name": "Taxta 31x135x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-31x165x6000",
+    "name": "Taxta 31x165x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-31x185x6000",
+    "name": "Taxta 31x185x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-35x108x6000",
+    "name": "Taxta 35x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-35x135x6000",
+    "name": "Taxta 35x135x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-35x165x6000",
+    "name": "Taxta 35x165x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-35x185x6000",
+    "name": "Taxta 35x185x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-37x108x6000",
+    "name": "Taxta 37x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-37x135x6000",
+    "name": "Taxta 37x135x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-37x165x6000",
+    "name": "Taxta 37x165x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-37x185x6000",
+    "name": "Taxta 37x185x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-38x108x6000",
+    "name": "Taxta 38x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-38x138x6000",
+    "name": "Taxta 38x138x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-38x168x6000",
+    "name": "Taxta 38x168x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-38x188x6000",
+    "name": "Taxta 38x188x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-42x108x6000",
+    "name": "Taxta 42x108x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-42x135x6000",
+    "name": "Taxta 42x135x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-42x165x6000",
+    "name": "Taxta 42x165x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-42x185x6000",
+    "name": "Taxta 42x185x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-listvennitsa-45x140x6000",
+    "name": "Taxta listvennitsa 45x140x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-listvennitsa-45x170x6000",
+    "name": "Taxta listvennitsa 45x170x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "taxta-listvennitsa-45x190x6000",
+    "name": "Taxta listvennitsa 45x190x6000 mm",
+    "category": "yogoch"
+  },
+  {
+    "slug": "oq-anker-10x72",
+    "name": "Oq anker 10x72",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x92",
+    "name": "Oq anker 10x92",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x112",
+    "name": "Oq anker 10x112",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x132",
+    "name": "Oq anker 10x132",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x152",
+    "name": "Oq anker 10x152",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x182",
+    "name": "Oq anker 10x182",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-anker-10x202",
+    "name": "Oq anker 10x202",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-8x40",
+    "name": "Sariq anker 8x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-8x60",
+    "name": "Sariq anker 8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-8x80",
+    "name": "Sariq anker 8x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-8x100",
+    "name": "Sariq anker 8x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x40",
+    "name": "Sariq anker 10x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x60",
+    "name": "Sariq anker 10x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x80",
+    "name": "Sariq anker 10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x100",
+    "name": "Sariq anker 10x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x120",
+    "name": "Sariq anker 10x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-10x150",
+    "name": "Sariq anker 10x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x60",
+    "name": "Sariq anker 12x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x80",
+    "name": "Sariq anker 12x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x100",
+    "name": "Sariq anker 12x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x120",
+    "name": "Sariq anker 12x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x150",
+    "name": "Sariq anker 12x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-12x200",
+    "name": "Sariq anker 12x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-14x100",
+    "name": "Sariq anker 14x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-14x120",
+    "name": "Sariq anker 14x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-14x150",
+    "name": "Sariq anker 14x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-14x200",
+    "name": "Sariq anker 14x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-16x100",
+    "name": "Sariq anker 16x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-16x120",
+    "name": "Sariq anker 16x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-16x150",
+    "name": "Sariq anker 16x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-16x200",
+    "name": "Sariq anker 16x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-16x250",
+    "name": "Sariq anker 16x250",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x100",
+    "name": "Sariq anker 20x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x120",
+    "name": "Sariq anker 20x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x150",
+    "name": "Sariq anker 20x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x200",
+    "name": "Sariq anker 20x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x250",
+    "name": "Sariq anker 20x250",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-20x300",
+    "name": "Sariq anker 20x300",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-24x150",
+    "name": "Sariq anker 24x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-24x200",
+    "name": "Sariq anker 24x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-anker-24x250",
+    "name": "Sariq anker 24x250",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-klin-6x40",
+    "name": "Anker klin 6x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-klin-6x60",
+    "name": "Anker klin 6x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mufta-soedinitel-6",
+    "name": "Mufta (biriktiruvchi) 6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mufta-soedinitel-8",
+    "name": "Mufta (biriktiruvchi) 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mufta-soedinitel-10",
+    "name": "Mufta (biriktiruvchi) 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mufta-soedinitel-12",
+    "name": "Mufta (biriktiruvchi) 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "medved-montajniy-7-5x72-202",
+    "name": "Medved montajniy 7.5x72-202",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x25",
+    "name": "Krovelniy samorez rangli 4.8x25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x32",
+    "name": "Krovelniy samorez rangli 4.8x32",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x40",
+    "name": "Krovelniy samorez rangli 4.8x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x50",
+    "name": "Krovelniy samorez rangli 4.8x50",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x60",
+    "name": "Krovelniy samorez rangli 4.8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-rangli-4-8x70",
+    "name": "Krovelniy samorez rangli 4.8x70",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-sariq-metallga-5-5x20-180",
+    "name": "Krovelniy sariq (metallga) 5.5x20-180",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-kg-6-3x25-200",
+    "name": "Krovelniy samorez oq 6.3x25-200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x25",
+    "name": "Krovelniy samorez oq 4.8x25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x32",
+    "name": "Krovelniy samorez oq 4.8x32",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x40",
+    "name": "Krovelniy samorez oq 4.8x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x50",
+    "name": "Krovelniy samorez oq 4.8x50",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x60",
+    "name": "Krovelniy samorez oq 4.8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-4-8x70",
+    "name": "Krovelniy samorez oq 4.8x70",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "qora-samorez-goldvalley-16-19",
+    "name": "Qora samorez Goldvalley 16-19",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "qora-samorez-goldvalley-25-100",
+    "name": "Qora samorez Goldvalley 25-100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-6x40",
+    "name": "Dyubel-gvozd 6x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-6x60",
+    "name": "Dyubel-gvozd 6x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-6x80",
+    "name": "Dyubel-gvozd 6x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-8x60",
+    "name": "Dyubel-gvozd 8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-8x80",
+    "name": "Dyubel-gvozd 8x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-8x100",
+    "name": "Dyubel-gvozd 8x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-gvozd-8x120",
+    "name": "Dyubel-gvozd 8x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-samorez-3x13-16-20-25",
+    "name": "Sariq samorez 3x13-16-20-25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "sariq-samorez-4x16-6x150",
+    "name": "Sariq samorez 4x16-6x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-samorez-3x13-16-20-25",
+    "name": "Oq samorez 3x13-16-20-25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "oq-samorez-3-5x16-4x16",
+    "name": "Oq samorez 3.5x16-4x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "press-shayba-ostriy-4-2x13-76",
+    "name": "Press shayba (o'tkir) 4.2x13-76",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "press-shayba-sverlo-4-2x13-76",
+    "name": "Press shayba (parmali) 4.2x13-76",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "potay-samorez-4-2x16-19-25-32",
+    "name": "Potay samorez 4.2x16;19;25;32",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "potay-samorez-4-2x40-50-60-70-80-100",
+    "name": "Potay samorez 4.2x40;50;60;70;80;100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gribok-samorez-4-8x16-19-25-32",
+    "name": "Gribok samorez 4.8x16;19;25;32",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gribok-samorez-4-8x40-50-60-70-80-100",
+    "name": "Gribok samorez 4.8x40;50;60;70;80;100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mix-16-20",
+    "name": "Mix 16-20",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mix-25",
+    "name": "Mix 25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mix-30-40",
+    "name": "Mix 30-40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mix-50-60",
+    "name": "Mix 50-60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "mix-70-200",
+    "name": "Mix 70-200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "dyubel-30-100",
+    "name": "Dyubel 30-100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-3-2x11",
+    "name": "Zaklepka Orbita 3.2x11",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-3-2x13",
+    "name": "Zaklepka Orbita 3.2x13",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-3-2x17",
+    "name": "Zaklepka Orbita 3.2x17",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-4x8",
+    "name": "Zaklepka Orbita 4x8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-4x10",
+    "name": "Zaklepka Orbita 4x10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-4x13",
+    "name": "Zaklepka Orbita 4x13",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-4x16",
+    "name": "Zaklepka Orbita 4x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-4x20",
+    "name": "Zaklepka Orbita 4x20",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x11",
+    "name": "Zaklepka Orbita 5x11",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x13",
+    "name": "Zaklepka Orbita 5x13",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x16",
+    "name": "Zaklepka Orbita 5x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x20",
+    "name": "Zaklepka Orbita 5x20",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x25",
+    "name": "Zaklepka Orbita 5x25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-6x16",
+    "name": "Zaklepka Orbita 6x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-6x20",
+    "name": "Zaklepka Orbita 6x20",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-6x25",
+    "name": "Zaklepka Orbita 6x25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x16x16",
+    "name": "Zaklepka Orbita 5x16x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x20x16",
+    "name": "Zaklepka Orbita 5x20x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zaklepka-orbita-5x25x16",
+    "name": "Zaklepka Orbita 5x25x16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezina-shayba-4-8x14",
+    "name": "Rezina shayba 4.8x14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezina-shayba-5-5x19",
+    "name": "Rezina shayba 5.5x19",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezina-shayba-6-3x25",
+    "name": "Rezina shayba 6.3x25",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "podves-agraf-0-7",
+    "name": "Podves (agraf) 0.7",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "podves-agraf-1",
+    "name": "Podves (agraf) 1",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chervyak-bolt-8x80-10x120",
+    "name": "Chervyak bolt 8x80-10x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gluxar-6x50-12x150",
+    "name": "Gluxar 6x50-12x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shayba-m4-m5",
+    "name": "Shayba (katta va kichik) m4;m5",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shayba-m6-m24",
+    "name": "Shayba (katta va kichik) m6-m24",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "stashka-vint-mebel-6x16-6x100",
+    "name": "Stashka vint (mebel) 6x16-6x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "evro-stashka-6-3x50",
+    "name": "Yevro stashka 6.3x50",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m6",
+    "name": "Tsanga Orbita m6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m8",
+    "name": "Tsanga Orbita m8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m10",
+    "name": "Tsanga Orbita m10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m12",
+    "name": "Tsanga Orbita m12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m14",
+    "name": "Tsanga Orbita m14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-orbita-m16",
+    "name": "Tsanga Orbita m16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-turk-m8",
+    "name": "Tsanga (turk) m8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "tsanga-turk-m10",
+    "name": "Tsanga (turk) m10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m6x60",
+    "name": "Kryuchok sariq (ilmoq) m6x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m6x80",
+    "name": "Kryuchok sariq (ilmoq) m6x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m8x60",
+    "name": "Kryuchok sariq (ilmoq) m8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m8x100",
+    "name": "Kryuchok sariq (ilmoq) m8x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m10x80",
+    "name": "Kryuchok sariq (ilmoq) m10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m10x120",
+    "name": "Kryuchok sariq (ilmoq) m10x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-sariq-m12x100",
+    "name": "Kryuchok sariq (ilmoq) m12x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-yopiq-m6x60",
+    "name": "Kryuchok yopiq (ilmoq) m6x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-yopiq-m8x60",
+    "name": "Kryuchok yopiq (ilmoq) m8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-yopiq-m10x80",
+    "name": "Kryuchok yopiq (ilmoq) m10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-6",
+    "name": "Kryuchok oq (yog'ochga) 6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-8",
+    "name": "Kryuchok oq (yog'ochga) 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-10",
+    "name": "Kryuchok oq (yog'ochga) 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-12",
+    "name": "Kryuchok oq (yog'ochga) 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-14",
+    "name": "Kryuchok oq (yog'ochga) 14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-oq-yogochga-16",
+    "name": "Kryuchok oq (yog'ochga) 16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-oq-3",
+    "name": "Gayka oq 3",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-oq-4",
+    "name": "Gayka oq 4",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-oq-5",
+    "name": "Gayka oq 5",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-oq-6-8-10-12-14",
+    "name": "Gayka oq 6-8-10-12-14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-oq-16-18-20-24",
+    "name": "Gayka oq 16-18-20-24",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-6",
+    "name": "Shpilka 0.97 m 6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-8",
+    "name": "Shpilka 0.97 m 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-10",
+    "name": "Shpilka 0.97 m 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-12",
+    "name": "Shpilka 0.97 m 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-14",
+    "name": "Shpilka 0.97 m 14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-16",
+    "name": "Shpilka 0.97 m 16",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-18",
+    "name": "Shpilka 0.97 m 18",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-20",
+    "name": "Shpilka 0.97 m 20",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-097-24",
+    "name": "Shpilka 0.97 m 24",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-kulrang-6x30",
+    "name": "Chopiq kulrang (m/plast) 6x30",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-kulrang-6x40",
+    "name": "Chopiq kulrang (m/plast) 6x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-kulrang-8x40",
+    "name": "Chopiq kulrang (m/plast) 8x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-kulrang-10",
+    "name": "Chopiq kulrang (m/plast) 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-kulrang-12",
+    "name": "Chopiq kulrang (m/plast) 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-6x30",
+    "name": "Chopiq qizil (m/plast) 6x30",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-6x40",
+    "name": "Chopiq qizil (m/plast) 6x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-8x40",
+    "name": "Chopiq qizil (m/plast) 8x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-8x50",
+    "name": "Chopiq qizil (m/plast) 8x50",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-8x60",
+    "name": "Chopiq qizil (m/plast) 8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-10",
+    "name": "Chopiq qizil (m/plast) 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-12",
+    "name": "Chopiq qizil (m/plast) 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-14",
+    "name": "Chopiq qizil (m/plast) 14",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-babochka",
+    "name": "Chopiq qizil (m/plast) babochka",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-driva",
+    "name": "Chopiq qizil (m/plast) driva",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "chopiq-qizil-zontik-shay",
+    "name": "Chopiq qizil (m/plast) zontik shay",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-6x16-6x100",
+    "name": "Bolt 6x16-6x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-8x16-8x120",
+    "name": "Bolt 8x16-8x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-10x20-10x150",
+    "name": "Bolt 10x20-10x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-12x30-12x150",
+    "name": "Bolt 12x30-12x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-14x30-14x200",
+    "name": "Bolt 14x30-14x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "bolt-16x30-16x200",
+    "name": "Bolt 16x30-16x200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-8x100",
+    "name": "Zabivnoy anker 8x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-10x80",
+    "name": "Zabivnoy anker 10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-10x100",
+    "name": "Zabivnoy anker 10x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-10x120",
+    "name": "Zabivnoy anker 10x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-10x150",
+    "name": "Zabivnoy anker 10x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-12x100",
+    "name": "Zabivnoy anker 12x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-12x120",
+    "name": "Zabivnoy anker 12x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-12x150",
+    "name": "Zabivnoy anker 12x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-14x100",
+    "name": "Zabivnoy anker 14x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-14x150",
+    "name": "Zabivnoy anker 14x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-16x120",
+    "name": "Zabivnoy anker 16x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zabivnoy-anker-16x150",
+    "name": "Zabivnoy anker 16x150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-m8x60",
+    "name": "Anker kryuchok (ilmoq) m8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-m8x100",
+    "name": "Anker kryuchok (ilmoq) m8x100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-m10x80",
+    "name": "Anker kryuchok (ilmoq) m10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-m10x120",
+    "name": "Anker kryuchok (ilmoq) m10x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-m12x120",
+    "name": "Anker kryuchok (ilmoq) m12x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-yopiq-m8x60",
+    "name": "Anker kryuchok yopiq m8x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-yopiq-m10x80",
+    "name": "Anker kryuchok yopiq m10x80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "anker-kryuchok-yopiq-m12x120",
+    "name": "Anker kryuchok yopiq m12x120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "grover-shayba-6-8-10-12",
+    "name": "Grover shayba 6-8-10-12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-1m-8",
+    "name": "Shpilka 1 m (original) 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-1m-10",
+    "name": "Shpilka 1 m (original) 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-1m-12",
+    "name": "Shpilka 1 m (original) 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-2m-8",
+    "name": "Shpilka 2 m 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-2m-10",
+    "name": "Shpilka 2 m 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "shpilka-2m-12",
+    "name": "Shpilka 2 m 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-80",
+    "name": "Zontik (m/plast) 80",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-110",
+    "name": "Zontik (m/plast) 110",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-120",
+    "name": "Zontik (m/plast) 120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-150",
+    "name": "Zontik (m/plast) 150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-termo-120",
+    "name": "Zontik (m/plast) termo 120",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "zontik-mplast-termo-150",
+    "name": "Zontik (m/plast) termo 150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "qora-samorez-mexmash-16-19",
+    "name": "Qora samorez Mexmash 16-19",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "qora-samorez-mexmash-25-100",
+    "name": "Qora samorez Mexmash 25-100",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-4",
+    "name": "Rezbali zaklepka 4",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-5",
+    "name": "Rezbali zaklepka 5",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-6",
+    "name": "Rezbali zaklepka 6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-8",
+    "name": "Rezbali zaklepka 8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-10",
+    "name": "Rezbali zaklepka 10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "rezba-zaklepka-12",
+    "name": "Rezbali zaklepka 12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-armstrong-6x40",
+    "name": "Kryuchok Armstrong 6x40",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-metallga-5-5x25-150",
+    "name": "Krovelniy samorez oq (metallga) 5.5x25-150",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "krovelniy-samorez-oq-metallga-6-3x25-200",
+    "name": "Krovelniy samorez oq (metallga) 6.3x25-200",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-shaybali-6-8-10-12",
+    "name": "Gayka shaybali 6-8-10-12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-samakontr-6-8-10-12",
+    "name": "Gayka samakontr 6-8-10-12",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gayka-barashka-m6-m8-m10",
+    "name": "Gayka barashka m6-m8-m10",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gazoblok-probka-5x30",
+    "name": "Gazoblok probka 5x30",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gazoblok-probka-6x32",
+    "name": "Gazoblok probka 6x32",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gazoblok-probka-8x38",
+    "name": "Gazoblok probka 8x38",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "gazoblok-probka-10x60",
+    "name": "Gazoblok probka 10x60",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-babochka-m4",
+    "name": "Kryuchok babochka m4",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-babochka-m5",
+    "name": "Kryuchok babochka m5",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-babochka-m6",
+    "name": "Kryuchok babochka m6",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "kryuchok-babochka-m8",
+    "name": "Kryuchok babochka m8",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "excel-2c4dd23aa3d25a5f3a103322bc1ecae066c125ae067e2645580e1ea4a2485b9c",
+    "name": "Tavriko 3x4 пачка 48 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-78a8f308f9d6b40f57fc9d81e4498e674465061ab27fc5cc2eb132b765720de4",
+    "name": "Tavriko 3x4 пачка 48 metr 2 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-c306435da30b8904065257ce9c1ee6cc029b4c97f194612cd102875b6e75c121",
+    "name": "Tavriko 3x4 пачка 48 metr 3 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-b75d844ecc0e5082da1add05788a5d6010e5bfc44419aec7aedcdf43ccc3f131",
+    "name": "Tavriko 3x4 пачка 48 metr 4 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-262c6349daa10ef85c88810bcabc2fdc8f2e4a5904be0b7494cab8ab0d281043",
+    "name": "Tavriko 3x4 пачка 48 metr 5 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-85fe93d71fb13fd8f06e99f62b4fecb6acc294cb74bc55156fe807bc8b23a655",
+    "name": "Tavriko 4.5x4.5 пачка 24 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-ed97059454c105afcfa6cef7a132caacafddd2ad9db32099f1de7e8ee8311494",
+    "name": "Tavriko 3x2 пачка 48 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-ad4d0305273f806a011ebb2b0e7a1be337fb73947576491ea2f4bc94b760e88d",
+    "name": "Tavriko 3.5x3.5 пачка 36 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-2779c21638b20f1a7d7c8dd394e70124ee20cb8221edfabee9d5762b732faa2d",
+    "name": "Reka 4x2.6 пачка 48 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-a40e71a9e030ece5b245736891ce5b5617c2c3c59d0cdc89beac2a4ea3041fdc",
+    "name": "Reka 4x2 пачка 40 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-687372bd1697171af8e2cc7e5e8baabbcffe4e2736cd6ee142b357622217eedb",
+    "name": "Reka 4x2 пачка 40 metr 2 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-0d11cd8b01997b529f352ca1eb0fe260da7db4d063b0273586c830a97d1a1688",
+    "name": "Reka 5x2 пачка 40 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-928fae358c0b235e603b81bbf073ade7af61bad1df950dd467cf850c0dd791af",
+    "name": "Reka 3.5x4.5 пачка 24 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-4eb4983e72050144abe52dc05a07efb3eb87a2d39dad3d57b6b6a19a7a2118cb",
+    "name": "Reka 4.5x4.5 пачка 24 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-8b1045ed1534a4c151ac64dc9adcb7a5ae9a15a69362d3ee635e610008d95bf6",
+    "name": "Reka 5x2.5 пачка 40 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-9abece847767c64ab7560ca3fb15d541551a805cd73b38524bcc5c46e60b10a7",
+    "name": "Reka 6x4.5 пачка 16 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-1d8e52f7da3049ac3e65199d8ad89772543e5818d37a865c4d9c1c6a2e34ff59",
+    "name": "Reka 5.5x4.5 пачка 16 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-d7501ec977a4adc9557c7f483685ce369f6653ff1920a05ee85e092e7a9959fe",
+    "name": "Reka 3.5x2.5 пачка 48 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-21748079fa178c9e14fc0dac192eb67a7d6f3bffd0204024529f402a6302f8c7",
+    "name": "Otkosnik 1.8x0.9 dona 3 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "excel-aa89311f7c439aa8916d66f21d1982c9d019dee558128df707ce32202766a24e",
+    "name": "Otkosnik 1.8x0.9 dona 4 metr 1 sort",
+    "category": "yogoch"
+  },
+  {
+    "slug": "supplier-row-9f59ec932584075d1cf03218fa814944afd4be68ed5c9e75ad443922207238ec",
+    "name": "МЕДВЕДЬ МОНТАЖНИЙ 7,5х72-202 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-17634696f2083b44617bf1d0cdbd36ef956dd25d6b1185680fbcd1afd47c0573",
+    "name": "КРОВЕЛЬНЫЙ САРИК МЕТАЛЛГА 5,5х20-180 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-fd56c217fa457e861e9e9aa3b9c61429b6e82feac98df6f2f659df339ef04e9b",
+    "name": "КРОВЕЛЬНЫЙ САМОРЕЗ ОК 6,3х25-200 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-fbcc625915c7394f732d48ac9a6f48be89c84bf62f0d5124ecf024343958aa0f",
+    "name": "КОРА САМОРЕЗ ГОЛДВАЛЛЕЙ 16 - 19 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-df2e34c4113a4bc3042a17befadc9fa647211e18fb68eb4b601212385192f25c",
+    "name": "КОРА САМОРЕЗ ГОЛДВАЛЛЕЙ 25 - 100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-2c22885c5a9caad984d0f663d74d8f2e923cbd38763142ed2b92fb6ed40666e0",
+    "name": "САРИК САМОРЕЗ 3х13-16-20-25 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-5912893e05e3175ad26a539165af5153355c2f74bba9c25e3dde647598786c21",
+    "name": "САРИК САМОРЕЗ 4х16 - 6x150 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-985b5c61b4db778fb8aba5baf91207323d113bd4e9f3cf6c28cbc23372a77fec",
+    "name": "ОК САМОРЕЗ 3х13-16-20-25 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-4897246c360e4d97b178fb8ab191ba66204fb5b2b14882fb0faf317d1236b3d6",
+    "name": "ОК САМОРЕЗ 3,5/16 - 4x16 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-42da8bf213752da92957e85d4d9aeaa369dc1249ebf6abe1621c5c4fe336621f",
+    "name": "ПРЕСС ШАЙБА ОСТРИЙ 4,2х13 - 76 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-35efdb19f865527553b6c0c4735bf8d79520f2343ddef3cd7e380be3c1536881",
+    "name": "ПРЕСС ШАЙБА СВЕРЛО 4,2х13 - 76 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-faf9d8560cf5b414efd47eddbb2b8cf0b36da669678116dc192e96a771348a63",
+    "name": "ПОТТАЙ САМОРЕЗ 4,2х16;19;25;32 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-91766407d4798b28313299929c60f569ed784fe773546785cbf8c84bc629dfd8",
+    "name": "ПОТТАЙ САМОРЕЗ 40;50;60;70;80;100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-f746234d6a7ea09ed64f4cc853a0152eded2bedabf9475dcb42b515378ebf39a",
+    "name": "ГРИБОК САМОРЕЗ 4,8x16;19;25;32 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-fc03cdeff54c62e62306e41c99ac7d2075b1cc95927a048a3cd233c3f4113eb1",
+    "name": "ГРИБОК САМОРЕЗ 40;50;60;70;80;100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-9d908b1b16600efc14f14889dabd9f5d81b1e19543fc761d27cba06416a26dc0",
+    "name": "МИХ 16-20 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-f3e514cd5a7476a5c39bbef2092d2708d5938768823acb8da1900ccfa390cb81",
+    "name": "МИХ 30-40 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-1ec01cf15caa7b9579c274822e91f73a4b83c6fa18d6ef4a86eff91ae962fd5e",
+    "name": "МИХ 50-60 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-9f36ff01b4e154501f24f536e588f48ec50bc953bff198a28b10f714a6f954a6",
+    "name": "МИХ 70-200 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-71bc0eb42f56ea449d43498b776ac511221df7c66ce1a42d35f98dcabfac5837",
+    "name": "ДЮБЕЛ 30-100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-22ebf8b705e942e371f2d58de1be155965d0cb3db785c6a7953eb41305a6d53c",
+    "name": "ПОДВЕС / АГРАФ Аграф · 0.7",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-f720c4722c43d5c4d2a29ffdc2fef73a951f5c188ed22a79740da041110c9c01",
+    "name": "ПОДВЕС / АГРАФ Аграф · 1",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-9031cba8cc0584b39d007484fa924253229f2e876c049742a221e6110a46f6e1",
+    "name": "ЧЕРВЯК БОЛТ 8х80 - 10x120 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-09bbd4099e7c752d1217766842531d7ff7cbfa65650bd52233cb77f4b63f7806",
+    "name": "ГЛУХАР 6х50 - 12x150 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-547df016e391b6845c498fde8699fb3daa4fc57db600cb09724497ee185f885e",
+    "name": "ШАЙБА КАТТ ВА КИЧИК M 4; M 5 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-338a211bafc8c11bd2d043721f8415d20a2f44a144cf6f468aa2e67470097e86",
+    "name": "ШАЙБА КАТТ ВА КИЧИК М 6 - M 24 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-72307722a2ea96ea88738b13ad1dbb8e877b90d03e97e60a83a15dab16071904",
+    "name": "СТАШКА ВИНТ МЕБЕЛНАЯ 6x16-6x100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-fbf67531f78616b973824d08d297b235e102485d44b355a0987222a3ff9dad46",
+    "name": "ГАЙКА ОК 6-8-10-12-14 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-9f66f14b87396c701a212a82c4a63ca049b6f048d2533ce5070bd5f441710199",
+    "name": "ГАЙКА ОК 16-18-20-24 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-58bdf466cc9c60fe1e401fd1266ae81e0e16a3de1119e1ba619f4941b18032b2",
+    "name": "ШПИЛЬКА   0,98 8 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-2e1d02ab2b68d3a8be6f4a871e798318408de0185d2a33e2fc10bfc7e0152e58",
+    "name": "ШПИЛЬКА   0,99 10 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-c744ee757e7e9b13183b3bdee64aec0195bfabc7f45994d7ea84116841f75516",
+    "name": "ШПИЛЬКА   0,100 12 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-cfb9939bad4b23936792fd85b814eef29711fd439822fa9fd168940d509e1a46",
+    "name": "ШПИЛЬКА   0,101 14 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-9427635dca3c095695a74f8fef52942912df8477b5628bf0694e8d39582f3ee3",
+    "name": "ШПИЛЬКА   0,102 16 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-36bad298723fcbbbef2150fcfbfeeefb5038303a7bcd3e6669bf190ae223e79f",
+    "name": "ШПИЛЬКА   0,103 18 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-de831bc3deb0be7c06481deef841fb42297db48da4c1118cee0e4fc431010a0c",
+    "name": "ШПИЛЬКА   0,104 20 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-8762bd4a8dfda0a1a0cf3ec0e9ee01f52d2ff792fb28807edbe59100967d354e",
+    "name": "ШПИЛЬКА   0,105 24 · шт",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-cb372b431aa2daa23cfa87fe3cb317243b1781b60b899a06b6db95b1d9219cc0",
+    "name": "БОЛТ 6х16-6x100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-fa40b1474eecd95076d0e56fb071a688cd929583e9205d188d9d0cbc6c14ef69",
+    "name": "БОЛТ 8х16-8x120 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-dacd9d5f880918f4d083ab5de2086172cd81a5626e58791537e63492a0c520d8",
+    "name": "БОЛТ 10x20-10x150 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-10066d462c54d9a109a04018d1ec9c4e44321aae98e932a243a273df8c4b28c2",
+    "name": "БОЛТ 12х30-12х150 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-d331e07a29f5a4d7ed5e44b64b1167a8d35d348a90ae28ff8b9abe03f1acb32a",
+    "name": "БОЛТ 14х30-14x200 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-602158939b8b8d03deee1c063274ad000174f0c74a94628a969178afd14861e6",
+    "name": "БОЛТ 16х30-16х200 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-1d637c4c9f12023496a4cf7be2d2c582d86658de73c65b379d83a46cf487c999",
+    "name": "ГРОВЕР ШАЙБА 6-8-10-12 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-52ad3b32d757ee36c896fc5db348ed3829f80a67643cc85aa3647bed7bf900db",
+    "name": "КОРА САМОРЕЗ МЕХМАШ 16 - 19 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-b190bd041d333aed226f1c97187a0da5db8d6dbcc8bc6adeec31b4881b9ad67f",
+    "name": "КОРА САМОРЕЗ МЕХМАШ 25 - 100 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-798668e6411ca30e93229746d10c60e5f309b76f831b328dafd758bae2768a55",
+    "name": "КРОВЕЛЬНЫЙ САМОРЕЗ ОК МЕТАЛЛГА 5,5х25-150 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-cc2b8e812447c00e4274447819db7984fee4e162102608993e01f2ef7faa346d",
+    "name": "КРОВЕЛЬНЫЙ САМОРЕЗ ОК МЕТАЛЛГА 6,3х25-200 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-27caefaed913ccb63010413d569e127e64fb9943cfff90f833ef9f0bd56d7f9b",
+    "name": "ГАЙКА ШАЙБАЛИ 6-8-10-12 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-24f5be81624e01c8c6a7a5e56a43851fa5ccca7e8769fe4be73e0e1540f1ab59",
+    "name": "ГАЙКА САМАКОНТР 6-8-10-12 · кг",
+    "category": "mahkamlash-materiallari"
+  },
+  {
+    "slug": "supplier-row-d6065bdd444c9f07639d1845e9e1802f5f4dc27c04923454ffd11afcd38ee7bd",
+    "name": "ГАЙКА БАРАШКА М6-М8-М10 · кг",
+    "category": "mahkamlash-materiallari"
+  }
+]

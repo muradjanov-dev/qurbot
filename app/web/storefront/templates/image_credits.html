@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ t('web_image_credits', lang=lang) }} — QurBot{% endblock %}
+
+{% block content %}
+<section class="section">
+  <h1>{{ t('web_image_credits', lang=lang) }}</h1>
+  <p class="muted">{{ t('web_image_credits_note', lang=lang) }}</p>
+  <div class="list">
+    {% for image in credits %}
+      <div class="list-row">
+        <div class="grow">
+          <a href="{{ image.source }}" target="_blank" rel="noopener noreferrer">{{ image.title }}</a>
+          <div class="muted tiny">{{ image.creator }} · <a href="{{ image.license_url }}" target="_blank" rel="noopener noreferrer">{{ image.license }}</a></div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

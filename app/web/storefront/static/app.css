@@ -151,7 +151,7 @@ p { margin: 0; }
   border-top: 1px solid var(--line);
 }
 
-.section { display: grid; gap: 14px; }
+.section { display: grid; gap: 14px; min-width: 0; }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .section-head .muted { font-size: .85rem; }
 
@@ -169,10 +169,13 @@ p { margin: 0; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .card.tight { padding: 14px; }
 
-.grid { display: grid; gap: var(--gap); }
+.grid { display: grid; gap: var(--gap); min-width: 0; }
+.grid > * { min-width: 0; }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -201,7 +204,7 @@ p { margin: 0; }
 .list-row .name { font-weight: 550; overflow-wrap: anywhere; }
 
 .thumb {
-  width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  width: 100%; max-width: 100%; min-width: 0; aspect-ratio: 4 / 3; object-fit: cover;
   border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line);
 }
 
@@ -258,6 +261,8 @@ p { margin: 0; }
 }
 
 .price { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.product-info { grid-template-columns: minmax(0, 1fr); }
+.product-info .price { white-space: normal; overflow-wrap: anywhere; }
 .total-row { display: flex; justify-content: space-between; gap: 16px; padding: 4px 0; }
 .total-row.grand { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 12px; font-size: 1.08rem; font-weight: 680; }
 
