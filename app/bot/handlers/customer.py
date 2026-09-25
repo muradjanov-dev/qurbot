@@ -26,6 +26,7 @@ from app.bot.keyboards.inline import (
     get_address_picker_keyboard,
     get_basket_actions_keyboard,
     get_order_confirm_keyboard,
+    get_price_category_keyboard,
     get_quote_carousel_keyboard,
 )
 from app.bot.keyboards.reply import get_location_request_keyboard, get_main_menu_keyboard
@@ -640,11 +641,17 @@ async def callback_back_to_basket(
 async def callback_add_item(
     callback: CallbackQuery,
     state: FSMContext,
+    session: AsyncSession,
     lang: str,
 ) -> None:
-    await state.set_state(BasketStates.adding_item)
+    await _load_durable_cart(state, session)
+    roots = await CatalogRepository(session).list_root_categories()
+    await state.set_state(BasketStates.viewing_quotes)
     if isinstance(callback.message, Message):
-        await callback.message.answer(t("prompt_add_item", lang=lang))
+        await callback.message.answer(
+            t("price_browse_choose_category", lang=lang),
+            reply_markup=get_price_category_keyboard(roots, lang=lang),
+        )
     await callback.answer()
 
 

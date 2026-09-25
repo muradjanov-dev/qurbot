@@ -1,15 +1,14 @@
 """Product catalogue browser for the "Mahsulotlar va narxlar" menu button.
 
-Read-only: category -> product list -> product card with the cheapest live
-offer and, when a shop owner has uploaded one, a photo. Browsing never
-creates or touches a basket.
+Category -> product list -> product card with the cheapest live offer and,
+when a shop owner has uploaded one, a photo. A product card can also add
+a chosen quantity to the customer's basket.
 """
 
 from __future__ import annotations
 
 import logging
 from decimal import Decimal, InvalidOperation
-from typing import Any
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
@@ -24,7 +23,7 @@ from app.bot.formatters.common import (
     format_uzs,
     localized_name,
 )
-from app.bot.handlers.customer import _format_parse_table
+from app.bot.handlers.customer import _format_parse_table, _load_durable_cart, _persist_bot_cart
 from app.bot.keyboards.inline import (
     get_all_products_keyboard,
     get_basket_actions_keyboard,
@@ -408,6 +407,7 @@ async def handle_product_qty(
         await message.answer(t("qty_out_of_range", lang=lang))
         return
 
+    existing = await _load_durable_cart(state, session)
     data = await state.get_data()
     canonical_id = data.get(PENDING_PRODUCT_KEY)
     if canonical_id is None:
@@ -419,23 +419,36 @@ async def handle_product_qty(
         await state.set_state(BasketStates.viewing_quotes)
         return
 
-    existing: list[dict[str, Any]] = data.get("basket_lines", [])
-    line_no = max((item["line_no"] for item in existing), default=0) + 1
-    existing.append(
-        {
-            "line_no": line_no,
-            "raw_text": f"{format_qty(qty)} {product.base_unit_code} {product.name_uz}",
-            "parsed_name": product.name_uz,
-            "qty": str(qty),
-            "unit_code": product.base_unit_code,
-            "status": "auto_accept",
-            "method": "catalog_pick",
-            "confidence": 1.0,
-            "canonical_id": product.id,
-            "canonical_name": product.name_uz,
-            "candidates": [],
-        }
-    )
+    lines = [dict(item) for item in existing]
+    matching = next((item for item in lines if item.get("canonical_id") == product.id), None)
+    if matching is not None:
+        qty += Decimal(str(matching["qty"]))
+        if not is_qty_orderable(qty, max_qty=Decimal(settings.basket_max_qty)):
+            await message.answer(t("qty_out_of_range", lang=lang))
+            return
+        matching["qty"] = str(qty)
+        matching["raw_text"] = f"{format_qty(qty)} {product.base_unit_code} {product.name_uz}"
+    else:
+        line_no = max((item["line_no"] for item in lines), default=0) + 1
+        lines.append(
+            {
+                "line_no": line_no,
+                "raw_text": f"{format_qty(qty)} {product.base_unit_code} {product.name_uz}",
+                "parsed_name": product.name_uz,
+                "qty": str(qty),
+                "unit_code": product.base_unit_code,
+                "status": "auto_accept",
+                "method": "catalog_pick",
+                "confidence": 1.0,
+                "canonical_id": product.id,
+                "canonical_name": product.name_uz,
+                "candidates": [],
+            }
+        )
+
+    if not await _persist_bot_cart(state, session, lines):
+        await message.answer(t("web_error_generic", lang=lang))
+        return
 
     await message.answer(
         t(
@@ -448,14 +461,15 @@ async def handle_product_qty(
     )
 
     table = await message.answer(
-        _format_parse_table(existing, lang=lang),
+        _format_parse_table(lines, lang=lang),
         reply_markup=get_basket_actions_keyboard(
-            lang=lang, line_numbers=[item["line_no"] for item in existing]
+            lang=lang, line_numbers=[item["line_no"] for item in lines]
         ),
     )
     await state.set_state(BasketStates.viewing_quotes)
     await state.update_data(
-        basket_lines=existing,
+        basket_lines=lines,
+        pending_canonical_id=None,
         table_chat_id=table.chat.id,
         table_message_id=table.message_id,
     )
