@@ -1,12 +1,15 @@
 """The sales agent loop, with a scripted model and fake tools -- no network, no money."""
 
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 
 import anthropic
 import httpx2
+import pytest
 from anthropic.types.beta import BetaTextBlock, BetaToolUseBlock
 
+import app.services.sales_agent as sales_agent_module
 from app.core.config import settings
 from app.services.sales_agent import AgentCart, SalesAgent, agent_available
 
@@ -71,6 +74,37 @@ async def test_the_agent_uses_a_tool_then_answers() -> None:
     last = client.calls[1]["messages"][-1]["content"][0]
     assert last["type"] == "tool_result" and last["tool_use_id"] == "tu_search_products"
     assert client.calls[0]["model"] == settings.agent_model
+    assert client.calls[0]["model"] == "claude-opus-5-5"
+    assert "thinking" not in client.calls[0]
+    assert "tool_choice" not in client.calls[0]
+
+
+async def test_agent_accounts_for_both_cache_write_durations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recorded: list[dict[str, Any]] = []
+
+    class FakeRepository:
+        def __init__(self, session: Any) -> None:
+            pass
+
+        async def record_llm_call(self, **kwargs: Any) -> None:
+            recorded.append(kwargs)
+
+    monkeypatch.setattr(sales_agent_module, "OpsRepository", FakeRepository)
+    usage = SimpleNamespace(
+        input_tokens=1_000_000,
+        output_tokens=1_000_000,
+        cache_read_input_tokens=1_000_000,
+        cache_creation_input_tokens=2_000_000,
+        cache_creation=SimpleNamespace(ephemeral_1h_input_tokens=1_000_000),
+    )
+    response = SimpleNamespace(model="claude-opus-5-5", usage=usage, stop_reason="end_turn")
+
+    await SalesAgent(object(), FakeTools(), client=FakeClient([]))._record("hello", response, 1)
+
+    assert recorded[0]["cost_usd"] == Decimal("37.200000")
+    assert recorded[0]["input_tokens"] == 4_000_000
 
 
 async def test_only_plain_text_is_remembered() -> None:

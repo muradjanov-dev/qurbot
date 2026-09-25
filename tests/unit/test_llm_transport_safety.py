@@ -71,7 +71,7 @@ async def test_anthropic_provider_uses_native_structured_messages_api(
         monkeypatch.setattr(module, "_http_client", shared)
         client = LLMClient(
             api_key="anthropic-test-key",
-            model="claude-opus-5",
+            model="claude-opus-5-5",
             base_url="https://api.anthropic.com/v1",
             provider="anthropic",
         )
@@ -85,9 +85,10 @@ async def test_anthropic_provider_uses_native_structured_messages_api(
     assert request.headers["x-api-key"] == "anthropic-test-key"
     assert request.headers["anthropic-version"] == "2023-06-01"
     assert "authorization" not in request.headers
-    assert payload["model"] == "claude-opus-5"
+    assert payload["model"] == "claude-opus-5-5"
     assert payload["max_tokens"] > 0
-    assert payload["thinking"] == {"type": "disabled"}
+    assert "thinking" not in payload
+    assert "tool_choice" not in payload
     assert payload["output_config"]["format"]["type"] == "json_schema"
     assert payload["output_config"]["format"]["schema"]["required"] == ["reply"]
     assert payload["messages"][0]["role"] == "user"
@@ -154,7 +155,7 @@ async def test_anthropic_batch_disambiguation_has_a_strict_output_schema(
         monkeypatch.setattr(module, "_http_client", shared)
         client = LLMClient(
             api_key="anthropic-test-key",
-            model="claude-opus-5",
+            model="claude-opus-5-5",
             provider="anthropic",
         )
         result = await client.disambiguate_batch([line])
@@ -199,7 +200,7 @@ async def test_anthropic_single_disambiguation_has_a_strict_output_schema(
         monkeypatch.setattr(module, "_http_client", shared)
         client = LLMClient(
             api_key="anthropic-test-key",
-            model="claude-opus-5",
+            model="claude-opus-5-5",
             provider="anthropic",
         )
         result = await client.disambiguate("fanera", "fanera", [candidate])
@@ -237,7 +238,7 @@ async def test_anthropic_whole_message_parse_has_a_strict_output_schema(
         monkeypatch.setattr(module, "_http_client", shared)
         client = LLMClient(
             api_key="anthropic-test-key",
-            model="claude-opus-5",
+            model="claude-opus-5-5",
             provider="anthropic",
         )
         result = await client.parse_whole_message("10 dona fanera")
@@ -261,7 +262,8 @@ def test_budget_rejects_unknown_price_and_over_limit() -> None:
     assert estimate_cost("unknown", 10, 10) is None
 
 
-def test_claude_opus_5_list_price_is_accounted() -> None:
+def test_claude_opus_list_prices_are_accounted() -> None:
+    assert estimate_cost("claude-opus-5-5", 1_000_000, 1_000_000) == Decimal("24.000000")
     assert estimate_cost("claude-opus-5", 1_000_000, 1_000_000) == Decimal("30.000000")
 
 
