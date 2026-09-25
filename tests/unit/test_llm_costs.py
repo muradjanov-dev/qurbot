@@ -12,6 +12,7 @@ from app.domain.llm_costs import (
 
 
 def test_provider_is_read_from_the_model_name() -> None:
+    assert llm_provider("claude-opus-5-5") == "Anthropic"
     assert llm_provider("claude-opus-5") == "Anthropic"
     assert llm_provider("gpt-5.6-terra") == "OpenAI"
     assert llm_provider(None) == "?"

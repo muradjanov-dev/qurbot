@@ -44,7 +44,7 @@ mobile app.
 | Cache / FSM | Redis (aiogram `RedisStorage`, plus app-level cache) |
 | Background jobs | `arq` (Redis-backed) — separate worker process |
 | LLM | OpenAI-compatible Chat Completions API (`gpt-5.6-terra`), used **only as fallback**, see §6 |
-| AI sales agent | Anthropic SDK, `claude-opus-5`, chats with customers through tools, see §6a |
+| AI sales agent | Anthropic SDK, `claude-opus-5-5`, chats with customers through tools, see §6a |
 | Config | `pydantic-settings`, all secrets from env, `.env.example` committed |
 | Logging | `structlog`, JSON output, request/update correlation IDs |
 | Tests | `pytest` + `pytest-asyncio` + `testcontainers` (or a dedicated test DB) |

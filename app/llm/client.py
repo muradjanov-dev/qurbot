@@ -541,11 +541,11 @@ class LLMClient:
                 "system": system_prompt,
                 "messages": [{"role": "user", "content": user_prompt}],
                 "max_tokens": settings.llm_max_completion_tokens,
-                # QurBot needs a small JSON classification, not agentic reasoning.
-                # Opus 5 enables thinking by default, which adds billed tokens and
-                # latency without improving this constrained task.
-                "thinking": {"type": "disabled"},
             }
+            # Opus 5.5 rejects thinking: disabled. Preserve the old request for
+            # other configured Anthropic models that supported it.
+            if self.model != "claude-opus-5-5":
+                payload["thinking"] = {"type": "disabled"}
             if output_schema is not None:
                 payload["output_config"] = {
                     "format": {"type": "json_schema", "schema": output_schema}

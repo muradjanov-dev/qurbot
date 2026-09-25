@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import settings
-from app.llm.pricing import RATES
+from app.llm.pricing import CACHE_RATES, RATES
 
 
 def reserve_agent_evaluation(
@@ -30,7 +30,10 @@ def reserve_agent_evaluation(
     # at cache-write price, never assume a cheaper cache hit.
     content = json.dumps([system, messages, tools], ensure_ascii=False).encode()
     upper_input = len(content) + 8192
-    cost = (rates[0] * Decimal("1.25") * upper_input + rates[1] * max_output) / 1_000_000
+    cache_write_price = (
+        CACHE_RATES[model][0] if model in CACHE_RATES else rates[0] * Decimal("1.25")
+    )
+    cost = (cache_write_price * upper_input + rates[1] * max_output) / 1_000_000
     cost = cost.quantize(Decimal("0.000001"), rounding=ROUND_CEILING)
     limit = min(settings.agent_evaluation_budget_usd, Decimal("5.00"))
     if not limit.is_finite() or limit <= 0:

@@ -51,7 +51,7 @@ from app.domain.optimizer.models import BasketItemQuery
 from app.domain.optimizer.serde import deserialize_variant, serialize_variant
 from app.domain.pricing.units import STANDARD_UNITS
 from app.llm.evaluation import reserve_agent_evaluation
-from app.llm.pricing import RATES
+from app.llm.pricing import CACHE_RATES, RATES
 from app.services.address_service import AddressService
 from app.services.cart_service import CartConflict, InvalidCartItem
 from app.services.catalog_service import CatalogService
@@ -811,13 +811,30 @@ class SalesAgent:
         usage = response.usage
         cache_read = usage.cache_read_input_tokens or 0
         cache_write = usage.cache_creation_input_tokens or 0
+        cache_write_1h = getattr(
+            getattr(usage, "cache_creation", None), "ephemeral_1h_input_tokens", 0
+        ) or 0
+        cache_write_5m = cache_write - cache_write_1h
         # A refusal fallback may answer on another model; bill what actually ran.
         model = str(getattr(response, "model", None) or settings.agent_model)
         input_price, output_price = RATES.get(model, RATES[settings.agent_model])
+        cache_prices = CACHE_RATES.get(model)
+        read_price = (
+            cache_prices[2]
+            if cache_prices is not None
+            else input_price * settings.agent_cache_read_price_ratio
+        )
+        write_5m_price = (
+            cache_prices[0]
+            if cache_prices is not None
+            else input_price * settings.agent_cache_write_price_ratio
+        )
+        write_1h_price = cache_prices[1] if cache_prices is not None else write_5m_price
         cost = (
             Decimal(usage.input_tokens) * input_price
-            + Decimal(cache_read) * input_price * settings.agent_cache_read_price_ratio
-            + Decimal(cache_write) * input_price * settings.agent_cache_write_price_ratio
+            + Decimal(cache_read) * read_price
+            + Decimal(cache_write_5m) * write_5m_price
+            + Decimal(cache_write_1h) * write_1h_price
             + Decimal(usage.output_tokens) * output_price
         ) / Decimal(1_000_000)
         cost = cost.quantize(Decimal("0.000001"))

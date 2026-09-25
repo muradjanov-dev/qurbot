@@ -1,8 +1,9 @@
-"""List-price estimates, not invoices. Verified 2026-09-14.
+"""List-price estimates, not invoices. Opus 5.5 verified 2026-09-25.
 
 https://developers.openai.com/api/docs/models/gpt-5.6-luna
 https://developers.openai.com/api/docs/models/gpt-5.6-terra
 https://platform.claude.com/docs/en/models/overview
+https://platform.claude.com/docs/en/models/opus-5-5/overview
 Custom providers may charge differently and require explicit rates.
 """
 
@@ -15,6 +16,12 @@ RATES = {
     "gpt-5.6-luna": (Decimal("0.20"), Decimal("1.20")),
     "gpt-5.6-terra": (Decimal("2.00"), Decimal("12.00")),
     "claude-opus-5": (Decimal("5.00"), Decimal("25.00")),
+    "claude-opus-5-5": (Decimal("4.00"), Decimal("20.00")),
+}
+
+# Per million tokens: 5-minute write, 1-hour write, read.
+CACHE_RATES = {
+    "claude-opus-5-5": (Decimal("5.00"), Decimal("8.00"), Decimal("0.20")),
 }
 
 

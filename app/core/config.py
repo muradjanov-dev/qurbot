@@ -190,7 +190,7 @@ class Settings(BaseSettings):
     # or when a call fails, the deterministic basket flow answers instead.
     # Shares `anthropic_api_key` with the LLM matching provider above.
     agent_enabled: bool = True
-    agent_model: str = "claude-opus-5"
+    agent_model: str = "claude-opus-5-5"
     # Chat replies do not need deep reasoning; low effort keeps the bill small.
     agent_effort: Literal["low", "medium", "high", "xhigh", "max"] = "low"
     # Output tokens cost five times input on this model, and one customer

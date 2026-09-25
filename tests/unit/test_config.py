@@ -53,8 +53,8 @@ def test_anthropic_provider_configuration_is_explicit() -> None:
         _env_file=None,
         llm_provider="anthropic",
         anthropic_api_key="test-only-key",
-        llm_model="claude-opus-5",
+        llm_model="claude-opus-5-5",
     )
     assert settings.llm_provider == "anthropic"
     assert settings.anthropic_api_key == "test-only-key"
-    assert settings.llm_model == "claude-opus-5"
+    assert settings.llm_model == "claude-opus-5-5"
