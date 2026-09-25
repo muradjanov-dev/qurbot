@@ -42,6 +42,7 @@ ASSET_VERSION = sha256(
         for name in (
             "app.css",
             "app.js",
+            "catalog.js",
             "chat.js",
             "session.js",
             "chat_cart.js",

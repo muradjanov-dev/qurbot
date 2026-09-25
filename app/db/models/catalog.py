@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from app.db.base import PK_BIGINT, Base, TimestampMixin
+from app.domain.catalog_images import photo_filename
 
 JSONType = JSON().with_variant(JSONB, "postgresql")
 
@@ -103,29 +104,19 @@ class CanonicalProduct(Base, TimestampMixin):
 
     @property
     def display_image_url(self) -> str:
-        """Return image_url or category-tailored Unsplash photo."""
-        if self.image_url:
+        """Return an uploaded local photo or a product-family image on our server."""
+        if (
+            self.image_url
+            and self.image_url.startswith("/")
+            and not self.image_url.startswith("//")
+        ):
             return self.image_url
-        if isinstance(self.attributes, dict) and self.attributes.get("image_url"):
-            return str(self.attributes["image_url"])
-
-        slug = self.category.slug if self.category else ""
-        category_images = {
-            "sement-va-qorishmalar": "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop",
-            "gisht-va-bloklar": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop",
-            "metall-va-armatura": "https://images.unsplash.com/photo-1535813547-99c456a41d4a?w=600&auto=format&fit=crop",
-            "yogoch": "https://images.unsplash.com/photo-1516253593875-bd7ba052fbc5?w=600&auto=format&fit=crop",
-            "boyoq-va-lak": "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=600&auto=format&fit=crop",
-            "plitka": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop",
-            "santexnika": "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=600&auto=format&fit=crop",
-            "elektr": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&auto=format&fit=crop",
-            "izolyatsiya": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&auto=format&fit=crop",
-            "tom-va-shifer": "https://images.unsplash.com/photo-1632759145351-1d592919f522?w=600&auto=format&fit=crop",
-        }
-        return category_images.get(
-            slug,
-            "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?w=600&auto=format&fit=crop",
-        )
+        if isinstance(self.attributes, dict):
+            legacy = self.attributes.get("image_url")
+            if isinstance(legacy, str) and legacy.startswith("/") and not legacy.startswith("//"):
+                return legacy
+        filename = photo_filename(self.category.slug if self.category else "", self.name_uz)
+        return f"/static/store/images/{filename}"
 
     category: Mapped[Category] = relationship(
         "Category", back_populates="canonical_products", lazy="selectin"

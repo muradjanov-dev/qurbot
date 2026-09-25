@@ -1951,6 +1951,18 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Қурилиш моллари — битта рўйхат, энг арзон нарх",
         "ru": "Стройматериалы — один список, лучшая цена",
     },
+    "web_image_credits": {
+        "uz_latn": "Surat manbalari",
+        "uz_cyrl": "Сурат манбалари",
+        "ru": "Источники фотографий",
+    },
+    "web_image_credits_note": {
+        "uz_latn": (
+            "Suratlar mahsulot turini ko'rsatadi. Serverdagi nusxalar hajmi kichraytirilgan."
+        ),
+        "uz_cyrl": "Суратлар маҳсулот турини кўрсатади. Сервердаги нусхалар ҳажми кичрайтирилган.",
+        "ru": "Фотографии показывают тип товара. Копии на сервере уменьшены.",
+    },
     "web_nav_home": {"uz_latn": "Bosh sahifa", "uz_cyrl": "Бош саҳифа", "ru": "Главная"},
     "web_nav_catalog": {"uz_latn": "Katalog", "uz_cyrl": "Каталог", "ru": "Каталог"},
     "web_nav_basket": {"uz_latn": "Savat", "uz_cyrl": "Сават", "ru": "Корзина"},

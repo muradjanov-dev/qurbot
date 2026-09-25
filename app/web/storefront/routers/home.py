@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,6 +16,9 @@ from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.session import LANG_COOKIE, normalize_lang
+
+PHOTO_DIR = Path(__file__).resolve().parents[1] / "static" / "images"
+IMAGE_CREDITS: list[dict[str, str]] = json.loads((PHOTO_DIR / "credits.json").read_text())
 
 router = APIRouter(tags=["storefront"])
 
@@ -26,6 +32,15 @@ async def home(
 ) -> HTMLResponse:
     categories = await CatalogRepository(session).list_root_categories()
     return render(request, "home.html", user=user, lang=lang, categories=categories)
+
+
+@router.get("/image-credits", response_class=HTMLResponse)
+async def image_credits(
+    request: Request,
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+) -> HTMLResponse:
+    return render(request, "image_credits.html", user=user, lang=lang, credits=IMAGE_CREDITS)
 
 
 @router.get("/lang/{code}")
@@ -81,4 +96,10 @@ async def product_image(
             media_type="image/jpeg",
             headers={"Cache-Control": "public, max-age=3600"},
         )
-    return RedirectResponse(product.display_image_url, status_code=302)
+    image_url = product.display_image_url
+    if not image_url.startswith("/static/store/images/"):
+        return RedirectResponse(image_url, status_code=302)
+    image = PHOTO_DIR / image_url.rsplit("/", 1)[-1]
+    if not image.is_file():
+        return Response(status_code=404)
+    return FileResponse(image, headers={"Cache-Control": "public, max-age=86400"})

@@ -11,7 +11,7 @@
   {% if products %}
     <div class="grid cols-3">
       {% for product in products %}
-        <a class="tile" href="/product/{{ product.id }}">
+        <a class="tile" href="{{ product.href }}" data-catalog-product>
           <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product.name }}" loading="lazy">
           <span class="tile-name">{{ product.name }}</span>
           {% if product.brand %}<span class="muted tiny">{{ product.brand }}</span>{% endif %}
@@ -36,3 +36,4 @@
   {% endif %}
 </section>
 {% endblock %}
+{% block scripts %}<script src="{{ static_url }}/catalog.js?v={{ asset_version }}" defer></script>{% endblock %}
