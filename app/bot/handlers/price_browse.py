@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 router = Router(name="price_browse")
 
-_MAX_PRODUCTS = 30
+_CATEGORY_PAGE_SIZE = 30
 
 
 def _full_product_list(
@@ -119,7 +119,9 @@ async def callback_price_category(
     if not callback.data or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    category_id = int(callback.data.split(":")[1])
+    parts = callback.data.split(":")
+    category_id = int(parts[1])
+    page = max(0, int(parts[2])) if len(parts) > 2 else 0
 
     catalog_repo = CatalogRepository(session)
     category = await catalog_repo.get_category(category_id)
@@ -138,10 +140,20 @@ async def callback_price_category(
         return
 
     subtree_ids = await catalog_repo.get_category_subtree_ids(category_id)
-    products = await catalog_repo.search_canonical_products(
-        "", limit=_MAX_PRODUCTS, category_ids=subtree_ids
+    rows, total = await catalog_repo.list_catalog_page(
+        offset=page * _CATEGORY_PAGE_SIZE,
+        limit=_CATEGORY_PAGE_SIZE,
+        category_ids=subtree_ids,
     )
-    if not products:
+    pages = max(1, (total + _CATEGORY_PAGE_SIZE - 1) // _CATEGORY_PAGE_SIZE)
+    if page >= pages:
+        page = pages - 1
+        rows, _ = await catalog_repo.list_catalog_page(
+            offset=page * _CATEGORY_PAGE_SIZE,
+            limit=_CATEGORY_PAGE_SIZE,
+            category_ids=subtree_ids,
+        )
+    if not rows:
         await _replace_catalog_screen(
             callback.message,
             t("price_browse_empty", lang=lang, phone=settings.support_phone_text),
@@ -150,14 +162,18 @@ async def callback_price_category(
         await callback.answer()
         return
 
-    cheapest = await _cheapest_by_canonical(session, [p.id for p in products])
+    products = [product for product, _ in rows]
+    cheapest = await _cheapest_by_canonical(session, [product.id for product in products])
     # Every product is listed, priced from the cheapest live offer when a shop
     # carries it and from the supplier's list price otherwise. Listing only
     # products with a live offer meant the whole catalogue read as empty until
     # the first shop uploaded, which is not what a customer should be told.
     listed = [
-        (p, format_catalog_price(cheapest.get(p.id), p.reference_price, lang=lang))
-        for p in products
+        (
+            product,
+            format_catalog_price(cheapest.get(product.id), product.reference_price, lang=lang),
+        )
+        for product in products
     ]
 
     category_name = localized_name(category.name_uz, category.name_ru, lang)
@@ -165,8 +181,15 @@ async def callback_price_category(
         callback.message,
         t("price_browse_header", lang=lang, category=category_name)
         + "\n\n"
-        + _full_product_list(listed, lang),
-        get_product_picker_keyboard(listed, lang=lang),
+        + _full_product_list(listed, lang, start=page * _CATEGORY_PAGE_SIZE + 1),
+        get_product_picker_keyboard(
+            listed,
+            lang=lang,
+            category_id=category_id,
+            page=page,
+            pages=pages,
+            page_size=_CATEGORY_PAGE_SIZE,
+        ),
     )
     await callback.answer()
 
@@ -233,7 +256,9 @@ async def callback_product_detail(
     if not callback.data or not isinstance(callback.message, Message):
         await callback.answer()
         return
-    canonical_id = int(callback.data.split(":")[1])
+    parts = callback.data.split(":")
+    canonical_id = int(parts[1])
+    category_page = int(parts[2]) if len(parts) > 2 else None
 
     catalog_repo = CatalogRepository(session)
     product = await catalog_repo.get(canonical_id)
@@ -264,7 +289,7 @@ async def callback_product_detail(
 
     photo = await shop_repo.get_photo_for_canonical(canonical_id)
     keyboard = get_product_detail_keyboard(
-        product.category_id, lang=lang, canonical_id=canonical_id
+        product.category_id, lang=lang, canonical_id=canonical_id, category_page=category_page
     )
 
     if photo is not None:

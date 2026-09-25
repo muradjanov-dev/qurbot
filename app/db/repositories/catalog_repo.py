@@ -516,7 +516,7 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
             )
             .where(*filters)
             .group_by(CanonicalProduct.id)
-            .order_by(CanonicalProduct.name_uz)
+            .order_by(CanonicalProduct.name_uz, CanonicalProduct.id)
             .offset(offset)
             .limit(limit)
         )
