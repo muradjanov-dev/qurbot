@@ -120,6 +120,11 @@ def _picker_label(name: str, number: int) -> str:
 def get_product_picker_keyboard(
     products: Sequence[tuple["CanonicalProduct", str]],
     lang: str = DEFAULT_LANG,
+    *,
+    category_id: int | None = None,
+    page: int = 0,
+    pages: int = 1,
+    page_size: int = 30,
 ) -> InlineKeyboardMarkup:
     """Product list where each row is tappable and shows its price.
 
@@ -127,7 +132,7 @@ def get_product_picker_keyboard(
     it came from -- a live offer, a supplier's list, or nothing at all.
     """
     builder = InlineKeyboardBuilder()
-    for number, (product, _price_text) in enumerate(products, start=1):
+    for number, (product, _price_text) in enumerate(products, start=page * page_size + 1):
         builder.button(
             text=_picker_label(
                 localized_name(
@@ -138,10 +143,26 @@ def get_product_picker_keyboard(
                 ),
                 number,
             ),
-            callback_data=f"price_prod:{product.id}",
+            callback_data=(
+                f"price_prod:{product.id}:{page}"
+                if category_id is not None
+                else f"price_prod:{product.id}"
+            ),
         )
-    builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
     builder.adjust(1)
+    if category_id is not None and pages > 1:
+        navigation = []
+        if page > 0:
+            navigation.append(
+                InlineKeyboardButton(text="◀️", callback_data=f"price_cat:{category_id}:{page - 1}")
+            )
+        navigation.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="noop"))
+        if page + 1 < pages:
+            navigation.append(
+                InlineKeyboardButton(text="▶️", callback_data=f"price_cat:{category_id}:{page + 1}")
+            )
+        builder.row(*navigation)
+    builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root"))
     return builder.as_markup()
 
 
@@ -183,6 +204,7 @@ def get_product_detail_keyboard(
     category_id: int | None,
     lang: str = DEFAULT_LANG,
     canonical_id: int | None = None,
+    category_page: int | None = None,
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if canonical_id is not None:
@@ -191,7 +213,10 @@ def get_product_detail_keyboard(
             callback_data=f"price_add:{canonical_id}",
         )
     if category_id is not None:
-        builder.button(text=t("btn_back", lang=lang), callback_data=f"price_cat:{category_id}")
+        destination = f"price_cat:{category_id}"
+        if category_page is not None:
+            destination += f":{category_page}"
+        builder.button(text=t("btn_back", lang=lang), callback_data=destination)
     else:
         builder.button(text=t("btn_back", lang=lang), callback_data="price_cat_root")
     builder.adjust(1)
