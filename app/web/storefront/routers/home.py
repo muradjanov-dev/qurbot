@@ -102,4 +102,8 @@ async def product_image(
     image = PHOTO_DIR / image_url.rsplit("/", 1)[-1]
     if not image.is_file():
         return Response(status_code=404)
-    return FileResponse(image, headers={"Cache-Control": "public, max-age=3600"})
+    return FileResponse(
+        image,
+        media_type="image/webp" if image.suffix == ".webp" else "image/svg+xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )

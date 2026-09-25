@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
 from decimal import Decimal
+from unittest.mock import patch
 from urllib.parse import quote
 
 import pytest
@@ -203,7 +204,10 @@ async def test_catalog_and_product_pages(client: TestClient, test_session: Async
     assert detail.status_code == 200
     assert "58.000" in detail.text  # cheapest live offer, dot-grouped
 
-    image = client.get(f"/media/product/{data.product_id}")
+    # The production container does not register WebP in mimetypes. Keep the
+    # explicit response type even when the host cannot guess it from the suffix.
+    with patch("starlette.responses.guess_type", return_value=(None, None)):
+        image = client.get(f"/media/product/{data.product_id}")
     assert image.status_code == 200
     assert image.headers["content-type"] == "image/webp"
     assert len(image.content) > 1000
