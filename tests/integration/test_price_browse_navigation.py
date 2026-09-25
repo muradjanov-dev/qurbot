@@ -81,9 +81,7 @@ async def test_category_pages_cover_each_product_once(total: int) -> None:
     session = AsyncMock(spec=AsyncSession)
     category = SimpleNamespace(id=7, name_uz="Fanera", name_ru="Fanera")
     products = [
-        SimpleNamespace(
-            id=i, name_uz=f"Fanera {i}", name_ru=f"Fanera {i}", reference_price=None
-        )
+        SimpleNamespace(id=i, name_uz=f"Fanera {i}", name_ru=f"Fanera {i}", reference_price=None)
         for i in range(1, total + 1)
     ]
     seen: list[int] = []

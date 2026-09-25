@@ -154,23 +154,15 @@ def get_product_picker_keyboard(
         navigation = []
         if page > 0:
             navigation.append(
-                InlineKeyboardButton(
-                    text="◀️", callback_data=f"price_cat:{category_id}:{page - 1}"
-                )
+                InlineKeyboardButton(text="◀️", callback_data=f"price_cat:{category_id}:{page - 1}")
             )
-        navigation.append(
-            InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="noop")
-        )
+        navigation.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="noop"))
         if page + 1 < pages:
             navigation.append(
-                InlineKeyboardButton(
-                    text="▶️", callback_data=f"price_cat:{category_id}:{page + 1}"
-                )
+                InlineKeyboardButton(text="▶️", callback_data=f"price_cat:{category_id}:{page + 1}")
             )
         builder.row(*navigation)
-    builder.row(
-        InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root")
-    )
+    builder.row(InlineKeyboardButton(text=t("btn_back", lang=lang), callback_data="price_cat_root"))
     return builder.as_markup()
 
 
