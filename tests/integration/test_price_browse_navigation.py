@@ -7,7 +7,12 @@ import pytest
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.handlers.price_browse import callback_price_category, callback_product_detail
+from app.bot.handlers.customer import callback_add_item
+from app.bot.handlers.price_browse import (
+    callback_price_category,
+    callback_product_detail,
+    handle_product_qty,
+)
 from app.bot.keyboards.inline import get_product_picker_keyboard
 
 
@@ -158,3 +163,87 @@ def test_long_timber_name_is_full_in_message_and_identifiable_on_button() -> Non
     assert button.callback_data == "price_prod:99"
     assert "45x140x6000" in button.text
     assert len(button.text) <= 34
+
+
+@pytest.mark.asyncio
+async def test_basket_add_opens_catalogue_roots() -> None:
+    callback = _callback(has_photo=False, data="add_item")
+    state = AsyncMock()
+    session = AsyncMock(spec=AsyncSession)
+    roots = [
+        SimpleNamespace(id=i, icon=None, name_uz=name, name_ru=name)
+        for i, name in enumerate(("Plitalar", "Yog'och", "Mahkamlash"), start=1)
+    ]
+    with (
+        patch("app.bot.handlers.customer._load_durable_cart", new=AsyncMock()) as load,
+        patch("app.bot.handlers.customer.CatalogRepository") as repo_type,
+    ):
+        repo_type.return_value.list_root_categories = AsyncMock(return_value=roots)
+        await callback_add_item(callback, state, session, "uz_latn")
+
+    load.assert_awaited_once_with(state, session)
+    markup = callback.message.answer.await_args.kwargs["reply_markup"]
+    callbacks = {button.callback_data for row in markup.inline_keyboard for button in row}
+    assert {"price_cat:1", "price_cat:2", "price_cat:3"} <= callbacks
+    callback.message.answer.assert_awaited_once()
+    callback.answer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_catalogue_quantity_preserves_existing_basket_and_can_repeat() -> None:
+    state = AsyncMock()
+    state.get_data = AsyncMock(return_value={"pending_canonical_id": 22})
+    session = AsyncMock(spec=AsyncSession)
+    product = SimpleNamespace(id=22, name_uz="Fanera", base_unit_code="dona")
+    old_line = {
+        "line_no": 1,
+        "canonical_id": 11,
+        "canonical_name": "Sement",
+        "parsed_name": "Sement",
+        "qty": "3",
+        "unit_code": "dona",
+        "status": "auto_accept",
+    }
+    persisted = AsyncMock(return_value=True)
+    message = AsyncMock(spec=Message)
+    message.text = "2"
+    message.answer = AsyncMock(
+        return_value=SimpleNamespace(chat=SimpleNamespace(id=1), message_id=5)
+    )
+
+    with (
+        patch(
+            "app.bot.handlers.price_browse._load_durable_cart",
+            new=AsyncMock(return_value=[old_line]),
+        ),
+        patch("app.bot.handlers.price_browse._persist_bot_cart", new=persisted),
+        patch("app.bot.handlers.price_browse.CatalogRepository") as repo_type,
+    ):
+        repo_type.return_value.get = AsyncMock(return_value=product)
+        await handle_product_qty(message, state, session, "uz_latn")
+
+    first_lines = persisted.await_args.args[2]
+    assert [line["canonical_id"] for line in first_lines] == [11, 22]
+    assert first_lines[0]["qty"] == "3"
+    assert first_lines[1]["qty"] == "2"
+    basket_text = message.answer.await_args.args[0]
+    assert "Sement" in basket_text and "Fanera" in basket_text
+    markup = message.answer.await_args.kwargs["reply_markup"]
+    assert "add_item" in {b.callback_data for row in markup.inline_keyboard for b in row}
+    assert "calculate_quotes" in {b.callback_data for row in markup.inline_keyboard for b in row}
+
+    message.text = "4"
+    with (
+        patch(
+            "app.bot.handlers.price_browse._load_durable_cart",
+            new=AsyncMock(return_value=first_lines),
+        ),
+        patch("app.bot.handlers.price_browse._persist_bot_cart", new=persisted),
+        patch("app.bot.handlers.price_browse.CatalogRepository") as repo_type,
+    ):
+        repo_type.return_value.get = AsyncMock(return_value=product)
+        await handle_product_qty(message, state, session, "uz_latn")
+
+    repeated_lines = persisted.await_args.args[2]
+    assert [line["canonical_id"] for line in repeated_lines] == [11, 22]
+    assert repeated_lines[1]["qty"] == "6"
