@@ -108,4 +108,14 @@ async def test_catalogue_return_and_layout_in_browser(
             await page.goto("http://qurbot.test" + listing)
             await page.locator("[data-catalog-product]").nth(6).click()
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
+
+        await page.set_viewport_size({"width": 390, "height": 720})
+        await page.evaluate(
+            "sessionStorage.setItem('qb_catalog_scroll:/catalog/"
+            + str(data.category_id)
+            + "', '800')"
+        )
+        await page.goto(f"http://qurbot.test/product/{data.product_id}")
+        await page.locator('a[href="/catalog/' + str(data.category_id) + '"]').first.click()
+        assert await page.evaluate("window.scrollY") == 0
         await browser.close()

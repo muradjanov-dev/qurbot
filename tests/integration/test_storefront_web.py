@@ -240,9 +240,11 @@ async def test_product_return_preserves_catalogue_page(
         assert detail.text.count(f'href="{listing_url}" data-catalog-return') == 2
 
     direct = client.get(f"/product/{other.id}")
-    assert f'href="/catalog/{data.category_id}" data-catalog-return' in direct.text
+    assert f'href="/catalog/{data.category_id}"' in direct.text
+    assert "data-catalog-return" not in direct.text
     malicious = client.get(f"/product/{other.id}?from=https://example.com")
-    assert f'href="/catalog/{data.category_id}" data-catalog-return' in malicious.text
+    assert f'href="/catalog/{data.category_id}"' in malicious.text
+    assert "data-catalog-return" not in malicious.text
 
 
 @pytest.mark.asyncio

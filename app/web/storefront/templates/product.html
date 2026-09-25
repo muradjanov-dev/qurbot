@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="section">
-  <a class="muted tiny" href="{{ return_to }}" data-catalog-return>← {{ t('web_back', lang=lang) }}</a>
+  <a class="muted tiny" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>← {{ t('web_back', lang=lang) }}</a>
 
   <div class="grid cols-2">
     <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product_name }}">
@@ -36,7 +36,7 @@
       </button>
       <p data-product-added role="status"></p>
       <a class="btn btn-ghost" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }}</a>
-      <a class="btn btn-ghost" href="{{ return_to }}" data-catalog-return>{{ t('sales_more_products', lang=lang) }}</a>
+      <a class="btn btn-ghost" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>{{ t('sales_more_products', lang=lang) }}</a>
     </div>
   </div>
 </section>

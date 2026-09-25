@@ -26,7 +26,7 @@ CATALOG_RETURN = re.compile(r"/catalog/(?:all|[1-9][0-9]*)(?:\?page=[1-9][0-9]*)
 
 def _catalog_return(raw: str | None, fallback: str) -> str:
     """Accept only catalogue list URLs from the product card's return link."""
-    return raw if raw and len(raw) <= 200 and CATALOG_RETURN.fullmatch(raw) else fallback
+    return raw if raw and CATALOG_RETURN.fullmatch(raw) else fallback
 
 
 def _needs_confirmation(product: CanonicalProduct, live_price: Decimal | None) -> bool:
@@ -234,6 +234,7 @@ async def product_detail(
         lang=lang,
         product=product,
         return_to=_catalog_return(from_catalog, f"/catalog/{product.category_id}"),
+        restore_position=bool(from_catalog and CATALOG_RETURN.fullmatch(from_catalog)),
         product_name=localized_name(
             product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
         ),
