@@ -3,7 +3,7 @@
 _LABELS = {
     "title": ("Boshqaruv", "Бошқарув", "Управление"),
     "new_product": ("Yangi katalog mahsuloti", "Янги каталог маҳсулоти", "Новый товар каталога"),
-    "offer": ("Narx va qoldiq qo'shish", "Нарх ва қолдиқ қўшиш", "Добавить цену и наличие"),
+    "offer": ("Narx va mavjudlik qo'shish", "Нарх ва мавжудлик қўшиш", "Добавить цену и наличие"),
     "name": ("Mahsulot nomi", "Маҳсулот номи", "Название товара"),
     "category": ("Toifa", "Тоифа", "Категория"),
     "unit": ("Birlik", "Бирлик", "Единица"),
@@ -41,9 +41,42 @@ _LABELS = {
         "Етказиш туманини танланг.",
         "Выберите район доставки.",
     ),
+    "archive": ("Arxivlash", "Архивлаш", "В архив"),
+    "restore": ("Tiklash", "Тиклаш", "Восстановить"),
+    "archived": ("Arxivlangan", "Архивланган", "В архиве"),
+    "remove_photo": ("Rasmni olib tashlash", "Расмни олиб ташлаш", "Удалить фото"),
+    "unlimited_stock": (
+        "Cheklanmagan qoldiq",
+        "Чекланмаган қолдиқ",
+        "Неограниченный остаток",
+    ),
+    "archive_confirm": (
+        "Mahsulotni arxivlashni tasdiqlaysizmi?",
+        "Маҳсулотни архивлашни тасдиқлайсизми?",
+        "Подтвердить архивацию товара?",
+    ),
+    "offer_description": (
+        "Mahsulot taklifi tavsifi",
+        "Маҳсулот таклифи тавсифи",
+        "Описание предложения товара",
+    ),
 }
 
 MANAGE_MESSAGES = {
     f"manage_{key}": dict(zip(("uz_latn", "uz_cyrl", "ru"), values, strict=True))
     for key, values in _LABELS.items()
 }
+MANAGE_MESSAGES.update(
+    {
+        "web_product_unavailable": {
+            "uz_latn": "Bu mahsulot hozir mavjud emas.",
+            "uz_cyrl": "Бу маҳсулот ҳозир мавжуд эмас.",
+            "ru": "Этот товар сейчас недоступен.",
+        },
+        "web_catalog_updated": {
+            "uz_latn": "Katalog yangilandi.",
+            "uz_cyrl": "Каталог янгиланди.",
+            "ru": "Каталог обновлён.",
+        },
+    }
+)

@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.catalog import CanonicalProduct
 from app.db.models.order import OrderShopPart
 from app.db.models.shop import (
     District,
@@ -116,7 +117,9 @@ class ShopRepository(BaseRepository[Shop]):
             return []
         stmt = (
             select(ShopProduct)
+            .join(CanonicalProduct, CanonicalProduct.id == ShopProduct.canonical_id)
             .where(
+                CanonicalProduct.is_active.is_(True),
                 ShopProduct.canonical_id.in_(canonical_ids),
                 ShopProduct.is_active.is_(True),
                 ShopProduct.staleness_state != "stale",
@@ -159,6 +162,7 @@ class ShopRepository(BaseRepository[Shop]):
 
         product.price_per_pack = price_per_pack
         product.price_per_base_unit = price_per_base_unit
+        product.stock_qty = None
         product.updated_by = updated_by
         product.staleness_state = "fresh"
         product.updated_at = datetime.now(UTC)
@@ -326,6 +330,7 @@ class ShopRepository(BaseRepository[Shop]):
             existing.updated_by = updated_by
             existing.updated_at = datetime.now(UTC)
             existing.stock_status = stock_status
+            existing.stock_qty = None
 
             history = PriceHistory(
                 shop_product_id=existing.id,
@@ -347,6 +352,7 @@ class ShopRepository(BaseRepository[Shop]):
             price_per_base_unit=price_per_base,
             currency="UZS",
             stock_status=stock_status,
+            stock_qty=None,
             min_qty=Decimal("1"),
             is_active=True,
             staleness_state="fresh",

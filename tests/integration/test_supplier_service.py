@@ -91,6 +91,13 @@ async def test_supplier_import_full_pipeline(test_session: AsyncSession) -> None
     await test_session.flush()
 
     assert result.applied_count >= 1  # At least some rows matched and applied
+    imported_offers = (
+        await test_session.scalars(
+            select(ShopProduct).where(ShopProduct.shop_id == 1, ShopProduct.updated_by == "import")
+        )
+    ).all()
+    assert imported_offers
+    assert all(offer.stock_qty is None for offer in imported_offers)
 
     # Verify batch marked as applied
     batch_after = await shop_repo.get_import_batch(summary.batch_id)
@@ -231,6 +238,8 @@ async def test_supplier_quick_price_with_history(test_session: AsyncSession) -> 
     res = await test_session.execute(stmt)
     product = res.scalars().first()
     assert product is not None
+    product.stock_qty = Decimal("12")  # Simulate a legacy quantity before price editing.
+    await test_session.flush()
 
     # Count history before
     ph_stmt = (
@@ -261,6 +270,7 @@ async def test_supplier_quick_price_with_history(test_session: AsyncSession) -> 
     assert updated is not None
     assert updated.price_per_pack == new_price
     assert updated.staleness_state == "fresh"
+    assert updated.stock_qty is None
 
 
 @pytest.mark.asyncio

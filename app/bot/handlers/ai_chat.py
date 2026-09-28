@@ -14,6 +14,7 @@ from app.bot.formatters.common import format_uzs
 from app.bot.handlers.customer import _format_quote_card, _not_a_menu_button
 from app.bot.keyboards.inline import get_order_confirm_keyboard
 from app.bot.states import BasketStates
+from app.bot.transient import register_inbound, transient_answer
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
@@ -117,10 +118,13 @@ async def select_product(
             if card.get("price_from_uzs") is not None
             else t("sales_price_request", lang=lang)
         )
-        await callback.message.answer(
+        await transient_answer(
+            callback.message,
+            session,
             f"{index + 1}. {card['name']}\n"
             f"{price}\n\n"
             f"{t('chat_choose_quantity', lang=lang)}",
+            message_type="ai_customer_outbound",
             parse_mode=None,
             reply_markup=quantity_keyboard(message, index, revision, lang),
         )
@@ -173,6 +177,7 @@ async def route_to_assistant(
     message. Anything that reaches the fallback has already been declined by
     every wizard, so by then the assistant is the right place for it.
     """
+    await register_inbound(message, session)
     await CartService(session).migrate_legacy(user.id, await state.get_data())
     job = await ConversationService(session).submit(
         user,
@@ -332,7 +337,9 @@ async def custom_product_quantity(
         await state.set_state(GuidedStates.quantity)
         await callback.answer()
         if isinstance(callback.message, Message):
-            await callback.message.answer(
+            await transient_answer(
+                callback.message,
+                session,
                 t("sales_enter_qty", lang=lang, unit=product.base_unit_code),
                 reply_markup=keyboard(
                     (t("sales_back_variants", lang=lang), f"chat:variants:{message.id}"),
@@ -358,7 +365,9 @@ async def back_variants(
     ):
         await state.set_state(None)
         cart = await CartService(session).get(user.id)
-        await callback.message.answer(
+        await transient_answer(
+            callback.message,
+            session,
             t("sales_choose_product", lang=lang),
             reply_markup=product_keyboard(message, cart.revision, lang),
         )

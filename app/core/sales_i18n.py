@@ -93,6 +93,11 @@ _LABELS = {
     "orders": ("📦 Buyurtmalarim", "📦 Буюртмаларим", "📦 Мои заказы"),
     "empty_cart": ("Savatingiz hali bo'sh", "Саватингиз ҳали бўш", "Ваша корзина пока пуста"),
     "delivery": ("Yetkazib berish", "Етказиб бериш", "Доставка"),
+    "delivery_notice": (
+        "Toshkent bo‘ylab yetkazib berish — 50 000 so‘m.",
+        "Тошкент бўйлаб етказиб бериш — 50 000 сўм.",
+        "Доставка по Ташкенту — 50 000 сум.",
+    ),
     "total": ("Jami", "Жами", "Итого"),
     "guest_hint": (
         "Ro'yxatdan o'tish shart emas. Tarix shu brauzerda saqlanadi.",

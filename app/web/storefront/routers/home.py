@@ -14,6 +14,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
+from app.domain.catalog_images import photo_filename
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.session import LANG_COOKIE, normalize_lang
 
@@ -86,17 +87,24 @@ async def product_image(
     a Telegram `file_id` means nothing to a browser.
     """
     product = await CatalogRepository(session).get(canonical_id)
-    if product is None:
+    if product is None or not product.is_active:
         return Response(status_code=404)
 
-    photo = await ShopRepository(session).get_photo_for_canonical(canonical_id)
+    photo = None
+    if not product.image_url and not product.attributes.get("image_hidden"):
+        photo = await ShopRepository(session).get_photo_for_canonical(canonical_id)
     if photo is not None and photo[1]:
         return Response(
             content=photo[1],
             media_type="image/jpeg",
-            headers={"Cache-Control": "public, max-age=3600"},
+            headers={"Cache-Control": "public, no-cache"},
         )
     image_url = product.display_image_url
+    if product.attributes.get("image_hidden"):
+        filename = photo_filename(
+            product.category.slug if product.category else "", product.name_uz
+        )
+        image_url = f"/static/store/images/{filename}"
     if not image_url.startswith("/static/store/images/"):
         return RedirectResponse(image_url, status_code=302)
     image = PHOTO_DIR / image_url.rsplit("/", 1)[-1]
@@ -105,5 +113,5 @@ async def product_image(
     return FileResponse(
         image,
         media_type="image/webp" if image.suffix == ".webp" else "image/svg+xml",
-        headers={"Cache-Control": "public, max-age=3600"},
+        headers={"Cache-Control": "public, no-cache"},
     )

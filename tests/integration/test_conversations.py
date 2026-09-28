@@ -363,6 +363,7 @@ async def test_tool_receipt_prevents_reapplying_cart_mutation(database, monkeypa
     tools = module.DurableTools(first["conversation_id"], 0, "worker", first["id"])
     search = await tools.run("search_products", {"query": "fanera"}, AgentCart())
     result = await tools.run("set_basket_item", args, AgentCart())
+    assert tools.cards == []
     recovered = module.DurableTools(first["conversation_id"], 0, "worker", first["id"])
     assert await recovered.run("search_products", {"query": "fanera"}, AgentCart()) == search
     assert await recovered.run("set_basket_item", args, AgentCart()) == result
@@ -374,6 +375,127 @@ async def test_tool_receipt_prevents_reapplying_cart_mutation(database, monkeypa
     divergent = module.DurableTools(first["conversation_id"], 0, "worker", first["id"])
     with pytest.raises(ConversationConflict, match="recovery_tool_mismatch"):
         await divergent.run("set_basket_item", {"product_id": product_id, "qty": 3}, AgentCart())
+
+
+async def test_new_turn_refreshes_stale_agent_cart_without_rejecting_answer(database, monkeypatch):
+    """A cart change made outside AI chat must not poison a later read-only answer."""
+    from app.services.cart_service import CartService
+    from app.services.sales_agent import AgentCart
+    from tests.integration.test_sales_agent_tools import _seed
+
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+    monkeypatch.setattr(module.DurableAgent, "reply", AsyncMock(return_value="Javob"))
+    monkeypatch.setattr(module, "warn_admins_of_ai_outage", AsyncMock())
+    async with database() as session:
+        _, product_id = await _seed(session)
+        user = await session.get(User, 1)
+        conversation = await ConversationService(session).get_or_create(user)
+        conversation.agent_state = AgentCart(revision=0).to_dict()
+        await CartService(session).set_item(user.id, product_id, "2", expected_revision=0)
+        await session.commit()
+
+    result = await submit(database, "Bu qanaqa mahsulot?", "stale-read-only")
+    await module.process_conversation({}, result["conversation_id"])
+
+    async with database() as session:
+        user = await session.get(User, 1)
+        cart = await CartService(session).get(user.id)
+        job = await session.get(ConversationJob, result["id"])
+        snapshot = await ConversationService(session).snapshot(user)
+        assert cart.lines[0]["qty"] == "2"
+        assert job.status == "completed"
+        assert job.error is None
+        assert snapshot["messages"][-1]["text"] == "Javob"
+
+
+async def test_cart_change_during_turn_preserves_newer_live_state(database, monkeypatch):
+    from app.services.cart_service import CartService
+    from tests.integration.test_sales_agent_tools import _seed
+
+    async with database() as session:
+        _, product_id = await _seed(session)
+        await session.commit()
+
+    async def reply_after_concurrent_change(self, text, lang, cart):
+        await self.tools.run("set_basket_item", {"product_id": product_id, "qty": 2}, cart)
+        async with database() as session:
+            await CartService(session).set_item(1, product_id, "5", expected_revision=1)
+            await session.commit()
+        return "Eski javob"
+
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+    monkeypatch.setattr(module.DurableAgent, "reply", reply_after_concurrent_change)
+    result = await submit(database, "Savolim bor", "cart-changed-mid-turn")
+    await module.process_conversation({}, result["conversation_id"])
+
+    async with database() as session:
+        user = await session.get(User, 1)
+        conversation = await session.get(Conversation, result["conversation_id"])
+        job = await session.get(ConversationJob, result["id"])
+        live_cart = await CartService(session).get(user.id)
+        snapshot = await ConversationService(session).snapshot(user)
+        state = conversation.agent_state
+        assert live_cart.lines[0]["qty"] == "5"
+        assert state["revision"] == live_cart.revision
+        assert state["basket"][0]["qty"] == "5"
+        assert job.error == "cart_changed"
+        assert snapshot["messages"][-1]["text"]
+
+
+async def test_read_only_answer_survives_concurrent_cart_change(database, monkeypatch):
+    from app.services.cart_service import CartService
+    from tests.integration.test_sales_agent_tools import _seed
+
+    async with database() as session:
+        _, product_id = await _seed(session)
+        await session.commit()
+
+    async def reply_after_concurrent_change(self, text, lang, cart):
+        async with database() as session:
+            await CartService(session).set_item(1, product_id, "5", expected_revision=0)
+            await session.commit()
+        return "Savolga javob"
+
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+    monkeypatch.setattr(module.DurableAgent, "reply", reply_after_concurrent_change)
+    result = await submit(database, "Savolim bor", "read-only-cart-changed", "telegram")
+
+    await module.process_conversation({}, result["conversation_id"])
+
+    async with database() as session:
+        user = await session.get(User, 1)
+        conversation = await session.get(Conversation, result["conversation_id"])
+        job = await session.get(ConversationJob, result["id"])
+        live_cart = await CartService(session).get(user.id)
+        snapshot = await ConversationService(session).snapshot(user)
+        assert live_cart.lines[0]["qty"] == "5"
+        assert conversation.agent_state["revision"] == live_cart.revision
+        assert conversation.agent_state["basket"][0]["qty"] == "5"
+        assert job.error is None
+        assert snapshot["messages"][-1]["text"] == "Savolga javob"
+
+
+def test_delivery_notice_copy_and_conflict_progress_are_localized():
+    from app.core.i18n import t
+    from app.services import chat_progress
+
+    assert (
+        t("sales_delivery_notice", lang="uz_latn")
+        == "Toshkent bo‘ylab yetkazib berish — 50 000 so‘m."
+    )
+    assert (
+        t("sales_delivery_notice", lang="uz_cyrl") == "Тошкент бўйлаб етказиб бериш — 50 000 сўм."
+    )
+    assert t("sales_delivery_notice", lang="ru") == "Доставка по Ташкенту — 50 000 сум."
+    job = ConversationJob(
+        id=90,
+        status="completed",
+        error="cart_changed",
+        created_at=datetime.now(UTC),
+    )
+    _, text, _ = chat_progress.progress(job, "uz_latn", datetime.now(UTC))
+    assert text == t("web_chat_failed", lang="uz_latn")
+    assert text != t("sales_progress_ready", lang="uz_latn")
 
 
 @pytest.mark.parametrize("checkout", [False, True])
@@ -414,7 +536,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
                 cart,
             )
             assert result.get("ok"), result
-        return "Fanera"
+        return "Fanera" if checkout else "Fanera 10 mm 1525x1525"
 
     monkeypatch.setattr(module, "agent_available", lambda: True)
     monkeypatch.setattr(module.DurableAgent, "reply", scripted_reply)
@@ -428,6 +550,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
     prefix = "chat:checkout:" if checkout else "chat:product:"
     target = next(button for button in buttons if (button.callback_data or "").startswith(prefix))
     if not checkout:
+        assert call.args[1].count("Fanera 10 mm 1525x1525") == 1
         assert "151.000" in call.args[1]
     message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=11, type="private"))
     callback = SimpleNamespace(data=target.callback_data, answer=AsyncMock(), message=message)
@@ -516,6 +639,33 @@ async def test_failed_ai_falls_back_to_catalogue_search_with_buttons(database, m
 
     # The admins hear about the outage once, not once per customer message.
     assert warned == ["tool_or_worker_error"]
+
+
+async def test_daily_budget_uses_catalogue_fallback_and_keeps_its_error(database, monkeypatch):
+    from app.services import ai_fallback
+    from tests.integration.test_sales_agent_tools import _seed
+
+    monkeypatch.setattr(module.settings, "enabled_category_slugs", [])
+    async with database() as session:
+        await _seed(session)
+        await session.commit()
+
+    async def no_budget(self):
+        return False
+
+    monkeypatch.setattr(module, "agent_available", lambda: True)
+    monkeypatch.setattr(ai_fallback, "async_session_factory", database)
+    monkeypatch.setattr(module.DurableAgent, "_has_budget", no_budget)
+    monkeypatch.setattr(module, "warn_admins_of_ai_outage", AsyncMock())
+    result = await submit(database, "fanera 10 mm 1525x1525", "daily-budget", "telegram")
+
+    await module.process_conversation({}, result["conversation_id"])
+
+    async with database() as session:
+        job = await session.get(ConversationJob, result["id"])
+        answer = await session.get(ConversationMessage, job.response_id)
+        assert job.status == "completed" and job.error == "daily_budget"
+        assert answer.cards and answer.cards[0]["id"]
 
 
 async def test_customer_can_take_back_an_unclaimed_handoff(database):

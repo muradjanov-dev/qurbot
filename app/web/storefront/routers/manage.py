@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from hashlib import sha256
 from io import BytesIO
 from typing import Any
@@ -32,8 +32,10 @@ from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_tem
 from app.domain.pricing.units import unit_price
 from app.services.house_shop import is_admin, shop_for_admin
 from app.web.storefront.deps import current_lang, current_user, render
+from app.web.storefront.security import require_csrf
 
 router = APIRouter(prefix="/manage", tags=["storefront-manage"])
+_MAX_DECIMAL_INPUT_LENGTH = 64
 
 
 async def _admin(user: User | None = Depends(current_user)) -> User:
@@ -50,13 +52,49 @@ async def _shop(session: AsyncSession, user: User) -> Shop:
 
 
 def _number(raw: str, *, positive: bool = False) -> Decimal | None:
+    cleaned = raw.strip()
+    if len(cleaned) > _MAX_DECIMAL_INPUT_LENGTH:
+        return None
     try:
-        value = Decimal(raw.strip().replace(" ", "").replace(",", "."))
+        value = Decimal(cleaned.replace(" ", "").replace(",", "."))
     except InvalidOperation:
         return None
     if not value.is_finite() or (positive and value <= 0) or value < 0:
         return None
     return value
+
+
+def _fits_numeric(value: Decimal, *, precision: int, scale: int) -> bool:
+    """Whether PostgreSQL can store the rounded value in NUMERIC(p, s)."""
+    if not value.is_finite() or value <= 0:
+        return False
+    if value.adjusted() >= precision - scale:
+        return False
+    quantum = Decimal(1).scaleb(-scale)
+    maximum = Decimal(10) ** (precision - scale) - quantum
+    try:
+        rounded = value.quantize(quantum, rounding=ROUND_HALF_UP)
+    except InvalidOperation:
+        return False
+    return Decimal("0") < rounded <= maximum
+
+
+def _offer_price(raw: str) -> Decimal | None:
+    value = _number(raw, positive=True)
+    if value is None or not _fits_numeric(value, precision=14, scale=2):
+        return None
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _offer_pack_size(raw: str) -> Decimal | None:
+    value = _number(raw, positive=True)
+    if value is None or not _fits_numeric(value, precision=14, scale=4):
+        return None
+    return value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+def _offer_base_price(value: Decimal) -> bool:
+    return _fits_numeric(value, precision=14, scale=4)
 
 
 def _identity_slug(
@@ -275,6 +313,44 @@ async def _form_data(session: AsyncSession) -> dict[str, Any]:
     }
 
 
+async def _product_form_error(
+    request: Request,
+    session: AsyncSession,
+    user: User,
+    lang: str,
+    shop: Shop,
+    product: CanonicalProduct,
+    *,
+    duplicate: bool = False,
+    status_code: int = 422,
+    offer_id: int | None = None,
+    offer_values: dict[str, str] | None = None,
+) -> Response:
+    offers = (
+        await session.scalars(
+            select(ShopProduct).where(
+                ShopProduct.shop_id == shop.id,
+                ShopProduct.canonical_id == product.id,
+            )
+        )
+    ).all()
+    return render(
+        request,
+        "manage_product_form.html",
+        user=user,
+        lang=lang,
+        product=product,
+        offers=offers,
+        error=t("manage_duplicate" if duplicate else "manage_invalid", lang=lang),
+        candidates=[],
+        values={},
+        offer_id=offer_id,
+        offer_values=offer_values or {},
+        status_code=status_code,
+        **await _form_data(session),
+    )
+
+
 async def _save_offer(
     session: AsyncSession,
     shop: Shop,
@@ -284,15 +360,13 @@ async def _save_offer(
     pack_unit_code: str,
     price: str,
     stock_status: str,
-    stock_qty: str,
     description: str,
 ) -> None:
-    pack, amount = _number(pack_size, positive=True), _number(price, positive=True)
-    qty = _number(stock_qty) if stock_qty.strip() else None
+    pack, amount = _offer_pack_size(pack_size), _offer_price(price)
     if (
         pack is None
         or amount is None
-        or (stock_qty.strip() and qty is None)
+        or len(description) > settings.listing_max_description_len
         or stock_status not in {"in_stock", "low", "on_order", "out"}
         or await session.get(Unit, pack_unit_code) is None
     ):
@@ -301,6 +375,8 @@ async def _save_offer(
         base_price = unit_price(amount, pack, pack_unit_code, product.base_unit_code)
     except DomainException as exc:
         raise HTTPException(422, "incompatible_unit") from exc
+    if not _offer_base_price(base_price):
+        raise HTTPException(422, "invalid_offer")
     existing = await session.scalar(
         select(ShopProduct).where(
             ShopProduct.shop_id == shop.id,
@@ -321,7 +397,7 @@ async def _save_offer(
             price_per_base_unit=base_price,
             currency="UZS",
             stock_status=stock_status,
-            stock_qty=qty,
+            stock_qty=None,
             description=description.strip() or None,
             updated_by="admin",
             is_active=True,
@@ -341,7 +417,7 @@ async def _save_offer(
                 existing.id, amount, base_price, "admin"
             )
         existing.stock_status = stock_status
-        existing.stock_qty = qty
+        existing.stock_qty = None
         existing.description = description.strip() or None
         existing.is_active = True
     attrs = dict(product.attributes or {})
@@ -370,7 +446,7 @@ async def new_product(
     )
 
 
-@router.post("/products/new")
+@router.post("/products/new", dependencies=[Depends(require_csrf)])
 async def create_product(
     request: Request,
     name: str = Form(...),
@@ -386,7 +462,6 @@ async def create_product(
     pack_size: str = Form(default="1"),
     pack_unit_code: str = Form(default=""),
     stock_status: str = Form(default="out"),
-    stock_qty: str = Form(default=""),
     force_new: bool = Form(default=False),
     photo: UploadFile | None = File(default=None),
     session: AsyncSession = Depends(get_db_session),
@@ -416,23 +491,49 @@ async def create_product(
             status_code=422,
             **await _form_data(session),
         )
-    if price.strip() and (
-        _number(price, positive=True) is None
-        or _number(pack_size, positive=True) is None
-        or await session.get(Unit, pack_unit_code or unit_code) is None
-    ):
-        return render(
-            request,
-            "manage_product_form.html",
-            user=user,
-            lang=lang,
-            product=None,
-            error=t("manage_invalid", lang=lang),
-            candidates=[],
-            values=await request.form(),
-            status_code=422,
-            **await _form_data(session),
-        )
+    if price.strip():
+        create_pack = _offer_pack_size(pack_size)
+        create_price = _offer_price(price)
+        create_unit = pack_unit_code or unit_code
+        if (
+            create_pack is None
+            or create_price is None
+            or await session.get(Unit, create_unit) is None
+        ):
+            return render(
+                request,
+                "manage_product_form.html",
+                user=user,
+                lang=lang,
+                product=None,
+                error=t("manage_invalid", lang=lang),
+                candidates=[],
+                values=await request.form(),
+                status_code=422,
+                **await _form_data(session),
+            )
+        try:
+            base_price = unit_price(create_price, create_pack, create_unit, unit_code)
+        except DomainException:
+            base_price = None
+        if (
+            create_pack is None
+            or create_price is None
+            or base_price is None
+            or not _offer_base_price(base_price)
+        ):
+            return render(
+                request,
+                "manage_product_form.html",
+                user=user,
+                lang=lang,
+                product=None,
+                error=t("manage_invalid", lang=lang),
+                candidates=[],
+                values=await request.form(),
+                status_code=422,
+                **await _form_data(session),
+            )
     candidates, _ = await CatalogRepository(session).admin_list_products(
         search=cleaned, offset=0, limit=10
     )
@@ -510,7 +611,6 @@ async def create_product(
             pack_unit_code=pack_unit_code or unit_code,
             price=price,
             stock_status=stock_status,
-            stock_qty=stock_qty,
             description=description,
         )
     return RedirectResponse(f"/manage/products/{product.id}", status_code=303)
@@ -545,13 +645,16 @@ async def product_detail(
         error=None,
         candidates=[],
         values={},
+        offer_id=None,
+        offer_values={},
         **await _form_data(session),
     )
 
 
-@router.post("/products/{product_id}")
+@router.post("/products/{product_id}", dependencies=[Depends(require_csrf)])
 async def edit_product(
     product_id: int,
+    request: Request,
     name: str = Form(...),
     name_ru: str = Form(default=""),
     name_uz_cyrl: str = Form(default=""),
@@ -562,27 +665,74 @@ async def edit_product(
     brand: str = Form(default=""),
     description: str = Form(default=""),
     active: bool = Form(default=False),
+    remove_photo: bool = Form(default=False),
     photo: UploadFile | None = File(default=None),
     session: AsyncSession = Depends(get_db_session),
     user: User = Depends(_admin),
+    lang: str = Depends(current_lang),
 ) -> Response:
     shop = await _shop(session, user)
     p = await session.get(CanonicalProduct, product_id)
+    if p is None:
+        raise HTTPException(404)
+    offers = (
+        await session.scalars(
+            select(ShopProduct).where(
+                ShopProduct.shop_id == shop.id,
+                ShopProduct.canonical_id == p.id,
+            )
+        )
+    ).all()
     if (
-        p is None
-        or await session.get(Category, category_id) is None
+        await session.get(Category, category_id) is None
         or await session.get(Unit, unit_code) is None
     ):
-        raise HTTPException(404)
+        return render(
+            request,
+            "manage_product_form.html",
+            user=user,
+            lang=lang,
+            product=p,
+            offers=offers,
+            error=t("manage_invalid", lang=lang),
+            candidates=[],
+            values=await request.form(),
+            status_code=422,
+            **await _form_data(session),
+        )
     if unit_code != p.base_unit_code:
         linked = await session.scalar(
             select(ShopProduct.id).where(ShopProduct.canonical_id == product_id).limit(1)
         )
         if linked is not None:
-            raise HTTPException(409, "unit_has_offers")
+            return render(
+                request,
+                "manage_product_form.html",
+                user=user,
+                lang=lang,
+                product=p,
+                offers=offers,
+                error=t("manage_invalid", lang=lang),
+                candidates=[],
+                values=await request.form(),
+                status_code=409,
+                **await _form_data(session),
+            )
     thick = _number(thickness, positive=True) if thickness.strip() else None
     if not name.strip() or len(name.strip()) > 255 or (thickness.strip() and thick is None):
-        raise HTTPException(422, "invalid_product")
+        return render(
+            request,
+            "manage_product_form.html",
+            user=user,
+            lang=lang,
+            product=p,
+            offers=offers,
+            error=t("manage_invalid", lang=lang),
+            candidates=[],
+            values=await request.form(),
+            status_code=422,
+            **await _form_data(session),
+        )
     other_products = (
         await session.scalars(
             select(CanonicalProduct).where(
@@ -596,7 +746,19 @@ async def edit_product(
         )
         for other in other_products
     ):
-        raise HTTPException(409, "duplicate_product")
+        return render(
+            request,
+            "manage_product_form.html",
+            user=user,
+            lang=lang,
+            product=p,
+            offers=offers,
+            error=t("manage_duplicate", lang=lang),
+            candidates=[],
+            values=await request.form(),
+            status_code=409,
+            **await _form_data(session),
+        )
     p.name_uz = name.strip()
     p.name_uz_cyrl = name_uz_cyrl.strip() or p.name_uz
     p.name_ru = name_ru.strip() or p.name_uz
@@ -618,6 +780,14 @@ async def edit_product(
     new_photo = await _photo(session, photo, shop.id)
     if new_photo:
         p.image_url = new_photo
+        attrs = dict(p.attributes or {})
+        attrs.pop("image_hidden", None)
+        p.attributes = attrs
+    elif remove_photo:
+        p.image_url = None
+        attrs = dict(p.attributes or {})
+        attrs["image_hidden"] = True
+        p.attributes = attrs
     try:
         await session.flush()
     except IntegrityError as exc:
@@ -626,71 +796,200 @@ async def edit_product(
     return RedirectResponse(f"/manage/products/{product_id}", status_code=303)
 
 
-@router.post("/offers/{offer_id}")
+@router.post("/offers/{offer_id}", dependencies=[Depends(require_csrf)])
 async def edit_offer(
     offer_id: int,
+    request: Request,
     price: str = Form(...),
     stock_status: str = Form(...),
-    stock_qty: str = Form(default=""),
+    pack_size: str = Form(default=""),
+    pack_unit_code: str = Form(default=""),
+    description: str = Form(default=""),
     active: bool = Form(default=False),
     session: AsyncSession = Depends(get_db_session),
     user: User = Depends(_admin),
+    lang: str = Depends(current_lang),
 ) -> Response:
     shop = await _shop(session, user)
     offer = await session.get(ShopProduct, offer_id)
-    amount = _number(price, positive=True)
-    qty = _number(stock_qty) if stock_qty.strip() else None
+    amount = _offer_price(price)
+    submitted_pack = bool(pack_size.strip())
+    pack = _offer_pack_size(pack_size) if submitted_pack else None
+    offer_values = {key: str(value) for key, value in (await request.form()).items()}
     if offer is None or offer.shop_id != shop.id:
         raise HTTPException(404)
     if (
         amount is None
-        or (stock_qty.strip() and qty is None)
+        or (submitted_pack and pack is None)
+        or len(description) > settings.listing_max_description_len
         or stock_status not in {"in_stock", "low", "on_order", "out"}
     ):
-        raise HTTPException(422, "invalid_offer")
+        if offer.canonical_id is None:
+            raise HTTPException(422, "invalid_offer")
+        product = await session.get(CanonicalProduct, offer.canonical_id)
+        if product is None:
+            raise HTTPException(404)
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            offer_id=offer.id,
+            offer_values=offer_values,
+        )
     product = await session.get(CanonicalProduct, offer.canonical_id)
     if product is None or offer.pack_unit_code is None:
         raise HTTPException(422, "invalid_offer")
-    try:
-        base_price = unit_price(
-            amount, offer.pack_size, offer.pack_unit_code, product.base_unit_code
+    new_pack = pack if pack is not None else offer.pack_size
+    new_unit = pack_unit_code.strip() or offer.pack_unit_code
+    unit = await session.get(Unit, new_unit)
+    if new_pack <= 0 or unit is None:
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            offer_id=offer.id,
+            offer_values=offer_values,
         )
-    except DomainException as exc:
-        raise HTTPException(422, "incompatible_unit") from exc
-    if offer.price_per_pack != amount:
+    duplicate = await session.scalar(
+        select(ShopProduct.id).where(
+            ShopProduct.shop_id == shop.id,
+            ShopProduct.canonical_id == product.id,
+            ShopProduct.pack_size == new_pack,
+            ShopProduct.pack_unit_code == new_unit,
+            ShopProduct.id != offer.id,
+        )
+    )
+    if duplicate is not None:
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            duplicate=True,
+            status_code=409,
+            offer_id=offer.id,
+            offer_values=offer_values,
+        )
+    try:
+        base_price = unit_price(amount, new_pack, new_unit, product.base_unit_code)
+    except DomainException:
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            offer_id=offer.id,
+            offer_values=offer_values,
+        )
+    if not _offer_base_price(base_price):
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            offer_id=offer.id,
+            offer_values=offer_values,
+        )
+    if (
+        offer.price_per_pack != amount
+        or offer.pack_size != new_pack
+        or offer.pack_unit_code != new_unit
+    ):
         await ShopRepository(session).update_offer_price(offer.id, amount, base_price, "admin")
+    offer.pack_size = new_pack
+    offer.pack_unit_code = new_unit
+    offer.raw_unit = new_unit
     offer.stock_status = stock_status
-    offer.stock_qty = qty
+    offer.stock_qty = None
+    offer.description = description.strip() or None
     offer.is_active = active
     await session.flush()
     return RedirectResponse(f"/manage/products/{product.id}", status_code=303)
 
 
-@router.post("/products/{product_id}/offers")
+@router.post("/products/{product_id}/offers", dependencies=[Depends(require_csrf)])
 async def create_offer(
     product_id: int,
+    request: Request,
     pack_size: str = Form(...),
     pack_unit_code: str = Form(...),
     price: str = Form(...),
     stock_status: str = Form(...),
-    stock_qty: str = Form(default=""),
     description: str = Form(default=""),
     session: AsyncSession = Depends(get_db_session),
     user: User = Depends(_admin),
+    lang: str = Depends(current_lang),
 ) -> Response:
     shop = await _shop(session, user)
     product = await session.get(CanonicalProduct, product_id)
     if product is None:
         raise HTTPException(404)
-    await _save_offer(
-        session,
-        shop,
-        product,
-        pack_size=pack_size,
-        pack_unit_code=pack_unit_code,
-        price=price,
-        stock_status=stock_status,
-        stock_qty=stock_qty,
-        description=description,
-    )
+    offer_values = {key: str(value) for key, value in (await request.form()).items()}
+    try:
+        await _save_offer(
+            session,
+            shop,
+            product,
+            pack_size=pack_size,
+            pack_unit_code=pack_unit_code,
+            price=price,
+            stock_status=stock_status,
+            description=description,
+        )
+    except HTTPException as exc:
+        return await _product_form_error(
+            request,
+            session,
+            user,
+            lang,
+            shop,
+            product,
+            duplicate=exc.status_code == 409,
+            status_code=exc.status_code,
+            offer_values=offer_values,
+        )
+    except DomainException:
+        return await _product_form_error(
+            request, session, user, lang, shop, product, offer_values=offer_values
+        )
+    return RedirectResponse(f"/manage/products/{product_id}", status_code=303)
+
+
+@router.post("/products/{product_id}/archive", dependencies=[Depends(require_csrf)])
+async def archive_product(
+    product_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: User = Depends(_admin),
+) -> Response:
+    product = await session.get(CanonicalProduct, product_id)
+    if product is None:
+        raise HTTPException(404)
+    product.is_active = False
+    await session.flush()
+    return RedirectResponse("/manage/products", status_code=303)
+
+
+@router.post("/products/{product_id}/restore", dependencies=[Depends(require_csrf)])
+async def restore_product(
+    product_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    user: User = Depends(_admin),
+) -> Response:
+    product = await session.get(CanonicalProduct, product_id)
+    if product is None:
+        raise HTTPException(404)
+    product.is_active = True
+    await session.flush()
     return RedirectResponse(f"/manage/products/{product_id}", status_code=303)

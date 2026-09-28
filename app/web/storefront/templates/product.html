@@ -1,44 +1,5 @@
 {% extends "base.html" %}
 {% block title %}{{ product_name }} — QurBot{% endblock %}
 
-{% block content %}
-<section class="section">
-  <a class="muted tiny" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>← {{ t('web_back', lang=lang) }}</a>
-
-  <div class="grid cols-2">
-    <img class="thumb" src="/media/product/{{ product.id }}" alt="{{ product_name }}">
-
-    <div class="card product-info" style="display:grid; gap:14px; align-content:start;">
-      <div>
-        <h1>{{ product_name }}</h1>
-        {% if product.brand %}
-          <p class="muted tiny">{{ t('web_product_brand', lang=lang) }}: {{ product.brand }}</p>
-        {% endif %}
-      </div>
-
-      <div>
-        <div class="price" style="font-size:1.3rem;">{{ price_label }}</div>
-        <p class="muted tiny">{{ t('web_product_unit', lang=lang) }}: {{ product.base_unit_code }}</p>
-      </div>
-
-      {% if needs_confirmation %}<p class="notice warn">{{ t('web_product_confirm_hint', lang=lang) }}</p>{% endif %}
-      <div class="field-row">
-        <div class="qty" data-qty>
-          <button type="button" data-step="-1" aria-label="−" disabled>−</button>
-          <input type="text" inputmode="decimal" value="1" min="1" aria-label="{{ t('web_qty', lang=lang) }}" disabled>
-          <button type="button" data-step="1" aria-label="+" disabled>+</button>
-        </div>
-        <span class="muted tiny">{{ product.base_unit_code }}</span>
-      </div>
-
-      <button class="btn btn-primary" type="button" data-add-product="{{ product.id }}" disabled>
-        {{ t('web_add_to_basket', lang=lang) }}
-      </button>
-      <p data-product-added role="status"></p>
-      <a class="btn btn-ghost" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }}</a>
-      <a class="btn btn-ghost" href="{{ return_to }}" {% if restore_position %}data-catalog-return{% endif %}>{{ t('sales_more_products', lang=lang) }}</a>
-    </div>
-  </div>
-</section>
-{% endblock %}
+{% block content %}{% include 'fragments/product.html' %}{% endblock %}
 {% block scripts %}<script src="{{ static_url }}/catalog.js?v={{ asset_version }}" defer></script>{% endblock %}

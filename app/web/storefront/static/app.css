@@ -561,3 +561,7 @@ td input, td select { padding: 7px 9px; font-size: .88rem; }
   .chat-message { max-width: 100%; }
   .chat button { min-height: 44px; }
 }
+
+/* Product forms share the customer site's input styles on desktop and phones. */
+.manage-product-fields .field-wide,
+.manage-product-fields > button { grid-column: 1 / -1; }

@@ -266,6 +266,7 @@ async def handle_quick_price_update(
     shop_prod = p_res.scalars().first()
 
     if shop_prod:
+        shop_prod.stock_qty = None
         await shop_repo.update_offer_price(
             shop_product_id=shop_prod.id,
             price_per_pack=price_val,
@@ -284,6 +285,7 @@ async def handle_quick_price_update(
             price_per_pack=price_val,
             price_per_base_unit=price_val,
             stock_status="in_stock",
+            stock_qty=None,
             is_active=True,
             staleness_state="fresh",
             updated_by="admin",

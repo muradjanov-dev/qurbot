@@ -9,6 +9,8 @@ as top-level WebViews. Requires Playwright and /usr/bin/google-chrome.
 import asyncio
 import hmac
 import json
+import os
+import sys
 import time
 from hashlib import sha256
 from unittest.mock import AsyncMock, patch
@@ -70,7 +72,12 @@ async def main() -> None:
     app.dependency_overrides[get_db_session] = db
     with patch.object(visitor, "limit", AsyncMock()):
         async with async_playwright() as p:
-            browser = await p.chromium.launch(executable_path="/usr/bin/google-chrome")
+            browser = await p.chromium.launch(
+                executable_path=os.environ.get(
+                    "CHROME_EXECUTABLE",
+                    "/usr/bin/google-chrome" if sys.platform == "linux" else None,
+                )
+            )
             for embedded, guest, legacy in [
                 (False, False, False),
                 (True, False, True),  # Negative control: reproduces the old 200 -> 401 bug.

@@ -59,6 +59,33 @@ class FakeTools:
         return {"products": [{"id": 7, "name": "Fanera 12mm", "price_from_uzs": "150000"}]}
 
 
+def test_agent_cart_refresh_keeps_live_quantities_and_invalidates_old_checkout() -> None:
+    cart = AgentCart(
+        basket=[{"canonical_id": 1, "name": "Old", "qty": "2", "unit_code": "dona"}],
+        quote={"total": "100"},
+        order={"phone": "+998901234567", "address": "Old address"},
+        revision=3,
+        quote_revision=3,
+    )
+    snapshot = SimpleNamespace(
+        revision=4,
+        lines=[
+            {
+                "canonical_id": 1,
+                "canonical_name": "Fanera",
+                "qty": "7",
+                "unit_code": "dona",
+            }
+        ],
+    )
+
+    cart.refresh_from_live(snapshot)
+
+    assert cart.revision == 4
+    assert cart.basket == [{"canonical_id": 1, "name": "Fanera", "qty": "7", "unit_code": "dona"}]
+    assert cart.quote is None and cart.quote_revision is None and cart.order is None
+
+
 async def test_the_agent_uses_a_tool_then_answers() -> None:
     client = FakeClient(
         [_tool("search_products", {"query": "fanera"}), _text("Fanera 12mm bor, 150 000 so'm.")]
@@ -132,6 +159,29 @@ async def test_an_api_error_hands_over_to_the_old_flow() -> None:
         await SalesAgent(None, FakeTools(), client=client).reply("salom", "uz_latn", cart) is None
     )
     assert cart.history == []
+
+
+async def test_provider_timeout_is_classified_for_outage_reporting() -> None:
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    client = FakeClient([anthropic.APITimeoutError(request=request)])
+    agent = SalesAgent(None, FakeTools(), client=client)
+
+    assert await agent.reply("salom", "uz_latn", AgentCart()) is None
+    assert agent.last_error == "provider_timeout"
+    assert len(client.calls) == 1
+
+
+async def test_daily_budget_stops_before_provider_call(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def no_budget(self) -> bool:
+        return False
+
+    monkeypatch.setattr(SalesAgent, "_has_budget", no_budget)
+    client = FakeClient([_text("never")])
+    agent = SalesAgent(None, FakeTools(), client=client)
+
+    assert await agent.reply("salom", "uz_latn", AgentCart()) is None
+    assert agent.last_error == "daily_budget"
+    assert client.calls == []
 
 
 async def test_a_refusal_hands_over_to_the_old_flow() -> None:

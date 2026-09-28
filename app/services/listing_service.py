@@ -183,7 +183,7 @@ class ListingService:
         product.raw_name = row.name
         product.description = row.description
         product.photos = list(row.photos or [])
-        product.stock_qty = row.stock_qty
+        product.stock_qty = None
         product.proposed_category_id = row.category_id
         product.price_per_pack = row.price_per_pack or Decimal("0")
         product.price_per_base_unit = price_per_base
