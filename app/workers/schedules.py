@@ -11,6 +11,7 @@ from app.services.conversation_service import (
     deliver_conversation_notifications,
     process_conversation_jobs,
 )
+from app.services.telegram_cleanup import cleanup_telegram_messages
 from app.workers.tasks import (
     abandon_baskets,
     admin_digest,
@@ -31,6 +32,7 @@ CRON_JOBS: list[CronJob] = [
         second=set(range(0, 60, settings.chat_progress_rotate_seconds)),
     ),
     cron(deliver_conversation_notifications, second=set(range(0, 60, 5))),
+    cron(cleanup_telegram_messages, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
     cron(mark_price_staleness, minute=0),  # hourly
     cron(nudge_shops, hour=9, minute=0),  # daily 09:00
     cron(recompute_trust_scores, hour=3, minute=0),  # daily 03:00

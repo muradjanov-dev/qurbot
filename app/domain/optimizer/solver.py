@@ -3,7 +3,6 @@ from decimal import Decimal
 from itertools import combinations
 from typing import Any
 
-from app.core.exceptions import DomainException
 from app.domain.models import OfferPricing
 from app.domain.optimizer.delivery import calculate_shop_delivery_fee
 from app.domain.optimizer.haversine import haversine_km
@@ -45,7 +44,9 @@ class BasketOptimizer:
             and o.staleness_state != "stale"
             and o.stock_status in ("in_stock", "low", "on_order")
         ]
-        self.valid_offers = self._filter_by_stock(self._filter_by_priceability(available))
+        # Stock quantities are not tracked. Explicit status still controls whether
+        # an offer can be quoted; any legacy numeric quantity is ignored.
+        self.valid_offers = self._filter_by_priceability(available)
 
     def _filter_by_priceability(self, offers: list[ShopOffer]) -> list[ShopOffer]:
         """Drop offers that cannot be costed against the line that asked for them.
@@ -72,64 +73,6 @@ class BasketOptimizer:
                 for unit in units_by_canonical.get(offer.canonical_id, set())
             )
         ]
-
-    def _filter_by_stock(self, offers: list[ShopOffer]) -> list[ShopOffer]:
-        """Drop offers that cannot cover what the customer asked for.
-
-        Quoting a shop that holds three bags against an order for ten produces a
-        price the shop cannot honour, so those offers are removed outright.
-
-        When *no* shop can cover a line, the ones holding the most are kept
-        instead of dropping the line entirely: a customer who needs 100 and can
-        be shown the shop with 40 is better served than one shown nothing, and
-        the line would otherwise be reported as uncovered. Ties are kept whole so
-        the optimizer still picks the cheapest among equally-stocked shops, which
-        also keeps the result deterministic regardless of input order.
-        """
-        offers_by_canonical: dict[int, list[ShopOffer]] = {}
-        for offer in offers:
-            offers_by_canonical.setdefault(offer.canonical_id, []).append(offer)
-
-        keep_ids: set[int] = set()
-        constrained_canonicals: set[int] = set()
-
-        for item in self.basket_items:
-            candidates = offers_by_canonical.get(item.canonical_id, [])
-            if not candidates:
-                continue
-            constrained_canonicals.add(item.canonical_id)
-
-            sufficient = [o for o in candidates if self._can_cover(item, o)]
-            if sufficient:
-                keep_ids.update(o.offer_id for o in sufficient)
-                continue
-
-            best_stock = max((o.stock_qty or Decimal("0")) for o in candidates)
-            if best_stock <= Decimal("0"):
-                # Nobody holds any of it: leave the line genuinely uncovered
-                # rather than quoting a shop with an empty shelf.
-                continue
-            keep_ids.update(
-                o.offer_id for o in candidates if (o.stock_qty or Decimal("0")) == best_stock
-            )
-
-        return [
-            o
-            for o in offers
-            if o.canonical_id not in constrained_canonicals or o.offer_id in keep_ids
-        ]
-
-    def _can_cover(self, item: BasketItemQuery, offer: ShopOffer) -> bool:
-        """Whether this offer holds enough packs for the line, after pack rounding."""
-        if offer.stock_qty is None:
-            return True
-        try:
-            packs_needed = self._compute_line_assignment(item, offer).packs_needed
-        except DomainException:
-            # A unit mismatch is a matching problem, not a stock one -- leave the
-            # offer in and let the existing pricing path report it.
-            return True
-        return offer.stock_qty >= Decimal(str(packs_needed))
 
     def solve(self) -> OptimizationResult:
         start_time = time.perf_counter()

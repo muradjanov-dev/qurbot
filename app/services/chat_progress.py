@@ -13,6 +13,7 @@ from app.core.logging import get_logger
 from app.db.models.conversation import Conversation, ConversationJob
 from app.db.models.user import User
 from app.db.session import async_session_factory
+from app.services.telegram_cleanup import register_transient_message
 
 logger = get_logger(__name__)
 
@@ -63,7 +64,7 @@ def progress(job: ConversationJob, lang: str, now: datetime) -> tuple[int, str, 
             "chat_waiting"
             if job.status in {"human", "cancelled"}
             else "web_chat_failed"
-            if job.status == "failed"
+            if job.status == "failed" or job.error is not None
             else "sales_progress_ready"
         )
         return _DONE_SLOT, t(key, lang=lang), False
@@ -108,6 +109,13 @@ async def acknowledge(message: Message, session: AsyncSession, job_id: int, lang
         if markup is not None:
             text = f"{text}\n{t('web_chat_waiting_hint', lang=lang)}"
         sent = await message.answer(text, parse_mode=None, reply_markup=markup)
+        await register_transient_message(
+            session,
+            chat_id=message.chat.id,
+            message_id=sent.message_id,
+            message_type="ai_customer_status",
+            sent_at=datetime.now(UTC),
+        )
         await session.execute(
             update(ConversationJob)
             .where(ConversationJob.id == job_id)

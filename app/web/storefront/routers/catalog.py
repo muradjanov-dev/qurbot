@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from decimal import Decimal
 from urllib.parse import quote
@@ -14,6 +16,7 @@ from app.bot.formatters.common import format_catalog_price, format_uzs, localize
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
+from app.db.models.shop import ShopProduct
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
@@ -27,6 +30,21 @@ CATALOG_RETURN = re.compile(r"/catalog/(?:all|[1-9][0-9]*)(?:\?page=[1-9][0-9]*)
 def _catalog_return(raw: str | None, fallback: str) -> str:
     """Accept only catalogue list URLs from the product card's return link."""
     return raw if raw and CATALOG_RETURN.fullmatch(raw) else fallback
+
+
+def _image_url(product: CanonicalProduct, offers: list[ShopProduct]) -> str:
+    identity = json.dumps(
+        [
+            product.image_url,
+            product.attributes.get("image_hidden"),
+            product.name_uz,
+            product.category_id,
+            [(offer.id, offer.photos) for offer in offers if offer.canonical_id == product.id],
+        ],
+        sort_keys=True,
+    )
+    version = hashlib.sha256(identity.encode()).hexdigest()[:16]
+    return f"/media/product/{product.id}?v={version}"
 
 
 def _needs_confirmation(product: CanonicalProduct, live_price: Decimal | None) -> bool:
@@ -164,6 +182,7 @@ async def _render_products(
     products = [
         {
             "id": product.id,
+            "image_src": _image_url(product, list(offers)),
             "href": f"/product/{product.id}?from={quote(return_path, safe='')}",
             "name": localized_name(
                 product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
@@ -181,7 +200,9 @@ async def _render_products(
     ]
     return render(
         request,
-        "products.html",
+        "fragments/products.html"
+        if request.query_params.get("fragment") == "1"
+        else "products.html",
         user=user,
         lang=lang,
         title=title,
@@ -208,7 +229,7 @@ async def product_detail(
     """
     repo = CatalogRepository(session)
     product = await repo.get(canonical_id)
-    if product is None or not product.is_active:
+    if product is None or (not product.is_active and request.query_params.get("fragment") != "1"):
         raise HTTPException(status_code=404, detail="product_not_found")
 
     offers = await ShopRepository(session).get_active_offers_for_canonicals([canonical_id])
@@ -229,10 +250,11 @@ async def product_detail(
 
     return render(
         request,
-        "product.html",
+        "fragments/product.html" if request.query_params.get("fragment") == "1" else "product.html",
         user=user,
         lang=lang,
         product=product,
+        image_src=_image_url(product, list(offers)),
         return_to=_catalog_return(from_catalog, f"/catalog/{product.category_id}"),
         restore_position=bool(from_catalog and CATALOG_RETURN.fullmatch(from_catalog)),
         product_name=localized_name(

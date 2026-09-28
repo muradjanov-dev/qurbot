@@ -43,7 +43,7 @@ from app.services.ai_fallback import (
     switches_product_family,
     warn_admins_of_ai_outage,
 )
-from app.services.cart_service import CartService, InvalidCartItem
+from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 from app.services.house_shop import is_admin
 from app.services.sales_agent import AgentCart, DbAgentTools, SalesAgent, agent_available
 
@@ -539,8 +539,17 @@ class DurableTools:
         self.job_id = job_id
         self.call_index = 0
         self.cards: list[dict[str, Any]] = []
+        self.stateful_attempted = False
 
     async def run(self, name: str, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
+        if name in {
+            "set_basket_item",
+            "get_quote",
+            "prepare_order",
+            "set_delivery_district",
+            "submit_sales_request",
+        }:
+            self.stateful_attempted = True
         async with async_session_factory() as session:
             service = ConversationService(session)
             conversation = await service._lock(self.conversation_id)
@@ -569,30 +578,27 @@ class DurableTools:
                 current = await CartService(session).get(user.id)
                 committed = AgentCart.from_dict(receipts[-1]["cart"])
                 if committed.revision != current.revision:
-                    raise ConversationConflict("cart_changed_during_recovery")
-                cart.basket, cart.quote, cart.order = (
-                    restored.basket,
-                    restored.quote,
-                    restored.order,
-                )
-                cart.revision, cart.quote_revision = restored.revision, restored.quote_revision
+                    cart.refresh_from_live(current)
+                    if name in {
+                        "set_basket_item",
+                        "get_quote",
+                        "prepare_order",
+                        "set_delivery_district",
+                        "submit_sales_request",
+                    }:
+                        return {"error": "cart_changed"}
+                else:
+                    cart.basket, cart.quote, cart.order = (
+                        restored.basket,
+                        restored.quote,
+                        restored.order,
+                    )
+                    cart.revision, cart.quote_revision = restored.revision, restored.quote_revision
                 self.cards = receipt.get("cards", [])
                 return dict(receipt["output"])
             shared = CartService(session)
             snapshot = await shared.get(user.id)
-            if cart.revision != snapshot.revision:
-                cart.quote = None
-                cart.order = None
-            cart.revision = snapshot.revision
-            cart.basket = [
-                {
-                    "canonical_id": line["canonical_id"],
-                    "name": line["canonical_name"],
-                    "qty": line["qty"],
-                    "unit_code": line["unit_code"],
-                }
-                for line in snapshot.lines
-            ]
+            cart.refresh_from_live(snapshot)
             output = await DbAgentTools(session, user).run(name, args, cart)
             if name == "set_basket_item" and "error" not in output:
                 product_id = int(args["product_id"])
@@ -609,7 +615,12 @@ class DurableTools:
                     )
                 except InvalidCartItem:
                     raise ConversationConflict("invalid_cart_item") from None
+                except CartConflict:
+                    cart.refresh_from_live(await shared.get(user.id))
+                    self.cards = []
+                    return {"error": "cart_changed"}
                 cart.revision = snapshot.revision
+                self.cards = []
             if name == "get_quote" and "error" not in output:
                 cart.quote_revision = snapshot.revision
             if name == "submit_sales_request" and "error" not in output:
@@ -718,6 +729,8 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         text, channel, tg_id = message.text, message.channel, user.tg_id
         blocked = user.is_blocked
         cart = AgentCart.from_dict(conversation.agent_state)
+        cart.refresh_from_live(await CartService(session).get(user.id))
+        conversation.agent_state = cart.to_dict()
         history = (
             await session.scalars(
                 select(ConversationMessage)
@@ -833,10 +846,11 @@ async def process_conversation(ctx: dict[str, Any], conversation_id: int) -> Non
         else:
             live_cart = await CartService(session).get(conversation.user_id)
             if cart.revision is not None and live_cart.revision != cart.revision:
-                reply = t("chat_ai_unavailable", lang=lang)
-                error = "cart_changed"
-                cart.quote = None
-                cart.order = None
+                cart.refresh_from_live(live_cart)
+                if tools.stateful_attempted:
+                    reply = t("chat_cart_changed", lang=lang)
+                    error = "cart_changed"
+                    tools.cards = []
             response = await service._append(
                 conversation,
                 "assistant",
@@ -925,6 +939,7 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
             await session.commit()
         try:
             markup = None
+            progress_message_id: int | None = None
             if kind == "operator":
                 from app.bot.handlers.operator import operator_keyboard
 
@@ -939,8 +954,10 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                             ConversationJob.response_id == response_id,
                         )
                     )
+                    job = await session.get(ConversationJob, job_id) if job_id is not None else None
                     customer = await session.scalar(select(User).where(User.tg_id == tg_id))
                     lang = customer.lang if customer else DEFAULT_LANG
+                    progress_message_id = job.telegram_status_id if job is not None else None
                 markup = InlineKeyboardMarkup(
                     inline_keyboard=[
                         [
@@ -957,10 +974,20 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                 async with async_session_factory() as session:
                     response_id = int(row.event_key.split(":")[-1])
                     response = await session.get(ConversationMessage, response_id)
+                    job = await session.scalar(
+                        select(ConversationJob).where(
+                            ConversationJob.response_id == response_id,
+                        )
+                    )
+                    progress_message_id = job.telegram_status_id if job is not None else None
                     customer = await session.scalar(select(User).where(User.tg_id == tg_id))
                     if response is not None and customer is not None:
                         snapshot = await CartService(session).get(customer.id)
                         markup = product_keyboard(response, snapshot.revision, customer.lang)
+                        card_names = [str(card.get("name", "")) for card in response.cards]
+                        cards_in_text = bool(card_names) and all(
+                            name and name.casefold() in text.casefold() for name in card_names
+                        )
                         if response.cards:
                             text = text[:2800]
                         for index, card in enumerate(response.cards[: settings.agent_search_limit]):
@@ -972,14 +999,17 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                                 if price is not None
                                 else t("web_product_confirm_required", lang=customer.lang)
                             )
-                            text += f"\n\n{index + 1}. {card.get('name', '')}\n{label}"
-                        if response.cards:
+                            if cards_in_text:
+                                text += f"\n\n{index + 1}. {label}"
+                            else:
+                                text += f"\n\n{index + 1}. {card.get('name', '')}\n{label}"
+                        if response.cards and not cards_in_text:
                             # The buttons look like the only way out of this
                             # step. They are not -- the chat is always open --
                             # but nothing on the screen said so.
                             text += "\n\n" + t("web_chat_keep_writing", lang=customer.lang)
                         await session.commit()
-            await bot.send_message(tg_id, text, parse_mode=None, reply_markup=markup)
+            sent = await bot.send_message(tg_id, text, parse_mode=None, reply_markup=markup)
         except TelegramAPIError:
             logger.warning("conversation_notification_failed", notification_id=notification_id)
             continue
@@ -993,6 +1023,48 @@ async def deliver_conversation_notifications(ctx: dict[str, Any]) -> None:
                 .values(sent_at=datetime.now(UTC), lease_until=None, lease_token=None)
             )
             await session.commit()
+        if kind == "ai":
+            from app.services.telegram_cleanup import register_transient_message
+
+            async with async_session_factory() as session:
+                try:
+                    message_id = getattr(sent, "message_id", None)
+                    if isinstance(message_id, int):
+                        await register_transient_message(
+                            session,
+                            chat_id=tg_id,
+                            message_id=message_id,
+                            message_type="ai_customer_outbound",
+                            sent_at=datetime.now(UTC),
+                        )
+                        await session.commit()
+                except Exception:
+                    await session.rollback()
+                    logger.warning(
+                        "conversation_transient_register_failed", notification_id=notification_id
+                    )
+        if progress_message_id is not None:
+            try:
+                await bot.delete_message(chat_id=tg_id, message_id=progress_message_id)
+            except TelegramAPIError:
+                logger.warning("chat_progress_delete_failed", notification_id=notification_id)
+            else:
+                from app.services.chat_progress import _DONE_SLOT
+                from app.services.telegram_cleanup import mark_transient_message_deleted
+
+                async with async_session_factory() as session:
+                    await mark_transient_message_deleted(
+                        session,
+                        chat_id=tg_id,
+                        message_id=progress_message_id,
+                        deleted_at=datetime.now(UTC),
+                    )
+                    await session.execute(
+                        update(ConversationJob)
+                        .where(ConversationJob.telegram_status_id == progress_message_id)
+                        .values(progress_slot=_DONE_SLOT, progress_lease_until=None)
+                    )
+                    await session.commit()
 
 
 async def process_conversation_jobs(ctx: dict[str, Any]) -> None:

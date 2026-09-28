@@ -3,6 +3,7 @@
 import base64
 from collections.abc import Iterator
 from decimal import Decimal
+from html import unescape
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,7 @@ from app.db.models.catalog import CanonicalProduct, Unit
 from app.db.models.shop import PriceHistory, ShopProduct
 from app.db.models.user import User, UserAddress
 from app.db.repositories.catalog_repo import CatalogRepository
+from app.db.repositories.shop_repo import ShopRepository
 from app.domain.normalize.text import normalize_query
 from app.services.address_service import AddressService, ResolvedLocation
 from app.web.storefront.routers.checkout import _resolve_address
@@ -62,6 +64,14 @@ async def test_admin_catalog_create_duplicate_and_offer_history(
     )
     assert product.id in [row.id for row in results]
     assert client.post("/manage/products/new", data=fields).status_code == 409
+    assert (
+        client.post(
+            "/manage/products/new",
+            data={**fields, "csrf_token": client.headers["X-CSRF-Token"]},
+            headers={"X-CSRF-Token": ""},
+        ).status_code
+        == 409
+    )
     assert (
         client.post("/manage/products/new", data={**fields, "force_new": "true"}).status_code == 409
     )
@@ -112,10 +122,101 @@ async def test_admin_catalog_create_duplicate_and_offer_history(
         f"/manage/products/{product_id}/offers", data=offer_fields, follow_redirects=False
     )
     assert response.status_code == 303, response.text
+    invalid_offer = client.post(
+        f"/manage/products/{product_id}/offers",
+        data={
+            "pack_size": "-1",
+            "pack_unit_code": "dona",
+            "price": "0",
+            "stock_status": "low",
+            "description": "Keep this input",
+        },
+        follow_redirects=False,
+    )
+    assert invalid_offer.status_code == 422
+    assert 'value="-1"' in invalid_offer.text and "Keep this input" in invalid_offer.text
+    oversized_price = client.post(
+        f"/manage/products/{product_id}/offers",
+        data={
+            "pack_size": "1",
+            "pack_unit_code": "dona",
+            "price": "9999999999999.99",
+            "stock_status": "low",
+            "description": "Preserve oversized price",
+        },
+        follow_redirects=False,
+    )
+    assert oversized_price.status_code == 422
+    assert 'value="9999999999999.99"' in oversized_price.text
+    assert any(
+        message in unescape(oversized_price.text)
+        for message in (
+            "Ma'lumotlarni tekshiring.",
+            "Маълумотларни текширинг.",
+            "Проверьте данные.",
+        )
+    )
+    too_long_price = "9" * 65
+    long_number_response = client.post(
+        f"/manage/products/{product_id}/offers",
+        data={
+            "pack_size": "1",
+            "pack_unit_code": "dona",
+            "price": too_long_price,
+            "stock_status": "low",
+            "description": "Preserve long number",
+        },
+        follow_redirects=False,
+    )
+    assert long_number_response.status_code == 422
+    assert f'value="{too_long_price}"' in long_number_response.text
     offer = await test_session.scalar(
         select(ShopProduct).where(ShopProduct.canonical_id == product_id)
     )
     assert offer is not None and offer.price_per_pack == Decimal("52000")
+    invalid_edit = client.post(
+        f"/manage/offers/{offer.id}",
+        data={
+            "pack_size": "3",
+            "pack_unit_code": "missing-unit",
+            "price": "53000",
+            "stock_status": "low",
+            "description": "Keep edit input",
+            "active": "true",
+        },
+        follow_redirects=False,
+    )
+    assert invalid_edit.status_code == 422
+    assert 'value="3"' in invalid_edit.text and "Keep edit input" in invalid_edit.text
+    oversized_pack = client.post(
+        f"/manage/offers/{offer.id}",
+        data={
+            "pack_size": "1e9999",
+            "pack_unit_code": "dona",
+            "price": "53000",
+            "stock_status": "low",
+            "description": "Preserve oversized pack",
+            "active": "true",
+        },
+        follow_redirects=False,
+    )
+    assert oversized_pack.status_code == 422
+    assert 'value="1e9999"' in oversized_pack.text
+    long_description = "x" * (settings.listing_max_description_len + 1)
+    long_description_response = client.post(
+        f"/manage/offers/{offer.id}",
+        data={
+            "pack_size": "1",
+            "pack_unit_code": "dona",
+            "price": "53000",
+            "stock_status": "low",
+            "description": long_description,
+            "active": "true",
+        },
+        follow_redirects=False,
+    )
+    assert long_description_response.status_code == 422
+    assert long_description in long_description_response.text
     assert (
         await test_session.scalar(
             select(func.count())
@@ -133,7 +234,7 @@ async def test_admin_catalog_create_duplicate_and_offer_history(
         == 303
     )
     await test_session.refresh(offer)
-    assert offer.price_per_pack == Decimal("53000") and offer.stock_qty == Decimal("5")
+    assert offer.price_per_pack == Decimal("53000") and offer.stock_qty is None
     assert (
         await test_session.scalar(
             select(func.count())
@@ -158,6 +259,48 @@ async def test_admin_catalog_create_duplicate_and_offer_history(
         )
         == 2
     )
+    changed_pack = client.post(
+        f"/manage/offers/{offer.id}",
+        data={
+            "price": "53000",
+            "stock_status": "low",
+            "active": "true",
+            "pack_size": "2",
+            "pack_unit_code": "dona",
+            "description": "Two piece pack",
+        },
+        follow_redirects=False,
+    )
+    assert changed_pack.status_code == 303
+    await test_session.refresh(offer)
+    assert offer.pack_size == Decimal("2")
+    assert offer.description == "Two piece pack"
+    assert offer.stock_qty is None
+    assert offer.price_per_base_unit == Decimal("26500.0000")
+    assert (
+        await test_session.scalar(
+            select(func.count())
+            .select_from(PriceHistory)
+            .where(PriceHistory.shop_product_id == offer.id)
+        )
+        == 3
+    )
+    assert (
+        client.post(f"/manage/products/{product_id}/archive", follow_redirects=False).status_code
+        == 303
+    )
+    await test_session.refresh(product)
+    await test_session.refresh(offer)
+    assert product.is_active is False and offer.is_active is True
+    assert await ShopRepository(test_session).get_active_offers_for_canonicals([product_id]) == []
+    assert (
+        client.post(f"/manage/products/{product_id}/restore", follow_redirects=False).status_code
+        == 303
+    )
+    await test_session.refresh(product)
+    await test_session.refresh(offer)
+    assert product.is_active is True and offer.is_active is True
+    assert await ShopRepository(test_session).get_active_offers_for_canonicals([product_id])
     test_session.add(Unit(code="kg", name_uz="kg", name_ru="кг", dimension="mass"))
     await test_session.flush()
     assert (

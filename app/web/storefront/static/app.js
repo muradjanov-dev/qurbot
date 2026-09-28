@@ -220,6 +220,11 @@
     });
   }
 
+  document.addEventListener("submit", function (event) {
+    var prompt = event.target.dataset?.confirm;
+    if (prompt && !window.confirm(prompt)) event.preventDefault();
+  });
+
   /* ── product page: add to basket ─────────────────────────────────── */
 
   function initQtyWidgets() {
@@ -238,15 +243,19 @@
     if (!button) return;
 
     button.addEventListener("click", async function () {
+      if (button.closest("[data-live-root]")?.dataset.productActive === "0") return;
       var qtyInput = $("[data-qty] input");
       var lines = basket.load();
       button.disabled = true;
+      var purchase = button.closest("[data-live-preserve]");
+      if (purchase) purchase.dataset.productBusy = "1";
       var result = await postJSON("/api/basket/product", {
         canonical_id: Number(button.dataset.addProduct),
         qty: qtyInput ? qtyInput.value : "1",
         line_no: basket.nextNo(lines) + 1
       });
-      button.disabled = false;
+      if (purchase) purchase.dataset.productBusy = "0";
+      button.disabled = button.closest("[data-live-root]")?.dataset.productActive === "0";
 
       if (!result.ok) { toast(result.error || T.error); return; }
       var existing = lines.find(function (line) { return line.canonical_id === result.line.canonical_id; });
@@ -261,8 +270,11 @@
       if (feedback) feedback.textContent = (result.line.canonical_name || result.line.parsed_name) + ' — ' + result.line.qty + ' ' + result.line.unit_code + '. ' + T.added;
       toast(T.added);
     });
-    button.disabled = false;
-    $$("[data-qty] input, [data-qty] button").forEach(function (control) { control.disabled = false; });
+    var active = button.closest("[data-live-root]")?.dataset.productActive !== "0";
+    var preserved = button.closest("[data-live-preserve]");
+    if (preserved) preserved.dataset.productReady = "1";
+    button.disabled = !active;
+    $$("[data-qty] input, [data-qty] button").forEach(function (control) { control.disabled = !active; });
   }
 
   /* ── basket page ─────────────────────────────────────────────────── */

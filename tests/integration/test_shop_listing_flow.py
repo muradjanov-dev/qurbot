@@ -93,6 +93,7 @@ async def test_caption_creates_a_comparable_offer(test_session: AsyncSession) ->
     # 52,000 for a 50 kg bag is 1,040/kg -- the figure every quote compares on.
     assert product.price_per_base_unit == Decimal("1040.0000")
     assert product.canonical_id is not None, "should have matched the seeded SKU"
+    assert product.stock_qty is None, "numeric listing quantities are not stored"
     assert product.is_active is True
     assert product.staleness_state == "fresh"
 

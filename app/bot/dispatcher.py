@@ -26,6 +26,7 @@ from app.bot.middlewares import (
     ErrorMiddleware,
     I18nMiddleware,
     LoggingMiddleware,
+    TelegramCleanupMiddleware,
     ThrottleMiddleware,
     UserContextMiddleware,
 )
@@ -96,7 +97,8 @@ def create_dispatcher() -> Dispatcher:
 
     # Middlewares registered in exact order according to SPEC §9:
     # ErrorMiddleware -> LoggingMiddleware -> ThrottleMiddleware ->
-    # DbSessionMiddleware -> UserContextMiddleware -> I18nMiddleware
+    # DbSessionMiddleware -> TelegramCleanupMiddleware ->
+    # UserContextMiddleware -> I18nMiddleware
 
     # Outer middlewares
     dp.update.outer_middleware(ErrorMiddleware())
@@ -108,6 +110,9 @@ def create_dispatcher() -> Dispatcher:
         )
     )
     dp.update.outer_middleware(DbSessionMiddleware())
+    # This middleware persists only message ids explicitly queued by an
+    # eligible AI/guided-sales handler; it never observes all bot traffic.
+    dp.update.outer_middleware(TelegramCleanupMiddleware())
     dp.update.outer_middleware(UserContextMiddleware())
     dp.update.outer_middleware(I18nMiddleware())
 

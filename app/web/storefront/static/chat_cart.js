@@ -105,6 +105,48 @@
     } catch (error) {status.textContent = error.message;}
     finally {lock(false);}
   });
+  let refreshing = false;
+  // Keep editable inputs stable; a refresh updates prices after the customer
+  // leaves a quantity field, without interrupting contact/address entry.
+  function contactSignature() {
+    return JSON.stringify(['name', 'phone', 'district', 'address', 'lat', 'lng'].map(name => form.elements[name].value));
+  }
+  function cartSignature(value) {return JSON.stringify([value.revision, value.lines, value.requires_confirmation]);}
+  async function refreshCart() {
+    if (document.hidden || !dialog.open || busy || refreshing || sentBody
+        || lines.contains(document.activeElement) || submit.hidden) return;
+    refreshing = true;
+    try {
+      const fresh = await api('/api/cart');
+      if (busy || sentBody || lines.contains(document.activeElement)) return;
+      if (cartSignature(fresh) !== cartSignature(cart)) {
+        cart = fresh; invalidate(); draw(); publish(); status.textContent = S.catalog_updated;
+      }
+      // Delivery/wholesale price changes can leave cart unit prices identical.
+      // Revalidate an existing quote, but never submit an order automatically.
+      if (quote) {
+        const previous = quote;
+        const contactBefore = contactSignature();
+        const body = {contact_name: form.elements.name.value.trim(), phone: form.elements.phone.value.trim(),
+          district_id: Number(form.elements.district.value), address_text: form.elements.address.value.trim(),
+          lat: form.elements.lat.value ? Number(form.elements.lat.value) : null,
+          lng: form.elements.lng.value ? Number(form.elements.lng.value) : null,
+          cart_revision: cart.revision, idempotency_key: key,
+          strategy: previous.strategy || null, expected_total: previous.grand_total_raw};
+        const preview = await api('/api/checkout/preview', body);
+        if (busy || sentBody || quote !== previous || lines.contains(document.activeElement)) return;
+        if (contactBefore !== contactSignature()) {invalidate(); return;}
+        if (preview.requires_confirmation || JSON.stringify(preview.variant) !== JSON.stringify(previous)) {
+          invalidate(); status.textContent = S.catalog_updated;
+          if (preview.requires_confirmation) {requestMode = true; hint.hidden = false;}
+        }
+      }
+    } catch (error) { /* Keep current inputs and let checkout perform final validation. */ }
+    finally {refreshing = false;}
+  }
+  setInterval(refreshCart, 5000);
+  document.addEventListener('visibilitychange', () => {if (!document.hidden) refreshCart();});
+  document.addEventListener('qurbot:catalog-updated', refreshCart);
   dialog.querySelector('[data-close-cart]').addEventListener('click', () => dialog.close());
   dialog.querySelector('[data-more-products]').addEventListener('click', () => {
     dialog.close(); location.assign('/catalog');

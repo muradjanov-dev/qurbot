@@ -29,11 +29,13 @@ from app.db.models.shop import (
     ShopProductDraft,
     ShopProductPriceTier,
 )
+from app.db.models.telegram_message import TelegramMessage
 from app.db.models.user import User, UserAddress, VisitorSession
 
 __all__ = [
     "SalesRequest",
     "SalesRequestItem",
+    "TelegramMessage",
     "Cart",
     "CartItem",
     "CartMerge",

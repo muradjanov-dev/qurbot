@@ -35,6 +35,9 @@ def csrf_token(request: Request) -> str:
 async def require_csrf(request: Request) -> None:
     expected = csrf_token(request)
     supplied = request.headers.get("x-csrf-token", "")
+    if not supplied:
+        form = await request.form()
+        supplied = str(form.get("csrf_token", ""))
     if not expected or not hmac.compare_digest(expected, supplied):
         raise HTTPException(status_code=403, detail="csrf_rejected")
     origin = request.headers.get("origin")

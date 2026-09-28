@@ -34,7 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import localized_name
 from app.core.config import settings
-from app.core.i18n import DEFAULT_LANG
+from app.core.i18n import DEFAULT_LANG, t
 from app.core.logging import get_logger
 from app.core.metrics import llm_cost_usd_total
 from app.db.models.catalog import CanonicalProduct
@@ -53,7 +53,7 @@ from app.domain.pricing.units import STANDARD_UNITS
 from app.llm.evaluation import reserve_agent_evaluation
 from app.llm.pricing import CACHE_RATES, RATES
 from app.services.address_service import AddressService
-from app.services.cart_service import CartConflict, InvalidCartItem
+from app.services.cart_service import CartConflict, CartSnapshot, InvalidCartItem
 from app.services.catalog_service import CatalogService
 from app.services.quote_service import QuoteService
 
@@ -130,7 +130,9 @@ Also:
   connected one; the customer presses the operator button themselves.
 - Never ask for a phone number just to chat or to answer a question.
 - Call get_knowledge for delivery and support policy rather than stating it from memory.
-- Write short, friendly plain text. No markdown."""
+- Write concise, friendly plain text. Use one or two short sentences unless a product
+  list or required checkout details need more. Do not repeat the same product list in
+  prose when search results already provide it. No markdown."""
 
 TOOLS: list[BetaToolParam] = [
     {
@@ -265,6 +267,23 @@ class AgentCart:
     history_from: int = 0
     clarification_query: str | None = None
     clarification_key: str | None = None
+
+    def refresh_from_live(self, snapshot: CartSnapshot) -> None:
+        """Adopt the current shared basket and discard pricing tied to an old revision."""
+        if self.revision != snapshot.revision:
+            self.quote = None
+            self.order = None
+            self.quote_revision = None
+        self.revision = snapshot.revision
+        self.basket = [
+            {
+                "canonical_id": line["canonical_id"],
+                "name": line["canonical_name"],
+                "qty": line["qty"],
+                "unit_code": line["unit_code"],
+            }
+            for line in snapshot.lines
+        ]
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> AgentCart:
@@ -710,6 +729,8 @@ class SalesAgent:
                     "alphabet mid-message and never answer in another language, "
                     "even if the customer writes in one. "
                     f"Support phone: {phones}."
+                    f" When stating the customer-facing delivery notice, use this exact "
+                    f"copy: {t('sales_delivery_notice', lang=lang)}"
                 )
                 + getattr(self, "channel_instructions", ""),
             },

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import format_uzs, localized_name
 from app.bot.keyboards.inline import region_label
+from app.bot.transient import register_inbound, transient_answer
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.sales_request import SalesRequest
@@ -66,7 +67,9 @@ async def preview_quantity(
     amount, unit = await CartService(session)._validate(product.id, qty, product.base_unit_code)
     amount_text = format(amount.normalize(), "f")
     name = localized_name(product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl)
-    await message.answer(
+    await transient_answer(
+        message,
+        session,
         f"{name}\n{amount_text} {unit}",
         parse_mode=None,
         reply_markup=keyboard(
@@ -135,14 +138,19 @@ async def show_cart(message: Message, session: AsyncSession, user: User, lang: s
     )
     # Keep each Telegram keyboard bounded even for a 60-line basket.
     for start in range(0, len(text), 3500):
-        await message.answer(
+        await transient_answer(
+            message,
+            session,
             text[start : start + 3500],
             parse_mode=None,
             reply_markup=keyboard(*buttons[:30]) if start + 3500 >= len(text) else None,
         )
     for start in range(30, len(buttons), 30):
-        await message.answer(
-            t("sales_cart", lang=lang), reply_markup=keyboard(*buttons[start : start + 30])
+        await transient_answer(
+            message,
+            session,
+            t("sales_cart", lang=lang),
+            reply_markup=keyboard(*buttons[start : start + 30]),
         )
 
 
@@ -171,7 +179,9 @@ async def add_quantity(
             await callback.message.edit_reply_markup(
                 reply_markup=next_keyboard(lang, product.id, snapshot.revision)
             )
-            await callback.message.answer(
+            await transient_answer(
+                callback.message,
+                session,
                 t("sales_in_cart", lang=lang, name=name, qty=qty, unit=unit),
                 parse_mode=None,
                 reply_markup=next_keyboard(lang, product.id, snapshot.revision),
@@ -202,7 +212,9 @@ async def edit_quantity(
         await state.set_state(GuidedStates.quantity)
         await callback.answer()
         if isinstance(callback.message, Message):
-            await callback.message.answer(
+            await transient_answer(
+                callback.message,
+                session,
                 t("sales_enter_qty", lang=lang, unit=product.base_unit_code),
                 reply_markup=keyboard((t("sales_back", lang=lang), "g:cart")),
             )
@@ -214,6 +226,7 @@ async def edit_quantity(
 async def custom_quantity(
     message: Message, state: FSMContext, session: AsyncSession, lang: str
 ) -> None:
+    await register_inbound(message, session)
     data = await state.get_data()
     try:
         await preview_quantity(
@@ -225,7 +238,9 @@ async def custom_quantity(
             lang,
         )
     except (ValueError, KeyError, InvalidCartItem, ArithmeticError):
-        await message.answer(
+        await transient_answer(
+            message,
+            session,
             t("qty_out_of_range", lang=lang),
             reply_markup=keyboard((t("sales_back", lang=lang), "g:cart")),
         )
@@ -350,8 +365,11 @@ async def navigate(
         if action == "cart":
             await show_cart(callback.message, session, user, lang)
         else:
-            await callback.message.answer(
-                t("sales_search_prompt", lang=lang), reply_markup=next_keyboard(lang)
+            await transient_answer(
+                callback.message,
+                session,
+                t("sales_search_prompt", lang=lang),
+                reply_markup=next_keyboard(lang),
             )
     elif action in {"request", "checkout"}:
         cart = await CartService(session).get(user.id)
@@ -443,7 +461,9 @@ async def navigate(
         except (ValueError, CartConflict, InvalidCartItem):
             await session.rollback()
             await session.refresh(user)
-            await callback.message.answer(t("web_chat_cart_conflict", lang=lang))
+            await transient_answer(
+                callback.message, session, t("web_chat_cart_conflict", lang=lang)
+            )
         await show_cart(callback.message, session, user, lang)
     elif action == "variants":
         from app.bot.handlers.ai_chat import product_keyboard
@@ -461,7 +481,9 @@ async def navigate(
         last = next((item for item in messages if item.cards), None)
         await state.set_state(None)
         cart = await CartService(session).get(user.id)
-        await callback.message.answer(
+        await transient_answer(
+            callback.message,
+            session,
             t("sales_choose_product", lang=lang),
             reply_markup=product_keyboard(last, cart.revision, lang)
             if last

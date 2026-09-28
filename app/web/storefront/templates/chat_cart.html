@@ -1,6 +1,7 @@
 <dialog class="sales-drawer" data-cart-dialog aria-labelledby="cart-title">
   <header class="section-head"><h2 id="cart-title">{{ t('sales_cart', lang=lang) }}</h2>
     <button type="button" class="btn btn-ghost btn-sm" data-close-cart>{{ t('sales_close', lang=lang) }}</button></header>
+  <p class="muted tiny">{{ t('sales_delivery_notice', lang=lang) }}</p>
   <div data-cart-lines></div>
   <p class="notice warn" data-request-hint hidden>{{ t('sales_request_hint', lang=lang) }}</p>
   <div class="row"><button class="btn btn-ghost" type="button" data-more-products>{{ t('sales_more_products', lang=lang) }}</button><a class="btn btn-ghost" href="/sales-requests">{{ t('sales_requests', lang=lang) }}</a></div>
@@ -21,6 +22,7 @@
 {% for key in ['cart', 'remove', 'empty_cart', 'calculate', 'confirm', 'ordered', 'orders', 'delivery', 'total', 'send_request', 'request_hint', 'request_sent', 'requests', 'price_request', 'more_products', 'known_sum', 'address_invalid', 'contact_invalid', 'phone_invalid', 'name_invalid', 'district_invalid', 'session_error', 'estimated_line_total'] %}
   {{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},
 {% endfor %}
+  "catalog_updated": {{ t('web_catalog_updated', lang=lang)|tojson }},
   "error": {{ t('web_chat_failed', lang=lang)|tojson }},
   "currency": {{ t('web_currency', lang=lang)|tojson }},
   "conflict": {{ t('web_chat_cart_conflict', lang=lang)|tojson }}
