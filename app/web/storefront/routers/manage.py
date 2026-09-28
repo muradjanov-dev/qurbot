@@ -81,12 +81,16 @@ def _fits_numeric(value: Decimal, *, precision: int, scale: int) -> bool:
 
 def _offer_price(raw: str) -> Decimal | None:
     value = _number(raw, positive=True)
-    return value if value is not None and _fits_numeric(value, precision=14, scale=2) else None
+    if value is None or not _fits_numeric(value, precision=14, scale=2):
+        return None
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def _offer_pack_size(raw: str) -> Decimal | None:
     value = _number(raw, positive=True)
-    return value if value is not None and _fits_numeric(value, precision=14, scale=4) else None
+    if value is None or not _fits_numeric(value, precision=14, scale=4):
+        return None
+    return value.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 
 def _offer_base_price(value: Decimal) -> bool:
