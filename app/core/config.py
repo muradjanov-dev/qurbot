@@ -38,10 +38,10 @@ class Settings(BaseSettings):
     # container deleting the webhook the new one just set -- and that failure
     # is silent: /health stays green while the bot answers nobody. 0 disables.
     webhook_watchdog_interval_seconds: int = 300
-    admin_tg_ids: list[int] = [917456291, 576437661, 3896397, 1630243859]
+    admin_tg_ids: list[int] = [917456291, 576437661, 3896397, 1630243859, 5339875840]
     # Super admins may grant/revoke admin rights. Kept separate from
     # admin_tg_ids so a promoted admin cannot promote further admins.
-    super_admin_tg_ids: list[int] = [917456291]
+    super_admin_tg_ids: list[int] = [917456291, 5339875840]
 
     # QurBot sells from one stock of its own; there are no partner shops. The
     # `shops` table is kept because offers, delivery terms and order parts all
