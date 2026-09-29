@@ -1,0 +1,17 @@
+<aside class="admin-sidebar" aria-label="{{ t('ui_admin_menu', lang=lang) }}">
+  <a class="brand admin-brand" href="/manage"><span class="brand-mark" aria-hidden="true">T</span><span class="brand-name">Tezqur</span></a>
+  <div class="admin-profile"><span class="admin-avatar" aria-hidden="true">{{ (user.full_name or user.username or 'T')[:1] if user else 'T' }}</span><span><strong>{{ user.full_name or user.username or t('ui_admin', lang=lang) if user else t('ui_admin', lang=lang) }}</strong><small>{{ t('ui_admin', lang=lang) }}</small></span></div>
+  <nav class="admin-nav">
+    {% for key, label, href, icon in [
+      ('dashboard','ui_dashboard','/manage','M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'),
+      ('products','ui_products','/manage/products','m3 7 9-4 9 4-9 4-9-4Zm0 0v10l9 4 9-4V7M12 11v10'),
+      ('orders','web_nav_orders','/manage/orders','M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6'),
+      ('chats','sales_inbox','/operator','M4 4h16v12H9l-5 4zM8 8h8M8 12h5'),
+      ('customers','ui_customers','/manage/users','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-4'),
+      ('settings','ui_settings','/manage/settings','M4 7h16M7 4v6M4 17h16M17 14v6')
+    ] %}
+      <a href="{{ href }}" class="{{ 'is-active' if admin_active == key }}" {% if admin_active == key %}aria-current="page"{% endif %}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ icon }}"/></svg><span>{{ t(label, lang=lang) }}</span></a>
+    {% endfor %}
+  </nav>
+  <div class="admin-sidebar-bottom"><a href="/catalog/all">{{ t('ui_customer_view', lang=lang) }} ↗</a><form method="post" action="/logout"><button class="btn btn-ghost btn-sm" type="submit">{{ t('web_logout', lang=lang) }}</button></form></div>
+</aside>

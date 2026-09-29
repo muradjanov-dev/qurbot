@@ -144,7 +144,7 @@
         if (seen.has(message.id)) continue;
         seen.add(message.id);
         const item = el('article', '', 'chat-message' + (message.role === 'operator' ? ' chat-message-you' : ''));
-        item.append(el('small', S[message.role] || 'QurBot', 'chat-message-author'), el('div', message.text, 'chat-message-text'));
+        item.append(el('small', S[message.role] || 'Tezqur', 'chat-message-author'), el('div', message.text, 'chat-message-text'));
         log.append(item); cursor = Math.max(cursor, message.sequence);
       }
       const row = rows.find(r => r.id === id);

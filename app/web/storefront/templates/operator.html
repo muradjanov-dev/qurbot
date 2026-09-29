@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}{{ t('sales_inbox', lang=lang) }} — QurBot{% endblock %}
+{% block title %}{{ t('sales_inbox', lang=lang) }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 {% block body_class %}operator-page{% endblock %}
 {% block site_header %}{% endblock %}
 {% block site_footer %}{% endblock %}
 {% block content %}
 <section class="operator-shell" data-operator data-admin-id="{{ user.id }}">
   <aside class="operator-sidebar">
-    <header class="section-head"><h1>{{ t('sales_inbox', lang=lang) }}</h1><a href="/chat" class="btn btn-ghost btn-sm">QurBot</a></header>
+    <header class="section-head"><h1>{{ t('sales_inbox', lang=lang) }}</h1><a href="/chat" class="btn btn-ghost btn-sm">{{ t('store_ui_brand', lang=lang) }}</a></header>
     <nav class="operator-filters" aria-label="{{ t('sales_inbox', lang=lang) }}">
       {% for key in ['waiting', 'mine', 'others'] %}<button class="btn btn-ghost btn-sm" data-filter="{{ key }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t('sales_' ~ key, lang=lang) }}</button>{% endfor %}
     </nav>
@@ -35,7 +35,7 @@
 "currency": {{ t('web_currency', lang=lang)|tojson }},
 {% for key in ['waiting', 'mine', 'others', 'empty', 'select', 'customer', 'finish_confirm', 'requests', 'request_open', 'request_agreed', 'request_cancelled', 'resolution_note', 'resolve_first', 'price_request'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
 "user": {{ t('sales_customer', lang=lang)|tojson }}, "assistant": {{ t('web_chat_assistant', lang=lang)|tojson }},
-"operator": {{ t('web_chat_operator_name', lang=lang)|tojson }}, "system": "QurBot",
+"operator": {{ t('web_chat_operator_name', lang=lang)|tojson }}, "system": {{ t('store_ui_brand', lang=lang)|tojson }},
 "error": {{ t('chat_claim_conflict', lang=lang)|tojson }}
 }</script>
 <script src="{{ static_url }}/operator.js?v={{ asset_version }}" defer></script>

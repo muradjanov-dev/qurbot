@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import IncompatibleUnitsError
-from app.db.models.shop import PriceHistory, ShopProduct, ShopProductDraft
+from app.db.models.shop import ShopProduct, ShopProductDraft
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.listing_repo import ListingRepository, draft_to_domain
 from app.db.repositories.ops_repo import OpsRepository
@@ -35,6 +34,7 @@ from app.domain.matching.models import MatchDecision
 from app.domain.normalize.text import normalize_query
 from app.domain.parsing.models import ParsedLine
 from app.services.catalog_service import CatalogService
+from app.services.fx_pricing import FxPricingError, FxPricingService
 
 logger = logging.getLogger(__name__)
 
@@ -150,10 +150,9 @@ class ListingService:
             raise ValueError(f"draft {row.id} is not ready to apply: {[e.value for e in errors]}")
 
         match = await self.match_draft(row)
-        price_per_base = self._price_per_base_unit(domain_draft, match.base_unit)
-
         pack_unit = row.pack_unit_code or "dona"
         pack_size = row.pack_size or Decimal("1")
+        source_price = row.price_per_pack or Decimal("0")
         has_media = bool(row.photos) or bool(row.description)
 
         existing = await self.listing_repo.find_existing_offer(
@@ -173,8 +172,8 @@ class ListingService:
                 raw_unit=pack_unit,
                 pack_size=pack_size,
                 pack_unit_code=pack_unit,
-                price_per_pack=row.price_per_pack or Decimal("0"),
-                price_per_base_unit=price_per_base,
+                price_per_pack=Decimal("0"),
+                price_per_base_unit=Decimal("0"),
                 currency="UZS",
                 min_qty=Decimal("1"),
             )
@@ -183,28 +182,37 @@ class ListingService:
         product.raw_name = row.name
         product.description = row.description
         product.photos = list(row.photos or [])
-        product.stock_qty = None
         product.proposed_category_id = row.category_id
-        product.price_per_pack = row.price_per_pack or Decimal("0")
-        product.price_per_base_unit = price_per_base
         product.stock_status = self._stock_status_for(row.stock_qty)
         product.is_active = True
-        product.staleness_state = "fresh"
-        product.updated_by = "shop"
-        product.updated_at = datetime.now(UTC)
         # Owner-supplied media is unreviewed; the price is not. Quoting is never
         # gated on this -- only whether customers see the photo/description.
         product.moderation_status = "pending" if has_media else "approved"
 
-        await self.session.flush()
-
-        self.session.add(
-            PriceHistory(
-                shop_product_id=product.id,
-                price_per_pack=product.price_per_pack,
-                price_per_base_unit=price_per_base,
+        pricing = FxPricingService(self.session)
+        try:
+            await pricing.set_offer_price(
+                product,
+                amount=source_price,
+                currency="UZS",
+                base_unit_code=match.base_unit,
+                updated_by="shop",
             )
-        )
+        except FxPricingError as exc:
+            if exc.code != "invalid_unit" or match.base_unit == pack_unit:
+                raise
+            logger.warning(
+                "listing_unit_mismatch pack_unit=%s base_unit=%s -- pricing against pack unit",
+                pack_unit,
+                match.base_unit,
+            )
+            await pricing.set_offer_price(
+                product,
+                amount=source_price,
+                currency="UZS",
+                base_unit_code=pack_unit,
+                updated_by="shop",
+            )
 
         row.status = "applied"
         row.matched_canonical_id = match.canonical_id

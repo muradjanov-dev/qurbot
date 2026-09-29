@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('admin_ui_offer_freshness', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+<section class="admin-price-health-page">
+  <div class="admin-breadcrumb"><a href="/manage/settings">{{ t('admin_ui_settings', lang=lang) }}</a><span aria-hidden="true">/</span><strong>{{ t('admin_ui_offer_freshness', lang=lang) }}</strong></div>
+  <header class="admin-page-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_advanced_settings', lang=lang) }}</p><h1>{{ t('admin_ui_offer_freshness', lang=lang) }}</h1><p>{{ t('admin_ui_offer_freshness_help', lang=lang) }}</p></div></header>
+  <nav class="admin-filter-tabs" aria-label="{{ t('admin_ui_status', lang=lang) }}">
+    {% for key in ['all', 'fresh', 'aging', 'stale'] %}<a class="{{ 'is-active' if state == key }}" href="/manage/price-health?state={{ key }}">{{ t('admin_ui_' ~ key, lang=lang) }}</a>{% endfor %}
+  </nav>
+  <form method="post" action="/manage/price-health/bulk-deactivate" class="admin-card admin-table-card" data-confirm="{{ t('admin_ui_bulk_deactivate_confirm', lang=lang) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <header class="admin-table-toolbar"><strong>{{ t('admin_ui_offer_freshness', lang=lang) }}</strong><button class="admin-button admin-button-danger admin-button-small" type="submit">{{ t('admin_ui_deactivate_selected', lang=lang) }}</button></header>
+    <div class="admin-table-scroll"><table class="admin-table admin-health-table">
+      <thead><tr><th><span class="admin-visually-hidden">{{ t('admin_ui_actions', lang=lang) }}</span></th><th>{{ t('admin_ui_product_name', lang=lang) }}</th><th>{{ t('admin_ui_current_shop', lang=lang) }}</th><th>{{ t('admin_ui_source_amount', lang=lang) }}</th><th>{{ t('admin_ui_price_uzs', lang=lang) }}</th><th>{{ t('admin_ui_price_usd', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th><th>{{ t('admin_ui_fx_rate_updated', lang=lang) }}</th></tr></thead>
+      <tbody>{% for row in offers %}{% set offer = row.offer %}
+        <tr>
+          <td><input type="checkbox" name="offer_ids" value="{{ offer.id }}" aria-label="{{ t('admin_ui_product_name', lang=lang) }} {{ offer.raw_name }}"></td>
+          <td><span class="admin-product-name">{{ offer.canonical_product.name_uz if offer.canonical_product else offer.raw_name }}</span><small class="admin-table-sub">{{ format_qty(offer.pack_size) }} {{ offer.pack_unit_code or offer.raw_unit }}</small></td>
+          <td>{{ offer.shop.name }}</td>
+          <td><span class="admin-money-main">{{ row.source_amount_label }}</span><small class="admin-money-sub">{{ offer.source_currency }}</small></td>
+          <td>{{ row.prices.price_uzs_label }}</td>
+          <td>{% if row.prices.price_usd_label %}{{ row.prices.price_usd_label }}{% else %}<span class="admin-muted">{{ t('admin_ui_fx_rate_missing', lang=lang) }}</span>{% endif %}</td>
+          <td><span class="admin-status-pill status-{{ offer.staleness_state }}"><i></i>{{ t('admin_ui_' ~ offer.staleness_state, lang=lang) }}</span></td>
+          <td>{{ offer.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+      {% else %}<tr><td colspan="8"><div class="admin-empty-state">{{ t('admin_ui_no_offers', lang=lang) }}</div></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </form>
+</section>
+{% endblock %}

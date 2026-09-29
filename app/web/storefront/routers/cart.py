@@ -12,6 +12,7 @@ from app.db.models.user import User
 from app.db.session import get_db_session
 from app.services.cart_policy import assess_lines
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
+from app.services.fx_pricing import FxPricingService
 from app.web.storefront.deps import current_lang, require_api_user
 from app.web.storefront.security import require_csrf
 
@@ -42,11 +43,15 @@ async def _error(
     user_id = user.id
     await session.rollback()
     snapshot = await CartService(session).get(user_id)
+    fx = await FxPricingService(session).snapshot(lock=True)
+    lines = await assess_lines(session, snapshot.lines, rate=fx.rate, fx_revision=fx.revision)
     await session.commit()
     return JSONResponse(
         status_code=409 if isinstance(exc, CartConflict) else 422,
         content={
             **snapshot.payload(),
+            "lines": lines,
+            "fx_revision": fx.revision,
             "ok": False,
             "code": exc.message,
             "error": t("web_error_generic", lang=lang),
@@ -60,10 +65,12 @@ async def get_cart(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     snapshot = await CartService(session).get(user.id)
-    lines = await assess_lines(session, snapshot.lines)
+    fx = await FxPricingService(session).snapshot(lock=True)
+    lines = await assess_lines(session, snapshot.lines, rate=fx.rate, fx_revision=fx.revision)
     await session.commit()
     return {
         **snapshot.payload(),
+        "fx_revision": fx.revision,
         "lines": lines,
         "requires_confirmation": any(line["requires_confirmation"] for line in lines),
     }

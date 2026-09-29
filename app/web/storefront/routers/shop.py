@@ -74,23 +74,11 @@ async def shop_root(
 @router.get("/{shop_id}")
 async def shop_panel(
     shop_id: int,
-    request: Request,
     session: AsyncSession = Depends(get_db_session),
     user: User | None = Depends(current_user),
-    lang: str = Depends(current_lang),
 ) -> Response:
-    shop = await _require_shop(session, user, shop_id)
-    _, total = await ShopRepository(session).get_shop_products_paginated(shop.id, 0, 1)
-    pending = await OrderRepository(session).count_pending_parts_for_shop(shop.id)
-    return render(
-        request,
-        "shop_panel.html",
-        user=user,
-        lang=lang,
-        shop=shop,
-        product_count=total,
-        pending_orders=pending,
-    )
+    await _require_shop(session, user, shop_id)
+    return RedirectResponse("/manage", status_code=303)
 
 
 @router.get("/{shop_id}/products")
@@ -102,23 +90,12 @@ async def shop_products(
     user: User | None = Depends(current_user),
     lang: str = Depends(current_lang),
 ) -> Response:
-    shop = await _require_shop(session, user, shop_id)
-    size = settings.web_shop_products_page_size
-    products, total = await ShopRepository(session).get_shop_products_paginated(
-        shop.id, (page - 1) * size, size
-    )
-    pages = max(1, (total + size - 1) // size)
-    return render(
-        request,
-        "shop_products.html",
-        user=user,
-        lang=lang,
-        shop=shop,
-        products=products,
-        page=min(page, pages),
-        pages=pages,
-        stock_statuses=STOCK_STATUSES,
-    )
+    await _require_shop(session, user, shop_id)
+    query = request.url.query
+    destination = "/manage/products"
+    if query:
+        destination = f"{destination}?{query}"
+    return RedirectResponse(destination, status_code=303)
 
 
 @router.post("/{shop_id}/products/{product_id}")
@@ -323,6 +300,7 @@ async def shop_import(
 async def upload_price_file(
     shop_id: int,
     file: UploadFile = File(...),
+    source_currency: str | None = Form(default=None),
     session: AsyncSession = Depends(get_db_session),
     user: User | None = Depends(current_user),
 ) -> Response:
@@ -339,6 +317,7 @@ async def upload_price_file(
             shop_id=shop.id,
             file_bytes=payload,
             filename=file.filename or "prices.xlsx",
+            source_currency=source_currency,
         )
     except (DomainException, ValueError) as exc:
         logger.warning("web_price_import_failed", shop_id=shop.id, error=str(exc))
@@ -400,6 +379,11 @@ async def apply_import(
         raise HTTPException(status_code=404, detail="batch_not_found")
 
     result = await _supplier_service(session).apply_batch(batch_id)
+    if result.currency_blocked:
+        return RedirectResponse(
+            f"/shop/{shop_id}/import?batch={batch_id}&msg=web_shop_import_currency_error",
+            status_code=303,
+        )
     return RedirectResponse(
         f"/shop/{shop_id}/import?msg=web_shop_import_applied&n={result.applied_count}",
         status_code=303,

@@ -22,7 +22,14 @@ def test_the_importer_understands_its_own_template(lang: str) -> None:
     """Every column the template offers must be one the parser detects."""
     result = parse_excel(build_price_template(lang=lang))
 
-    assert set(result.detected_columns) == {"name", "price", "unit", "pack_size", "qty"}
+    assert set(result.detected_columns) == {
+        "name",
+        "price",
+        "unit",
+        "pack_size",
+        "qty",
+        "currency",
+    }
 
 
 @pytest.mark.parametrize("lang", ["uz_latn", "uz_cyrl", "ru"])
@@ -36,6 +43,7 @@ def test_the_example_rows_survive_a_round_trip(lang: str) -> None:
     first = result.rows[0]
     assert first.raw_name == TEMPLATE_EXAMPLE_ROWS[0][0]
     assert first.raw_price == Decimal(TEMPLATE_EXAMPLE_ROWS[0][2])
+    assert first.raw_currency == "UZS"
 
 
 def test_the_examples_name_products_the_catalogue_carries() -> None:

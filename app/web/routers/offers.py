@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.web.auth import require_admin
+from app.web.storefront.session import SESSION_COOKIE, read_session
 from app.web.templates_env import templates
 
 router = APIRouter(prefix="/admin/offers", tags=["admin-offers"])
@@ -18,7 +19,12 @@ async def list_offers(
     state: str | None = None,
     session: AsyncSession = Depends(get_db_session),
     _admin: str = Depends(require_admin),
-) -> HTMLResponse:
+) -> Response:
+    if read_session(request.cookies.get(SESSION_COOKIE)) is not None:
+        query = str(request.url.query)
+        return RedirectResponse(
+            "/manage/price-health" + ("?" + query if query else ""), status_code=303
+        )
     shop_repo = ShopRepository(session)
     offers = await shop_repo.list_offers_by_staleness(staleness_state=state, limit=200)
     return templates.TemplateResponse(request, "offers.html", {"offers": offers})

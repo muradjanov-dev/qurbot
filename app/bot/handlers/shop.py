@@ -285,6 +285,11 @@ async def handle_quick_price_update(
             price_per_pack=price_val,
             price_per_base_unit=price_val,
             stock_status="in_stock",
+            currency="UZS",
+            source_currency="UZS",
+            source_price_per_pack=price_val,
+            fx_rate_used=Decimal("1"),
+            fx_rate_revision=0,
             stock_qty=None,
             is_active=True,
             staleness_state="fresh",
@@ -371,6 +376,7 @@ async def handle_document_upload(
             auto_count=summary.auto_matched,
             manual_count=summary.needs_review,
             skipped=summary.skipped,
+            currency_errors=summary.currency_errors,
         )
         + "\n\n"
         + t("upload_disclaimer", lang=lang)
@@ -496,7 +502,12 @@ async def callback_confirm_batch(
     await session.commit()
 
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(t("batch_applied", lang=lang, count=result.applied_count))
+        if result.currency_blocked:
+            await callback.message.edit_text(t("batch_currency_error", lang=lang))
+        else:
+            await callback.message.edit_text(
+                t("batch_applied", lang=lang, count=result.applied_count)
+            )
 
 
 @router.callback_query(F.data.startswith("import_cancel:"))

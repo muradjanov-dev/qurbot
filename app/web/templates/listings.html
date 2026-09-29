@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Rasm tekshiruvi — QurBot Admin{% endblock %}
+{% block title %}Rasm tekshiruvi — Tezqur Admin{% endblock %}
 {% block content %}
 <h1>Rasm tekshiruvi</h1>
 <p>
@@ -45,7 +45,7 @@
       </td>
       <td>{{ item.shop.name if item.shop else '—' }}</td>
       <td>
-        {{ '{:,.0f}'.format(item.price_per_pack).replace(',', ' ') }} so'm
+        {{ format_money(item.price_per_pack, 'UZS', lang) }}
         <br><small>{{ item.pack_size }} {{ item.pack_unit_code }}</small>
       </td>
       <td style="white-space:nowrap;">

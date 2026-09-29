@@ -66,12 +66,19 @@
       qty.disabled = remove.disabled = busy || Boolean(sentBody);
       row.append(qty, node('span', item.unit_code), remove); lines.append(row);
       if (item.line_total_uzs != null) {
+        const lang = window.QB?.lang;
         if (item.display_unit_price_uzs != null) {
-          row.append(node('small', `${window.qurbotFormatUzs(item.display_unit_price_uzs)} ${S.currency} / ${item.unit_code}`));
+          const usd = item.display_unit_price_usd == null ? ''
+            : ` · ${item.display_unit_price_usd_approximate ? '≈ ' : ''}${window.qurbotFormatMoney(item.display_unit_price_usd, 'USD', lang)}`;
+          row.append(node('small', `${window.qurbotFormatMoney(item.display_unit_price_uzs, 'UZS', lang)} / ${item.unit_code}${usd}`));
         } else if (item.display_pack_price_uzs != null) {
-          row.append(node('small', `${window.qurbotFormatUzs(item.display_pack_price_uzs)} ${S.currency} / ${item.display_pack_size} ${item.display_pack_unit}`));
+          const usd = item.display_pack_price_usd == null ? ''
+            : ` · ${item.display_pack_price_usd_approximate ? '≈ ' : ''}${window.qurbotFormatMoney(item.display_pack_price_usd, 'USD', lang)}`;
+          row.append(node('small', `${window.qurbotFormatMoney(item.display_pack_price_uzs, 'UZS', lang)} / ${item.display_pack_size} ${item.display_pack_unit}${usd}`));
         }
-        row.append(node('strong', `${S.estimated_line_total}: ${window.qurbotFormatUzs(item.line_total_uzs)} ${S.currency}`));
+        const usdTotal = item.line_total_usd == null ? ''
+          : ` · ${item.line_total_usd_approximate ? '≈ ' : ''}${window.qurbotFormatMoney(item.line_total_usd, 'USD', lang)}`;
+        row.append(node('strong', `${S.estimated_line_total}: ${window.qurbotFormatMoney(item.line_total_uzs, 'UZS', lang)}${usdTotal}`));
       }
       async function change(amount) {
         if (busy) return;

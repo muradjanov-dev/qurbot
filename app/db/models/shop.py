@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -146,6 +147,14 @@ class ShopProduct(Base, TimestampMixin):
     price_per_pack: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     price_per_base_unit: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="UZS", nullable=False)
+    source_currency: Mapped[str] = mapped_column(
+        String(3), default="UZS", server_default="UZS", nullable=False
+    )
+    source_price_per_pack: Mapped[Decimal | None] = mapped_column(Numeric(16, 4), nullable=True)
+    fx_rate_used: Mapped[Decimal | None] = mapped_column(Numeric(14, 6), nullable=True)
+    fx_rate_revision: Mapped[int] = mapped_column(
+        BigInteger, default=0, server_default="0", nullable=False
+    )
     stock_status: Mapped[str] = mapped_column(
         String(32), default="in_stock", nullable=False
     )  # in_stock|low|on_order|out
@@ -202,6 +211,15 @@ class ShopProduct(Base, TimestampMixin):
     )
 
     __table_args__ = (
+        CheckConstraint("source_currency IN ('UZS', 'USD')", name="source_currency"),
+        CheckConstraint(
+            "source_price_per_pack IS NULL OR source_price_per_pack > 0",
+            name="source_price_positive",
+        ),
+        CheckConstraint(
+            "source_currency <> 'USD' OR source_price_per_pack IS NOT NULL",
+            name="usd_source_price_required",
+        ),
         UniqueConstraint(
             "shop_id", "canonical_id", "pack_size", "pack_unit_code", name="uq_shop_products_offer"
         ),
@@ -251,6 +269,7 @@ class ImportBatch(Base, TimestampMixin):
         String(32), default="uploaded", nullable=False
     )  # uploaded|parsed|awaiting_confirmation|applied|failed
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
     total_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     matched_rows: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -258,6 +277,13 @@ class ImportBatch(Base, TimestampMixin):
     shop: Mapped[Shop] = relationship("Shop", lazy="selectin")
     rows: Mapped[list["ImportRow"]] = relationship(
         "ImportRow", back_populates="batch", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "source_currency IS NULL OR source_currency IN ('UZS', 'USD')",
+            name="source_currency",
+        ),
     )
 
 
@@ -309,11 +335,31 @@ class ShopProductPriceTier(Base, TimestampMixin):
     # The smallest order this price applies from, in packs.
     min_qty: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
     price_per_pack: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    source_currency: Mapped[str] = mapped_column(
+        String(3), default="UZS", server_default="UZS", nullable=False
+    )
+    source_price_per_pack: Mapped[Decimal | None] = mapped_column(Numeric(16, 4), nullable=True)
+    fx_rate_used: Mapped[Decimal | None] = mapped_column(Numeric(14, 6), nullable=True)
+    fx_rate_revision: Mapped[int] = mapped_column(
+        BigInteger, default=0, server_default="0", nullable=False
+    )
 
     product: Mapped["ShopProduct"] = relationship("ShopProduct", back_populates="price_tiers")
 
     __table_args__ = (
         UniqueConstraint("shop_product_id", "min_qty", name="uq_price_tier_product_min_qty"),
+        CheckConstraint(
+            "source_currency IN ('UZS', 'USD')",
+            name="source_currency",
+        ),
+        CheckConstraint(
+            "source_price_per_pack IS NULL OR source_price_per_pack > 0",
+            name="source_price_positive",
+        ),
+        CheckConstraint(
+            "source_currency <> 'USD' OR source_price_per_pack IS NOT NULL",
+            name="usd_source_price_required",
+        ),
     )
 
 

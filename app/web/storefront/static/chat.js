@@ -156,7 +156,12 @@
       card.append(element('p', 'notice warn tiny', strings.confirmation));
     }
     if (product.price_from_uzs !== undefined && product.price_from_uzs !== null) {
-      card.append(element('p', 'chat-product-price', `${window.qurbotFormatUzs(product.price_from_uzs)} ${strings.currency}${product.unit ? ` / ${product.unit}` : ''}`));
+      const primary = element('p', 'chat-product-price', `${window.qurbotFormatMoney(product.price_from_uzs, 'UZS', window.QB?.lang)}${product.unit ? ` / ${product.unit}` : ''}`);
+      card.append(primary);
+      if (product.price_from_usd !== undefined && product.price_from_usd !== null) {
+        const approximate = product.price_usd_approximate ? '≈ ' : '';
+        card.append(element('small', 'chat-product-price-usd', `${approximate}${window.qurbotFormatMoney(product.price_from_usd, 'USD', window.QB?.lang)}`));
+      }
     }
     const row = element('form', 'chat-product-actions');
     const label = element('label', 'field', `${strings.qty} (${unitCode})`);

@@ -1,119 +1,78 @@
 {% set langs = [('uz_cyrl', 'Ўзбекча'), ('uz_latn', "O'zbekcha"), ('ru', 'Русский')] %}
+{% set verified = user is not none and user.tg_id|default(none) is not none %}
+{% set admin_surface = admin_surface|default(false) %}
 <!doctype html>
 <html lang="{{ 'ru' if lang == 'ru' else 'uz' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token(request) }}">
-  <meta name="theme-color" content="#faf9f7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f8f6">
   <meta name="description" content="{{ t('web_tagline', lang=lang) }}">
-  <title>{% block title %}QurBot{% endblock %}</title>
+  <title>{% block title %}Tezqur{% endblock %}</title>
   <link rel="stylesheet" href="{{ static_url }}/app.css?v={{ asset_version }}">
+  <link rel="stylesheet" href="{{ static_url }}/{{ 'admin' if admin_surface else 'storefront' }}.css?v={{ asset_version }}">
   <link rel="stylesheet" href="{{ static_url }}/leaflet.css?v={{ asset_version }}">
   <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
 </head>
-<body class="{% block body_class %}{% endblock %}" data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
+<body class="{{ 'admin-layout' if admin_surface else 'storefront-b' }} {% block body_class %}{% endblock %}" data-lang="{{ lang }}" data-authed="{{ '1' if user else '0' }}">
   <a class="skip" href="#main">→</a>
-
   {% block site_header %}
-  <header class="topbar">
+  {% if admin_surface %}{% include 'admin_sidebar.html' %}{% endif %}
+  <header class="topbar {{ 'admin-topbar' if admin_surface }}">
     <div class="topbar-inner">
-      <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span class="brand-name">QurBot</span>
-      </a>
-
-      <nav class="topnav" aria-label="{{ t('web_nav_home', lang=lang) }}">
-        <a href="/chat" class="{{ 'is-active' if path == '/chat' }}" {% if path == '/chat' %}aria-current="page"{% endif %}>{{ t('web_chat_title', lang=lang) }}</a>
-        <a href="/" class="{{ 'is-active' if path == '/' }}">{{ t('web_nav_home', lang=lang) }}</a>
-        <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
-        <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
-        {% if user %}<a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>{% endif %}
-        {% if is_admin %}<a href="/operator">{{ t('sales_inbox', lang=lang) }}</a><a href="/manage" class="{{ 'is-active' if path.startswith('/manage') or path.startswith('/shop') or path.startswith('/admin') }}">{{ t('manage_title', lang=lang) }}</a>{% endif %}
-      </nav>
-
+      {% if admin_surface %}
+        <span class="admin-breadcrumb">Tezqur <span>/</span> {{ t('ui_' ~ admin_active, lang=lang) if admin_active in ['dashboard','products','customers','settings'] else t('manage_title', lang=lang) }}</span>
+      {% else %}
+        <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">T</span><span class="brand-name">Tezqur</span></a>
+        <nav class="topnav" aria-label="{{ t('web_nav_catalog', lang=lang) }}">
+          <a href="/catalog/all" class="{{ 'is-active' if path == '/' or path.startswith('/catalog') or path.startswith('/product') }}">{{ t('web_nav_catalog', lang=lang) }}</a>
+          <a href="/chat" class="{{ 'is-active' if path == '/chat' }}">{{ t('web_chat_title', lang=lang) }}</a>
+          <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">{{ t('web_nav_basket', lang=lang) }} <span class="count" data-basket-count hidden>0</span></a>
+          <a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">{{ t('web_nav_orders', lang=lang) }}</a>
+        </nav>
+      {% endif %}
       <div class="topbar-side">
-        <details class="menu">
-          <summary aria-label="{{ t('web_account_language', lang=lang) }}">
-            {{ 'RU' if lang == 'ru' else ('УЗ' if lang == 'uz_cyrl' else 'UZ') }}
-          </summary>
-          <div class="menu-body">
-            {% for code, label in langs %}
-              <a href="/lang/{{ code }}?next={{ path }}" class="{{ 'is-active' if code == lang }}">{{ label }}</a>
-            {% endfor %}
-          </div>
+        <details class="menu"><summary aria-label="{{ t('web_account_language', lang=lang) }}">{{ 'RU' if lang == 'ru' else ('ЎЗ' if lang == 'uz_cyrl' else 'UZ') }}</summary>
+          <div class="menu-body">{% for code, label in langs %}<a href="/lang/{{ code }}?next={{ path }}" class="{{ 'is-active' if code == lang }}">{{ label }}</a>{% endfor %}</div>
         </details>
-
-        {% if user %}
-          <a class="btn btn-ghost btn-sm" href="/account">{{ t('web_nav_account', lang=lang) }}</a>
-        {% else %}
-          <a class="btn btn-primary btn-sm" href="/chat">{{ t('web_chat_open', lang=lang) }}</a>
-        {% endif %}
+        {% if is_admin and not admin_surface %}<a class="btn btn-ghost btn-sm" href="/manage">{{ t('manage_title', lang=lang) }}</a>{% endif %}
+        {% if verified %}<a class="btn btn-ghost btn-sm" href="/account">{{ t('web_nav_account', lang=lang) }}</a>
+        {% else %}<a class="btn btn-primary btn-sm telegram-login" href="/login?next={{ path|urlencode }}" data-telegram-login>{{ t('ui_telegram_login', lang=lang) }}</a>{% endif %}
       </div>
     </div>
-    {% if is_admin %}
-    <nav class="operator-shortcut" aria-label="{{ t('sales_inbox', lang=lang) }}" data-operator-shortcut>
-      <a class="btn btn-primary btn-sm" href="/operator">{{ t('sales_inbox', lang=lang) }} →</a>
-    </nav>
-    {% endif %}
+    {% if is_admin and not admin_surface %}<nav class="operator-shortcut" aria-label="{{ t('sales_inbox', lang=lang) }}" data-operator-shortcut><a href="/operator">{{ t('sales_inbox', lang=lang) }} →</a></nav>{% endif %}
   </header>
   {% endblock %}
-
   {% if flash %}<div class="flash" role="status">{{ flash }}</div>{% endif %}
-
   <main id="main" class="page">
-    <p class="notice warn" data-telegram-auth role="status" hidden
-       data-missing="{{ t('web_auth_reopen', lang=lang) }}"
-       data-error="{{ t('sales_session_error', lang=lang) }}"
-       data-loading="{{ t('web_auth_signing_in', lang=lang) }}"></p>
+    <p class="notice warn" data-telegram-auth role="status" hidden data-missing="{{ t('web_auth_reopen', lang=lang) }}" data-error="{{ t('sales_session_error', lang=lang) }}" data-loading="{{ t('web_auth_signing_in', lang=lang) }}"></p>
     {% block content %}{% endblock %}
   </main>
-
   {% block site_footer %}
-  <footer class="footer">
-    <span>QurBot — {{ t('web_tagline', lang=lang) }}</span>
-    <a href="/image-credits">{{ t('web_image_credits', lang=lang) }}</a>
-  </footer>
-
-  <nav class="tabbar" aria-label="{{ t('web_nav_home', lang=lang) }}">
-    <a href="/chat" class="{{ 'is-active' if path == '/chat' }}" {% if path == '/chat' %}aria-current="page"{% endif %}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4zM8 8h8M8 12h5"/></svg>
-      <span>{{ t('web_chat_title', lang=lang) }}</span>
-    </a>
-    <a href="/" class="{{ 'is-active' if path == '/' }}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
-      <span>{{ t('web_nav_home', lang=lang) }}</span>
-    </a>
-    <a href="/catalog" class="{{ 'is-active' if path.startswith('/catalog') or path.startswith('/product') }}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v5H4zM13 14h7v5h-7z"/></svg>
-      <span>{{ t('web_nav_catalog', lang=lang) }}</span>
-    </a>
-    <a href="/basket" class="{{ 'is-active' if path == '/basket' }}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM9 7a3 3 0 0 1 6 0"/></svg>
-      <span>{{ t('web_nav_basket', lang=lang) }}</span>
-      <em class="count" data-basket-count hidden>0</em>
-    </a>
-    <a href="/orders" class="{{ 'is-active' if path.startswith('/orders') }}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6"/></svg>
-      <span>{{ t('web_nav_orders', lang=lang) }}</span>
-    </a>
-    <a href="/account" class="{{ 'is-active' if path.startswith('/account') }}">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 20a8 8 0 0 1 16 0"/></svg>
-      <span>{{ t('web_nav_account', lang=lang) }}</span>
-    </a>
+  {% if not admin_surface %}
+  <footer class="footer"><span>Tezqur — {{ t('web_tagline', lang=lang) }}</span><a href="/image-credits">{{ t('web_image_credits', lang=lang) }}</a></footer>
+  <nav class="tabbar" aria-label="{{ t('web_nav_catalog', lang=lang) }}">
+    {% for href, key, icon in [
+      ('/catalog/all','web_nav_catalog','M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v5H4zM13 14h7v5h-7z'),
+      ('/chat','web_chat_title','M4 4h16v12H9l-5 4zM8 8h8M8 12h5'),
+      ('/basket','web_nav_basket','M6 7h12l-1 12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zM9 7a3 3 0 0 1 6 0'),
+      ('/orders','web_nav_orders','M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6'),
+      ('/account','web_nav_account','M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 20a8 8 0 0 1 16 0')
+    ] %}<a href="{{ href }}" class="{{ 'is-active' if path == href or (href == '/catalog/all' and (path == '/' or path.startswith('/catalog') or path.startswith('/product'))) }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ icon }}"/></svg><span>{{ t(key, lang=lang) }}</span>{% if href == '/basket' %}<em class="count" data-basket-count hidden>0</em>{% endif %}</a>{% endfor %}
   </nav>
+  {% endif %}
   {% endblock %}
-
   <div class="toast" data-toast hidden></div>
-
-  <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, verified: {{ (user is not none and user.tg_id is not none)|tojson }}, i18n: {{ js_messages|tojson }}};</script>
+  <script>window.QB = {lang: {{ lang|tojson }}, authed: {{ (user is not none)|tojson }}, verified: {{ verified|tojson }}, i18n: {{ js_messages|tojson }}, store_i18n: {{ store_ui_messages|default({})|tojson }}, admin_i18n: {{ admin_ui_messages|default({})|tojson }}};</script>
   <script src="{{ static_url }}/session.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/money.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/app.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/leaflet.js?v={{ asset_version }}" defer></script>
   <script src="{{ static_url }}/location.js?v={{ asset_version }}" defer></script>
+  {% if admin_surface %}<script src="{{ static_url }}/admin.js?v={{ asset_version }}" defer></script>{% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -283,5 +283,162 @@ def test_telegram_cleanup_migrations_preserve_finite_stock_history(monkeypatch):
 
     command.downgrade(config, "0023_default_lang_cyrillic")
     offer_id = asyncio.run(_seed_finite_stock_offer(TEST_DATABASE_URL))
-    command.upgrade(config, "head")
+    command.upgrade(config, "0025_telegram_cleanup")
     asyncio.run(_verify_offer_and_registry(TEST_DATABASE_URL, offer_id))
+
+
+async def _currency_migration_fixture(database_url: str, offer_id: int) -> dict:
+    """Use pre-migration SQL, so current ORM defaults cannot hide backfill errors."""
+    engine = create_async_engine(database_url)
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(
+                text(
+                    "UPDATE shop_products SET price_per_pack=12345.67, "
+                    "price_per_base_unit=12345.6700, stock_qty=NULL WHERE id=:id"
+                ),
+                {"id": offer_id},
+            )
+            await connection.execute(
+                text(
+                    "INSERT INTO shop_product_price_tiers (shop_product_id,min_qty,price_per_pack) "
+                    "VALUES (:id,200,12000.25) ON CONFLICT (shop_product_id,min_qty) "
+                    "DO UPDATE SET price_per_pack=EXCLUDED.price_per_pack"
+                ),
+                {"id": offer_id},
+            )
+            user_id = (
+                await connection.execute(
+                    text(
+                        "INSERT INTO users (tg_id,full_name) VALUES (1900000102,'FX "
+                        "migration test') "
+                        "ON CONFLICT (tg_id) DO UPDATE SET full_name=EXCLUDED.full_name "
+                        "RETURNING id"
+                    )
+                )
+            ).scalar_one()
+            basket_id = (
+                await connection.execute(
+                    text(
+                        "INSERT INTO baskets (user_id,raw_text,status) VALUES "
+                        "(:uid,'migration','ordered') "
+                        "RETURNING id"
+                    ),
+                    {"uid": user_id},
+                )
+            ).scalar_one()
+            quote_id = (
+                await connection.execute(
+                    text(
+                        "INSERT INTO quotes "
+                        "(basket_id,strategy,items_total,delivery_total,grand_total,"
+                        "coverage_pct,shop_count,payload) VALUES "
+                        "(:bid,'cheapest',12345.67,50000,62345.67,"
+                        '100,1,\'{"historical_price":"12345.67"}\') RETURNING id'
+                    ),
+                    {"bid": basket_id},
+                )
+            ).scalar_one()
+            await connection.execute(
+                text(
+                    "INSERT INTO orders (quote_id,user_id,status,contact_phone,delivery_address,"
+                    "grand_total_quoted,grand_total_final) VALUES (:qid,:uid,'confirmed',"
+                    "'+998000000002','Isolated test',62345.67,62345.67)"
+                ),
+                {"qid": quote_id, "uid": user_id},
+            )
+            return await _currency_snapshot(connection)
+    finally:
+        await engine.dispose()
+
+
+async def _currency_snapshot(connection) -> dict:
+    # Exact snapshots of old columns include timestamps and historical records.
+    result = {}
+    for table in ("shop_products", "shop_product_price_tiers", "quotes", "orders", "price_history"):
+        result[table] = (
+            await connection.execute(
+                text(
+                    f"SELECT coalesce(jsonb_agg(to_jsonb(t) - ARRAY['source_currency',"
+                    f"'source_price_per_pack','fx_rate_used','fx_rate_revision'] ORDER "
+                    f"BY id), '[]'::jsonb) "
+                    f"FROM {table} t"
+                )
+            )
+        ).scalar_one()
+    return result
+
+
+async def _verify_currency_migration(database_url: str, before: dict) -> None:
+    from decimal import Decimal
+
+    engine = create_async_engine(database_url)
+    try:
+        async with engine.connect() as connection:
+            assert await _currency_snapshot(connection) == before
+            from sqlalchemy import CheckConstraint
+
+            from app.db.base import Base
+
+            for table_name in (
+                "fx_rate_settings",
+                "shop_products",
+                "shop_product_price_tiers",
+                "import_batches",
+            ):
+                expected = {
+                    constraint.name
+                    for constraint in Base.metadata.tables[table_name].constraints
+                    if isinstance(constraint, CheckConstraint)
+                }
+                actual = set(
+                    (
+                        await connection.execute(
+                            text(
+                                "SELECT conname FROM pg_constraint "
+                                "WHERE contype='c' AND conrelid=to_regclass(:table)"
+                            ),
+                            {"table": table_name},
+                        )
+                    ).scalars()
+                )
+                assert actual == expected, (table_name, actual, expected)
+            rate = (
+                await connection.execute(
+                    text(
+                        "SELECT usd_to_uzs_rate,revision,updated_by FROM fx_rate_settings "
+                        "WHERE id=1"
+                    )
+                )
+            ).one()
+            assert rate == (Decimal("11820.48"), 1, None)
+            for table in ("shop_products", "shop_product_price_tiers"):
+                mismatch = (
+                    await connection.execute(
+                        text(
+                            f"SELECT count(*) FROM {table} WHERE source_currency <> 'UZS' "
+                            "OR source_price_per_pack IS DISTINCT FROM price_per_pack "
+                            "OR fx_rate_used IS DISTINCT FROM 1 OR fx_rate_revision <> 0"
+                        )
+                    )
+                ).scalar_one()
+                assert mismatch == 0
+            assert (
+                await connection.execute(text("SELECT version_num FROM alembic_version"))
+            ).scalar_one() == "0026_currency_sources"
+    finally:
+        await engine.dispose()
+
+
+def test_currency_migration_preserves_prices_tiers_and_confirmed_orders(monkeypatch):
+    if not TEST_DATABASE_URL:
+        pytest.skip("set TELEGRAM_CLEANUP_MIGRATION_TEST_DATABASE_URL for isolated PostgreSQL test")
+    _assert_isolated_database(TEST_DATABASE_URL)
+    monkeypatch.setattr(settings, "database_url", TEST_DATABASE_URL)
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL.replace("%", "%%"))
+    command.downgrade(config, "0025_telegram_cleanup")
+    offer_id = asyncio.run(_seed_finite_stock_offer(TEST_DATABASE_URL))
+    before = asyncio.run(_currency_migration_fixture(TEST_DATABASE_URL, offer_id))
+    command.upgrade(config, "0026_currency_sources")
+    asyncio.run(_verify_currency_migration(TEST_DATABASE_URL, before))

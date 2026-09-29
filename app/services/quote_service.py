@@ -10,6 +10,7 @@ from app.domain.optimizer import (
     OptimizationResult,
     ShopOffer,
 )
+from app.services.fx_pricing import FxPricingService
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,10 @@ class QuoteService:
         if not basket_items:
             empty_optimizer = BasketOptimizer([], [], {})
             return empty_optimizer.solve()
+
+        # A shared singleton row lock holds the active FX revision stable while
+        # offers and their select-in-loaded volume tiers are read below.
+        await FxPricingService(self.shop_repo.session).snapshot(lock=True)
 
         # If coordinates not provided, try to lookup district centroid
         if (customer_lat is None or customer_lon is None) and district_id is not None:

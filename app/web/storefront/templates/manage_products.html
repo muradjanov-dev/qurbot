@@ -1,11 +1,54 @@
 {% extends 'base.html' %}
-{% block title %}{{ t('adm_btn_products', lang=lang) }} — QurBot{% endblock %}
-{% block content %}<section class="section">
-  <a href="/manage">← {{ t('manage_title', lang=lang) }}</a>
-  <div class="section-head"><h1>{{ t('adm_btn_products', lang=lang) }} ({{ total }})</h1><a class="btn btn-primary" href="/manage/products/new">{{ t('manage_new_product', lang=lang) }}</a></div>
-  <form method="get" action="/manage/products" class="field-row"><input name="q" value="{{ q }}" type="search" aria-label="{{ t('web_catalog_title', lang=lang) }}"><button class="btn" type="submit">🔍</button></form>
-  <div class="list">{% for product, offer_count, price in products %}
-    <a href="/manage/products/{{ product.id }}" class="list-row"><span class="grow"><strong>{{ product.name_uz }}</strong>{% if not product.is_active %}<span class="notice warn tiny">{{ t('manage_archived', lang=lang) }}</span>{% endif %}<small class="muted"> · {{ product.source_ref or product.source }} · {{ offer_count }}</small></span><span>{{ format_catalog_price(price, product.reference_price, lang=lang) }}</span></a>
-  {% endfor %}</div>
-  <div class="row">{% if page > 1 %}<a class="btn" href="?page={{ page-1 }}&q={{ q|urlencode }}">←</a>{% endif %}{% if page * page_size < total %}<a class="btn" href="?page={{ page+1 }}&q={{ q|urlencode }}">→</a>{% endif %}</div>
-</section>{% endblock %}
+{% block title %}{{ t('admin_ui_products', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+<section class="admin-products-page">
+  <header class="admin-page-heading">
+    <div><p class="admin-eyebrow">{{ t('admin_ui_current_shop', lang=lang) }} · Tezqur</p><h1>{{ t('admin_ui_products', lang=lang) }}</h1><p>{{ t('admin_ui_product_workspace_help', lang=lang) }}</p></div>
+    <div class="admin-heading-actions">
+      <a class="admin-button admin-button-secondary" href="/shop/{{ shop.id }}/import">{{ t('admin_ui_import_prices', lang=lang) }}</a>
+      <a class="admin-button admin-button-primary" href="/manage/products/new">{{ t('admin_ui_create_product', lang=lang) }}</a>
+    </div>
+  </header>
+
+  <div class="admin-product-counts" role="list" aria-label="{{ t('admin_ui_status', lang=lang) }}">
+    {% for key, label in [('all','admin_ui_all_products'),('available','admin_ui_available'),('unavailable','admin_ui_unavailable'),('archived','admin_ui_archived')] %}
+    <a role="listitem" class="admin-count-chip {{ 'is-active' if status == key }}" href="/manage/products?q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ key }}"><span>{{ t(label, lang=lang) }}</span><strong>{{ counts[key] }}</strong></a>
+    {% endfor %}
+    <a class="admin-template-link" href="/manage/import-template">{{ t('admin_ui_import_template', lang=lang) }} <span aria-hidden="true">↓</span></a>
+  </div>
+
+  <form class="admin-filter-bar" method="get" action="/manage/products">
+    <label class="admin-search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" name="q" value="{{ q }}" placeholder="{{ t('admin_ui_search_placeholder', lang=lang) }}" aria-label="{{ t('admin_ui_search', lang=lang) }}"></label>
+    <label class="admin-filter-field"><span>{{ t('admin_ui_category', lang=lang) }}</span><select name="category_id"><option value="">{{ t('admin_ui_all_categories', lang=lang) }}</option>{% for category in categories %}<option value="{{ category.id }}" {{ 'selected' if category_id == category.id }}>{{ category.name_uz }}</option>{% endfor %}</select></label>
+    <label class="admin-filter-field"><span>{{ t('admin_ui_status', lang=lang) }}</span><select name="status"><option value="all" {{ 'selected' if status == 'all' }}>{{ t('admin_ui_all_products', lang=lang) }}</option><option value="available" {{ 'selected' if status == 'available' }}>{{ t('admin_ui_available', lang=lang) }}</option><option value="unavailable" {{ 'selected' if status == 'unavailable' }}>{{ t('admin_ui_unavailable', lang=lang) }}</option><option value="archived" {{ 'selected' if status == 'archived' }}>{{ t('admin_ui_archived', lang=lang) }}</option></select></label>
+    <button class="admin-button admin-button-secondary" type="submit">{{ t('admin_ui_search', lang=lang) }}</button>
+  </form>
+
+  <section class="admin-card admin-table-card">
+    <div class="admin-table-summary"><strong>{{ t('admin_ui_result_count', lang=lang, count=total) }}</strong><span>{{ counts.available }} {{ t('admin_ui_available', lang=lang) }}</span></div>
+    <div class="admin-table-scroll"><table class="admin-table admin-products-table">
+      <thead><tr><th>{{ t('admin_ui_product_name', lang=lang) }}</th><th>{{ t('admin_ui_source_amount', lang=lang) }}</th><th>{{ t('admin_ui_price_uzs', lang=lang) }}</th><th>{{ t('admin_ui_price_usd', lang=lang) }}</th><th>{{ t('admin_ui_pack', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th><th>{{ t('admin_ui_actions', lang=lang) }}</th></tr></thead>
+      <tbody>
+        {% for row in products %}
+        <tr>
+          <td><div class="admin-product-cell">
+            {% if row.image_url %}<img class="admin-product-image" src="{{ row.image_url }}" alt="" loading="lazy">{% else %}<span class="admin-product-image admin-product-image-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7"/></svg></span>{% endif %}
+            <span><a class="admin-product-name" href="/manage/products/{{ row.product.id }}">{{ row.product.name_uz }}</a><small>{{ row.product.source_ref or row.product.source }}{% if row.offer_count %} · {{ row.offer_count }} {{ t('admin_ui_active_offers', lang=lang) }}{% endif %}</small></span>
+          </div></td>
+          <td>{% if row.prices %}<span class="admin-money-main">{{ row.prices.source_amount_label }}</span><small class="admin-money-sub">{{ row.offer.source_currency }}</small>{% else %}<span class="admin-muted">{{ t('admin_ui_no_offer', lang=lang) }}</span>{% endif %}</td>
+          <td>{% if row.prices %}<span class="admin-money-main">{{ row.prices.price_uzs_label }}</span>{% else %}<span class="admin-muted">—</span>{% endif %}</td>
+          <td>{% if row.prices and row.prices.price_usd_label %}<span class="admin-money-main">{{ row.prices.price_usd_label }}</span>{% elif row.prices %}<span class="admin-muted">{{ t('admin_ui_fx_rate_missing', lang=lang) }}</span>{% else %}<span class="admin-muted">—</span>{% endif %}</td>
+          <td>{% if row.offer %}<span class="admin-pack">{{ format_qty(row.offer.pack_size) }} {{ row.offer.pack_unit_code or row.offer.raw_unit }}</span>{% else %}<span class="admin-muted">—</span>{% endif %}</td>
+          <td><span class="admin-status-pill status-{{ row.status }}"><i></i>{{ t('admin_ui_' ~ row.status, lang=lang) }}</span></td>
+          <td><a class="admin-button admin-button-small" href="/manage/products/{{ row.product.id }}">{{ t('admin_ui_edit', lang=lang) }}</a></td>
+        </tr>
+        {% else %}<tr><td colspan="7"><div class="admin-empty-state"><span>{{ t('admin_ui_search_no_results', lang=lang) }}</span><a class="admin-text-link" href="/manage/products">{{ t('admin_ui_all_products', lang=lang) }}</a></div></td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    <footer class="admin-table-footer"><span>{{ t('admin_ui_page_count', lang=lang, page=page, pages=pages) }}</span><nav aria-label="{{ t('admin_ui_products', lang=lang) }}">
+      {% if page > 1 %}<a class="admin-page-arrow" href="/manage/products?page={{ page - 1 }}&q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ status }}" aria-label="{{ t('admin_ui_back', lang=lang) }}">‹</a>{% endif %}
+      {% if page < pages %}<a class="admin-page-arrow" href="/manage/products?page={{ page + 1 }}&q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ status }}" aria-label="{{ t('admin_ui_more', lang=lang) }}">›</a>{% endif %}
+    </nav></footer>
+  </section>
+</section>
+{% endblock %}

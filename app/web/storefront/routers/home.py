@@ -15,6 +15,7 @@ from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.domain.catalog_images import photo_filename
+from app.domain.normalize.translit import latin_to_cyrillic_uz
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.session import LANG_COOKIE, normalize_lang
 
@@ -32,7 +33,21 @@ async def home(
     lang: str = Depends(current_lang),
 ) -> HTMLResponse:
     categories = await CatalogRepository(session).list_root_categories()
-    return render(request, "home.html", user=user, lang=lang, categories=categories)
+    category_cards = [
+        {
+            "id": category.id,
+            "name": (
+                category.name_ru
+                if lang == "ru"
+                else latin_to_cyrillic_uz(category.name_uz)
+                if lang == "uz_cyrl"
+                else category.name_uz
+            ),
+            "image_src": f"/static/store/images/{photo_filename(category.slug, '')}",
+        }
+        for category in categories
+    ]
+    return render(request, "home.html", user=user, lang=lang, categories=category_cards)
 
 
 @router.get("/image-credits", response_class=HTMLResponse)

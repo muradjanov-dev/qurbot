@@ -24,11 +24,12 @@ from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.catalog import CanonicalProduct, Category, ProductAlias, Unit
 from app.db.models.ops import PebbleAward
 from app.db.models.order import Order, OrderItem, OrderShopPart
-from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct
+from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct, ShopProductPriceTier
 from app.db.models.user import User, UserAddress
 from app.db.session import get_db_session
 from app.main import app
 from app.services.cart_service import CartService
+from app.services.fx_pricing import FxPricingService
 from app.web.storefront.security import csrf_token
 from app.web.storefront.session import SESSION_COOKIE, sign_session
 
@@ -181,7 +182,7 @@ async def test_home_page_renders(client: TestClient, test_session: AsyncSession)
     fixture = await _seed(test_session)
     response = client.get("/")
     assert response.status_code == 200
-    assert "QurBot" in response.text
+    assert "Tezqur" in response.text
     assert "data-chat-form" not in response.text
     assert "chat.js?v=" not in response.text
     assert 'href="/chat"' in response.text
@@ -202,7 +203,7 @@ async def test_catalog_and_product_pages(client: TestClient, test_session: Async
 
     detail = client.get(f"/product/{data.product_id}")
     assert detail.status_code == 200
-    assert "58.000" in detail.text  # cheapest live offer, dot-grouped
+    assert "58 000" in detail.text  # cheapest live offer, space-grouped
 
     # The production container does not register WebP in mimetypes. Keep the
     # explicit response type even when the host cannot guess it from the suffix.
@@ -249,6 +250,41 @@ async def test_product_return_preserves_catalogue_page(
     malicious = client.get(f"/product/{other.id}?from=https://example.com")
     assert f'href="/catalog/{data.category_id}"' in malicious.text
     assert "data-catalog-return" not in malicious.text
+
+
+@pytest.mark.asyncio
+async def test_catalog_search_paginates_and_product_return_keeps_query_filters(
+    client: TestClient, test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = await _seed(test_session)
+    other = CanonicalProduct(
+        slug="gipsokarton-15-search",
+        name_uz="Gipsokarton 15mm",
+        name_uz_cyrl="Гипсокартон 15мм",
+        name_ru="Гипсокартон 15мм",
+        category_id=data.category_id,
+        base_unit_code="dona",
+        search_doc="gipsokarton 15mm",
+    )
+    test_session.add(other)
+    await test_session.flush()
+    monkeypatch.setattr(settings, "web_catalog_page_size", 1)
+
+    listing_url = "/catalog/all?q=gipsokarton&page=2"
+    listing = client.get(listing_url)
+    assert listing.status_code == 200
+    assert "Гипсокартон 15мм" in listing.text
+    assert "from=%2Fcatalog%2Fall%3Fq%3Dgipsokarton%26page%3D2" in listing.text
+
+    detail = client.get(f"/product/{other.id}?from=%2Fcatalog%2Fall%3Fq%3Dgipsokarton%26page%3D2")
+    assert detail.status_code == 200
+    escaped_listing_url = listing_url.replace("&", "&amp;")
+    assert detail.text.count(f'href="{escaped_listing_url}" data-catalog-return') == 2
+
+    category_search = client.get(f"/catalog/{data.category_id}?q=15mm")
+    assert category_search.status_code == 200
+    assert "Гипсокартон 15мм" in category_search.text
+    assert "Гипсокартон 12.5мм" not in category_search.text
 
 
 @pytest.mark.asyncio
@@ -320,6 +356,42 @@ async def test_quote_prices_the_basket(client: TestClient, test_session: AsyncSe
 
 
 @pytest.mark.asyncio
+async def test_cart_usd_fields_follow_the_selected_wholesale_tier_and_pack(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    _sign_in(client, data.user_id)
+    offer = await test_session.scalar(
+        select(ShopProduct).where(ShopProduct.canonical_id == data.product_id)
+    )
+    assert offer is not None
+    offer.source_currency = "USD"
+    offer.source_price_per_pack = Decimal("10.00")
+    offer.price_per_pack = Decimal("118204.80")
+    offer.price_per_base_unit = Decimal("118204.8000")
+    test_session.add(
+        ShopProductPriceTier(
+            shop_product_id=offer.id,
+            min_qty=Decimal("2"),
+            price_per_pack=Decimal("106384.32"),
+            source_currency="USD",
+            source_price_per_pack=Decimal("9.00"),
+        )
+    )
+    await test_session.commit()
+
+    response = client.get("/api/cart")
+    assert response.status_code == 200
+    payload = response.json()
+    line = payload["lines"][0]
+    assert payload["fx_revision"] >= 0
+    assert line["display_pack_price_uzs"] == "106384.32"
+    assert line["display_pack_price_usd"] == "9.00"
+    assert line["line_total_usd"] == "90.00"
+    assert line["line_total_usd_approximate"] is False
+
+
+@pytest.mark.asyncio
 async def test_quote_ignores_products_outside_the_catalogue(
     client: TestClient, test_session: AsyncSession
 ) -> None:
@@ -364,6 +436,9 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
 ) -> None:
     data = await _seed(test_session)
     _sign_in(client, data.user_id)
+    await FxPricingService(test_session).publish_rate(
+        Decimal("11820.48"), admin_id=999, expected_revision=0
+    )
 
     body = client.post(
         "/api/order",
@@ -398,6 +473,16 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
     # price it was placed at.
     assert Decimal(order.quote.payload["grand_total_uzs"]) == Decimal("620000")
     assert order.quote.payload["shop_groups"][0]["shop_id"] == data.shop_id
+    fx_snapshot = order.quote.payload["fx_snapshot"]
+    assert fx_snapshot["rate"] == "11820.480000"
+    assert fx_snapshot["revision"] == 1
+    assert fx_snapshot["updated_by"] == 999
+    assert fx_snapshot["updated_at"] is not None
+    frozen_snapshot = dict(fx_snapshot)
+    await FxPricingService(test_session).publish_rate(
+        Decimal("12000"), admin_id=1000, expected_revision=1
+    )
+    assert order.quote.payload["fx_snapshot"] == frozen_snapshot
     # Typed with no pin: there is no location to send the admins.
     assert order.delivery_lat is None and order.delivery_lng is None
 
@@ -566,7 +651,15 @@ async def test_every_products_page_renders_for_an_admin(
     assert root.status_code == 303
     assert root.headers["location"] == "/manage"
 
-    for path in ("", "/products", "/orders", "/delivery", "/import"):
+    panel = client.get(f"/shop/{data.shop_id}", follow_redirects=False)
+    assert panel.status_code == 303
+    assert panel.headers["location"] == "/manage"
+
+    products = client.get(f"/shop/{data.shop_id}/products?page=2&q=cement", follow_redirects=False)
+    assert products.status_code == 303
+    assert products.headers["location"] == "/manage/products?page=2&q=cement"
+
+    for path in ("/orders", "/delivery", "/import"):
         response = client.get(f"/shop/{data.shop_id}{path}")
         assert response.status_code == 200, path
 
@@ -736,4 +829,4 @@ async def test_quote_does_not_promise_free_delivery_before_an_address(
     _sign_in(client, data.user_id)
     known = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
     assert known["variants"][0]["delivery_note"] is None
-    assert "40.000" in known["variants"][0]["delivery_total"]
+    assert "40 000" in known["variants"][0]["delivery_total"]

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('ui_permission_title', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}<section class="section card">
+  <h1>{{ t('ui_permission_title', lang=lang) }}</h1><p>{{ t('ui_permission_body', lang=lang) }}</p>
+  <form method="post" action="/logout"><button type="submit" class="btn btn-primary">{{ t('ui_switch_account', lang=lang) }}</button></form>
+  <a href="/catalog/all" class="btn btn-ghost">{{ t('web_nav_catalog', lang=lang) }}</a>
+</section>{% endblock %}

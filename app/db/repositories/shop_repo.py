@@ -19,6 +19,7 @@ from app.db.models.shop import (
     ShopProduct,
 )
 from app.db.repositories.base import BaseRepository
+from app.services.fx_pricing import FxPricingError, FxPricingService
 
 
 class ShopRepository(BaseRepository[Shop]):
@@ -126,6 +127,7 @@ class ShopRepository(BaseRepository[Shop]):
                 ShopProduct.stock_status.in_(["in_stock", "low", "on_order"]),
             )
             .order_by(ShopProduct.canonical_id, ShopProduct.price_per_base_unit)
+            .execution_options(populate_existing=True)
         )
         result = await self.session.execute(stmt)
         return result.scalars().all()
@@ -160,8 +162,15 @@ class ShopRepository(BaseRepository[Shop]):
         if not product:
             return None
 
+        await FxPricingService(self.session).snapshot(lock=True)
+
         product.price_per_pack = price_per_pack
         product.price_per_base_unit = price_per_base_unit
+        product.currency = "UZS"
+        product.source_currency = "UZS"
+        product.source_price_per_pack = price_per_pack
+        product.fx_rate_used = Decimal("1")
+        product.fx_rate_revision = 0
         product.stock_qty = None
         product.updated_by = updated_by
         product.staleness_state = "fresh"
@@ -179,12 +188,17 @@ class ShopRepository(BaseRepository[Shop]):
     # ─── Import Batch Methods ──────────────────────────────────────
 
     async def create_import_batch(
-        self, shop_id: int, filename: str, total_rows: int
+        self,
+        shop_id: int,
+        filename: str,
+        total_rows: int,
+        source_currency: str | None = None,
     ) -> ImportBatch:
         batch = ImportBatch(
             shop_id=shop_id,
             filename=filename,
             total_rows=total_rows,
+            source_currency=source_currency,
             status="uploaded",
         )
         self.session.add(batch)
@@ -312,32 +326,46 @@ class ShopRepository(BaseRepository[Shop]):
         raw_unit: str = "dona",
         stock_status: str = "in_stock",
         updated_by: str = "import",
+        source_currency: str = "UZS",
     ) -> ShopProduct:
-        """Insert or update a shop product, always appending to price_history."""
-        price_per_base = price_per_pack / pack_size if pack_size > Decimal("0") else price_per_pack
+        """Insert/update an offer from an explicit source amount and currency."""
 
         stmt = select(ShopProduct).where(
             ShopProduct.shop_id == shop_id,
             ShopProduct.canonical_id == canonical_id,
+            ShopProduct.pack_size == pack_size,
+            ShopProduct.pack_unit_code == pack_unit_code,
         )
         result = await self.session.execute(stmt)
         existing = result.scalars().first()
+        canonical = await self.session.get(CanonicalProduct, canonical_id)
+        base_unit = canonical.base_unit_code if canonical else pack_unit_code
+        pricing = FxPricingService(self.session)
 
         if existing:
-            existing.price_per_pack = price_per_pack
-            existing.price_per_base_unit = price_per_base
-            existing.staleness_state = "fresh"
-            existing.updated_by = updated_by
-            existing.updated_at = datetime.now(UTC)
+            existing.raw_name = raw_name
+            existing.raw_unit = raw_unit
+            existing.pack_size = pack_size
+            existing.pack_unit_code = pack_unit_code
+            try:
+                await pricing.set_offer_price(
+                    existing,
+                    amount=price_per_pack,
+                    currency=source_currency,
+                    base_unit_code=base_unit,
+                    updated_by=updated_by,
+                )
+            except FxPricingError as exc:
+                if exc.code != "invalid_unit" or base_unit == pack_unit_code:
+                    raise
+                await pricing.set_offer_price(
+                    existing,
+                    amount=price_per_pack,
+                    currency=source_currency,
+                    base_unit_code=pack_unit_code,
+                    updated_by=updated_by,
+                )
             existing.stock_status = stock_status
-            existing.stock_qty = None
-
-            history = PriceHistory(
-                shop_product_id=existing.id,
-                price_per_pack=price_per_pack,
-                price_per_base_unit=price_per_base,
-            )
-            self.session.add(history)
             await self.session.flush()
             return existing
 
@@ -348,8 +376,8 @@ class ShopRepository(BaseRepository[Shop]):
             raw_unit=raw_unit,
             pack_size=pack_size,
             pack_unit_code=pack_unit_code,
-            price_per_pack=price_per_pack,
-            price_per_base_unit=price_per_base,
+            price_per_pack=Decimal("0"),
+            price_per_base_unit=Decimal("0"),
             currency="UZS",
             stock_status=stock_status,
             stock_qty=None,
@@ -358,15 +386,25 @@ class ShopRepository(BaseRepository[Shop]):
             staleness_state="fresh",
             updated_by=updated_by,
         )
-        self.session.add(product)
-        await self.session.flush()
-
-        history = PriceHistory(
-            shop_product_id=product.id,
-            price_per_pack=price_per_pack,
-            price_per_base_unit=price_per_base,
-        )
-        self.session.add(history)
+        try:
+            await pricing.set_offer_price(
+                product,
+                amount=price_per_pack,
+                currency=source_currency,
+                base_unit_code=base_unit,
+                updated_by=updated_by,
+            )
+        except FxPricingError as exc:
+            if exc.code != "invalid_unit" or base_unit == pack_unit_code:
+                raise
+            await pricing.set_offer_price(
+                product,
+                amount=price_per_pack,
+                currency=source_currency,
+                base_unit_code=pack_unit_code,
+                updated_by=updated_by,
+            )
+        product.stock_status = stock_status
         await self.session.flush()
         return product
 

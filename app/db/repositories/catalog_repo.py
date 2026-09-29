@@ -476,6 +476,7 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         offset: int = 0,
         limit: int = 20,
         category_ids: Sequence[int] | None = None,
+        search: str | None = None,
     ) -> tuple[Sequence[tuple[CanonicalProduct, Decimal | None]], int]:
         """One page of the catalogue a customer may browse, cheapest live price
         included.
@@ -499,6 +500,10 @@ class CatalogRepository(BaseRepository[CanonicalProduct]):
         filters = [CanonicalProduct.is_active.is_(True)]
         if scoped:
             filters.append(CanonicalProduct.category_id.in_(list(scoped)))
+        tokens = [token for token in (search or "").split() if len(token) >= 2][:8]
+        for token in tokens:
+            escaped = token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            filters.append(CanonicalProduct.search_doc.ilike(f"%{escaped}%", escape="\\"))
 
         total = int(
             (

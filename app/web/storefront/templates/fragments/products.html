@@ -1,33 +1,72 @@
-<section class="section" data-live-root>
-  <div class="section-head">
-    <h1>{{ title }}</h1>
-    <a class="muted tiny" href="/catalog">← {{ t('web_catalog_title', lang=lang) }}</a>
+<section class="store-listing" data-live-root data-fx-revision="{{ fx_revision }}">
+  <div class="store-listing-heading">
+    <div>
+      <a class="store-back-link" href="/catalog">{{ t('store_ui_all_categories', lang=lang) }}</a>
+      <h1>{{ title }}</h1>
+      {% if search %}<p>{{ t('store_ui_search_results', lang=lang) }} · “{{ search }}”</p>{% endif %}
+    </div>
+    <span class="store-result-count">{{ total }} {{ t('store_ui_products_count', lang=lang) }} · {{ t('store_ui_page_of', lang=lang) }} {{ page }}/{{ pages }}</span>
   </div>
 
-  {% if products %}
-    <div class="grid cols-3">
-      {% for product in products %}
-        <a class="tile" href="{{ product.href }}" data-catalog-product data-product-id="{{ product.id }}">
-          <img class="thumb" src="{{ product.image_src }}" alt="{{ product.name }}" loading="lazy">
-          <span class="tile-name">{{ product.name }}</span>
-          {% if product.brand %}<span class="muted tiny">{{ product.brand }}</span>{% endif %}
-          <span class="{{ 'notice warn tiny' if product.needs_confirmation else 'price' }}">{{ product.price }}</span>
-        </a>
-      {% endfor %}
-    </div>
+  <form class="store-search store-search--listing" action="{{ request.url.path }}" method="get" role="search">
+    <label class="sr-only" for="store-list-search">{{ t('store_ui_search', lang=lang) }}</label>
+    <span aria-hidden="true">⌕</span>
+    <input id="store-list-search" type="search" name="q" maxlength="100" value="{{ search }}"
+           placeholder="{{ t('store_ui_search', lang=lang) }}" autocomplete="off">
+    <button type="submit">{{ t('store_ui_search_button', lang=lang) }} <span aria-hidden="true">→</span></button>
+  </form>
 
-    {% if pages > 1 %}
-      <div class="pager">
-        {% if page > 1 %}
-          <a class="btn btn-sm" href="?page={{ page - 1 }}">←</a>
-        {% endif %}
-        <span class="muted tiny">{{ page }} / {{ pages }}</span>
-        {% if page < pages %}
-          <a class="btn btn-sm" href="?page={{ page + 1 }}">→</a>
-        {% endif %}
+  {% if categories %}
+  <nav class="store-category-filters" aria-label="{{ t('store_ui_all_categories', lang=lang) }}">
+    <a href="/catalog/all{% if search %}?q={{ search|urlencode }}{% endif %}" class="{{ 'is-active' if not category }}">{{ t('store_ui_all_categories', lang=lang) }}</a>
+    {% for item in categories %}
+    <a href="/catalog/{{ item.id }}{% if search %}?q={{ search|urlencode }}{% endif %}"
+       class="{{ 'is-active' if category and category.id == item.id }}">{{ item.name }}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if products %}
+  <div class="store-product-grid">
+    {% for product in products %}
+    <article class="store-product-card {{ 'is-unavailable' if not product.available }}" data-product-row
+             data-name="{{ product.name|lower }}" data-category="{{ product.category_name|lower }}"
+             data-product-id="{{ product.id }}" data-fx-revision="{{ fx_revision }}">
+      <a class="store-product-image" href="{{ product.href }}" data-catalog-product data-product-id="{{ product.id }}" aria-label="{{ product.name }}">
+        <img src="{{ product.image_src }}" alt="" loading="lazy">
+        <span class="store-product-image-number">{{ '%02d'|format(loop.index) }}</span>
+        {% if not product.available %}<span class="store-status-badge is-unavailable">{{ t('web_product_unavailable', lang=lang) }}</span>{% endif %}
+      </a>
+      <div class="store-product-body">
+        <div class="store-product-meta"><a href="/catalog/{{ product.category_id }}">{{ product.category_name }}</a><span>{{ product.pack_label }}</span></div>
+        <h2><a href="{{ product.href }}" data-catalog-product data-product-id="{{ product.id }}">{{ product.name }}</a></h2>
+        {% if product.description %}<p class="store-product-description">{{ product.description }}</p>{% endif %}
+        <div class="store-price-pair" data-fx-revision="{{ fx_revision }}">
+          <strong class="store-price-primary">{{ product.price_uzs_label }}</strong>
+          {% if product.price_usd_label %}
+          <span class="store-price-secondary">{% if product.price_usd_approximate %}<i>≈</i>{% endif %}{{ product.price_usd_label }}</span>
+          {% endif %}
+        </div>
+        <a class="store-product-link" href="{{ product.href }}" data-catalog-product data-product-id="{{ product.id }}">
+          {{ t('store_ui_view_product', lang=lang) }} <span aria-hidden="true">↗</span>
+        </a>
       </div>
-    {% endif %}
+    </article>
+    {% endfor %}
+  </div>
   {% else %}
-    <div class="empty">{{ t('web_catalog_empty', lang=lang) }}</div>
+  <div class="store-empty-card store-empty-search">
+    <span aria-hidden="true">⌕</span><strong>{{ t('store_ui_no_results', lang=lang) }}</strong>
+    <p>{{ t('store_ui_home_body', lang=lang) }}</p>
+    {% if search %}<a class="btn btn-ghost" href="/catalog/all">{{ t('store_ui_browse_all', lang=lang) }}</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if pages > 1 %}
+  <nav class="store-pager" aria-label="{{ t('web_catalog_title', lang=lang) }}">
+    {% if previous_url %}<a class="store-page-button" href="{{ previous_url }}" aria-label="{{ t('store_ui_previous_page', lang=lang) }}">←</a>{% else %}<span class="store-page-button is-disabled" aria-hidden="true">←</span>{% endif %}
+    <span>{{ page }} <i>/</i> {{ pages }}</span>
+    {% if next_url %}<a class="store-page-button" href="{{ next_url }}" aria-label="{{ t('store_ui_next_page', lang=lang) }}">→</a>{% else %}<span class="store-page-button is-disabled" aria-hidden="true">→</span>{% endif %}
+  </nav>
   {% endif %}
 </section>

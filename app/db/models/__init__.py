@@ -6,6 +6,7 @@ from app.db.models.conversation import (
     ConversationMessage,
     ConversationNotification,
 )
+from app.db.models.fx import FxRateSetting
 from app.db.models.ops import Event, LLMCall, PebbleAward, UnmatchedQuery
 from app.db.models.order import (
     Basket,
@@ -35,6 +36,7 @@ from app.db.models.user import User, UserAddress, VisitorSession
 __all__ = [
     "SalesRequest",
     "SalesRequestItem",
+    "FxRateSetting",
     "TelegramMessage",
     "Cart",
     "CartItem",

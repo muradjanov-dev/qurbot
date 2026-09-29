@@ -120,7 +120,7 @@ _STRINGS = {
     "you": ("Siz", "Сиз", "Вы"),
     "assistant": ("AI yordamchi", "AI ёрдамчи", "AI-помощник"),
     "operator_name": ("Operator", "Оператор", "Оператор"),
-    "system": ("QurBot", "QurBot", "QurBot"),
+    "system": ("Tezqur", "Tezqur", "Tezqur"),
     "qty": ("Miqdor", "Миқдор", "Количество"),
     "add": ("➕ Savatga qo'shish", "➕ Саватга қўшиш", "➕ Добавить в корзину"),
     "added": ("Savat yangilandi.", "Сават янгиланди.", "Корзина обновлена."),

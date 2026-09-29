@@ -1,25 +1,49 @@
 {% extends 'base.html' %}
-{% block title %}{{ t('manage_title', lang=lang) }} — QurBot{% endblock %}
+{% block title %}{{ t('admin_ui_dashboard', lang=lang) }} — Tezqur{% endblock %}
 {% block content %}
-<section class="section">
-  <h1>{{ t('manage_title', lang=lang) }}</h1>
-  <div class="grid cols-2">
-    <a class="tile" href="/manage/products"><strong>{{ t('adm_btn_products', lang=lang) }}</strong><span>{{ counts.products }}</span></a>
-    <a class="tile" href="/manage/products/new"><strong>{{ t('manage_new_product', lang=lang) }}</strong></a>
-    <a class="tile" href="/shop/{{ shop.id }}/products"><strong>{{ t('web_shop_products', lang=lang) }}</strong><span>{{ counts.offers }}</span></a>
-    <a class="tile" href="/shop/{{ shop.id }}/import"><strong>{{ t('web_shop_import', lang=lang) }}</strong></a>
-    <a class="tile" href="/shop/{{ shop.id }}/orders"><strong>{{ t('web_shop_orders', lang=lang) }}</strong><span>{{ counts.orders }}</span></a>
-    <div class="tile"><strong>{{ t('manage_gmv', lang=lang) }}</strong><span>{{ format_uzs(counts.gmv) }} {{ t('web_currency', lang=lang) }}</span></div>
-    <a class="tile" href="/shop/{{ shop.id }}/delivery"><strong>{{ t('web_shop_delivery', lang=lang) }}</strong></a>
-    <a class="tile" href="/operator"><strong>{{ t('sales_inbox', lang=lang) }}</strong></a>
-    <a class="tile" href="/manage/users"><strong>{{ t('manage_users', lang=lang) }}</strong><span>{{ counts.users }}</span></a>
-    <a class="tile" href="/admin/unmatched"><strong>{{ t('adm_btn_unmatched', lang=lang) }}</strong><span>{{ counts.unmatched }}</span></a>
-    <a class="tile" href="/admin/aliases"><strong>{{ t('manage_aliases', lang=lang) }}</strong></a>
-    <a class="tile" href="/admin/listings"><strong>{{ t('manage_photos', lang=lang) }}</strong></a>
-    <a class="tile" href="/admin/offers"><strong>{{ t('web_shop_products', lang=lang) }}</strong></a>
-    <a class="tile" href="/admin/dashboard"><strong>{{ t('adm_btn_stats', lang=lang) }}</strong></a>
-    <a class="tile" href="/admin/llm-cost"><strong>AI</strong></a>
-    {% if is_super_admin %}<a class="tile" href="/manage/admins"><strong>{{ t('manage_admins', lang=lang) }}</strong></a>{% endif %}
+<section class="admin-dashboard">
+  <header class="admin-page-heading">
+    <div><p class="admin-eyebrow">{{ t('admin_ui_overview', lang=lang) }}</p><h1>{{ t('admin_ui_welcome_admin', lang=lang) }}</h1><p>{{ t('admin_ui_dashboard_hint', lang=lang) }}</p></div>
+    <div class="admin-heading-actions">
+      <a class="admin-button admin-button-secondary" href="/shop/{{ shop.id }}/import">{{ t('admin_ui_import_prices', lang=lang) }}</a>
+      <a class="admin-button admin-button-primary" href="/manage/products/new">{{ t('admin_ui_create_product', lang=lang) }}</a>
+    </div>
+  </header>
+
+  <div class="admin-stat-grid">
+    <a class="admin-stat-card" href="/manage/products"><span class="admin-stat-icon admin-icon-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7m-8 4v10"/></svg></span><span><small>{{ t('admin_ui_catalog_products', lang=lang) }}</small><strong>{{ counts.products }}</strong></span><i aria-hidden="true">↗</i></a>
+    <a class="admin-stat-card" href="/manage/products?status=available"><span class="admin-stat-icon admin-icon-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span><span><small>{{ t('admin_ui_active_offers', lang=lang) }}</small><strong>{{ counts.offers }}</strong></span><i aria-hidden="true">↗</i></a>
+    <a class="admin-stat-card" href="/manage/orders"><span class="admin-stat-icon admin-icon-orange"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6"/></svg></span><span><small>{{ t('admin_ui_orders_waiting', lang=lang) }}</small><strong>{{ counts.orders }}</strong></span><i aria-hidden="true">↗</i></a>
+    <a class="admin-stat-card" href="/manage/users"><span class="admin-stat-icon admin-icon-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0m.8-13.9a3.4 3.4 0 0 1 0 6.6m1.2 2.3a5.3 5.3 0 0 1 4 5.1"/></svg></span><span><small>{{ t('admin_ui_customers_total', lang=lang) }}</small><strong>{{ counts.users }}</strong></span><i aria-hidden="true">↗</i></a>
   </div>
+
+  <div class="admin-dashboard-grid">
+    <section class="admin-card admin-dashboard-card">
+      <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_current_shop', lang=lang) }}</p><h2>Tezqur</h2></div><a class="admin-text-link" href="/manage/products">{{ t('admin_ui_manage_all_products', lang=lang) }} <span aria-hidden="true">→</span></a></header>
+      <div class="admin-dashboard-shortcuts">
+        <a href="/manage/products"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7"/></svg></span><span><strong>{{ t('admin_ui_products', lang=lang) }}</strong><small>{{ counts.products }} · {{ t('admin_ui_catalog_products', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+        <a href="/shop/{{ shop.id }}/orders"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6"/></svg></span><span><strong>{{ t('admin_ui_orders', lang=lang) }}</strong><small>{{ counts.orders }} · {{ t('admin_ui_orders_waiting', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+        <a href="/operator"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/></svg></span><span><strong>{{ t('admin_ui_chats', lang=lang) }}</strong><small>{{ counts.chats }} · {{ t('admin_ui_open_workspace', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+        <a href="/manage/settings/currency"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6m-3 7h16m-5-3v6"/></svg></span><span><strong>{{ t('admin_ui_fx_rate_current', lang=lang) }}</strong><small>{% if fx_snapshot.rate is not none %}{{ format_uzs(fx_snapshot.rate) }} UZS / USD{% else %}{{ t('admin_ui_fx_rate_missing', lang=lang) }}{% endif %}</small></span><b aria-hidden="true">→</b></a>
+      </div>
+    </section>
+
+    <aside class="admin-dashboard-side">
+      <section class="admin-card admin-dashboard-note">
+        <div class="admin-note-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m5-14H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <p class="admin-eyebrow">{{ t('admin_ui_fx_rate_current', lang=lang) }}</p>
+        <strong class="admin-rate-value">{% if fx_snapshot.rate is not none %}{{ format_uzs(fx_snapshot.rate) }} <small>UZS / USD</small>{% else %}—{% endif %}</strong>
+        <p>{{ t('admin_ui_fx_rate_effect', lang=lang) }}</p>
+        <a class="admin-text-link" href="/manage/settings/currency">{{ t('admin_ui_settings', lang=lang) }} <span aria-hidden="true">→</span></a>
+      </section>
+      <section class="admin-card admin-advanced-link">
+        <div><p class="admin-eyebrow">{{ t('admin_ui_advanced_settings', lang=lang) }}</p><h2>{{ t('admin_ui_offer_freshness', lang=lang) }}</h2></div>
+        <p>{{ t('admin_ui_offer_freshness_help', lang=lang) }}</p>
+        <a class="admin-button admin-button-secondary" href="/manage/price-health">{{ t('admin_ui_open_workspace', lang=lang) }} <span aria-hidden="true">→</span></a>
+      </section>
+    </aside>
+  </div>
+
+  <section class="admin-card admin-gmv-card"><div><p class="admin-eyebrow">{{ t('admin_ui_gmv', lang=lang) }}</p><p>{{ t('admin_ui_gmv_scope', lang=lang) }}</p></div><strong>{{ format_uzs(counts.gmv) }} {{ t('admin_ui_currency_uzs', lang=lang) }}</strong><a class="admin-text-link" href="/admin/dashboard">{{ t('admin_ui_analytics', lang=lang) }} <span aria-hidden="true">↗</span></a></section>
 </section>
 {% endblock %}

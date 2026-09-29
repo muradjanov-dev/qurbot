@@ -18,6 +18,7 @@ from openpyxl import Workbook
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.fx import FxRateSetting
 from app.db.models.shop import PriceHistory, ShopProduct
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
@@ -70,6 +71,7 @@ async def test_supplier_import_full_pipeline(test_session: AsyncSession) -> None
         shop_id=1,
         file_bytes=file_bytes,
         filename="test_prices.xlsx",
+        source_currency="UZS",
     )
     await test_session.flush()
 
@@ -126,7 +128,7 @@ async def test_supplier_import_price_history(test_session: AsyncSession) -> None
     )
 
     summary = await svc.process_file_upload(
-        shop_id=1, file_bytes=file_bytes, filename="prices.xlsx"
+        shop_id=1, file_bytes=file_bytes, filename="prices.xlsx", source_currency="UZS"
     )
     await svc.apply_batch(summary.batch_id)
     await test_session.flush()
@@ -135,6 +137,166 @@ async def test_supplier_import_price_history(test_session: AsyncSession) -> None
     ph_after_res = await test_session.execute(ph_before_stmt)
     ph_after = ph_after_res.scalar() or 0
     assert ph_after > ph_before, "price_history must be appended on import!"
+
+
+@pytest.mark.asyncio
+async def test_unlabelled_import_currency_blocks_the_whole_batch(
+    test_session: AsyncSession,
+) -> None:
+    await seed_database(test_session)
+    shop_repo = ShopRepository(test_session)
+    svc = SupplierService(
+        shop_repo,
+        CatalogRepository(test_session),
+        OpsRepository(test_session),
+    )
+    before = await test_session.scalar(
+        select(func.count(ShopProduct.id)).where(ShopProduct.updated_by == "import")
+    )
+    file_bytes = _make_excel(
+        headers=["Product Name", "Price", "Unit"],
+        rows=[["Fanera berezovaya 3x3 12 mm", "155000", "dona"]],
+    )
+
+    summary = await svc.process_file_upload(
+        shop_id=1,
+        file_bytes=file_bytes,
+        filename="unlabelled.xlsx",
+    )
+    result = await svc.apply_batch(summary.batch_id)
+
+    after = await test_session.scalar(
+        select(func.count(ShopProduct.id)).where(ShopProduct.updated_by == "import")
+    )
+    assert summary.currency_errors == 1
+    assert result.currency_blocked is True
+    assert result.applied_count == 0
+    assert result.error_count == 1
+    assert after == before
+
+
+@pytest.mark.asyncio
+async def test_import_currency_column_sets_usd_source_and_materialized_uzs(
+    test_session: AsyncSession,
+) -> None:
+    await seed_database(test_session)
+    test_session.add(FxRateSetting(id=1, usd_to_uzs_rate=Decimal("11820.48"), revision=1))
+    await test_session.flush()
+    svc = SupplierService(
+        ShopRepository(test_session),
+        CatalogRepository(test_session),
+        OpsRepository(test_session),
+    )
+    file_bytes = _make_excel(
+        headers=["Product Name", "Price", "Unit", "Currency"],
+        rows=[["Fanera berezovaya 3x3 12 mm", "4.80", "dona", "USD"]],
+    )
+
+    summary = await svc.process_file_upload(
+        shop_id=1,
+        file_bytes=file_bytes,
+        filename="usd_prices.xlsx",
+    )
+    result = await svc.apply_batch(summary.batch_id)
+    offer = await test_session.scalar(
+        select(ShopProduct).where(
+            ShopProduct.shop_id == 1,
+            ShopProduct.source_currency == "USD",
+            ShopProduct.updated_by == "import",
+        )
+    )
+
+    assert summary.currency_errors == 0
+    assert result.applied_count == 1
+    assert result.error_count == 0
+    assert offer is not None
+    assert offer.currency == "UZS"
+    assert offer.source_price_per_pack == Decimal("4.8000")
+    assert offer.price_per_pack == Decimal("56738.30")
+    assert offer.fx_rate_used == Decimal("11820.480000")
+    assert offer.fx_rate_revision == 1
+
+
+@pytest.mark.asyncio
+async def test_import_keeps_multiple_pack_variants_and_converts_base_unit_price(
+    test_session: AsyncSession,
+) -> None:
+    await seed_database(test_session)
+    catalog = CatalogRepository(test_session)
+    canonical_name = "Fanera berezovaya 3x3 12 mm (1525x1525)"
+    matches = await catalog.search_canonical_products(canonical_name, require_offers=False)
+    canonical = next(product for product in matches if product.name_uz == canonical_name)
+    existing = await test_session.scalar(
+        select(ShopProduct).where(
+            ShopProduct.shop_id == 1,
+            ShopProduct.canonical_id == canonical.id,
+            ShopProduct.pack_size == Decimal("1"),
+            ShopProduct.pack_unit_code == "dona",
+        )
+    )
+    if existing is None:
+        existing = ShopProduct(
+            shop_id=1,
+            canonical_id=canonical.id,
+            raw_name=canonical.name_uz,
+            raw_unit="dona",
+            pack_size=Decimal("1"),
+            pack_unit_code="dona",
+            price_per_pack=Decimal("58000"),
+            price_per_base_unit=Decimal("58000"),
+            currency="UZS",
+            source_currency="UZS",
+            source_price_per_pack=Decimal("58000"),
+            fx_rate_used=Decimal("1"),
+            fx_rate_revision=0,
+            stock_status="in_stock",
+            updated_by="admin",
+        )
+        test_session.add(existing)
+    else:
+        existing.price_per_pack = Decimal("58000")
+        existing.price_per_base_unit = Decimal("58000")
+        existing.source_currency = "UZS"
+        existing.source_price_per_pack = Decimal("58000")
+        existing.fx_rate_used = Decimal("1")
+        existing.fx_rate_revision = 0
+        existing.updated_by = "admin"
+    await test_session.flush()
+    existing_id = existing.id
+
+    service = SupplierService(ShopRepository(test_session), catalog, OpsRepository(test_session))
+    file_bytes = _make_excel(
+        headers=["Product Name", "Price", "Unit", "Pack Size"],
+        rows=[
+            [canonical_name, "59000", "dona", "1"],
+            [canonical_name, "100000", "dona", "10"],
+        ],
+    )
+    summary = await service.process_file_upload(
+        shop_id=1,
+        file_bytes=file_bytes,
+        filename="multiple_packs.xlsx",
+        source_currency="UZS",
+    )
+    result = await service.apply_batch(summary.batch_id)
+    await test_session.flush()
+
+    assert result.applied_count == 2
+    offers = (
+        await test_session.scalars(
+            select(ShopProduct)
+            .where(ShopProduct.shop_id == 1, ShopProduct.canonical_id == canonical.id)
+            .order_by(ShopProduct.pack_size)
+        )
+    ).all()
+    by_pack = {offer.pack_size: offer for offer in offers}
+    assert len(by_pack) == len(offers)
+    assert by_pack[Decimal("1.0000")].id == existing_id
+    assert by_pack[Decimal("1.0000")].price_per_pack == Decimal("59000.00")
+    ten_pack = by_pack[Decimal("10.0000")]
+    assert ten_pack.source_price_per_pack == Decimal("100000.0000")
+    assert ten_pack.price_per_pack == Decimal("100000.00")
+    assert ten_pack.price_per_base_unit == Decimal("10000.0000")
 
 
 @pytest.mark.asyncio
@@ -212,7 +374,7 @@ async def test_supplier_import_150_rows(test_session: AsyncSession) -> None:
     )
 
     summary = await svc.process_file_upload(
-        shop_id=1, file_bytes=file_bytes, filename="150_rows.xlsx"
+        shop_id=1, file_bytes=file_bytes, filename="150_rows.xlsx", source_currency="UZS"
     )
     await test_session.flush()
 
@@ -271,6 +433,11 @@ async def test_supplier_quick_price_with_history(test_session: AsyncSession) -> 
     assert updated.price_per_pack == new_price
     assert updated.staleness_state == "fresh"
     assert updated.stock_qty is None
+    assert updated.currency == "UZS"
+    assert updated.source_currency == "UZS"
+    assert updated.source_price_per_pack == new_price
+    assert updated.fx_rate_used == Decimal("1")
+    assert updated.fx_rate_revision == 0
 
 
 @pytest.mark.asyncio

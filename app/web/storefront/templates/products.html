@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} — QurBot{% endblock %}
+{% block title %}{{ title }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 
 {% block content %}{% include 'fragments/products.html' %}{% endblock %}
 {% block scripts %}<script src="{{ static_url }}/catalog.js?v={{ asset_version }}" defer></script>{% endblock %}
