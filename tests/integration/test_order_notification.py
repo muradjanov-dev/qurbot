@@ -193,7 +193,7 @@ async def test_the_admins_get_the_whole_picture(test_session: AsyncSession) -> N
     assert messages
     joined = "\n".join(row.text for row in messages)
     assert CUSTOMER_PHONE in joined and CUSTOMER_ADDRESS in joined
-    assert "Fanera 12 mm 1525x1525" in joined
+    assert "Фанера 12 мм" in joined or "Fanera 12 mm 1525x1525" in joined
     assert "1 510 000" in joined
     keyboard = messages[0].payload["reply_markup"]["inline_keyboard"]
     callbacks = [

@@ -87,6 +87,7 @@ FLASH_KEYS = frozenset(
         "web_login_blocked",
         "web_error_generic",
         "web_checkout_login_required",
+        "web_guest_cart_review",
         "web_shop_import_bad_file",
         "web_shop_import_too_big",
         "web_shop_import_applied",

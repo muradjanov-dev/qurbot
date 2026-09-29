@@ -2621,6 +2621,11 @@ MESSAGES["order_created_waiting_approval"] = {
     "uz_cyrl": "✅ Буюртма #{order_id} юборилди. Админ тасдиғини кутмоқда.",
     "ru": "✅ Заказ #{order_id} отправлен. Ожидает подтверждения администратора.",
 }
+MESSAGES["order_admin_cancel_reason"] = {
+    "uz_latn": "Admin tomonidan bekor qilindi",
+    "uz_cyrl": "Администратор томонидан бекор қилинди",
+    "ru": "Отменено администратором",
+}
 MESSAGES["web_guest_cart_review"] = {
     "uz_latn": (
         "Mehmon savatini birlashtirish uchun ayrim mahsulotlarni tekshirish kerak. "

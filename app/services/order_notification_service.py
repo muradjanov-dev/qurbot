@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.enums import ParseMode
@@ -71,8 +71,11 @@ def _permanent_error(exc: Exception) -> tuple[str, bool, timedelta | None]:
 
 
 async def _current_user_for_tg(session: AsyncSession, tg_id: int) -> User | None:
-    return await session.scalar(
-        select(User).where(User.tg_id == tg_id).execution_options(populate_existing=True)
+    return cast(
+        User | None,
+        await session.scalar(
+            select(User).where(User.tg_id == tg_id).execution_options(populate_existing=True)
+        ),
     )
 
 

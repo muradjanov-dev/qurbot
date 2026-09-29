@@ -463,4 +463,5 @@ async def test_notification_write_failure_rolls_back_checkout(
     assert await test_session.scalar(select(func.count()).select_from(CheckoutAttempt)) == 0
     cart = await CartService(test_session).get(user_id)
     assert cart.revision == body["cart_revision"] and cart.lines[0]["qty"] == "2"
+    test_session.expunge_all()  # Drop rolled-back identities before SQLite reuses their IDs.
     assert (await client.post("/api/order", json=body)).json()["ok"]
