@@ -34,6 +34,7 @@ from app.bot.states import BasketStates, OrderCheckoutStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
+from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
 from app.db.models.shop import ShopProduct
 from app.db.models.user import User
 from app.db.repositories.address_repo import AddressRepository
@@ -1370,10 +1371,11 @@ async def callback_confirm_order(
     if isinstance(callback.message, Message):
         await callback.message.edit_text(
             t(
-                "order_created_success",
+                "order_created_waiting_approval",
                 lang=lang,
                 order_id=order.id,
                 total=format_uzs(order.grand_total_quoted),
+                status=_customer_order_status_label(order.status, lang),
             ),
         )
         if pebbles > 0:
@@ -1403,8 +1405,9 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 
     text_lines = ["📦 <b>Sizning buyurtmalaringiz:</b>\n"]
     for o in orders[:5]:
+        status = _customer_order_status_label(o.status, lang)
         text_lines.append(
-            f"• <b>#{o.id}</b> — {format_uzs(o.grand_total_quoted)} so'm ({o.status})\n"
+            f"• <b>#{o.id}</b> — {format_uzs(o.grand_total_quoted)} so'm ({status})\n"
             f"  Manzil: {o.delivery_address}"
         )
     await message.answer("\n\n".join(text_lines))
@@ -1413,6 +1416,15 @@ async def menu_my_orders(message: Message, user: User, session: AsyncSession, la
 # -----------------------------------------------------------------------------
 # Formatting Helpers
 # -----------------------------------------------------------------------------
+
+
+def _customer_order_status_label(status: str, lang: str) -> str:
+    """Render workflow states in the same language as the current customer."""
+    key = f"web_order_status_{status}"
+    label = t(key, lang=lang)
+    if label != key:
+        return label
+    return ORDER_DELIVERY_MESSAGES.get(f"delivery_status_{status}", {}).get(lang, status)
 
 
 async def _safe_edit_text(

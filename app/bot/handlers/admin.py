@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from aiogram import Bot, F, Router
+from aiogram import F, Router
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -19,6 +19,7 @@ from app.bot.states import AdminPanelStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
+from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.ops import UnmatchedQuery
 from app.db.models.order import Order
@@ -27,6 +28,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.user_repo import UserRepository
 from app.services.house_shop import is_admin
+from app.services.order_workflow import OrderWorkflowService, WorkflowError
 
 router = Router(name="admin")
 logger = get_logger(__name__)
@@ -41,7 +43,6 @@ async def callback_admin_order_decision(
     callback: CallbackQuery,
     user: User,
     session: AsyncSession,
-    bot: Bot,
     lang: str,
 ) -> None:
     """Confirm or cancel an order after an operator calls the customer."""
@@ -59,56 +60,44 @@ async def callback_admin_order_decision(
         await callback.answer("Noto'g'ri amal.", show_alert=True)
         return
 
-    result = await session.execute(select(Order).where(Order.id == order_id).with_for_update())
-    order = result.scalar_one_or_none()
-    if order is None or order.is_test:
-        await callback.answer("Buyurtma topilmadi.", show_alert=True)
-        return
-    if order.status != "new":
+    target_status = "confirmed" if action == "confirm" else "cancelled"
+    reason = ""
+    if action == "cancel":
+        reason = t("order_admin_cancel_reason", lang=lang)
+        if reason == "order_admin_cancel_reason":
+            reason = ORDER_DELIVERY_MESSAGES["delivery_status_cancelled"].get(lang, "Cancelled")
+    try:
+        await OrderWorkflowService(session).change_status(
+            order_id=order_id,
+            actor=user,
+            target=target_status,
+            expected_revision=None,
+            expected_status="new",
+            reason=reason,
+        )
+        await session.commit()
+    except WorkflowError:
+        await session.rollback()
         if isinstance(callback.message, Message):
             try:
                 await callback.message.edit_reply_markup(reply_markup=None)
             except TelegramAPIError:
-                logger.warning("admin_order_markup_remove_failed", order_id=order.id)
-        await callback.answer(
-            f"Buyurtma allaqachon {order.status} holatida.",
-            show_alert=True,
-        )
+                logger.warning("admin_order_markup_remove_failed", order_id=order_id)
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
 
-    customer = await session.get(User, order.user_id)
     if action == "confirm":
-        order.status = "confirmed"
-        admin_result = f"✅ Buyurtma #{order.id} tasdiqlandi."
-        customer_key = "order_admin_confirmed_customer"
+        admin_result = t("order_admin_confirmed_customer", lang=lang, order_id=order_id)
     else:
-        order.status = "cancelled"
-        order.cancel_reason = "Operator tomonidan bekor qilindi"
-        admin_result = f"❌ Buyurtma #{order.id} bekor qilindi."
-        customer_key = "order_admin_cancelled_customer"
-    await session.commit()
+        admin_result = t("order_admin_cancelled_customer", lang=lang, order_id=order_id)
 
     await callback.answer(admin_result)
     if isinstance(callback.message, Message):
         try:
             await callback.message.edit_reply_markup(reply_markup=None)
         except TelegramAPIError:
-            logger.warning("admin_order_markup_remove_failed", order_id=order.id)
+            logger.warning("admin_order_markup_remove_failed", order_id=order_id)
         await callback.message.answer(admin_result)
-
-    if customer is not None and customer.tg_id is not None:
-        try:
-            await bot.send_message(
-                customer.tg_id,
-                t(customer_key, lang=customer.lang, order_id=order.id),
-            )
-        except TelegramAPIError as exc:
-            logger.warning(
-                "admin_order_customer_notify_failed",
-                order_id=order.id,
-                customer_tg_id=customer.tg_id,
-                error=str(exc),
-            )
 
 
 @router.message(Command("admin"))
