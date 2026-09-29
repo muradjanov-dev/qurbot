@@ -1,9 +1,8 @@
 """Verifying that a visitor really is the Telegram account they claim.
 
-Two doorways, one proof. The Login Widget (a browser tab) and a Mini App
-(the site opened inside Telegram) both hand over a payload signed with a key
-derived from the bot token, so both can be checked offline -- no call back to
-Telegram, no shared secret beyond the token the deployment already holds.
+Mini App init data is signed with a key derived from the bot token and checked
+offline. The old Login Widget verifier stays here for compatibility tests, but
+its browser callback is retired: it was not bound to the initiating browser.
 
 The two use *different* derivations, and that difference is the whole security
 boundary: a widget payload cannot be replayed as Mini App init data or the

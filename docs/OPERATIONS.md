@@ -71,24 +71,27 @@ take it down without touching the bot.
 Before it can sign anyone in:
 
 1. `TELEGRAM_LOGIN_BOT_USERNAME` = the bot's username, no `@`.
-2. BotFather -> `/setdomain` -> the site's public domain. The Login Widget
-   refuses to render for an unregistered domain, and this is the usual cause
-   of "the login button does not appear".
+2. Keep Redis and the bot webhook available. Browser login starts a short-lived
+   challenge, which the customer approves with `/start` in the bot; the browser
+   then consumes the approval once. The unbound Telegram Login Widget callback
+   is disabled because it could attach another browser's guest cart to the
+   wrong account.
 3. `WEB_SESSION_SECRET` -- optional, but set it: without one the cookie key is
    derived from `BOT_TOKEN`, so rotating the token signs every customer out.
 
-`WEB_DEV_LOGIN_ENABLED` must stay `false` in every deployment: it grants a
-session for any Telegram id that is typed in.
+`WEB_DEV_LOGIN_ENABLED` must stay `false` in production: it grants a session
+for any Telegram id that is typed in. Use it only in isolated staging.
 
 Rate limits are per web process (`throttle_quote_limit_per_minute` for quoting
 and PDF, `throttle_limit_per_minute` for parsing and geocoding). With several
 replicas the effective limit multiplies -- move them to Redis if that becomes
 a problem.
 
-Orders placed on the site notify shops and admins through the same Telegram
-messages the bot sends, and are marked `(sayt)` in the admin message. Admin
-confirm/cancel buttons move the order out of `new`, stop reminders, and notify
-the customer. Public contact numbers come from the `SUPPORT_PHONES` JSON list
+Orders placed on the site create durable admin/customer Telegram notifications
+in the same database transaction. An admin can confirm a `new` order from the
+bot. Cancellation asks for a reason on `/manage/orders/{id}`; status changes
+notify the customer through the worker outbox. Public contact numbers come from
+the `SUPPORT_PHONES` JSON list
 and are shown together without contact names.
 
 The public delivery policy is 50,000 UZS for a shop subtotal up to and
