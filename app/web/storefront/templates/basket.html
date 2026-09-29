@@ -4,6 +4,14 @@
 {% block content %}
 <section class="section">
   <h1>{{ t('web_basket_title', lang=lang) }}</h1>
+  {% if request.query_params.get('msg') == 'web_guest_cart_review' %}
+  <div class="card" data-guest-cart-review>
+    <p>{{ t('web_guest_cart_review', lang=lang) }}</p>
+    <button class="btn btn-primary btn-sm" type="button" data-retry-guest-claim>
+      {{ t('web_guest_cart_retry', lang=lang) }}
+    </button>
+  </div>
+  {% endif %}
   <a class="btn btn-primary" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }} / {{ t('sales_send_request', lang=lang) }}</a>
 
   <div class="list" data-basket></div>

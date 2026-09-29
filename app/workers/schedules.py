@@ -16,6 +16,7 @@ from app.workers.tasks import (
     abandon_baskets,
     admin_digest,
     ai_cost_report,
+    deliver_order_notifications,
     mark_price_staleness,
     nudge_shops,
     recompute_trust_scores,
@@ -25,6 +26,7 @@ from app.workers.tasks import (
 
 CRON_JOBS: list[CronJob] = [
     cron(process_conversation_jobs, second=set(range(0, 60, 5))),
+    cron(deliver_order_notifications, second=set(range(0, 60, 5))),
     # Matches settings.chat_progress_rotate_seconds: the carousel can only
     # turn as often as the worker is awake to edit the message.
     cron(

@@ -19,12 +19,19 @@ window.QB.ready = (async () => {
     const tg = window.Telegram?.WebApp;
     tg?.ready(); tg?.expand();
     let accepted = false;
+    let authRedirect = null;
+    const loginNext = document.querySelector('[data-login-next]')?.dataset.loginNext;
+    const requestedNext = loginNext || location.pathname + location.search;
     if (tg?.initData) {
       const response = await fetch('/auth/webapp', {...options, method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({init_data: tg.initData, next: location.pathname})});
+        body: JSON.stringify({init_data: tg.initData, next: requestedNext})});
       if (response.status === 403) throw new Error('blocked');
       accepted = response.ok;
+      if (accepted) {
+        const result = await response.json();
+        if (typeof result.redirect === 'string') authRedirect = result.redirect;
+      }
     }
     if (!accepted && !adminEntry) {
       const response = await fetch('/api/session', {...options, method: 'POST',
@@ -35,7 +42,7 @@ window.QB.ready = (async () => {
     if (!accepted) return false; // Admin login remains explicit and protected.
     const check = await fetch('/api/cart', options);
     if (!check.ok || !(await check.json()).ok) throw new Error('cookie');
-    const next = document.querySelector('[data-login-next]')?.dataset.loginNext;
+    const next = authRedirect || requestedNext;
     const target = next && next.startsWith('/') && !next.startsWith('//') && !next.includes('\\')
       ? next : location.pathname + location.search;
     location.replace(target === '/login' ? '/operator' : target);

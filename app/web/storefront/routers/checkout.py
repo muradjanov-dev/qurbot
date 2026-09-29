@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
@@ -55,9 +56,13 @@ async def checkout_page(
     user: User | None = Depends(current_user),
     lang: str = Depends(current_lang),
 ) -> Response:
-    if user is None:
+    if user is None or user.tg_id is None:
+        target = "/checkout"
+        if strategy:
+            target += "?strategy=" + quote(strategy, safe="")
         return RedirectResponse(
-            "/login?next=/checkout&msg=web_checkout_login_required", status_code=303
+            "/login?next=" + quote(target, safe="/") + "&msg=web_checkout_login_required",
+            status_code=303,
         )
 
     addresses = await AddressService(session).list_for(user)
@@ -215,6 +220,17 @@ async def api_create_order(
             "redirect": f"/orders/{replay.order.id}?msg=web_saved",
             "replayed": True,
         }
+    if user.tg_id is None:
+        # Anonymous orders already placed by an older checkout can still be
+        # replayed above, but every new order now has a Telegram owner.
+        return JSONResponse(
+            status_code=401,
+            content={
+                "ok": False,
+                "code": "telegram_login_required",
+                "error": t("web_checkout_login_required", lang=lang),
+            },
+        )
     snapshot = await CartService(session).get(user.id)
     if snapshot.revision != body.cart_revision:
         return JSONResponse(

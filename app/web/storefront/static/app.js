@@ -12,6 +12,7 @@
   var T = QB.i18n || {};
   var STORE_KEY = "qb_basket_v1";
   var STRATEGY_KEY = "qb_strategy";
+  var CHECKOUT_DRAFT_KEY = "qb_checkout_restore_v1";
   var cartRevision = 0;
   var cartLines = [];
   var cartBusy = false;
@@ -120,11 +121,20 @@
       headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       body: JSON.stringify(body || {})
     });
-    if (response.status === 401) return { ok: false, error: T.loginRequired, unauthorized: true };
     try {
-      return await response.json();
+      var result = await response.json();
+      if (response.status === 401) {
+        result.ok = false;
+        result.error = result.error || T.loginRequired;
+        result.unauthorized = true;
+      } else if (!response.ok) result.ok = false;
+      return result;
     } catch (err) {
-      return { ok: false, error: T.error };
+      return {
+        ok: false,
+        error: response.status === 401 ? T.loginRequired : T.error,
+        unauthorized: response.status === 401
+      };
     }
   }
 
@@ -558,6 +568,44 @@
 
   /* ── checkout ────────────────────────────────────────────────────── */
 
+  function readCheckoutDraft() {
+    try {
+      var draft = JSON.parse(sessionStorage.getItem(CHECKOUT_DRAFT_KEY) || "null");
+      sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
+      return draft && typeof draft === "object" ? draft : null;
+    } catch (err) { return null; }
+  }
+
+  function saveCheckoutDraft() {
+    try {
+      var selected = $$('[name="address_choice"]').filter(function (node) { return node.checked; })[0];
+      sessionStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify({
+        phone: $("[data-phone]")?.value || "",
+        address_choice: selected ? selected.value : "new",
+        address_text: $("[data-address-text]")?.value || "",
+        district: $("[data-district]")?.value || "",
+        lat: $("[data-lat]")?.value || "",
+        lng: $("[data-lng]")?.value || "",
+        comment: $("[data-comment]")?.value || ""
+      }));
+    } catch (err) { /* The customer can still sign in and use the saved cart. */ }
+  }
+
+  function restoreCheckoutDraft() {
+    var draft = readCheckoutDraft();
+    if (!draft) return;
+    if ($("[data-phone]")) $("[data-phone]").value = draft.phone || "";
+    if ($("[data-address-text]")) $("[data-address-text]").value = draft.address_text || "";
+    if ($("[data-district]")) $("[data-district]").value = draft.district || "";
+    if ($("[data-lat]")) $("[data-lat]").value = draft.lat || "";
+    if ($("[data-lng]")) $("[data-lng]").value = draft.lng || "";
+    if ($("[data-comment]")) $("[data-comment]").value = draft.comment || "";
+    var choice = $$('[name="address_choice"]').filter(function (node) {
+      return node.value === (draft.address_choice || "new");
+    })[0];
+    if (choice) choice.checked = true;
+  }
+
   function initCheckout() {
     var root = $("[data-checkout]");
     if (!root) return;
@@ -565,6 +613,7 @@
     var strategy = root.dataset.strategy || readStrategy();
     var summary = $("[data-order-summary]");
     var confirm = $("[data-confirm]");
+    restoreCheckoutDraft();
     var expectedTotal = null;
     var checkoutRevision = cartRevision;
     var checkoutKey = requestKey();
@@ -649,7 +698,9 @@
         return;
       }
       if (result.unauthorized) {
-        window.location.href = "/login?next=/checkout";
+        saveCheckoutDraft();
+        var next = window.location.pathname + window.location.search;
+        window.location.href = "/login?next=" + encodeURIComponent(next) + "&msg=web_checkout_login_required";
         return;
       }
       toast(result.error || T.error);
@@ -753,6 +804,19 @@
 
   document.addEventListener("DOMContentLoaded", async function () {
     if (window.QB.ready && !await window.QB.ready) return;
+    var retryGuestClaim = $("[data-retry-guest-claim]");
+    if (retryGuestClaim) {
+      retryGuestClaim.addEventListener("click", async function () {
+        retryGuestClaim.disabled = true;
+        var result = await cartRequest("/api/cart/claim-guest", "POST", {});
+        if (result.ok) {
+          window.location.replace("/basket");
+          return;
+        }
+        retryGuestClaim.disabled = false;
+        toast(result.error || T.error);
+      });
+    }
     if (!await loadCart()) return;
     syncCount();
     initQtyWidgets();

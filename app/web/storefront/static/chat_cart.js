@@ -10,6 +10,7 @@
   const status = dialog.querySelector('[data-checkout-status]');
   const submit = dialog.querySelector('[data-checkout-submit]');
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const checkoutDraftKey = 'qb_chat_checkout_restore_v1';
   let cart, quote = null, busy = false, key = crypto.randomUUID(), sentBody = null, requestMode = false;
   const hint = dialog.querySelector('[data-request-hint]');
   const node = (tag, text, cls) => {const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n;};
@@ -95,6 +96,29 @@
     form.hidden = !cart.lines.length && !sentBody;
   }
   async function load() {cart = await api('/api/cart'); draw();}
+  function restoreCheckoutInputs() {
+    let draft;
+    try {
+      draft = JSON.parse(sessionStorage.getItem(checkoutDraftKey) || 'null');
+      sessionStorage.removeItem(checkoutDraftKey);
+    } catch (_) { return; }
+    if (!draft || typeof draft !== 'object') return;
+    for (const name of ['name', 'phone', 'address', 'district', 'lat', 'lng']) {
+      if (typeof draft[name] === 'string') form.elements[name].value = draft[name];
+    }
+  }
+  function saveCheckoutInputs() {
+    try {
+      sessionStorage.setItem(checkoutDraftKey, JSON.stringify({
+        name: form.elements.name.value,
+        phone: form.elements.phone.value,
+        address: form.elements.address.value,
+        district: form.elements.district.value,
+        lat: form.elements.lat.value,
+        lng: form.elements.lng.value
+      }));
+    } catch (_) { /* The durable cart still survives the login redirect. */ }
+  }
   document.querySelector('[data-open-cart]').addEventListener('click', async () => {
     dialog.showModal(); status.textContent = ''; lock(true);
     form.querySelectorAll('.field').forEach(n => {n.hidden = false;}); submit.hidden = false;
@@ -107,6 +131,7 @@
         for (const name of ['name', 'phone', 'address']) if (!form.elements[name].value && contact[name]) form.elements[name].value = contact[name];
         if (contact.district_id && !form.elements.district.value) form.elements.district.value = String(contact.district_id);
       }
+      restoreCheckoutInputs();
       // Preserve the exact body/key after a timeout, so retries cannot duplicate orders.
       if (!sentBody) invalidate();
     } catch (error) {status.textContent = error.message;}
@@ -205,6 +230,10 @@
       status.textContent = error.message;
       if (error.data?.price_changed) {sentBody = null; key = crypto.randomUUID(); showQuote(error.data.variant);}
       else if (error.data?.requires_confirmation) {requestMode = true; hint.hidden = false; invalidate();}
+      else if (error.data?.code === 'telegram_login_required' || error.data?.detail === 'telegram_login_required') {
+        saveCheckoutInputs();
+        location.assign('/login?next=' + encodeURIComponent('/chat?cart=1') + '&msg=web_checkout_login_required');
+      }
       else if (error.data?.code === 'cart_conflict' || error.data?.detail === 'cart_conflict') {invalidate(); await load(); invalidate();}
       else if (error.data) {sentBody = null;}
     } finally {lock(false);}

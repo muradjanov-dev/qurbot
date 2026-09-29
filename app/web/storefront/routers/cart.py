@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +13,11 @@ from app.db.session import get_db_session
 from app.services.cart_policy import assess_lines
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 from app.services.fx_pricing import FxPricingService
+from app.services.guest_cart_claim_service import claim_guest_cart
+from app.web.storefront.cookies import clear_session_cookie
 from app.web.storefront.deps import current_lang, require_api_user
 from app.web.storefront.security import require_csrf
+from app.web.storefront.session import GUEST_COOKIE
 
 router = APIRouter(tags=["storefront"])
 
@@ -138,3 +141,44 @@ async def merge_cart(
         return await _error(session, user, exc, lang)
     await session.commit()
     return snapshot.payload()
+
+
+@router.post(
+    "/api/cart/claim-guest",
+    dependencies=[Depends(require_api_user), Depends(require_csrf)],
+)
+async def retry_guest_cart_claim(
+    request: Request,
+    user: User = Depends(require_api_user),
+    session: AsyncSession = Depends(get_db_session),
+    lang: str = Depends(current_lang),
+) -> JSONResponse:
+    """Retry this browser's guest-cart claim after the customer reviews a conflict."""
+    if user.tg_id is None:
+        return JSONResponse(
+            status_code=401,
+            content={
+                "ok": False,
+                "code": "telegram_login_required",
+                "error": t("web_checkout_login_required", lang=lang),
+            },
+        )
+
+    result = await claim_guest_cart(session, user, request.cookies.get(GUEST_COOKIE))
+    if result.needs_review:
+        await session.commit()
+        return JSONResponse(
+            status_code=409,
+            content={
+                "ok": False,
+                "code": "guest_cart_review_required",
+                "reason": result.reason,
+                "error": t("web_guest_cart_review", lang=lang),
+            },
+        )
+
+    await session.commit()
+    response = JSONResponse({"ok": True, "status": result.status})
+    if result.claimed:
+        clear_session_cookie(response, request, GUEST_COOKIE)
+    return response

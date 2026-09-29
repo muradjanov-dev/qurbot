@@ -23,6 +23,7 @@ from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
 from app.services.bot_login import BotLoginUnavailable, open_bot_login_service
+from app.services.guest_cart_claim_service import GuestCartClaim, claim_guest_cart
 from app.services.house_shop import is_admin
 from app.web.storefront.cookies import clear_session_cookie, set_session_cookie
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
@@ -121,6 +122,31 @@ def _attach_session(response: Response, request: Request, user: User) -> None:
         sign_session(user_id=user.id, tg_id=user.tg_id),
         max_age=settings.web_session_max_age_days * 86400,
     )
+
+
+async def _claim_browser_cart(
+    session: AsyncSession, request: Request, user: User
+) -> GuestCartClaim:
+    """Use only this request's valid visitor cookie to claim a guest cart."""
+    return await claim_guest_cart(session, user, request.cookies.get(GUEST_COOKIE))
+
+
+def _login_target(target: str, claim: GuestCartClaim) -> str:
+    """Route cart collisions through a review step before continuing checkout."""
+    return "/basket?msg=web_guest_cart_review" if claim.needs_review else target
+
+
+def _attach_claimed_session(
+    response: Response,
+    request: Request,
+    user: User,
+    claim: GuestCartClaim,
+) -> None:
+    _attach_session(response, request, user)
+    if claim.claimed:
+        # Keep the visitor cookie on conflicts and failed claims, so the source
+        # cart remains available until the customer resolves it.
+        clear_session_cookie(response, request, GUEST_COOKIE)
 
 
 async def _sign_in(
@@ -311,8 +337,10 @@ async def complete_bot_login(
     target_path = urlsplit(target).path.rstrip("/") or "/"
     if target_path in {"/", "/login", "/account"}:
         target = "/manage" if is_admin(user) else "/account"
+    claim = await _claim_browser_cart(session, request, user)
+    target = _login_target(target, claim)
     response = _no_store({"ok": True, "redirect": target})
-    _attach_session(response, request, user)
+    _attach_claimed_session(response, request, user, claim)
     clear_session_cookie(response, request, BOT_LOGIN_COOKIE)
     return response
 
@@ -352,8 +380,9 @@ async def telegram_callback(
     if user is None:
         return RedirectResponse("/login?msg=web_login_blocked", status_code=303)
 
-    response = RedirectResponse(target, status_code=303)
-    _attach_session(response, request, user)
+    claim = await _claim_browser_cart(session, request, user)
+    response = RedirectResponse(_login_target(target, claim), status_code=303)
+    _attach_claimed_session(response, request, user, claim)
     return response
 
 
@@ -373,10 +402,15 @@ async def webapp_login(
     if user is None:
         return JSONResponse({"ok": False, "blocked": True}, status_code=403)
 
-    payload: dict[str, Any] = {"ok": True, "redirect": safe_next(body.next)}
+    claim = await _claim_browser_cart(session, request, user)
+    payload: dict[str, Any] = {
+        "ok": True,
+        "redirect": _login_target(safe_next(body.next), claim),
+        "cart_review_required": claim.needs_review,
+    }
     response = JSONResponse(payload)
     response.headers["Cache-Control"] = "no-store"
-    _attach_session(response, request, user)
+    _attach_claimed_session(response, request, user, claim)
     return response
 
 
@@ -425,8 +459,10 @@ async def dev_login(
     if user is None:
         return RedirectResponse("/login?msg=web_login_blocked", status_code=303)
 
-    response = RedirectResponse(safe_next(request.query_params.get("next")), status_code=303)
-    _attach_session(response, request, user)
+    target = safe_next(request.query_params.get("next"))
+    claim = await _claim_browser_cart(session, request, user)
+    response = RedirectResponse(_login_target(target, claim), status_code=303)
+    _attach_claimed_session(response, request, user, claim)
     return response
 
 

@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
 from app.core.config import settings
+from app.db.models.cart import CheckoutAttempt
 from app.db.models.conversation import ConversationNotification
 from app.db.models.order import Order
 from app.db.models.shop import District, ShopDeliveryRule
@@ -20,6 +21,7 @@ from app.db.models.user import User, VisitorSession
 from app.db.session import get_db_session
 from app.main import create_app
 from app.services.conversation_service import ConversationService
+from app.services.guest_cart_claim_service import claim_guest_cart
 from app.web.storefront import visitor
 from app.web.storefront.routers import chat as chat_routes
 from app.web.storefront.security import csrf_token
@@ -176,7 +178,7 @@ async def test_inbox_consent_claim_read_close_and_notification_channel(web, test
     assert (await client.get(f"/api/chat/operator/{conversation_id}")).status_code == 404
 
 
-async def test_guest_checkout_has_live_delivery_and_replay(web, test_session):
+async def test_guest_must_sign_in_before_order_and_old_receipts_still_replay(web, test_session):
     client, _ = web
     fixtures = await _seed(test_session)
     await bootstrap(client)
@@ -201,6 +203,32 @@ async def test_guest_checkout_has_live_delivery_and_replay(web, test_session):
     assert preview["ok"], preview
     body["expected_total"] = preview["variant"]["grand_total_raw"]
     body["strategy"] = preview["variant"]["strategy"]
+    guest_order = await client.post("/api/order", json=body, headers=headers(client))
+    assert guest_order.status_code == 401
+    assert guest_order.json()["code"] == "telegram_login_required"
+
+    guest_token = client.cookies.get(GUEST_COOKIE)
+    assert guest_token is not None
+    visitor_session = await test_session.get(
+        VisitorSession, sha256(guest_token.encode()).hexdigest()
+    )
+    assert visitor_session is not None
+    guest_row = await test_session.get(User, visitor_session.user_id)
+    assert guest_row is not None and guest_row.tg_id is None
+    telegram_user = User(tg_id=730001, full_name="Telegram buyer", lang="uz_cyrl")
+    test_session.add(telegram_user)
+    await test_session.commit()
+    claim = await claim_guest_cart(test_session, telegram_user, guest_token)
+    assert claim.claimed
+    await test_session.commit()
+    client.cookies.delete(GUEST_COOKIE)
+    client.cookies.set(
+        SESSION_COOKIE,
+        sign_session(user_id=telegram_user.id, tg_id=telegram_user.tg_id),
+    )
+    cart = (await client.get("/api/cart")).json()
+    body["cart_revision"] = cart["revision"]
+
     response = await client.post("/api/order", json=body, headers=headers(client))
     assert response.json()["ok"], response.text
     order_id = response.json()["order_id"]
@@ -211,8 +239,29 @@ async def test_guest_checkout_has_live_delivery_and_replay(web, test_session):
     # Region and district are localized together, so the stored address is
     # in one script rather than "Toshkent, Чилонзор".
     assert order.delivery_address == "Тошкент шаҳри, Чилонзор, Test street 12"
-    assert (await test_session.get(User, order.user_id)).tg_id is None
+    assert (await test_session.get(User, order.user_id)).tg_id == telegram_user.tg_id
     assert (await client.get(f"/orders/{order_id}")).status_code == 200
+
+    # Model an order plus receipt left by the former anonymous checkout: a
+    # guest retry still receives its existing order before the new-order gate.
+    receipt = await test_session.get(CheckoutAttempt, (telegram_user.id, "web:checkout-one"))
+    assert receipt is not None
+    receipt.user_id = guest_row.id
+    order.user_id = guest_row.id
+    replay_token = "g" * 43
+    test_session.add(
+        VisitorSession(
+            token_hash=sha256(replay_token.encode()).hexdigest(),
+            user_id=guest_row.id,
+            expires_at=datetime.now(UTC) + timedelta(days=1),
+        )
+    )
+    await test_session.commit()
+    client.cookies.delete(SESSION_COOKIE)
+    client.cookies.set(GUEST_COOKIE, replay_token)
+    old_replay = await client.post("/api/order", json=body, headers=headers(client))
+    assert old_replay.status_code == 200
+    assert old_replay.json()["order_id"] == order_id and old_replay.json()["replayed"]
 
 
 async def test_guest_cannot_upgrade_role_or_set_test_marker(web, test_session):

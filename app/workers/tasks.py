@@ -28,9 +28,32 @@ from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import async_session_factory
 from app.domain.llm_costs import format_ai_cost_report, local_day_start_utc
+from app.services.order_notification_service import (
+    deliver_order_notifications as _deliver_order_notifications,
+)
 from app.workers.locks import try_acquire_job_lock
 
 logger = get_logger(__name__)
+
+
+async def _deliver_order_notifications_impl(
+    session: AsyncSession,
+    bot: Bot,
+    *,
+    now: datetime | None = None,
+    limit: int = 1,
+) -> int:
+    """Deliver due order outbox rows; the outbox owns leases and retry order."""
+    return await _deliver_order_notifications(session, bot, now=now, limit=limit)
+
+
+async def deliver_order_notifications(ctx: dict[str, Any]) -> None:
+    """Every five seconds, send ready private order/status notifications."""
+    if not settings.telegram_notifications_enabled:
+        return
+    async with async_session_factory() as session:
+        delivered = await _deliver_order_notifications_impl(session, ctx["bot"])
+        logger.info("order_notifications_done", delivered=delivered)
 
 
 async def _mark_price_staleness_impl(session: AsyncSession) -> tuple[int, int]:
