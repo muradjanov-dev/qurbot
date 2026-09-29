@@ -8,17 +8,21 @@ ones confirming and delivering the order.
 from __future__ import annotations
 
 from decimal import Decimal
-from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.models.order import Basket, Order, OrderShopPart, Quote
-from app.db.models.shop import District, Shop
+from app.db.models.catalog import CanonicalProduct, Category, Unit
+from app.db.models.order import Basket, Order, OrderItem, OrderShopPart, Quote
+from app.db.models.order_workflow import OrderNotification
+from app.db.models.shop import District, Shop, ShopProduct
 from app.db.models.user import User
 from app.domain.optimizer.models import LineAssignment, ShopQuoteGroup
 from app.services.order_service import PlacedOrder, notify_order
+from app.services.order_workflow import OrderWorkflowService
 
 CUSTOMER_NAME = "Sunnatilloh Aka"
 CUSTOMER_PHONE = "+998901234567"
@@ -26,25 +30,6 @@ CUSTOMER_ADDRESS = "Chilonzor 9-kvartal, 42-uy"
 
 # A leftover owner id on the shop row must not turn into a recipient.
 LEGACY_OWNER_TG_ID = 5550001
-
-
-class FakeBot:
-    def __init__(self) -> None:
-        self.sent: list[tuple[int, str]] = []
-        self.markups: list[object | None] = []
-        self.locations: list[tuple[int, float, float, object]] = []
-        self._next_id = 100
-
-    async def send_message(self, chat_id: int, text: str, **kwargs: object) -> SimpleNamespace:
-        self.sent.append((chat_id, text))
-        self.markups.append(kwargs.get("reply_markup"))
-        self._next_id += 1
-        return SimpleNamespace(message_id=self._next_id)
-
-    async def send_location(
-        self, chat_id: int, *, latitude: float, longitude: float, **kwargs: object
-    ) -> None:
-        self.locations.append((chat_id, latitude, longitude, kwargs.get("reply_to_message_id")))
 
 
 PIN_LAT = Decimal("41.2856800")
@@ -108,6 +93,45 @@ async def _placed_order(
     session.add(part)
     await session.flush()
 
+    category = Category(slug="plywood", name_uz="Fanera", name_ru="Фанера")
+    session.add_all([category, Unit(code="dona", name_uz="Dona", name_ru="Шт", dimension="count")])
+    await session.flush()
+    product = CanonicalProduct(
+        slug="plywood-12",
+        name_uz="Fanera 12 mm 1525x1525",
+        name_uz_cyrl="Фанера 12 мм",
+        name_ru="Фанера 12 мм",
+        category_id=category.id,
+        base_unit_code="dona",
+        search_doc="fanera",
+    )
+    session.add(product)
+    await session.flush()
+    offer = ShopProduct(
+        shop_id=shop.id,
+        canonical_id=product.id,
+        raw_name=product.name_uz,
+        raw_unit="dona",
+        pack_size=Decimal("1"),
+        pack_unit_code="dona",
+        price_per_pack=Decimal("147000"),
+        price_per_base_unit=Decimal("147000"),
+        stock_status="in_stock",
+    )
+    session.add(offer)
+    await session.flush()
+    session.add(
+        OrderItem(
+            order_shop_part_id=part.id,
+            canonical_id=product.id,
+            shop_product_id=offer.id,
+            qty=Decimal("10"),
+            unit_code="dona",
+            unit_price_quoted=Decimal("147000"),
+            line_total=Decimal("1470000"),
+        )
+    )
+    await session.flush()
     group = ShopQuoteGroup(
         shop_id=shop.id,
         shop_name=shop.name,
@@ -141,38 +165,40 @@ async def _placed_order(
     return PlacedOrder(order=order, pebbles=0, parts=((part, group),)), user
 
 
+async def _queue(session: AsyncSession, placed: PlacedOrder, user: User) -> list[OrderNotification]:
+    await OrderWorkflowService(session).create_event(placed.order, user, source="bot")
+    await session.commit()
+    return list(
+        (await session.scalars(select(OrderNotification).order_by(OrderNotification.id))).all()
+    )
+
+
 @pytest.mark.asyncio
 async def test_only_the_admins_are_told(test_session: AsyncSession) -> None:
     placed, user = await _placed_order(test_session)
-    bot = FakeBot()
-
-    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
-
-    recipients = {chat_id for chat_id, _ in bot.sent}
-    assert recipients == set(settings.admin_tg_ids)
-    assert LEGACY_OWNER_TG_ID not in recipients
+    rows = await _queue(test_session, placed, user)
+    assert {row.recipient_tg_id for row in rows} == set(settings.admin_tg_ids)
+    assert LEGACY_OWNER_TG_ID not in {row.recipient_tg_id for row in rows}
+    bot = AsyncMock()
+    await notify_order(bot, test_session, placed, user=user)
+    # Worker owns delivery, never the checkout request.
+    bot.send_message.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_the_admins_get_the_whole_picture(test_session: AsyncSession) -> None:
-    """Someone has to confirm and deliver the order, and that someone is us."""
     placed, user = await _placed_order(test_session)
-    bot = FakeBot()
-
-    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
-
-    joined = "\n".join(text for _, text in bot.sent)
-    assert CUSTOMER_PHONE in joined
-    assert CUSTOMER_ADDRESS in joined
+    rows = await _queue(test_session, placed, user)
+    messages = [row for row in rows if row.kind == "admin_order_created"]
+    assert messages
+    joined = "\n".join(row.text for row in messages)
+    assert CUSTOMER_PHONE in joined and CUSTOMER_ADDRESS in joined
     assert "Fanera 12 mm 1525x1525" in joined
-
-    admin_markups = [
-        markup
-        for (chat_id, _text), markup in zip(bot.sent, bot.markups, strict=True)
-        if chat_id in settings.admin_tg_ids
+    assert "1 510 000" in joined
+    keyboard = messages[0].payload["reply_markup"]["inline_keyboard"]
+    callbacks = [
+        button["callback_data"] for row in keyboard for button in row if "callback_data" in button
     ]
-    assert admin_markups
-    callbacks = [button.callback_data for row in admin_markups[0].inline_keyboard for button in row]
     assert callbacks == [
         f"admin_order:confirm:{placed.order.id}",
         f"admin_order:cancel:{placed.order.id}",
@@ -180,27 +206,24 @@ async def test_the_admins_get_the_whole_picture(test_session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
-async def test_each_admin_gets_the_pin_as_a_telegram_location(test_session: AsyncSession) -> None:
-    """Words alone are not deliverable; the courier opens the pin."""
+async def test_each_admin_gets_a_durable_threaded_pin(test_session: AsyncSession) -> None:
     placed, user = await _placed_order(test_session)
-    bot = FakeBot()
-
-    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
-
-    assert {chat_id for chat_id, *_ in bot.locations} == set(settings.admin_tg_ids)
-    for _, lat, lng, reply_to in bot.locations:
-        assert (lat, lng) == (float(PIN_LAT), float(PIN_LNG))
-        # Threaded under that admin's order message, so it cannot be mistaken
-        # for another order's location.
-        assert reply_to is not None
+    rows = await _queue(test_session, placed, user)
+    by_id = {row.id: row for row in rows}
+    locations = [row for row in rows if row.kind == "admin_order_location"]
+    assert {row.recipient_tg_id for row in locations} == set(settings.admin_tg_ids)
+    for row in locations:
+        assert row.payload["latitude"] == float(PIN_LAT)
+        assert row.payload["longitude"] == float(PIN_LNG)
+        parent = by_id[row.payload["reply_to_notification_id"]]
+        assert (
+            parent.kind == "admin_order_created" and parent.recipient_tg_id == row.recipient_tg_id
+        )
+        assert parent.id < row.id
 
 
 @pytest.mark.asyncio
-async def test_a_typed_address_sends_no_location(test_session: AsyncSession) -> None:
+async def test_a_typed_address_queues_no_location(test_session: AsyncSession) -> None:
     placed, user = await _placed_order(test_session, with_pin=False)
-    bot = FakeBot()
-
-    await notify_order(bot, test_session, placed, user=user)  # type: ignore[arg-type]
-
-    assert bot.sent, "the order text still goes out"
-    assert bot.locations == []
+    rows = await _queue(test_session, placed, user)
+    assert rows and {row.kind for row in rows} == {"admin_order_created"}

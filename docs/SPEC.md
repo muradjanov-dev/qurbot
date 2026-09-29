@@ -208,7 +208,7 @@ batch status (`uploaded|parsed|awaiting_confirmation|applied|failed`), per-row
 Quotes are **snapshots**. Prices may change; the order must reference the quoted price.
 
 **`orders`** — `id`, `quote_id`, `user_id`, `status`
-(`new|confirmed|partially_fulfilled|fulfilled|cancelled`), `contact_phone`,
+(`new|confirmed|collecting|in_transit|fulfilled|cancelled`; legacy `partially_fulfilled` is read-only), `contact_phone`,
 `delivery_address`, `delivery_lat`, `delivery_lng` (nullable pin), `comment`,
 `grand_total_quoted`, `grand_total_final`,
 `cancel_reason`, timestamps.
@@ -505,8 +505,23 @@ JAMI:             1 520 000 so'm
 [📄 PDF olish] [🔄 Qayta hisoblash]
 ```
 
-**Order** → confirm phone + address + comment → create `order` + `order_shop_parts` →
-notify the admins → give the customer an order number and status tracking.
+**Order** → Telegram sign-in → review the merged cart and current quote → confirm
+phone + address + comment → create `order` + `order_shop_parts`, initial history and
+notification outbox in one transaction. Existing anonymous receipts stay replayable.
+New orders await admin confirmation; only admins advance `new → confirmed → collecting
+→ in_transit → fulfilled` or cancel an active order with a public reason. In-transit
+requires courier name and phone. Courier vehicle and internal Decimal cost are optional;
+internal costs never change the quoted customer total. Status corrections require an
+internal audit reason, including after a final state. There is one logical house shop,
+no courier login or supplier/route workflow in this version.
+
+Admin edits lock the order and check its workflow revision, preserving immutable events.
+Customer timelines expose status and courier contact, never internal notes/costs or
+correction explanations. New-order admin details and customer status notifications use
+an ordered durable outbox, retrying temporary failures after 30 seconds, 2, 10 and 30
+minutes and honoring Telegram retry-after. Permanent/exhausted failures are admin-visible
+and retryable. Order/status messages are excluded from transient chat cleanup. Old orders
+without Telegram identity stay viewable but no notification recipient is guessed.
 The confirmed delivery pin is copied onto the order (`orders.delivery_lat/lng`) and sent to
 each admin as a native Telegram location, threaded under the order text. A typed address
 with no pin sends text only.

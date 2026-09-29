@@ -7,8 +7,8 @@ never see "order placed" without them.
 
 Everything is sold from QurBot's own stock, so the per-shop parts always name
 the one house shop; they are kept because the order schema and the optimizer
-still speak in shop groups. The admins are the only people told about an
-order -- there is no third party to notify.
+still speak in shop groups. Admins receive the new-order details and customers
+receive status updates; there is no third party to notify.
 
 Both doorways come through here -- the bot's confirm button and the website's
 checkout -- so an order means the same thing whichever way it was placed, and a
@@ -21,17 +21,12 @@ import json
 from dataclasses import dataclass
 from decimal import Decimal
 from hashlib import sha256
-from html import escape
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.formatters.common import format_uzs
-from app.bot.keyboards.inline import get_admin_order_decision_keyboard
 from app.core.config import settings
-from app.core.logging import get_logger
 from app.db.models.cart import CheckoutAttempt
 from app.db.models.order import Basket, Order, OrderItem, OrderShopPart, Quote
 from app.db.models.user import User
@@ -41,8 +36,7 @@ from app.domain.optimizer.serde import serialize_variant
 from app.domain.rewards import pebbles_for_order
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
 from app.services.fx_pricing import FxPricingService
-
-logger = get_logger(__name__)
+from app.services.order_workflow import OrderWorkflowService
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,10 +79,6 @@ async def checkout_replay(
     return PlacedOrder(order=order, pebbles=0, parts=(), replayed=True)
 
 
-def _format_qty(value: Decimal) -> str:
-    return format(value.normalize(), "f")
-
-
 async def place_order(
     session: AsyncSession,
     *,
@@ -119,6 +109,9 @@ async def place_order(
         )
         if replay is not None:
             return replay
+    # A legacy receipt remains replayable; only a newly created order needs Telegram.
+    if user.tg_id is None or user.is_blocked:
+        raise InvalidCartItem("telegram_login_required")
     if not variant.is_orderable or variant.missing_lines:
         raise InvalidCartItem("quote_not_orderable")
     cart_service: CartService | None = None
@@ -265,6 +258,7 @@ async def place_order(
         )
     await session.flush()
 
+    await OrderWorkflowService(session).create_event(order, user, source=source)
     return PlacedOrder(order=order, pebbles=pebbles, parts=tuple(parts), source=source)
 
 
@@ -275,73 +269,9 @@ async def notify_order(
     *,
     user: User,
 ) -> None:
-    """Tell the admins about a new order.
+    """Compatibility hook: creation already persisted the durable notification queue.
 
-    Best-effort by design: this runs after the order is committed, so a failed
-    send is logged and skipped rather than allowed to fail an order that
-    already exists.
+    Callers can keep invoking this after commit. It must not send directly or
+    add a second event: the worker delivers the rows created by ``place_order``.
     """
-    if placed.replayed or placed.order.is_test:
-        return
-    order = placed.order
-    customer_name = order.contact_name or user.full_name or f"#{user.id}"
-    phone = order.contact_phone
-    address = order.delivery_address
-
-    admin_sections: list[str] = []
-    items_total = Decimal("0")
-    delivery_total = Decimal("0")
-    for part, group in placed.parts:
-        items_total += part.subtotal
-        delivery_total += part.delivery_fee
-        lines_str = "\n".join(
-            f"   • {escape(line.product_name)} × {_format_qty(line.billed_qty)} "
-            f"{escape(line.pack_unit)} — {format_uzs(line.line_cost_uzs)} so'm"
-            for line in group.lines
-        )
-        admin_sections.append(
-            f"{lines_str}\n"
-            f"   <i>Jami: {format_uzs(part.subtotal)} + dostavka "
-            f"{format_uzs(part.delivery_fee)} so'm</i>"
-        )
-
-    comment_line = f"💬 Izoh: {escape(order.comment)}\n" if order.comment else ""
-    channel = " (sayt)" if placed.source == "web" else ""
-    admin_text = (
-        f"📦 <b>Yangi buyurtma #{order.id}</b>{channel}\n\n"
-        f"👤 Mijoz: {escape(customer_name)}\n"
-        f"📞 Tel: {escape(phone)}\n"
-        f"📍 Manzil: {escape(address)}\n"
-        f"{comment_line}"
-        f"\n" + "\n\n".join(admin_sections) + "\n\n"
-        f"──────────────────────────\n"
-        f"Mahsulotlar: {format_uzs(items_total)} so'm\n"
-        f"Dostavka: {format_uzs(delivery_total)} so'm\n"
-        f"<b>JAMI: {format_uzs(order.grand_total_quoted)} so'm</b>"
-    )
-    lat, lng = order.delivery_lat, order.delivery_lng
-    for admin_id in settings.admin_tg_ids:
-        try:
-            sent = await bot.send_message(
-                admin_id,
-                admin_text,
-                reply_markup=get_admin_order_decision_keyboard(order.id),
-            )
-        except TelegramAPIError as exc:
-            logger.warning("admin_order_notify_failed", admin_id=admin_id, error=str(exc))
-            continue
-        if lat is None or lng is None:
-            continue
-        # The text alone is not enough to deliver on: a typed Tashkent address
-        # often does not resolve to a findable place. The pin goes as a native
-        # location, threaded under the order so the two are never confused
-        # when several orders arrive together.
-        try:
-            await bot.send_location(
-                admin_id,
-                latitude=float(lat),
-                longitude=float(lng),
-                reply_to_message_id=getattr(sent, "message_id", None),
-            )
-        except TelegramAPIError as exc:
-            logger.warning("admin_order_location_failed", admin_id=admin_id, error=str(exc))
+    return None

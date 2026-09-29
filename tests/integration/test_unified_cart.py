@@ -20,6 +20,7 @@ from app.db.models.cart import CheckoutAttempt
 from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.ops import Event, PebbleAward
 from app.db.models.order import Order
+from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
@@ -246,6 +247,13 @@ async def test_checkout_retry_one_order_reward_and_atomic_clear(
     assert replay.json()["order_id"] == first.json()["order_id"]
     assert replay.json()["replayed"]
     assert await test_session.scalar(select(func.count(Order.id))) == 1
+    assert await test_session.scalar(select(func.count(OrderEvent.id))) == 1
+    acks = (
+        await test_session.scalars(
+            select(OrderNotification).where(OrderNotification.kind == "customer_order_ack")
+        )
+    ).all()
+    assert len(acks) == 1 and acks[0].recipient_tg_id == user.tg_id
     assert await test_session.scalar(select(func.count()).select_from(CheckoutAttempt)) == 1
     assert await test_session.scalar(select(func.count(PebbleAward.id))) == 1
     confirmations = (
@@ -427,3 +435,32 @@ async def test_cart_cannot_exceed_quote_line_limit(
             expected_revision=full.revision,
         )
     assert (await service.get(user.id)).revision == full.revision
+
+
+async def test_notification_write_failure_rolls_back_checkout(
+    client: AsyncClient,
+    test_session: AsyncSession,
+    seeded: tuple[User, CanonicalProduct, ShopProduct],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services.order_workflow import OrderWorkflowService
+
+    user, product, _ = seeded
+    user_id = user.id
+    body = await _checkout_body(client, product)
+    original = OrderWorkflowService.create_event
+
+    async def fail_after_outbox(self, order, actor, source="web"):
+        await original(self, order, actor, source)
+        raise RuntimeError("injected outbox transaction failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(OrderWorkflowService, "create_event", fail_after_outbox)
+        with pytest.raises(RuntimeError, match="outbox transaction"):
+            await client.post("/api/order", json=body)
+    for model in (Order, OrderEvent, OrderNotification, PebbleAward):
+        assert await test_session.scalar(select(func.count(model.id))) == 0
+    assert await test_session.scalar(select(func.count()).select_from(CheckoutAttempt)) == 0
+    cart = await CartService(test_session).get(user_id)
+    assert cart.revision == body["cart_revision"] and cart.lines[0]["qty"] == "2"
+    assert (await client.post("/api/order", json=body)).json()["ok"]

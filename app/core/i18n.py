@@ -2286,9 +2286,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ru": "Заказов пока нет.",
     },
     "web_order_created": {
-        "uz_latn": "Buyurtma qabul qilindi",
-        "uz_cyrl": "Буюртма қабул қилинди",
-        "ru": "Заказ принят",
+        "uz_latn": "Buyurtma yuborildi — admin tasdig‘ini kutmoqda",
+        "uz_cyrl": "Буюртма юборилди — админ тасдиғини кутмоқда",
+        "ru": "Заказ отправлен — ожидает подтверждения администратора",
     },
     "web_order_created_hint": {
         "uz_latn": "Tez orada operator siz bilan bog'lanadi.",
@@ -2608,6 +2608,17 @@ MESSAGES.update(UI_MESSAGES)
 MESSAGES.update(ADMIN_UI_MESSAGES)
 MESSAGES.update(STORE_UI_MESSAGES)
 MESSAGES.update(BOT_LOGIN_MESSAGES)
+
+from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES  # noqa: E402
+
+MESSAGES.update(ORDER_DELIVERY_MESSAGES)
+MESSAGES["order_created_waiting_approval"] = {
+    "uz_latn": "✅ Buyurtma #{order_id} yuborildi. Admin tasdig‘ini kutmoqda.",
+    "uz_cyrl": "✅ Буюртма #{order_id} юборилди. Админ тасдиғини кутмоқда.",
+    "ru": "✅ Заказ #{order_id} отправлен. Ожидает подтверждения администратора.",
+}
+for _status in ("new", "confirmed", "collecting", "in_transit", "fulfilled", "cancelled"):
+    MESSAGES[f"web_order_status_{_status}"] = ORDER_DELIVERY_MESSAGES[f"delivery_status_{_status}"]
 
 
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs: Any) -> str:
