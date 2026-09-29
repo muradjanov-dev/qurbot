@@ -18,6 +18,7 @@ from app.bot.handlers import (
     shop_listing_router,
     shop_router,
 )
+from app.bot.handlers.bot_login import router as bot_login_router
 from app.bot.handlers.guided_sales import router as guided_sales_router
 from app.bot.handlers.operator import router as operator_router
 from app.bot.handlers.webapp import router as webapp_router
@@ -120,6 +121,10 @@ def create_dispatcher() -> Dispatcher:
     # all state-filtered to the upload wizard, while customer_router's basket
     # handlers match loose text that would otherwise swallow a wizard step
     # (cf. commit e68f17c).
+    # Browser login deep links have a narrower /start payload than onboarding.
+    # Keep them first so the generic common /start handler cannot clear the
+    # user's existing FSM state or restart registration.
+    dp.include_router(bot_login_router)
     dp.include_router(webapp_router)
     dp.include_router(common_router)
     dp.include_router(shop_listing_router)

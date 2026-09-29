@@ -5,6 +5,43 @@
 {% block content %}
 <section class="section">
   <h1>{{ t('web_account_title', lang=lang) }}</h1>
+
+  {% if is_admin %}
+  <section class="store-account-access store-account-access--admin" aria-labelledby="store-account-access-title">
+    <div class="store-account-access-copy">
+      <span class="store-account-access-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5h16M6.5 16V9.5l5.5-4 5.5 4V16M9 16v-4h6v4M3.5 9.5 12 3l8.5 6.5"/></svg>
+      </span>
+      <div>
+        <span class="store-account-access-kicker">{{ t('store_ui_account_admin_kicker', lang=lang) }}</span>
+        <h2 id="store-account-access-title">{{ t('store_ui_account_admin_title', lang=lang) }}</h2>
+        <p>{{ t('store_ui_account_admin_body', lang=lang) }}</p>
+      </div>
+    </div>
+    <div class="store-account-access-actions">
+      <a class="btn btn-primary store-account-access-primary" href="/manage">{{ t('store_ui_manage_dashboard', lang=lang) }} <span aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost store-account-access-secondary" href="/operator" data-account-inbox>{{ t('store_ui_admin_inbox', lang=lang) }} <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+  {% elif user.tg_id is none %}
+  <section class="store-account-access store-account-access--guest" aria-labelledby="store-account-access-title">
+    <div class="store-account-access-copy">
+      <span class="store-account-access-icon store-account-access-icon--telegram" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m21.2 4.1-3.2 15.1c-.2 1.1-.8 1.4-1.7.9l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.9.4l.3-4.7 8.5-7.7c.4-.3-.1-.5-.5-.2L6.4 13.3l-4.5-1.4c-1-.3-1-1 .2-1.5L19.5 3.3c.9-.3 1.9.2 1.7.8Z"/></svg>
+      </span>
+      <div>
+        <span class="store-account-access-kicker">{{ t('store_ui_account_guest_kicker', lang=lang) }}</span>
+        <h2 id="store-account-access-title">{{ t('store_ui_account_guest_title', lang=lang) }}</h2>
+        <p>{{ t('store_ui_account_guest_body', lang=lang) }}</p>
+      </div>
+    </div>
+    <a class="btn btn-primary store-account-access-primary" href="/login?next=/account" data-admin-login>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.2 4.1-3.2 15.1c-.2 1.1-.8 1.4-1.7.9l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.9.4l.3-4.7 8.5-7.7c.4-.3-.1-.5-.5-.2L6.4 13.3l-4.5-1.4c-1-.3-1-1 .2-1.5L19.5 3.3c.9-.3 1.9.2 1.7.8Z"/></svg>
+      {{ t('store_ui_telegram_signin', lang=lang) }} <span aria-hidden="true">→</span>
+    </a>
+  </section>
+  {% endif %}
+
   <a class="btn btn-ghost" href="/sales-requests">{{ t('sales_requests', lang=lang) }}</a>
 
   <div class="card spread">
@@ -18,11 +55,6 @@
       {% if user.username %}<div class="muted tiny">@{{ user.username }}</div>{% endif %}
     </div>
   </div>
-  {% if is_admin %}
-    <a class="btn btn-primary" href="/operator" data-account-inbox>{{ t('sales_inbox', lang=lang) }} →</a>
-  {% elif not user.tg_id %}
-    <a class="muted tiny" href="/login?next=/operator" data-admin-login>{{ t('sales_admin_login', lang=lang) }}</a>
-  {% endif %}
 </section>
 
 <section class="section">
@@ -97,7 +129,6 @@
         {{ t('web_account_open_bot', lang=lang) }}
       </a>
     {% endif %}
-    {% if is_admin %}<a class="btn btn-sm" href="/manage">{{ t('manage_title', lang=lang) }}</a>{% endif %}
     <form method="post" action="/logout">
       <button class="btn btn-sm btn-danger" type="submit">{{ t('web_logout', lang=lang) }}</button>
     </form>

@@ -44,6 +44,7 @@ ASSET_VERSION = sha256(
             "app.css",
             "admin.css",
             "admin.js",
+            "bot_login.js",
             "storefront.css",
             "app.js",
             "catalog.js",

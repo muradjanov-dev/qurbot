@@ -79,3 +79,59 @@
   });
 
 })();
+
+/* An image preview never navigates away from the current table or filters. */
+(function () {
+  'use strict';
+  const dialog = document.querySelector('[data-image-dialog]');
+  if (!dialog) return;
+  const photo = dialog.querySelector('[data-image-full]');
+  const title = dialog.querySelector('[data-image-title]');
+  const status = dialog.querySelector('[data-image-status]');
+  const original = dialog.querySelector('[data-image-original]');
+  const close = dialog.querySelector('[data-image-close]');
+  let opener = null;
+  let previousOverflow = '';
+  let pagePosition = {x: 0, y: 0};
+  let tablePosition = null;
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-image-preview]');
+    if (!button) return;
+    let url;
+    try {url = new URL(button.dataset.imagePreview, location.href);} catch (_) {return;}
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    opener = button;
+    pagePosition = {x: window.scrollX, y: window.scrollY};
+    const table = button.closest('.admin-table-scroll');
+    tablePosition = table ? {node: table, left: table.scrollLeft, top: table.scrollTop} : null;
+    title.textContent = button.dataset.imageName || '';
+    photo.alt = button.dataset.imageName || '';
+    status.textContent = status.dataset.loading;
+    status.hidden = false;
+    photo.hidden = true;
+    original.href = url.href;
+    photo.onload = function () {status.hidden = true; photo.hidden = false;};
+    photo.onerror = function () {status.textContent = status.dataset.error; photo.hidden = true;};
+    photo.src = url.href;
+    previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.showModal();
+    close.focus({preventScroll: true});
+  });
+  close.addEventListener('click', function () {dialog.close();});
+  dialog.addEventListener('click', function (event) {
+    if (event.target !== dialog) return;
+    const box = dialog.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+  });
+  dialog.addEventListener('close', function () {
+    document.body.style.overflow = previousOverflow;
+    photo.onload = null; photo.onerror = null; photo.removeAttribute('src');
+    if (opener?.isConnected) opener.focus({preventScroll: true});
+    if (tablePosition?.node.isConnected) {
+      tablePosition.node.scrollLeft = tablePosition.left;
+      tablePosition.node.scrollTop = tablePosition.top;
+    }
+    window.scrollTo(pagePosition.x, pagePosition.y);
+  });
+})();

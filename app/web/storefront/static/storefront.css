@@ -318,3 +318,110 @@
 @media (prefers-reduced-motion: reduce) {
   .storefront-b *, .storefront-b *::before, .storefront-b *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Account access is the clear entry point for guest and admin users. */
+.storefront-b .store-account-access {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 20px 22px;
+  border: 1px solid #dfe8df;
+  border-radius: 16px;
+  background: linear-gradient(110deg, #f3f8f2, #fff 76%);
+  box-shadow: var(--shadow);
+}
+.storefront-b .store-account-access--admin { border-color: #d2e4d5; background: linear-gradient(110deg, #eaf4eb, #fff 78%); }
+.storefront-b .store-account-access-copy { display: flex; align-items: flex-start; gap: 15px; min-width: 0; }
+.storefront-b .store-account-access-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border: 1px solid #d8e8d9;
+  border-radius: 16px;
+  background: #e6f1e7;
+  color: var(--accent);
+}
+.storefront-b .store-account-access-icon--telegram { border-color: #d5eaf4; background: #e7f5fb; color: #1687b8; }
+.storefront-b .store-account-access-icon svg,
+.storefront-b .store-account-access-primary svg { width: 23px; height: 23px; fill: currentColor; }
+.storefront-b .store-account-access--admin .store-account-access-icon svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.storefront-b .store-account-access-kicker { display: block; margin: 1px 0 5px; color: #7d8b80; font-size: .65rem; font-weight: 740; letter-spacing: .09em; }
+.storefront-b .store-account-access h2 { margin: 0; color: var(--ink); font-size: 1.08rem; font-weight: 710; letter-spacing: -.035em; line-height: 1.2; }
+.storefront-b .store-account-access p { max-width: 64ch; margin: 6px 0 0; color: var(--ink-2); font-size: .875rem; line-height: 1.48; }
+.storefront-b .store-account-access-actions { display: flex; flex: none; align-items: center; gap: 8px; }
+.storefront-b .store-account-access-primary { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 9px; padding: 0 16px; white-space: nowrap; }
+.storefront-b .store-account-access-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 0 13px; white-space: nowrap; }
+.storefront-b .store-account-access-secondary span { color: #8c9b91; }
+
+@media (max-width: 720px) {
+  .storefront-b .store-account-access { align-items: stretch; flex-direction: column; gap: 15px; padding: 16px; }
+  .storefront-b .store-account-access-copy { gap: 12px; }
+  .storefront-b .store-account-access-icon { width: 46px; height: 46px; border-radius: 14px; }
+  .storefront-b .store-account-access h2 { font-size: 1rem; }
+  .storefront-b .store-account-access p { font-size: .875rem; }
+  .storefront-b .store-account-access-actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .storefront-b .store-account-access-primary,
+  .storefront-b .store-account-access-secondary { width: 100%; min-height: 46px; }
+}
+
+/* Telegram confirmation login uses a browser-bound code, never an OTP form. */
+.storefront-b .store-login {
+  width: min(100%, 620px);
+  max-width: 620px;
+  margin: 12px auto;
+  gap: 18px;
+}
+.storefront-b .store-login-heading { display: grid; gap: 8px; }
+.storefront-b .store-login-heading h1 { margin: 2px 0 0; color: var(--ink); font-size: clamp(1.8rem, 4vw, 2.35rem); font-weight: 730; letter-spacing: -.055em; line-height: 1.08; }
+.storefront-b .store-login-heading p { max-width: 58ch; margin: 0; color: var(--ink-2); font-size: .9rem; line-height: 1.5; }
+.storefront-b .store-bot-login { display: grid; gap: 16px; padding: clamp(18px, 4vw, 27px); border: 1px solid #dce8dd; border-radius: 17px; background: linear-gradient(118deg, #f2f8f1, #fff 70%); box-shadow: var(--shadow); }
+.storefront-b .store-bot-login-top { display: flex; align-items: flex-start; gap: 14px; }
+.storefront-b .store-bot-login-top h2 { margin: 1px 0 0; color: var(--ink); font-size: 1.08rem; font-weight: 700; letter-spacing: -.035em; line-height: 1.35; }
+.storefront-b .store-bot-start { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 10px; width: 100%; font-size: .9rem; }
+.storefront-b .store-bot-start svg { width: 21px; height: 21px; fill: currentColor; }
+.storefront-b .store-bot-login-status { margin: 0; padding: 11px 13px; border: 1px solid #dce8dd; border-radius: 10px; background: #f6faf5; color: #526a58; font-size: .84rem; line-height: 1.45; }
+.storefront-b .store-bot-login-status[data-state="error"],
+.storefront-b .store-bot-login-status[data-state="denied"],
+.storefront-b .store-bot-login-status[data-state="expired"] { border-color: #eedbc9; background: #fff8f1; color: #80582e; }
+.storefront-b .store-bot-login-session { display: grid; gap: 12px; }
+.storefront-b .store-bot-code-card { display: grid; justify-items: center; gap: 9px; padding: 17px; border: 1px solid #e0e9df; border-radius: 12px; background: #fff; text-align: center; }
+.storefront-b .store-bot-code-card > span { color: #77867b; font-size: .7rem; font-weight: 660; }
+.storefront-b .store-bot-code-card > strong { color: var(--accent); font-size: clamp(2rem, 8vw, 2.55rem); font-weight: 760; letter-spacing: .2em; line-height: 1; }
+.storefront-b .store-bot-code-card > p { max-width: 55ch; margin: 2px 0 0; color: var(--ink-2); font-size: .82rem; line-height: 1.5; }
+.storefront-b .store-bot-expiry { display: flex; justify-content: space-between; gap: 10px; color: #77867c; font-size: .76rem; }
+.storefront-b .store-bot-expiry strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.storefront-b .store-bot-open-link { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; }
+.storefront-b .store-bot-session-actions { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 8px; }
+.storefront-b .store-bot-session-actions .btn,
+.storefront-b .store-bot-retry { min-height: 46px; }
+.storefront-b .store-bot-retry { width: 100%; }
+.storefront-b .store-login-fallback { overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+.storefront-b .store-login-fallback > summary { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 10px; padding: 0 15px; color: #637268; font-size: .8rem; font-weight: 650; cursor: pointer; list-style: none; }
+.storefront-b .store-login-fallback > summary::-webkit-details-marker { display: none; }
+.storefront-b .store-login-fallback > summary::after { content: "＋"; color: var(--accent); font-size: 1rem; }
+.storefront-b .store-login-fallback[open] > summary::after { content: "−"; }
+.storefront-b .store-login-fallback-content { display: grid; justify-items: center; gap: 12px; padding: 15px; border-top: 1px solid var(--line); }
+.storefront-b .store-login-widget { display: grid; min-height: 42px; place-items: center; }
+.storefront-b .store-dev-login { display: flex; width: 100%; align-items: end; gap: 10px; }
+.storefront-b .store-dev-login .field { flex: 1; }
+.storefront-b .store-login-home { display: inline-flex; justify-content: center; min-height: 44px; }
+.storefront-b .store-login [hidden] { display: none !important; }
+
+@media (max-width: 720px) {
+  .storefront-b .store-login { margin: 0 auto; gap: 14px; }
+  .storefront-b .store-login-heading h1 { font-size: 1.8rem; }
+  .storefront-b .store-login-heading p { font-size: .875rem; }
+  .storefront-b .store-bot-login { padding: 16px; border-radius: 15px; }
+  .storefront-b .store-bot-login-top h2 { font-size: 1rem; }
+  .storefront-b .store-bot-start { min-height: 48px; width: 100%; }
+  .storefront-b .store-bot-code-card { padding: 15px 11px; }
+  .storefront-b .store-bot-code-card > p { font-size: .875rem; }
+  .storefront-b .store-bot-session-actions { grid-template-columns: minmax(0, 1fr); }
+  .storefront-b .store-bot-session-actions .btn { width: 100%; min-height: 46px; }
+  .storefront-b .store-login-fallback > summary { min-height: 46px; }
+  .storefront-b .store-dev-login { align-items: stretch; flex-direction: column; }
+  .storefront-b .store-dev-login .btn { width: 100%; min-height: 44px; }
+}

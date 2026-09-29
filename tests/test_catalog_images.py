@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from app.domain.catalog_images import photo_filename
+from app.domain.catalog_images import category_photo_filename, photo_filename
 
 ROOT = Path(__file__).parent
 IMAGE_DIR = ROOT.parent / "app/web/storefront/static/images"
@@ -18,6 +18,12 @@ def test_live_catalog_image_coverage() -> None:
         if filename == "no-photo.svg" or not (IMAGE_DIR / filename).is_file():
             missing.append(product["slug"])
     assert not missing, f"Missing suitable local image: {missing}"
+
+
+def test_fastener_category_has_a_category_tile_photo_without_changing_unknown_products() -> None:
+    assert category_photo_filename("mahkamlash-materiallari") == "screws.webp"
+    assert (IMAGE_DIR / "screws.webp").is_file()
+    assert photo_filename("mahkamlash-materiallari", "") == "no-photo.svg"
 
 
 def test_every_photo_has_a_source_and_license() -> None:

@@ -11,7 +11,7 @@
   {% if parts %}
     <div class="list">
       {% for part in parts %}
-        <div class="card" style="display:grid; gap:12px;">
+        <div class="card" id="order-{{ part.order_id }}" style="display:grid; gap:12px; scroll-margin-top:72px;">
           <div class="spread">
             <strong>#{{ part.order_id }}</strong>
             <span class="badge {{ 'ok' if part.shop_response == 'accepted' else ('bad' if part.shop_response == 'rejected' else 'warn') }}">

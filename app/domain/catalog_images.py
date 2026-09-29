@@ -7,6 +7,20 @@ when they describe the same kind of material.
 
 from __future__ import annotations
 
+_CATEGORY_PHOTOS = {
+    "mahkamlash-materiallari": "screws.webp",
+}
+
+
+def category_photo_filename(category_slug: str) -> str:
+    """Choose a representative local photo for a category tile.
+
+    Category cards have no product name to drive the product-family mapping,
+    so fasteners need their own broad representative image. Product photos
+    still use ``photo_filename`` and keep its unknown-name placeholder behavior.
+    """
+    return _CATEGORY_PHOTOS.get(category_slug, photo_filename(category_slug, ""))
+
 
 def photo_filename(category_slug: str, product_name: str) -> str:
     name = product_name.casefold()

@@ -24,10 +24,17 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U qurbot_test -d qurbot_test"
           --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
     env:
       BOT_TOKEN: "123456:CI-TOKEN"
       WEBHOOK_SECRET: "ci-secret"
       REGISTER_WEBHOOK: "false"
+      BOT_LOGIN_TEST_REDIS_URL: redis://localhost:6379/0
       SALES_TEST_DATABASE_URL: postgresql+asyncpg://qurbot_test:ci-only@localhost:5432/qurbot_test
     steps:
       - uses: actions/checkout@v4

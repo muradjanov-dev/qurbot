@@ -19,13 +19,18 @@
 
   <div class="admin-dashboard-grid">
     <section class="admin-card admin-dashboard-card">
-      <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_current_shop', lang=lang) }}</p><h2>Tezqur</h2></div><a class="admin-text-link" href="/manage/products">{{ t('admin_ui_manage_all_products', lang=lang) }} <span aria-hidden="true">→</span></a></header>
-      <div class="admin-dashboard-shortcuts">
-        <a href="/manage/products"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7"/></svg></span><span><strong>{{ t('admin_ui_products', lang=lang) }}</strong><small>{{ counts.products }} · {{ t('admin_ui_catalog_products', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
-        <a href="/shop/{{ shop.id }}/orders"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6"/></svg></span><span><strong>{{ t('admin_ui_orders', lang=lang) }}</strong><small>{{ counts.orders }} · {{ t('admin_ui_orders_waiting', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
-        <a href="/operator"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 8h8M8 12h5"/></svg></span><span><strong>{{ t('admin_ui_chats', lang=lang) }}</strong><small>{{ counts.chats }} · {{ t('admin_ui_open_workspace', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
-        <a href="/manage/settings/currency"><span class="admin-shortcut-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6m-3 7h16m-5-3v6"/></svg></span><span><strong>{{ t('admin_ui_fx_rate_current', lang=lang) }}</strong><small>{% if fx_snapshot.rate is not none %}{{ format_uzs(fx_snapshot.rate) }} UZS / USD{% else %}{{ t('admin_ui_fx_rate_missing', lang=lang) }}{% endif %}</small></span><b aria-hidden="true">→</b></a>
-      </div>
+      <header class="admin-card-heading"><h2>{{ t('admin_ui_recent_orders', lang=lang) }}</h2><a class="admin-text-link" href="/manage/orders">{{ t('admin_ui_all_orders', lang=lang) }} →</a></header>
+      {% if recent_orders %}
+      <div class="admin-recent-scroll"><table class="admin-table admin-recent-orders">
+        <thead><tr><th>{{ t('admin_ui_orders', lang=lang) }}</th><th>{{ t('admin_ui_customers', lang=lang) }}</th><th>{{ t('web_quote_grand_total', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th></tr></thead>
+        <tbody>{% for order in recent_orders %}<tr>
+          <td><a href="/shop/{{ shop.id }}/orders#order-{{ order.id }}">#{{ order.id }}</a></td>
+          <td>{{ order.contact_name or '—' }}</td>
+          <td>{{ format_money(order.grand_total_quoted, 'UZS', lang) }}</td>
+          <td><span class="admin-order-state order-{{ order.status }}">{{ t('web_order_status_' ~ order.status, lang=lang) }}</span></td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}<p class="admin-recent-empty">{{ t('admin_ui_no_recent_orders', lang=lang) }}</p>{% endif %}
     </section>
 
     <aside class="admin-dashboard-side">
