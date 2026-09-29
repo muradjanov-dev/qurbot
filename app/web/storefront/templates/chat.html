@@ -1,15 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ t('web_chat_title', lang=lang) }} — QurBot{% endblock %}
+{% block title %}{{ t('web_chat_title', lang=lang) }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 {% block body_class %}chat-page{% endblock %}
-{% block site_header %}{% endblock %}
-{% block site_footer %}{% endblock %}
 {% block content %}
 <section class="chat" aria-labelledby="chat-title" data-chat>
   <header class="chat-header">
     <a class="chat-icon" href="/catalog" aria-label="{{ t('web_nav_catalog', lang=lang) }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>
     </a>
-    <span class="chat-avatar" aria-hidden="true">Q</span>
+    <span class="chat-avatar" aria-hidden="true">T</span>
     <div class="chat-identity">
       <h1 id="chat-title">{{ t('web_chat_title', lang=lang) }}</h1>
       <p data-chat-mode role="status"></p>

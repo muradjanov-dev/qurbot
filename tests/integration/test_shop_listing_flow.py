@@ -96,6 +96,9 @@ async def test_caption_creates_a_comparable_offer(test_session: AsyncSession) ->
     assert product.stock_qty is None, "numeric listing quantities are not stored"
     assert product.is_active is True
     assert product.staleness_state == "fresh"
+    assert product.currency == "UZS"
+    assert product.source_currency == "UZS"
+    assert product.source_price_per_pack == Decimal("52000.0000")
 
 
 @pytest.mark.asyncio

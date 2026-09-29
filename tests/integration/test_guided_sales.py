@@ -40,8 +40,8 @@ async def test_hundred_anchors_show_correct_cart_total(test_session, seeded, mon
     monkeypatch.setattr(Message, "answer", answer)
     await show_cart(message, test_session, user, "uz_latn")
     rendered = answer.await_args.args[0]
-    assert "1.135 so'm / dona" in rendered
-    assert "113.500 so'm" in rendered
+    assert "1 135 so'm / dona" in rendered
+    assert "113 500 so'm" in rendered
     assert "1135.0000" not in rendered
 
 

@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from decimal import Decimal
 
+from app.db.models.shop import ImportRow
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
@@ -22,7 +23,14 @@ from app.domain.parsing.excel_parser import (
     parse_excel,
 )
 from app.domain.parsing.models import ParsedLine
+from app.domain.pricing.currency import (
+    CurrencyConversionError,
+    convert_to_uzs,
+    normalize_currency,
+    validate_source_amount,
+)
 from app.services.catalog_service import CatalogService
+from app.services.fx_pricing import FxPricingService
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +45,8 @@ class BatchSummary:
     needs_review: int
     skipped: int
     filename: str
+    source_currency: str | None = None
+    currency_errors: int = 0
 
 
 @dataclass
@@ -46,6 +56,7 @@ class ApplyResult:
     applied_count: int
     skipped_count: int
     error_count: int
+    currency_blocked: bool = False
 
 
 class SupplierService:
@@ -66,12 +77,20 @@ class SupplierService:
         shop_id: int,
         file_bytes: bytes,
         filename: str,
+        source_currency: str | None = None,
     ) -> BatchSummary:
         """Parse a file, match rows against catalog, and stage in import_batches.
 
         Returns a BatchSummary for the confirmation UI.
         NO writes to shop_products happen here.
         """
+        selected_currency: str | None = None
+        if source_currency is not None and source_currency.strip():
+            try:
+                selected_currency = normalize_currency(source_currency)
+            except CurrencyConversionError as exc:
+                raise ValueError(exc.code) from exc
+
         # 1. Parse file in a thread (openpyxl is blocking I/O)
         lower_name = filename.lower()
         if lower_name.endswith((".xlsx", ".xls")):
@@ -89,13 +108,17 @@ class SupplierService:
             shop_id=shop_id,
             filename=filename,
             total_rows=parsed.total_rows,
+            source_currency=selected_currency,
         )
+
+        fx_snapshot = await FxPricingService(self.shop_repo.session).snapshot()
 
         # 3. Match each row against catalog
         catalog_service = CatalogService(self.catalog_repo, self.ops_repo)
         import_row_dicts: list[dict[str, object]] = []
         auto_count = 0
         needs_review = 0
+        currency_error_count = 0
 
         for row_data in parsed.rows:
             matched_id, confidence, resolution = await self._match_row(row_data, catalog_service)
@@ -104,12 +127,30 @@ class SupplierService:
                 "raw_name": row_data.raw_name,
                 "raw_unit": row_data.raw_unit,
                 "raw_price": str(row_data.raw_price) if row_data.raw_price else None,
+                "raw_currency": row_data.raw_currency,
                 "raw_pack_size": str(row_data.raw_pack_size) if row_data.raw_pack_size else None,
                 # Kept for the owner's own check: the warning on every upload
                 # asks them to verify name, price and quantity, so the preview
                 # has to be able to show all three.
                 "raw_qty": str(row_data.raw_qty) if row_data.raw_qty is not None else None,
             }
+            if row_data.raw_price is not None:
+                currency = row_data.raw_currency or selected_currency
+                if not currency:
+                    raw_payload["currency_error"] = "currency_required"
+                    currency_error_count += 1
+                else:
+                    try:
+                        normalized_currency = normalize_currency(currency)
+                        amount = validate_source_amount(row_data.raw_price)
+                        convert_to_uzs(
+                            amount,
+                            currency=normalized_currency,
+                            usd_to_uzs_rate=fx_snapshot.rate,
+                        )
+                    except CurrencyConversionError as exc:
+                        raw_payload["currency_error"] = exc.code
+                        currency_error_count += 1
 
             import_row_dicts.append(
                 {
@@ -146,6 +187,8 @@ class SupplierService:
             needs_review=needs_review,
             skipped=parsed.skipped_rows,
             filename=filename,
+            source_currency=selected_currency,
+            currency_errors=currency_error_count,
         )
 
     async def _match_row(
@@ -212,6 +255,10 @@ class SupplierService:
             needs_review=manual_count,
             skipped=skipped_count,
             filename=batch.filename,
+            source_currency=batch.source_currency,
+            currency_errors=sum(
+                1 for row in rows if row.raw_payload.get("currency_error") is not None
+            ),
         )
 
     async def resolve_row(self, row_id: int, canonical_id: int) -> None:
@@ -243,9 +290,10 @@ class SupplierService:
 
         rows = await self.shop_repo.get_import_rows(batch_id)
 
-        applied = 0
         skipped = 0
-        errors = 0
+        preflight_errors = 0
+        planned: list[tuple[ImportRow, int, Decimal, str, Decimal, str]] = []
+        fx_snapshot = await FxPricingService(self.shop_repo.session).snapshot(lock=True)
 
         for row in rows:
             if not row.matched_canonical_id:
@@ -264,24 +312,65 @@ class SupplierService:
 
             try:
                 price = Decimal(str(raw_price_str))
+                raw_currency = payload.get("raw_currency")
+                currency_text = (
+                    str(raw_currency).strip()
+                    if raw_currency is not None and str(raw_currency).strip()
+                    else batch.source_currency
+                )
+                if not currency_text:
+                    raise CurrencyConversionError("currency_required")
+                currency = normalize_currency(currency_text)
+                price = validate_source_amount(price)
+                convert_to_uzs(
+                    price,
+                    currency=currency,
+                    usd_to_uzs_rate=fx_snapshot.rate,
+                )
                 pack_size = (
                     Decimal(str(payload["raw_pack_size"]))
                     if payload.get("raw_pack_size")
                     else Decimal("1")
                 )
                 raw_unit = str(payload.get("raw_unit") or "dona")
+                payload = dict(payload)
+                payload.pop("currency_error", None)
+                row.raw_payload = payload
+                planned.append(
+                    (row, row.matched_canonical_id, price, currency, pack_size, raw_unit)
+                )
+            except (ArithmeticError, CurrencyConversionError, ValueError) as exc:
+                code = exc.code if isinstance(exc, CurrencyConversionError) else "invalid_amount"
+                payload = dict(payload)
+                payload["currency_error"] = code
+                row.raw_payload = payload
+                preflight_errors += 1
 
-                await self.shop_repo.upsert_shop_product(
+        if preflight_errors:
+            await self.shop_repo.session.flush()
+            return ApplyResult(
+                applied_count=0,
+                skipped_count=skipped,
+                error_count=preflight_errors,
+                currency_blocked=True,
+            )
+
+        applied = 0
+        errors = 0
+        for row, canonical_id, price, currency, pack_size, raw_unit in planned:
+            try:
+                product = await self.shop_repo.upsert_shop_product(
                     shop_id=batch.shop_id,
-                    canonical_id=row.matched_canonical_id,
-                    raw_name=str(payload.get("raw_name", "")),
+                    canonical_id=canonical_id,
+                    raw_name=str(row.raw_payload.get("raw_name", "")),
                     price_per_pack=price,
                     pack_size=pack_size,
                     pack_unit_code=raw_unit,
                     raw_unit=raw_unit,
                     updated_by="import",
+                    source_currency=currency,
                 )
-                row.applied_shop_product_id = row.matched_canonical_id
+                row.applied_shop_product_id = product.id
                 applied += 1
             except Exception:
                 logger.exception("Error applying import row %d (batch %d)", row.row_no, batch_id)

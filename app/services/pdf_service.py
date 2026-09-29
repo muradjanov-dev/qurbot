@@ -45,7 +45,7 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
     )
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
-        "QurBotTitle", parent=styles["Title"], fontSize=18, spaceAfter=2 * mm
+        "TezqurTitle", parent=styles["Title"], fontSize=18, spaceAfter=2 * mm
     )
     shop_style = ParagraphStyle(
         "ShopHeader", parent=styles["Heading2"], fontSize=12, spaceBefore=4 * mm
@@ -54,7 +54,7 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
 
     story: list[Any] = []
 
-    title = "QurBot — Narxlar taklifi"
+    title = "Tezqur — Narxlar taklifi"
     if order_id is not None:
         title += f" (Buyurtma #{order_id})"
     story.append(Paragraph(title, title_style))
@@ -64,7 +64,7 @@ def generate_quote_pdf(variant: QuoteVariant, order_id: int | None = None) -> by
     story.append(Spacer(1, 6 * mm))
 
     # One merged table, no supplier attribution: the customer's quote comes from
-    # QurBot, and which shops the lines were sourced from is internal detail.
+    # Tezqur, and which shops the lines were sourced from is internal detail.
     story.append(Paragraph("Mahsulotlar", shop_style))
 
     rows = [["Mahsulot", "Miqdor", "Narx"]]

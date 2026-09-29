@@ -1,12 +1,21 @@
 {% extends 'base.html' %}
-{% block title %}{{ t('manage_admins', lang=lang) }} — QurBot{% endblock %}
-{% block content %}<section class="section">
-  <a href="/manage">← {{ t('manage_title', lang=lang) }}</a>
-  <h1>{{ t('manage_admins', lang=lang) }}</h1>
-  <div class="list">{% for item in admins %}<div class="list-row"><span>{{ item.full_name or item.username or item.tg_id }}</span><span>{{ item.tg_id }}</span></div>{% endfor %}</div>
-  <form method="post" action="/manage/admins" class="card field-row">
+{% block title %}{{ t('admin_ui_admin_management', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+<section class="admin-users-page">
+  <div class="admin-breadcrumb"><a href="/manage/settings">{{ t('admin_ui_settings', lang=lang) }}</a><span aria-hidden="true">/</span><strong>{{ t('admin_ui_admin_management', lang=lang) }}</strong></div>
+  <header class="admin-page-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_advanced_settings', lang=lang) }}</p><h1>{{ t('admin_ui_admin_management', lang=lang) }}</h1><p>{{ t('admin_ui_admin_tool_help', lang=lang) }}</p></div></header>
+  <section class="admin-card admin-table-card">
+    <div class="admin-table-summary"><strong>{{ t('admin_ui_admin_management', lang=lang) }}</strong><span>{{ admins|length }}</span></div>
+    <div class="admin-table-scroll"><table class="admin-table">
+      <thead><tr><th>{{ t('admin_ui_customer', lang=lang) }}</th><th>{{ t('admin_ui_telegram_id', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th></tr></thead>
+      <tbody>{% for item in admins %}<tr><td><strong>{{ item.full_name or item.username or item.tg_id }}</strong>{% if item.username %}<small class="admin-table-sub">@{{ item.username }}</small>{% endif %}</td><td>{{ item.tg_id }}</td><td><span class="admin-status-pill status-available"><i></i>{{ t('admin_ui_active', lang=lang) }}</span></td></tr>{% else %}<tr><td colspan="3"><div class="admin-empty-state">{{ t('admin_ui_no_admins', lang=lang) }}</div></td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  <form method="post" action="/manage/admins" class="admin-card admin-promote-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-    <label class="field">{{ t('manage_telegram_id', lang=lang) }} <input name="tg_id" inputmode="numeric" required></label>
-    <button class="btn btn-primary" type="submit">{{ t('manage_promote', lang=lang) }}</button>
+    <div><p class="admin-eyebrow">{{ t('admin_ui_admin_management', lang=lang) }}</p><h2>{{ t('admin_ui_promote_admin', lang=lang) }}</h2><p>{{ t('admin_ui_promote_admin_help', lang=lang) }}</p></div>
+    <label class="admin-field"><span>{{ t('admin_ui_telegram_id', lang=lang) }}</span><input name="tg_id" inputmode="numeric" required></label>
+    <button class="admin-button admin-button-primary" type="submit">{{ t('admin_ui_promote_admin', lang=lang) }}</button>
   </form>
-</section>{% endblock %}
+</section>
+{% endblock %}

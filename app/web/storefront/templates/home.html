@@ -1,39 +1,56 @@
 {% extends "base.html" %}
-{% block title %}QurBot — {{ t('web_tagline', lang=lang) }}{% endblock %}
+{% block title %}{{ t('store_ui_brand', lang=lang) }} — {{ t('web_tagline', lang=lang) }}{% endblock %}
 {% block content %}
-<section class="hero">
-  <h1>{{ t('web_home_title', lang=lang) }}</h1>
-  <p>{{ t('web_home_subtitle', lang=lang) }}</p>
-  <div class="chips chat-entry">
-    <a class="btn btn-primary" href="/catalog">{{ t('web_catalog_title', lang=lang) }} →</a>
-    <a class="btn btn-ghost" href="/chat">{{ t('web_chat_open', lang=lang) }} →</a>
-  </div>
-</section>
-{% if categories %}
-<section class="section">
-  <div class="section-head">
-    <h2>{{ t('web_home_categories', lang=lang) }}</h2>
-    <a class="muted tiny" href="/catalog/all">{{ t('web_catalog_title', lang=lang) }} →</a>
-  </div>
-  <div class="grid cols-4">
-    {% for category in categories %}
-    <a class="tile" href="/catalog/{{ category.id }}">
-      <span class="tile-name">{{ category.name_ru if lang == 'ru' else category.name_uz }}</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-<section class="section">
-  <h2>{{ t('web_home_how', lang=lang) }}</h2>
-  <div class="grid cols-3 steps">
-    {% for n in [1, 2, 3] %}
-    <div class="card step">
-      <span class="step-no">{{ n }}</span>
-      <h3>{{ t('web_home_step' ~ n ~ '_title', lang=lang) }}</h3>
-      <p class="muted tiny">{{ t('web_home_step' ~ n ~ '_body', lang=lang) }}</p>
+<div class="store-page store-home">
+  <section class="store-hero" aria-labelledby="store-home-title">
+    <div class="store-hero-copy">
+      <div class="store-eyebrow"><i aria-hidden="true"></i>{{ t('store_ui_home_kicker', lang=lang) }}</div>
+      <h1 id="store-home-title">{{ t('store_ui_home_title', lang=lang) }}</h1>
+      <p>{{ t('store_ui_home_body', lang=lang) }}</p>
+      <form class="store-search store-search--hero" action="/catalog/all" method="get" role="search">
+        <label class="sr-only" for="store-home-search">{{ t('store_ui_search', lang=lang) }}</label>
+        <span aria-hidden="true">⌕</span>
+        <input id="store-home-search" type="search" name="q" maxlength="100"
+               placeholder="{{ t('store_ui_home_search', lang=lang) }}" autocomplete="off">
+        <button type="submit">{{ t('store_ui_search_button', lang=lang) }} <span aria-hidden="true">→</span></button>
+      </form>
+      <div class="store-hero-links">
+        <a href="/catalog/all">{{ t('store_ui_browse_all', lang=lang) }} <span aria-hidden="true">↗</span></a>
+        <a href="/chat">{{ t('web_chat_open', lang=lang) }} <span aria-hidden="true">↗</span></a>
+      </div>
     </div>
-    {% endfor %}
-  </div>
-</section>
+    <div class="store-hero-art" aria-hidden="true">
+      <div class="store-hero-art-main"><img src="{{ static_url }}/images/plywood.webp" alt=""></div>
+      <div class="store-hero-art-small"><img src="{{ static_url }}/images/screws.webp" alt=""></div>
+      <div class="store-hero-art-tag"><span>01</span><i>—</i><span>{{ t('store_ui_brand', lang=lang) }}</span></div>
+      <div class="store-hero-art-mark">t</div>
+    </div>
+  </section>
+
+  {% if categories %}
+  <section class="store-home-section" aria-labelledby="store-category-title">
+    <div class="store-section-heading">
+      <div><span class="store-section-kicker">01 / {{ t('web_nav_catalog', lang=lang) }}</span>
+        <h2 id="store-category-title">{{ t('store_ui_home_categories', lang=lang) }}</h2></div>
+      <a class="store-text-link" href="/catalog/all">{{ t('store_ui_browse_all', lang=lang) }} <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="store-category-grid">
+      {% for category in categories %}
+      <a class="store-category-card" href="/catalog/{{ category.id }}">
+        <div class="store-category-image"><img src="{{ category.image_src }}" alt="" loading="lazy"><span aria-hidden="true">{{ '%02d'|format(loop.index) }}</span></div>
+        <div class="store-category-copy"><h3>{{ category.name }}</h3><span aria-hidden="true">↗</span></div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="store-home-help">
+    <div class="store-help-mark" aria-hidden="true">✳</div>
+    <div><span class="store-section-kicker">{{ t('web_chat_title', lang=lang) }}</span>
+      <h2>{{ t('web_chat_intro', lang=lang) }}</h2>
+      <p>{{ t('web_chat_empty', lang=lang) }}</p></div>
+    <a class="btn btn-primary" href="/chat">{{ t('web_chat_open', lang=lang) }} <span aria-hidden="true">→</span></a>
+  </section>
+</div>
 {% endblock %}

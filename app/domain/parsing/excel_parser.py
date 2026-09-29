@@ -31,6 +31,7 @@ class ImportRowData:
     raw_pack_size: Decimal | None = None
     raw_qty: Decimal | None = None
     extra_columns: dict[str, str] = field(default_factory=dict)
+    raw_currency: str | None = None
 
 
 @dataclass(frozen=True)
@@ -110,6 +111,14 @@ _COLUMN_PATTERNS: dict[str, list[str]] = {
         r"кол[\-\.]?во",
         r"stock",
         r"zaxira",
+    ],
+    "currency": [
+        r"currency",
+        r"valyuta",
+        r"валюта",
+        r"валютаси",
+        r"валюта код",
+        r"currency code",
     ],
 }
 
@@ -273,6 +282,7 @@ def _parse_data_rows(
     unit_idx = detected.get("unit")
     pack_idx = detected.get("pack_size")
     qty_idx = detected.get("qty")
+    currency_idx = detected.get("currency")
 
     for i, row in enumerate(data_rows):
         row_no = i + 1
@@ -308,6 +318,10 @@ def _parse_data_rows(
         if qty_idx is not None and qty_idx < len(cells):
             raw_qty = _parse_decimal(cells[qty_idx])
 
+        raw_currency: str | None = None
+        if currency_idx is not None and currency_idx < len(cells) and cells[currency_idx]:
+            raw_currency = str(cells[currency_idx]).strip()
+
         # Collect extra columns
         extra: dict[str, str] = {}
         used_indices = {v for v in detected.values()}
@@ -324,6 +338,7 @@ def _parse_data_rows(
                 raw_pack_size=raw_pack_size,
                 raw_qty=raw_qty,
                 extra_columns=extra,
+                raw_currency=raw_currency,
             )
         )
 

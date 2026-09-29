@@ -25,6 +25,7 @@ from app.db.models.user import User, VisitorSession
 from app.db.repositories.user_repo import UserRepository
 from app.db.session import get_db_session
 from app.services.house_shop import is_admin
+from app.web.storefront.pricing import format_money, price_pair
 from app.web.storefront.security import csrf_token
 from app.web.storefront.session import (
     GUEST_COOKIE,
@@ -41,6 +42,9 @@ ASSET_VERSION = sha256(
         (Path(__file__).parent / "static" / name).read_bytes()
         for name in (
             "app.css",
+            "admin.css",
+            "admin.js",
+            "storefront.css",
             "app.js",
             "catalog.js",
             "chat.js",
@@ -52,6 +56,7 @@ ASSET_VERSION = sha256(
             "leaflet.js",
             "leaflet.css",
         )
+        if (Path(__file__).parent / "static" / name).is_file()
     )
 ).hexdigest()[:16]
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -61,6 +66,8 @@ templates.env.globals.update(
     format_uzs=format_uzs,
     format_qty=format_qty,
     format_catalog_price=format_catalog_price,
+    format_money=format_money,
+    price_pair=price_pair,
     settings=settings,
     static_url="/static/store",
     asset_version=ASSET_VERSION,
@@ -226,18 +233,34 @@ def render(
         "path": request.url.path,
         "js_messages": js_messages(lang),
     }
-    payload.update(context)
-    # Only the isolated local runner sets this flag. Production cannot select
-    # a prototype by supplying a query parameter or a cookie.
-    if settings.app_env in {"local", "staging"} and getattr(
-        request.app.state, "design_preview", False
-    ):
-        from app.web.storefront.prototypes.rendering import preview_context
+    path = request.url.path
+    admin_surface = is_admin(user) and path.startswith(("/manage", "/shop", "/admin"))
+    active = "dashboard"
+    if any(part in path for part in ("/products", "/offers", "/import")):
+        active = "products"
+    elif "/orders" in path:
+        active = "orders"
+    elif path == "/manage/users":
+        active = "customers"
+    elif path != "/manage":
+        active = "settings"
+    from app.core.i18n import MESSAGES
 
-        preview = preview_context(request, template, lang)
-        if preview is not None:
-            template, design = preview
-            payload.update(design)
+    payload.update(
+        admin_surface=admin_surface,
+        admin_active=active,
+        store_ui_messages={
+            key.removeprefix("store_ui_"): t(key, lang=lang)
+            for key in MESSAGES
+            if key.startswith("store_ui_")
+        },
+        admin_ui_messages={
+            key.removeprefix("admin_ui_"): t(key, lang=lang)
+            for key in MESSAGES
+            if key.startswith("admin_ui_")
+        },
+    )
+    payload.update(context)
     response = templates.TemplateResponse(request, template, payload, status_code=status_code)
     response.headers["Cache-Control"] = "no-store"
     return response

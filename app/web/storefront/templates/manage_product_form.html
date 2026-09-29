@@ -1,63 +1,119 @@
 {% extends 'base.html' %}
-{% block title %}{{ product.name_uz if product else t('manage_new_product', lang=lang) }} — QurBot{% endblock %}
-{% block content %}{% set offer_values = offer_values|default({}) %}{% set offer_id = offer_id|default(none) %}<section class="section">
-  <a href="/manage/products">← {{ t('adm_btn_products', lang=lang) }}</a>
-  <h1>{{ product.name_uz if product else t('manage_new_product', lang=lang) }}</h1>
-  {% if error %}<p class="notice warn" role="alert">{{ error }}</p>{% endif %}
-  {% if candidates %}<div class="list">{% for item in candidates %}<a class="list-row" href="/manage/products/{{ item.id }}">{{ item.name_uz }}</a>{% endfor %}</div>{% endif %}
-  <form method="post" enctype="multipart/form-data" action="{{ '/manage/products/' ~ product.id if product else '/manage/products/new' }}" class="card grid cols-2 manage-product-fields">
+{% block title %}{{ product.name_uz if product else t('admin_ui_new_product', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+{% set values = values|default({}) %}
+{% set offer_values = offer_values|default({}) %}
+{% set offer_id = offer_id|default(none) %}
+{% set tier_rows = tier_rows|default([]) %}
+<section class="admin-product-editor">
+  <div class="admin-breadcrumb"><a href="/manage/products">{{ t('admin_ui_products', lang=lang) }}</a><span aria-hidden="true">/</span><strong>{{ product.name_uz if product else t('admin_ui_new_product', lang=lang) }}</strong></div>
+  <header class="admin-page-heading">
+    <div><p class="admin-eyebrow">{{ t('admin_ui_product_name', lang=lang) }}</p><h1>{{ product.name_uz if product else t('admin_ui_new_product', lang=lang) }}</h1><p>{{ t('admin_ui_product_details_help', lang=lang) }}</p></div>
+    {% if product %}<span class="admin-status-pill status-{{ 'active' if product.is_active else 'archived' }}"><i></i>{{ t('admin_ui_active' if product.is_active else 'admin_ui_archived', lang=lang) }}</span>{% endif %}
+  </header>
+  {% if error %}<p class="admin-form-error" role="alert">{{ error }}</p>{% endif %}
+  {% if candidates %}<section class="admin-card admin-duplicate-notice"><strong>{{ t('admin_ui_duplicate_product', lang=lang) }}</strong><div>{% for item in candidates %}<a href="/manage/products/{{ item.id }}">{{ item.name_uz }}</a>{% endfor %}</div></section>{% endif %}
+
+  <form method="post" enctype="multipart/form-data" action="{{ '/manage/products/' ~ product.id if product else '/manage/products/new' }}" class="admin-card admin-form-card">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-    <label class="field">{{ t('manage_name', lang=lang) }} <input type="text" name="name" maxlength="255" required value="{{ values.get('name', product.name_uz if product else '') }}"></label>
-    <label class="field">{{ t('manage_uz_cyrl_name', lang=lang) }} <input type="text" name="name_uz_cyrl" maxlength="255" value="{{ values.get('name_uz_cyrl', product.name_uz_cyrl if product else '') }}"></label>
-    <label class="field">{{ t('manage_ru_name', lang=lang) }} <input type="text" name="name_ru" maxlength="255" value="{{ values.get('name_ru', product.name_ru if product else '') }}"></label>
-    <label class="field">{{ t('manage_category', lang=lang) }} <select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}" {{ 'selected' if (values.get('category_id', product.category_id if product else '')|string) == (category.id|string) }}>{{ category.name_uz }}</option>{% endfor %}</select></label>
-    <label class="field">{{ t('manage_unit', lang=lang) }} <select name="unit_code" required>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('unit_code', product.base_unit_code if product else '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
-    <label class="field">{{ t('manage_size', lang=lang) }} <input type="text" name="size" value="{{ values.get('size', product.attributes.get('size', '') if product else '') }}"></label>
-    <label class="field">{{ t('manage_thickness', lang=lang) }} <input type="text" name="thickness" inputmode="decimal" value="{{ values.get('thickness', product.attributes.get('thickness_mm', '') if product else '') }}"></label>
-    <label class="field">{{ t('manage_brand', lang=lang) }} <input type="text" name="brand" maxlength="100" value="{{ values.get('brand', product.brand or '' if product else '') }}"></label>
-    <label class="field field-wide">{{ t('manage_description', lang=lang) }} <textarea name="description">{{ values.get('description', product.attributes.get('description', '') if product else '') }}</textarea></label>
-    <label class="field field-wide">{{ t('manage_photo', lang=lang) }} <input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
-    {% if product %}
-      <label><input type="checkbox" name="active" value="true" {{ 'checked' if (values.get('active') if values else product.is_active) }}> {{ t('manage_active', lang=lang) }}</label>
-      {% if not product.attributes.get('image_hidden') %}<label><input type="checkbox" name="remove_photo" value="true"> {{ t('manage_remove_photo', lang=lang) }}</label>{% endif %}
-      <img src="/media/product/{{ product.id }}" alt="" style="max-width:180px">
-    {% else %}<label><input type="checkbox" name="force_new" value="true"> {{ t('manage_confirm_new', lang=lang) }}</label>{% endif %}
-    {% if not product %}
-      <label class="field">{{ t('web_shop_price', lang=lang) }} ({{ t('manage_optional', lang=lang) }}) <input type="text" name="price" inputmode="decimal" value="{{ values.get('price', '') }}"></label>
-      <label class="field">{{ t('manage_pack', lang=lang) }} <input type="text" name="pack_size" inputmode="decimal" value="{{ values.get('pack_size', '1') }}"></label>
-      <label class="field">{{ t('manage_unit', lang=lang) }} <select name="pack_unit_code"><option value="">{{ t('manage_unit', lang=lang) }}</option>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('pack_unit_code', '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
-      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status">{% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if values.get('stock_status', 'out') == status }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}</select></label>
+    <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_details', lang=lang) }}</p><h2>{{ t('admin_ui_product_details', lang=lang) }}</h2></div></header>
+    <div class="admin-form-grid">
+      <label class="admin-field"><span>{{ t('admin_ui_name_uz', lang=lang) }}</span><input type="text" name="name" maxlength="255" required value="{{ values.get('name', product.name_uz if product else '') }}"></label>
+      <label class="admin-field"><span>{{ t('admin_ui_name_uz_cyrl', lang=lang) }}</span><input type="text" name="name_uz_cyrl" maxlength="255" value="{{ values.get('name_uz_cyrl', product.name_uz_cyrl if product else '') }}"></label>
+      <label class="admin-field"><span>{{ t('admin_ui_name_ru', lang=lang) }}</span><input type="text" name="name_ru" maxlength="255" value="{{ values.get('name_ru', product.name_ru if product else '') }}"></label>
+      <label class="admin-field"><span>{{ t('admin_ui_category', lang=lang) }}</span><select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}" {{ 'selected' if (values.get('category_id', product.category_id if product else '')|string) == (category.id|string) }}>{{ category.name_uz }}</option>{% endfor %}</select></label>
+      <label class="admin-field"><span>{{ t('admin_ui_unit', lang=lang) }}</span><select name="unit_code" required>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('unit_code', product.base_unit_code if product else '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
+      <label class="admin-field"><span>{{ t('admin_ui_size', lang=lang) }}</span><input type="text" name="size" value="{{ values.get('size', product.attributes.get('size', '') if product else '') }}"></label>
+      <label class="admin-field"><span>{{ t('admin_ui_thickness', lang=lang) }}</span><input type="text" name="thickness" inputmode="decimal" value="{{ values.get('thickness', product.attributes.get('thickness_mm', '') if product else '') }}"></label>
+      <label class="admin-field"><span>{{ t('admin_ui_brand', lang=lang) }}</span><input type="text" name="brand" maxlength="100" value="{{ values.get('brand', product.brand or '' if product else '') }}"></label>
+      <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_description', lang=lang) }}</span><textarea name="product_description" rows="3">{{ values.get('product_description', values.get('description', product.attributes.get('description', '') if product else '')) }}</textarea></label>
+      <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_upload_photo', lang=lang) }}</span><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
+      {% if product and product.image_url %}<div class="admin-photo-preview"><img src="{{ product.image_url }}" alt=""><label><input type="checkbox" name="remove_photo" value="true"> {{ t('admin_ui_remove_photo', lang=lang) }}</label></div>{% endif %}
+    </div>
+    {% if product %}<label class="admin-check-field"><input type="checkbox" name="active" value="true" {{ 'checked' if (values.get('active') if values else product.is_active) }}> <span>{{ t('admin_ui_active', lang=lang) }}</span></label>{% else %}
+      <label class="admin-check-field"><input type="checkbox" name="force_new" value="true" {{ 'checked' if values.get('force_new') }}> <span>{{ t('admin_ui_confirm_new_variant', lang=lang) }}</span></label>
     {% endif %}
-    <button class="btn btn-primary" type="submit">{{ t('web_save', lang=lang) }}</button>
+
+    {% if not product %}
+    <section class="admin-offer-editor admin-offer-editor-new">
+      <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_offer', lang=lang) }}</p><h2>{{ t('admin_ui_new_offer', lang=lang) }}</h2></div><span class="admin-optional-label">{{ t('admin_ui_optional', lang=lang) }}</span></header>
+      <div class="admin-form-grid">
+        <label class="admin-field"><span>{{ t('admin_ui_offer_pack', lang=lang) }}</span><input type="text" name="pack_size" inputmode="decimal" value="{{ values.get('pack_size', '1') }}"></label>
+        <label class="admin-field"><span>{{ t('admin_ui_unit', lang=lang) }}</span><select name="pack_unit_code"><option value="">{{ t('admin_ui_unit', lang=lang) }}</option>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if values.get('pack_unit_code', '') == unit.code }}>{{ unit.code }}</option>{% endfor %}</select></label>
+        <div class="admin-field admin-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="source_currency" data-source-currency data-initial-currency="{{ values.get('source_currency', 'UZS') }}"><option value="UZS" {{ 'selected' if values.get('source_currency', 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if values.get('source_currency', '') == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_source_amount', lang=lang) }}</span><input type="text" name="source_price" inputmode="decimal" data-source-amount value="{{ values.get('source_price', values.get('price', '')) }}"></label><input type="hidden" name="confirm_currency_change" value="{{ values.get('confirm_currency_change', '') }}" data-currency-confirm></div>
+        <label class="admin-field"><span>{{ t('admin_ui_stock', lang=lang) }}</span><select name="stock_status">{% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if values.get('stock_status', 'out') == status }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}</select></label>
+        <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_offer_description', lang=lang) }}</span><textarea name="offer_description" rows="2">{{ values.get('offer_description', '') }}</textarea></label>
+      </div>
+      <p class="admin-form-help">{{ t('admin_ui_offer_currency_help', lang=lang) }}{% if not fx_rate_available %} {{ t('admin_ui_fx_rate_missing', lang=lang) }}{% endif %}</p>
+      <div class="admin-tier-editor"><div class="admin-tier-heading"><h3>{{ t('admin_ui_wholesale_tiers', lang=lang) }}</h3><button type="button" class="admin-button admin-button-small admin-tier-add" data-tier-add>{{ t('admin_ui_add_tier', lang=lang) }}</button></div>
+        <div class="admin-tier-list" data-tier-list>
+          {% for tier in tier_rows %}{% set i = loop.index0 %}
+          <div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value="{{ tier.get('tier_id', '') }}"><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal" value="{{ tier.get('tier_min_qty', '') }}"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="{{ tier.get('tier_currency', 'UZS') }}"><option value="UZS" {{ 'selected' if tier.get('tier_currency', 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if tier.get('tier_currency') == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount value="{{ tier.get('tier_source_price', '') }}"></label><input type="hidden" name="tier_currency_confirmed" value="{{ tier.get('tier_currency_confirmed', '') }}" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div>
+          {% else %}<div class="admin-tier-empty" data-tier-empty>{{ t('admin_ui_no_tiers', lang=lang) }}</div>{% endfor %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <footer class="admin-form-footer"><a class="admin-button admin-button-secondary" href="/manage/products">{{ t('admin_ui_cancel', lang=lang) }}</a><button class="admin-button admin-button-primary" type="submit">{{ t('admin_ui_save', lang=lang) }}</button></footer>
   </form>
-  <p class="notice">{{ t('manage_unlimited_stock', lang=lang) }}</p>
+
   {% if product %}
-    <h2>{{ t('manage_offer', lang=lang) }}</h2>
-    <form class="card grid cols-2 manage-product-fields" method="post" action="/manage/products/{{ product.id }}/offers">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-      <label class="field">{{ t('manage_pack', lang=lang) }} <input type="text" name="pack_size" inputmode="decimal" value="{{ offer_values.get('pack_size', '1') if offer_id is none else '1' }}" required></label>
-      <label class="field">{{ t('manage_unit', lang=lang) }} <select name="pack_unit_code">{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if unit.code == (offer_values.get('pack_unit_code', product.base_unit_code) if offer_id is none else product.base_unit_code) }}>{{ unit.code }}</option>{% endfor %}</select></label>
-      <label class="field">{{ t('web_shop_price', lang=lang) }} <input type="text" name="price" inputmode="decimal" value="{{ offer_values.get('price', '') if offer_id is none else '' }}" required></label>
-      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status" required>{% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if status == (offer_values.get('stock_status', 'out') if offer_id is none else 'out') }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}</select></label>
-      <label class="field field-wide">{{ t('manage_description', lang=lang) }} <textarea name="description">{{ offer_values.get('description', '') if offer_id is none else '' }}</textarea></label>
-      <button class="btn btn-primary" type="submit">{{ t('manage_offer', lang=lang) }}</button>
-    </form>
-    {% for offer in offers %}{% set submitted = offer_values if offer_id == offer.id else {} %}<form class="card grid cols-2 manage-product-fields" method="post" action="/manage/offers/{{ offer.id }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-      <label class="field">{{ t('manage_pack', lang=lang) }} <input type="text" name="pack_size" inputmode="decimal" value="{{ submitted.get('pack_size', offer.pack_size) }}" required></label>
-      <label class="field">{{ t('manage_unit', lang=lang) }} <select name="pack_unit_code">{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if unit.code == submitted.get('pack_unit_code', offer.pack_unit_code) }}>{{ unit.code }}</option>{% endfor %}</select></label>
-      <label class="field field-wide">{{ t('manage_description', lang=lang) }} <textarea name="description">{{ submitted.get('description', offer.description or '') }}</textarea></label>
-      <label class="field">{{ t('web_shop_price', lang=lang) }} <input type="text" name="price" inputmode="decimal" value="{{ submitted.get('price', offer.price_per_pack) }}" required></label>
-      <label class="field">{{ t('manage_stock', lang=lang) }} <select name="stock_status">
-        {% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if submitted.get('stock_status', offer.stock_status) == status }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}
-      </select></label>
-      <label><input type="checkbox" name="active" value="true" {{ 'checked' if (submitted.get('active') if submitted else offer.is_active) }}> {{ t('manage_active', lang=lang) }}</label>
-      <button class="btn btn-sm" type="submit">{{ t('web_save', lang=lang) }}</button>
-    </form>{% endfor %}
-    <form class="card" method="post" action="/manage/products/{{ product.id }}/{{ 'archive' if product.is_active else 'restore' }}" {% if product.is_active %}data-confirm="{{ t('manage_archive_confirm', lang=lang) }}"{% endif %}>
+    <section class="admin-card admin-offers-section">
+      <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_current_shop', lang=lang) }} · {{ shop.name }}</p><h2>{{ t('admin_ui_offer', lang=lang) }}</h2></div><span class="admin-offer-count">{{ offers|length }}</span></header>
+      {% for offer in offers %}{% set submitted = offer_values if offer_id == offer.id else {} %}
+      <form class="admin-offer-editor" method="post" action="/manage/offers/{{ offer.id }}" data-confirm-currency-switch>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <div class="admin-offer-editor-heading"><div><strong>{{ format_qty(offer.pack_size) }} {{ offer.pack_unit_code or offer.raw_unit }}</strong><small>{{ t('admin_ui_price_uzs', lang=lang) }} · {{ format_uzs(offer.price_per_pack) }}</small></div><label class="admin-check-field"><input type="checkbox" name="active" value="true" {{ 'checked' if (submitted.get('active') if submitted else offer.is_active) }}> <span>{{ t('admin_ui_active', lang=lang) }}</span></label></div>
+        <div class="admin-form-grid admin-offer-grid">
+          <label class="admin-field"><span>{{ t('admin_ui_offer_pack', lang=lang) }}</span><input type="text" name="pack_size" inputmode="decimal" value="{{ submitted.get('pack_size', offer.pack_size) }}" required></label>
+          <label class="admin-field"><span>{{ t('admin_ui_unit', lang=lang) }}</span><select name="pack_unit_code">{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if unit.code == submitted.get('pack_unit_code', offer.pack_unit_code) }}>{{ unit.code }}</option>{% endfor %}</select></label>
+          <div class="admin-field admin-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="source_currency" data-source-currency data-initial-currency="{{ submitted.get('source_currency', offer.source_currency) }}"><option value="UZS" {{ 'selected' if submitted.get('source_currency', offer.source_currency) == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if submitted.get('source_currency', offer.source_currency) == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_source_amount', lang=lang) }}</span><input type="text" name="source_price" inputmode="decimal" data-source-amount value="{{ submitted.get('source_price', submitted.get('price', offer.source_price_per_pack or offer.price_per_pack if offer.source_currency == 'UZS' else offer.source_price_per_pack)) }}" required></label><input type="hidden" name="confirm_currency_change" value="{{ submitted.get('confirm_currency_change', '') }}" data-currency-confirm></div>
+          <label class="admin-field"><span>{{ t('admin_ui_stock', lang=lang) }}</span><select name="stock_status">{% for status in ['in_stock', 'low', 'on_order', 'out'] %}<option value="{{ status }}" {{ 'selected' if submitted.get('stock_status', offer.stock_status) == status }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}</select></label>
+          <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_offer_description', lang=lang) }}</span><textarea name="description" rows="2">{{ submitted.get('description', offer.description or '') }}</textarea></label>
+        </div>
+        <p class="admin-form-help">{{ t('admin_ui_offer_currency_help', lang=lang) }}{% if not fx_rate_available %} {{ t('admin_ui_fx_rate_missing', lang=lang) }}{% endif %}</p>
+        <div class="admin-tier-editor"><div class="admin-tier-heading"><h3>{{ t('admin_ui_wholesale_tiers', lang=lang) }}</h3><button type="button" class="admin-button admin-button-small admin-tier-add" data-tier-add>{{ t('admin_ui_add_tier', lang=lang) }}</button></div>
+          <div class="admin-tier-list" data-tier-list>
+            {% if offer_id == offer.id and tier_rows %}
+              {% for tier in tier_rows %}<div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value="{{ tier.get('tier_id', '') }}"><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal" value="{{ tier.get('tier_min_qty', '') }}"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="{{ tier.get('tier_currency', 'UZS') }}"><option value="UZS" {{ 'selected' if tier.get('tier_currency', 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if tier.get('tier_currency') == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount value="{{ tier.get('tier_source_price', '') }}"></label><input type="hidden" name="tier_currency_confirmed" value="{{ tier.get('tier_currency_confirmed', '') }}" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div>{% endfor %}
+            {% else %}{% for tier in offer.price_tiers %}
+            <div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value="{{ tier.id }}"><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal" value="{{ tier.min_qty }}"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="{{ tier.source_currency or 'UZS' }}"><option value="UZS" {{ 'selected' if (tier.source_currency or 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if tier.source_currency == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount value="{{ tier.source_price_per_pack or tier.price_per_pack if (tier.source_currency or 'UZS') == 'UZS' else tier.source_price_per_pack }}"></label><input type="hidden" name="tier_currency_confirmed" value="" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div>
+            {% else %}<div class="admin-tier-empty" data-tier-empty>{{ t('admin_ui_no_tiers', lang=lang) }}</div>{% endfor %}{% endif %}
+          </div>
+        </div>
+        <template data-tier-template><div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value=""><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="UZS"><option value="UZS" selected>UZS</option><option value="USD" {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount></label><input type="hidden" name="tier_currency_confirmed" value="" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div></template>
+        <p class="admin-form-help">{{ t('admin_ui_fx_rate_effect', lang=lang) }}</p>
+        <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_offer_description', lang=lang) }}</span><textarea name="description" rows="2">{{ submitted.get('description', offer.description or '') }}</textarea></label>
+        <footer class="admin-form-footer"><button class="admin-button admin-button-primary" type="submit">{{ t('admin_ui_save', lang=lang) }}</button></footer>
+      </form>
+      {% else %}<p class="admin-empty-inline">{{ t('admin_ui_no_offer', lang=lang) }}</p>{% endfor %}
+
+      <form class="admin-offer-editor admin-new-offer" method="post" action="/manage/products/{{ product.id }}/offers" data-confirm-currency-switch>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_offer', lang=lang) }}</p><h3>{{ t('admin_ui_new_offer', lang=lang) }}</h3></div></header>
+        <div class="admin-form-grid">
+          <label class="admin-field"><span>{{ t('admin_ui_offer_pack', lang=lang) }}</span><input type="text" name="pack_size" inputmode="decimal" value="{{ offer_values.get('pack_size', '1') if offer_id is none else '1' }}" required></label>
+          <label class="admin-field"><span>{{ t('admin_ui_unit', lang=lang) }}</span><select name="pack_unit_code" required>{% for unit in units %}<option value="{{ unit.code }}" {{ 'selected' if unit.code == (offer_values.get('pack_unit_code', product.base_unit_code) if offer_id is none else product.base_unit_code) }}>{{ unit.code }}</option>{% endfor %}</select></label>
+          <div class="admin-field admin-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="source_currency" data-source-currency data-initial-currency="{{ offer_values.get('source_currency', 'UZS') if offer_id is none else 'UZS' }}"><option value="UZS" {{ 'selected' if offer_values.get('source_currency', 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if offer_values.get('source_currency') == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_source_amount', lang=lang) }}</span><input type="text" name="source_price" inputmode="decimal" data-source-amount value="{{ offer_values.get('source_price', offer_values.get('price', '')) if offer_id is none else '' }}" required></label><input type="hidden" name="confirm_currency_change" value="{{ offer_values.get('confirm_currency_change', '') if offer_id is none else '' }}" data-currency-confirm></div>
+          <label class="admin-field"><span>{{ t('admin_ui_stock', lang=lang) }}</span><select name="stock_status" required>{% for status in ['out', 'in_stock', 'low', 'on_order'] %}<option value="{{ status }}" {{ 'selected' if status == (offer_values.get('stock_status', 'out') if offer_id is none else 'out') }}>{{ t('web_shop_stock_' ~ status, lang=lang) }}</option>{% endfor %}</select></label>
+          <label class="admin-field admin-field-wide"><span>{{ t('admin_ui_offer_description', lang=lang) }}</span><textarea name="description" rows="2">{{ offer_values.get('description', '') if offer_id is none else '' }}</textarea></label>
+        </div>
+        <p class="admin-form-help">{{ t('admin_ui_offer_currency_help', lang=lang) }}{% if not fx_rate_available %} {{ t('admin_ui_fx_rate_missing', lang=lang) }}{% endif %}</p>
+        <div class="admin-tier-editor"><div class="admin-tier-heading"><h3>{{ t('admin_ui_wholesale_tiers', lang=lang) }}</h3><button type="button" class="admin-button admin-button-small admin-tier-add" data-tier-add>{{ t('admin_ui_add_tier', lang=lang) }}</button></div>
+          <div class="admin-tier-list" data-tier-list>
+            {% if offer_id is none and tier_rows %}{% for tier in tier_rows %}<div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value="{{ tier.get('tier_id', '') }}"><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal" value="{{ tier.get('tier_min_qty', '') }}"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="{{ tier.get('tier_currency', 'UZS') }}"><option value="UZS" {{ 'selected' if tier.get('tier_currency', 'UZS') == 'UZS' }}>UZS</option><option value="USD" {{ 'selected' if tier.get('tier_currency') == 'USD' }} {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount value="{{ tier.get('tier_source_price', '') }}"></label><input type="hidden" name="tier_currency_confirmed" value="{{ tier.get('tier_currency_confirmed', '') }}" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div>{% endfor %}{% else %}<div class="admin-tier-empty" data-tier-empty>{{ t('admin_ui_no_tiers', lang=lang) }}</div>{% endif %}
+          </div>
+        </div>
+        <template data-tier-template><div class="admin-tier-row" data-tier-row><input type="hidden" name="tier_id" value=""><label><span>{{ t('admin_ui_tier_min_quantity', lang=lang) }}</span><input type="text" name="tier_min_qty" inputmode="decimal"></label><div class="admin-price-source tier-price-source" data-currency-price><label><span>{{ t('admin_ui_source_currency', lang=lang) }}</span><select name="tier_currency" data-source-currency data-initial-currency="UZS"><option value="UZS" selected>UZS</option><option value="USD" {{ 'disabled' if not fx_rate_available }}>USD</option></select></label><label><span>{{ t('admin_ui_tier_price', lang=lang) }}</span><input type="text" name="tier_source_price" inputmode="decimal" data-source-amount></label><input type="hidden" name="tier_currency_confirmed" value="" data-currency-confirm></div><button type="button" class="admin-tier-remove" data-tier-remove aria-label="{{ t('admin_ui_remove_tier', lang=lang) }}">×</button></div></template>
+        <footer class="admin-form-footer"><button class="admin-button admin-button-primary" type="submit">{{ t('admin_ui_new_offer', lang=lang) }}</button></footer>
+      </form>
+    </section>
+
+    <form class="admin-archive-form" method="post" action="/manage/products/{{ product.id }}/{{ 'archive' if product.is_active else 'restore' }}" data-confirm="{{ t('admin_ui_archive_confirm' if product.is_active else 'admin_ui_restore_confirm', lang=lang) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-      {% if not product.is_active %}<p class="notice warn">{{ t('manage_archived', lang=lang) }}</p>{% endif %}
-      <button class="btn" type="submit">{{ t('manage_archive' if product.is_active else 'manage_restore', lang=lang) }}</button>
+      <p>{{ t('admin_ui_archive_status', lang=lang) }}</p><button class="admin-button {{ 'admin-button-danger' if product.is_active else 'admin-button-secondary' }}" type="submit">{{ t('admin_ui_archive' if product.is_active else 'admin_ui_restore', lang=lang) }}</button>
     </form>
   {% endif %}
-</section>{% endblock %}
+</section>
+{% endblock %}

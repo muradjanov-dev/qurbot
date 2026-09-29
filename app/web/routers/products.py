@@ -9,13 +9,14 @@ have hidden cannot judge whether hiding it was right.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.session import get_db_session
 from app.web.auth import require_admin
+from app.web.storefront.session import SESSION_COOKIE, read_session
 from app.web.templates_env import templates
 
 router = APIRouter(prefix="/admin/products", tags=["admin-products"])
@@ -30,7 +31,12 @@ async def list_products(
     page: int = Query(default=1, ge=1),
     session: AsyncSession = Depends(get_db_session),
     _admin: str = Depends(require_admin),
-) -> HTMLResponse:
+) -> Response:
+    if read_session(request.cookies.get(SESSION_COOKIE)) is not None:
+        query = str(request.url.query)
+        return RedirectResponse(
+            "/manage/products" + ("?" + query if query else ""), status_code=303
+        )
     repo = CatalogRepository(session)
     offset = (page - 1) * PAGE_SIZE
     rows, total = await repo.admin_list_products(search=q, offset=offset, limit=PAGE_SIZE)

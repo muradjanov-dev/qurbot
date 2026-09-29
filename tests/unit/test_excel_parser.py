@@ -225,6 +225,17 @@ class TestCsvParser:
         assert result.rows[0].raw_name == "Sement M400"
         assert result.rows[0].raw_price == Decimal("52000")
 
+    def test_parse_optional_currency_column(self) -> None:
+        data = _make_csv_bytes(
+            headers=["Product Name", "Price", "Unit", "Currency"],
+            rows=[["Plywood", "4.80", "dona", "USD"]],
+        )
+
+        result = parse_csv(data)
+
+        assert result.rows[0].raw_currency == "USD"
+        assert result.detected_columns["currency"] == 3
+
     def test_parse_cp1251_csv(self) -> None:
         """Russian Windows encoding fallback."""
         data = _make_csv_bytes(

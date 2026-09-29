@@ -83,7 +83,7 @@ async def setup_bot_commands(bot: Bot) -> None:
         try:
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(
-                    text="QurBot",
+                    text="Tezqur",
                     web_app=WebAppInfo(url=settings.storefront_webapp_url),
                 )
             )

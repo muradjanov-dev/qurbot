@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('admin_ui_fx_rate_current', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+<section class="admin-currency-page">
+  <div class="admin-breadcrumb"><a href="/manage/settings">{{ t('admin_ui_settings', lang=lang) }}</a><span aria-hidden="true">/</span><strong>{{ t('admin_ui_fx_rate_current', lang=lang) }}</strong></div>
+  <header class="admin-page-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_settings', lang=lang) }}</p><h1>{{ t('admin_ui_fx_rate_current', lang=lang) }}</h1><p>{{ t('admin_ui_fx_rate_effect', lang=lang) }}</p></div></header>
+
+  <div class="admin-currency-layout">
+    <section class="admin-card admin-rate-current-card">
+      <div class="admin-rate-current-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m5-14H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <p class="admin-eyebrow">{{ t('admin_ui_fx_rate_current', lang=lang) }}</p>
+      {% if snapshot.rate is not none %}<strong class="admin-rate-current">{{ format_uzs(snapshot.rate) }}</strong><span class="admin-rate-unit">{{ t('admin_ui_fx_rate', lang=lang) }}</span>{% else %}<strong class="admin-rate-current admin-rate-unset">{{ t('admin_ui_fx_rate_missing', lang=lang) }}</strong><p>{{ t('admin_ui_fx_rate_missing_help', lang=lang) }}</p>{% endif %}
+      <dl class="admin-rate-metadata">
+        <div><dt>{{ t('admin_ui_fx_rate_revision', lang=lang) }}</dt><dd>{{ snapshot.revision }}</dd></div>
+        <div><dt>{{ t('admin_ui_fx_rate_updated', lang=lang) }}</dt><dd>{% if snapshot.updated_at %}{{ snapshot.updated_at.strftime('%Y-%m-%d %H:%M UTC') }}{% else %}—{% endif %}</dd></div>
+        <div><dt>{{ t('admin_ui_fx_rate_updated_by', lang=lang) }}</dt><dd>{{ updated_admin or t('admin_ui_system', lang=lang) }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="admin-card admin-rate-form-card">
+      <header class="admin-card-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_fx_rate_preview', lang=lang) }}</p><h2>{{ t('admin_ui_fx_rate', lang=lang) }}</h2></div><span class="admin-rate-revision">#{{ snapshot.revision }}</span></header>
+      {% if error %}<p class="admin-form-error" role="alert">{{ error }}</p>{% endif %}
+      <form method="post" action="/manage/settings/currency" class="admin-rate-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <input type="hidden" name="expected_revision" value="{{ snapshot.revision }}">
+        <label class="admin-field"><span>{{ t('admin_ui_fx_rate', lang=lang) }}</span><div class="admin-rate-input-wrap"><span>1 USD =</span><input type="text" name="rate" inputmode="decimal" autocomplete="off" required value="{{ rate_value }}" aria-describedby="admin-rate-help"><strong>{{ t('admin_ui_currency_uzs', lang=lang) }}</strong></div></label>
+        <p class="admin-form-help" id="admin-rate-help">{{ t('admin_ui_fx_rate_missing_help', lang=lang) }}</p>
+        <aside class="admin-rate-warning"><span aria-hidden="true">i</span><p>{{ t('admin_ui_fx_rate_effect', lang=lang) }}</p></aside>
+        <footer class="admin-form-footer"><a class="admin-button admin-button-secondary" href="/manage/settings">{{ t('admin_ui_cancel', lang=lang) }}</a><button class="admin-button admin-button-primary" type="submit">{{ t('admin_ui_fx_rate_publish', lang=lang) }}</button></footer>
+      </form>
+    </section>
+  </div>
+</section>
+{% endblock %}

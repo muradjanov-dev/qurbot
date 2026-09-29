@@ -40,6 +40,7 @@ from app.domain.optimizer.models import QuoteVariant, ShopQuoteGroup
 from app.domain.optimizer.serde import serialize_variant
 from app.domain.rewards import pebbles_for_order
 from app.services.cart_service import CartConflict, CartService, InvalidCartItem
+from app.services.fx_pricing import FxPricingService
 
 logger = get_logger(__name__)
 
@@ -120,12 +121,24 @@ async def place_order(
             return replay
     if not variant.is_orderable or variant.missing_lines:
         raise InvalidCartItem("quote_not_orderable")
+    cart_service: CartService | None = None
+    snapshot = None
     if cart_revision is not None:
-        # Clear in the SAME transaction as order/reward/receipt creation.
+        # Keep lock order consistent with checkout quote paths: cart row first,
+        # then the shared FX row. A queued FX publisher must not sit between
+        # these locks and create a cycle with another cart reader.
         cart_service = CartService(session)
         snapshot = await cart_service.get(user.id)
         if snapshot.revision != cart_revision:
             raise CartConflict(snapshot.revision)
+
+    # QuoteService already holds this shared lock for the normal quote-to-order
+    # request path; the acquisition here also covers precomputed variants.
+    fx_snapshot = await FxPricingService(session).snapshot(lock=True)
+
+    if cart_revision is not None:
+        assert cart_service is not None and snapshot is not None
+        # Clear in the SAME transaction as order/reward/receipt creation.
         from app.services.cart_policy import assess_lines
 
         if any(
@@ -146,6 +159,13 @@ async def place_order(
     await session.flush()
 
     strategy = variant.strategy_labels[0].value if variant.strategy_labels else "CHEAPEST_TOTAL"
+    quote_payload = serialize_variant(variant)
+    quote_payload["fx_snapshot"] = {
+        "rate": str(fx_snapshot.rate) if fx_snapshot.rate is not None else None,
+        "revision": fx_snapshot.revision,
+        "updated_at": fx_snapshot.updated_at.isoformat() if fx_snapshot.updated_at else None,
+        "updated_by": fx_snapshot.updated_by,
+    }
     quote = Quote(
         basket_id=basket.id,
         strategy=strategy,
@@ -158,7 +178,7 @@ async def place_order(
         missing_line_ids=[item.line_no for item in variant.missing_lines],
         # The snapshot SPEC §4.3 asks for: prices move, and the order has to
         # keep pointing at what was actually quoted.
-        payload=serialize_variant(variant),
+        payload=quote_payload,
     )
     session.add(quote)
     await session.flush()

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Katalog — QurBot Admin{% endblock %}
+{% block title %}Katalog — Tezqur Admin{% endblock %}
 {% block content %}
 <h1>Katalog</h1>
 <p>
@@ -41,7 +41,7 @@
       <td>{{ item.offer_count }}</td>
       <td>
         {% if item.min_price is not none %}
-        {{ '{:,.0f}'.format(item.min_price).replace(',', ' ') }} so'm
+        {{ format_money(item.min_price, 'UZS', lang) }}
         {% else %}
         <span class="empty">—</span>
         {% endif %}

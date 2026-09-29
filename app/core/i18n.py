@@ -1,4 +1,4 @@
-"""Internationalization (i18n) module for QurBot.
+"""Internationalization (i18n) module for Tezqur.
 
 Supports:
 - uz_latn: O'zbekcha (Lotin)
@@ -24,9 +24,9 @@ DEFAULT_LANG: str = settings.default_lang
 MESSAGES: dict[str, dict[str, str]] = {
     # Onboarding & Language
     "choose_language": {
-        "uz_latn": "Assalomu alaykum! QurBot ga xush kelibsiz. Iltimos, tilni tanlang:",
-        "uz_cyrl": "Ассалому алайкум! QurBot га хуш келибсиз. Илтимос, тилни танланг:",
-        "ru": "Здравствуйте! Добро пожаловать в QurBot. Пожалуйста, выберите язык:",
+        "uz_latn": "Assalomu alaykum! Tezqur ga xush kelibsiz. Iltimos, tilni tanlang:",
+        "uz_cyrl": "Ассалому алайкум! Tezqur га хуш келибсиз. Илтимос, тилни танланг:",
+        "ru": "Здравствуйте! Добро пожаловать в Tezqur. Пожалуйста, выберите язык:",
     },
     "choose_region": {
         "uz_latn": "🗺 Qaysi viloyatdasiz? Avval viloyatni tanlang:",
@@ -75,7 +75,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     },
     "welcome_done": {
         "uz_latn": (
-            "🏗 <b>Xush kelibsiz!</b> QurBot qurilish mollaringizni topib, narxini "
+            "🏗 <b>Xush kelibsiz!</b> Tezqur qurilish mollaringizni topib, narxini "
             "hisoblab, eshigingizgacha yetkazadi.\n"
             "\n"
             "📝 Kerakli mollarni oddiy matn bilan yozing. Masalan:\n"
@@ -87,7 +87,7 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Ro'yxatingizni yuboring — qolganini bizga qo'yib bering 😊"
         ),
         "uz_cyrl": (
-            "🏗 <b>Хуш келибсиз!</b> QurBot қурилиш молларингизни топиб, нархини "
+            "🏗 <b>Хуш келибсиз!</b> Tezqur қурилиш молларингизни топиб, нархини "
             "ҳисоблаб, эшигингизгача етказади.\n"
             "\n"
             "📝 Керакли молларни оддий матн билан ёзинг. Масалан:\n"
@@ -99,7 +99,7 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Рўйхатингизни юборинг — қолганини бизга қўйиб беринг 😊"
         ),
         "ru": (
-            "🏗 <b>Добро пожаловать!</b> QurBot найдёт стройматериалы, посчитает цену и "
+            "🏗 <b>Добро пожаловать!</b> Tezqur найдёт стройматериалы, посчитает цену и "
             "довезёт до двери.\n"
             "\n"
             "📝 Напишите нужное простым текстом. Например:\n"
@@ -998,6 +998,7 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Jami qatorlar: {total}\n"
             "✅ Avtomatik moslashtirildi: {auto_count}\n"
             "⚠️ Tasdiqlash kutilmoqda: {manual_count}\n"
+            "⚠️ Valyuta xatolari: {currency_errors}\n"
             "❌ O'tkazib yuborildi: {skipped}"
         ),
         "uz_cyrl": (
@@ -1005,6 +1006,7 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Жами қаторлар: {total}\n"
             "✅ Автоматик мослаштирилди: {auto_count}\n"
             "⚠️ Тасдиқлаш кутилмоқда: {manual_count}\n"
+            "⚠️ Валюта хатолари: {currency_errors}\n"
             "❌ Ўтказиб юборилди: {skipped}"
         ),
         "ru": (
@@ -1012,8 +1014,16 @@ MESSAGES: dict[str, dict[str, str]] = {
             "Всего строк: {total}\n"
             "✅ Автоматически сопоставлено: {auto_count}\n"
             "⚠️ Ожидает подтверждения: {manual_count}\n"
+            "⚠️ Ошибки валюты: {currency_errors}\n"
             "❌ Пропущено: {skipped}"
         ),
+    },
+    "batch_currency_error": {
+        "uz_latn": (
+            "❌ Narxlarni qo‘llamadik: har bir narx uchun UZS yoki USD valyutasini " "ko‘rsating."
+        ),
+        "uz_cyrl": "❌ Нархларни қўлламадик: ҳар бир нарх учун UZS ёки USD валютасини кўрсатинг.",
+        "ru": "❌ Цены не применены: укажите для каждой цены валюту UZS или USD.",
     },
     "batch_applied": {
         "uz_latn": "✅ {count} ta mahsulot narxi muvaffaqiyatli yangilandi!",
@@ -2399,6 +2409,31 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Нархларни юклаш",
         "ru": "Загрузка цен",
     },
+    "web_shop_import_currency_label": {
+        "uz_latn": "Narxlar valyutasi",
+        "uz_cyrl": "Нархлар валютаси",
+        "ru": "Валюта цен",
+    },
+    "web_shop_import_currency_prompt": {
+        "uz_latn": "Valyutani tanlang",
+        "uz_cyrl": "Валютани танланг",
+        "ru": "Выберите валюту",
+    },
+    "web_shop_import_currency_error": {
+        "uz_latn": "Valyuta ko‘rsatilmagan yoki UZS/USD emas.",
+        "uz_cyrl": "Валюта кўрсатилмаган ёки UZS/USD эмас.",
+        "ru": "Валюта не указана или отличается от UZS/USD.",
+    },
+    "web_shop_import_currency_errors": {
+        "uz_latn": "Valyuta xatolari",
+        "uz_cyrl": "Валюта хатолари",
+        "ru": "Ошибки валюты",
+    },
+    "web_shop_import_currency_blocked": {
+        "uz_latn": "Valyutani tanlang yoki fayldagi valyuta qatorlarini tuzating.",
+        "uz_cyrl": "Валютани танланг ёки файлдаги валюта қаторларини тузатинг.",
+        "ru": "Выберите валюту или исправьте валюту в строках файла.",
+    },
     "web_shop_price": {"uz_latn": "Narx", "uz_cyrl": "Нарх", "ru": "Цена"},
     "web_shop_stock": {"uz_latn": "Mavjudlik", "uz_cyrl": "Мавжудлик", "ru": "Наличие"},
     "web_shop_stock_in_stock": {"uz_latn": "Bor", "uz_cyrl": "Бор", "ru": "В наличии"},
@@ -2562,6 +2597,15 @@ MESSAGES.update(
         },
     }
 )
+
+
+from app.core.admin_redesign_i18n import ADMIN_UI_MESSAGES  # noqa: E402
+from app.core.redesign_i18n import UI_MESSAGES  # noqa: E402
+from app.core.store_redesign_i18n import STORE_UI_MESSAGES  # noqa: E402
+
+MESSAGES.update(UI_MESSAGES)
+MESSAGES.update(ADMIN_UI_MESSAGES)
+MESSAGES.update(STORE_UI_MESSAGES)
 
 
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs: Any) -> str:

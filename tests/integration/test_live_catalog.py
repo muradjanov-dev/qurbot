@@ -26,7 +26,7 @@ async def test_catalog_fragment_reflects_name_price_and_image_changes(client, te
     first = client.get(url)
     assert first.status_code == 200
     assert "<html" not in first.text and "data-live-root" in first.text
-    assert "58.000" in first.text
+    assert "58 000" in first.text
     old_image = re.search(r"/media/product/\d+\?v=[a-f0-9]+", first.text).group()
     product = await test_session.get(CanonicalProduct, fixture.product_id)
     offer = await test_session.scalar(select(ShopProduct))
@@ -35,7 +35,7 @@ async def test_catalog_fragment_reflects_name_price_and_image_changes(client, te
     offer.price_per_pack = offer.price_per_base_unit = Decimal("67000")
     await test_session.commit()
     second = client.get(url)
-    assert "Янги маҳсулот" in second.text and "67.000" in second.text
+    assert "Янги маҳсулот" in second.text and "67 000" in second.text
     assert old_image not in second.text
     assert second.headers["cache-control"] == "no-store"
 

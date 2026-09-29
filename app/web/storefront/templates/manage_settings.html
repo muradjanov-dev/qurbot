@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('admin_ui_settings', lang=lang) }} — Tezqur{% endblock %}
+{% block content %}
+<section class="admin-settings-page">
+  <header class="admin-page-heading"><div><p class="admin-eyebrow">{{ t('admin_ui_advanced_settings', lang=lang) }}</p><h1>{{ t('admin_ui_settings', lang=lang) }}</h1><p>{{ t('admin_ui_settings_help', lang=lang) }}</p></div></header>
+  <section class="admin-settings-group">
+    <h2>{{ t('admin_ui_store_settings', lang=lang) }}</h2>
+    <div class="admin-settings-grid">
+      <a class="admin-setting-card" href="/manage/settings/currency"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m5-14H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span><span><strong>{{ t('admin_ui_fx_rate_current', lang=lang) }}</strong><small>{{ t('admin_ui_fx_rate_effect', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/shop/{{ shop.id }}/delivery"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12v12H3zM15 10h4l3 3v5h-7z"/><circle cx="7" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg></span><span><strong>{{ t('admin_ui_delivery_settings', lang=lang) }}</strong><small>{{ t('admin_ui_current_shop', lang=lang) }} · Tezqur</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/shop/{{ shop.id }}/import"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span><span><strong>{{ t('admin_ui_import_prices', lang=lang) }}</strong><small>{{ t('admin_ui_import_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+    </div>
+  </section>
+  <section class="admin-settings-group">
+    <h2>{{ t('admin_ui_advanced_settings', lang=lang) }}</h2>
+    <div class="admin-settings-grid">
+      <a class="admin-setting-card" href="/manage/price-health"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h16M8 15l3-4 3 2 5-7"/></svg></span><span><strong>{{ t('admin_ui_offer_freshness', lang=lang) }}</strong><small>{{ t('admin_ui_offer_freshness_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/admin/unmatched"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5M11 8v4m0 3h.01"/></svg></span><span><strong>{{ t('admin_ui_unmatched_queries', lang=lang) }}</strong><small>{{ t('admin_ui_admin_tool_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/admin/aliases"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 5 18a3 3 0 0 1-4-4l5-5a3 3 0 0 1 4 0m5 1 4-4a3 3 0 0 1 4 4l-5 5a3 3 0 0 1-4 0m-7 1 8-8"/></svg></span><span><strong>{{ t('admin_ui_product_aliases', lang=lang) }}</strong><small>{{ t('admin_ui_admin_tool_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/admin/listings"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg></span><span><strong>{{ t('admin_ui_photo_review', lang=lang) }}</strong><small>{{ t('admin_ui_admin_tool_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/admin/dashboard"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 14l4-4 3 3 6-7"/></svg></span><span><strong>{{ t('admin_ui_analytics', lang=lang) }}</strong><small>{{ t('admin_ui_gmv_scope', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/admin/llm-cost"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/></svg></span><span><strong>{{ t('admin_ui_ai_costs', lang=lang) }}</strong><small>{{ t('admin_ui_admin_tool_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      <a class="admin-setting-card" href="/manage/users"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0m.8-13.9a3.4 3.4 0 0 1 0 6.6m1.2 2.3a5.3 5.3 0 0 1 4 5.1"/></svg></span><span><strong>{{ t('admin_ui_admin_users', lang=lang) }}</strong><small>{{ t('admin_ui_admin_users_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>
+      {% if is_super_admin %}<a class="admin-setting-card" href="/manage/admins"><span class="admin-setting-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5c0 5-3.3 8-8 10-4.7-2-8-5-8-10V6l8-3Z"/><path d="m8 12 2.5 2.5L16 9"/></svg></span><span><strong>{{ t('admin_ui_admin_management', lang=lang) }}</strong><small>{{ t('admin_ui_admin_tool_help', lang=lang) }}</small></span><b aria-hidden="true">→</b></a>{% endif %}
+    </div>
+  </section>
+</section>
+{% endblock %}

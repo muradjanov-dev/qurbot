@@ -67,14 +67,15 @@ def test_chat_template_accessibility_and_localization(lang: str, authenticated: 
     assert f"app.js?v={ASSET_VERSION}" in html
     if authenticated:
         assert f"chat.js?v={ASSET_VERSION}" in html
-        assert 'class="topbar"' not in html
-        assert 'class="tabbar"' not in html
+        assert 'class="topbar' in html
+        assert 'class="tabbar"' in html
         assert audit.logs[0]["aria-label"] == t("web_chat_history", lang=lang)
         assert audit.logs[0]["aria-live"] == "polite"
         raw = html.split('<script id="chat-strings" type="application/json">')[1]
         assert json.loads(raw.split("</script>")[0])["retry"] == t("web_chat_retry", lang=lang)
     else:
-        assert 'href="/login?next=/chat"' not in html
+        assert 'href="/login?next=/chat"' in html
+        assert "data-telegram-login" in html
         assert "data-chat-form" in html
         assert "chat.js" in html
 

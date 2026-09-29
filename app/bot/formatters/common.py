@@ -1,16 +1,16 @@
 """Shared display helpers for Telegram output."""
 
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from html import escape as html_escape
 
 from app.core.i18n import DEFAULT_LANG, t
 from app.domain.normalize.translit import latin_to_cyrillic_uz
+from app.domain.pricing.display import format_uzs_amount
 
 
 def format_uzs(amount: Decimal) -> str:
-    """Render a whole-UZS amount with dot thousands groups."""
-    whole = amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    return f"{whole:,}".replace(",", ".")
+    """Render a UZS amount with space groups and meaningful cents."""
+    return format_uzs_amount(amount)
 
 
 def format_qty(value: Decimal) -> str:

@@ -544,7 +544,7 @@
       var url = URL.createObjectURL(blob);
       var link = document.createElement("a");
       link.href = url;
-      link.download = "qurbot-taklif.pdf";
+      link.download = "tezqur-taklif.pdf";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

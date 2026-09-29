@@ -1,0 +1,368 @@
+"""Production admin-workspace copy in Uzbek Latin, Uzbek Cyrillic, and Russian."""
+
+from __future__ import annotations
+
+_LANGS = ("uz_latn", "uz_cyrl", "ru")
+
+_LABELS: dict[str, tuple[str, str, str]] = {
+    "dashboard": ("Bosh sahifa", "Бош саҳифа", "Обзор"),
+    "products": ("Mahsulotlar", "Маҳсулотлар", "Товары"),
+    "orders": ("Buyurtmalar", "Буюртмалар", "Заказы"),
+    "chats": ("Muloqotlar", "Мулоқотлар", "Диалоги"),
+    "customers": ("Mijozlar", "Мижозлар", "Клиенты"),
+    "settings": ("Sozlamalar", "Созламалар", "Настройки"),
+    "overview": ("Umumiy ko‘rinish", "Умумий кўриниш", "Обзор"),
+    "welcome_admin": ("Savdo boshqaruvi", "Савдо бошқаруви", "Панель продаж"),
+    "dashboard_hint": (
+        "Katalog, takliflar va buyurtmalar holatini bir joyda kuzating.",
+        "Каталог, таклифлар ва буюртмалар ҳолатини бир жойда кузатинг.",
+        "Каталог, предложения и заказы в одном рабочем пространстве.",
+    ),
+    "catalog_products": ("Katalog mahsulotlari", "Каталог маҳсулотлари", "Товары каталога"),
+    "active_offers": ("Faol takliflar", "Фаол таклифлар", "Активные предложения"),
+    "orders_waiting": (
+        "Ko‘rib chiqiladigan buyurtmalar",
+        "Кўриб чиқиладиган буюртмалар",
+        "Заказы на рассмотрении",
+    ),
+    "customers_total": (
+        "Ro‘yxatdan o‘tgan mijozlar",
+        "Рўйхатдан ўтган мижозлар",
+        "Зарегистрированные клиенты",
+    ),
+    "open_workspace": ("Ish joyini ochish", "Иш жойини очиш", "Открыть раздел"),
+    "recent_products": ("Katalogdagi mahsulotlar", "Каталогдаги маҳсулотлар", "Товары каталога"),
+    "manage_all_products": (
+        "Mahsulotlarni boshqarish",
+        "Маҳсулотларни бошқариш",
+        "Управление товарами",
+    ),
+    "create_product": ("Yangi mahsulot", "Янги маҳсулот", "Новый товар"),
+    "import_prices": ("Narxlarni import qilish", "Нархларни импорт қилиш", "Импортировать цены"),
+    "import_help": (
+        "Excel yoki CSV faylini tekshirib, narxlarni katalogga kiriting.",
+        "Excel ёки CSV файлини текшириб, нархларни каталогга киритинг.",
+        "Проверьте файл Excel или CSV и загрузите цены в каталог.",
+    ),
+    "search": ("Mahsulot qidirish", "Маҳсулот қидириш", "Поиск товара"),
+    "search_placeholder": (
+        "Nomi yoki brendi bo‘yicha qidiring",
+        "Номи ёки бренди бўйича қидиринг",
+        "Поиск по названию или бренду",
+    ),
+    "category": ("Toifa", "Тоифа", "Категория"),
+    "all_categories": ("Barcha toifalar", "Барча тоифалар", "Все категории"),
+    "status": ("Holat", "Ҳолат", "Статус"),
+    "all_products": ("Barchasi", "Барчаси", "Все товары"),
+    "active": ("Faol", "Фаол", "Активен"),
+    "archived": ("Arxivlangan", "Архивланган", "В архиве"),
+    "available": ("Mavjud", "Мавжуд", "В наличии"),
+    "unavailable": ("Mavjud emas", "Мавжуд эмас", "Нет в наличии"),
+    "product_name": ("Mahsulot", "Маҳсулот", "Товар"),
+    "photo": ("Rasm", "Расм", "Фото"),
+    "source": ("Manba", "Манба", "Источник"),
+    "offer_count": ("Faol takliflar", "Фаол таклифлар", "Активные предложения"),
+    "price": ("Narx", "Нарх", "Цена"),
+    "price_uzs": ("Narx, so‘m", "Нарх, сўм", "Цена, сум"),
+    "price_usd": ("Taxminiy narx, USD", "Тахминий нарх, USD", "Примерно, USD"),
+    "source_currency": ("Narx valyutasi", "Нарх валютаси", "Валюта цены"),
+    "source_amount": ("Manba narxi", "Манба нархи", "Цена в исходной валюте"),
+    "converted_amount": ("Hisoblangan narx, so‘m", "Ҳисобланган нарх, сўм", "Расчётная цена, сум"),
+    "pack": ("Qadoq / birlik", "Қадоқ / бирлик", "Упаковка / единица"),
+    "stock": ("Mavjudlik", "Мавжудлик", "Наличие"),
+    "actions": ("Amallar", "Амаллар", "Действия"),
+    "edit": ("Tahrirlash", "Таҳрирлаш", "Изменить"),
+    "save": ("Saqlash", "Сақлаш", "Сохранить"),
+    "cancel": ("Bekor qilish", "Бекор қилиш", "Отмена"),
+    "back": ("Orqaga", "Орқага", "Назад"),
+    "no_products": (
+        "Bu tanlov bo‘yicha mahsulot topilmadi.",
+        "Бу танлов бўйича маҳсулот топилмади.",
+        "По этому фильтру товары не найдены.",
+    ),
+    "result_count": ("{count} ta mahsulot", "{count} та маҳсулот", "Товаров: {count}"),
+    "details": ("Mahsulot ma’lumotlari", "Маҳсулот маълумотлари", "Данные товара"),
+    "name_uz": ("O‘zbekcha nomi", "Ўзбекча номи", "Название на узбекском"),
+    "name_uz_cyrl": ("O‘zbekcha (kirill)", "Ўзбекча (кирилл)", "Узбекское название (кириллица)"),
+    "name_ru": ("Ruscha nomi", "Русча номи", "Название на русском"),
+    "unit": ("Asosiy birlik", "Асосий бирлик", "Базовая единица"),
+    "size": ("O‘lcham", "Ўлчам", "Размер"),
+    "thickness": ("Qalinlik, mm", "Қалинлик, мм", "Толщина, мм"),
+    "brand": ("Brend", "Бренд", "Бренд"),
+    "description": ("Tavsif", "Тавсиф", "Описание"),
+    "upload_photo": ("Rasm yuklash", "Расм юклаш", "Загрузить фото"),
+    "remove_photo": ("Rasmni olib tashlash", "Расмни олиб ташлаш", "Удалить фото"),
+    "new_product": ("Yangi katalog mahsuloti", "Янги каталог маҳсулоти", "Новый товар каталога"),
+    "offer": ("Do‘kon narxi va mavjudligi", "Дўкон нархи ва мавжудлиги", "Цена и наличие магазина"),
+    "new_offer": ("Taklif qo‘shish", "Таклиф қўшиш", "Добавить предложение"),
+    "offer_description": ("Taklif tavsifi", "Таклиф тавсифи", "Описание предложения"),
+    "offer_pack": ("Qadoq miqdori", "Қадоқ миқдори", "Количество в упаковке"),
+    "offer_currency_help": (
+        "Valyutani almashtirsangiz, narx maydoni tozalanadi. "
+        "Yangi valyutada narxni qayta kiriting.",
+        "Валютани алмаштирсангиз, нарх майдони тозаланади. Янги валютада нархни қайта киритинг.",
+        "При смене валюты поле цены очистится. Введите цену заново в новой валюте.",
+    ),
+    "confirm_currency_change": (
+        "Valyuta o‘zgardi. Yangi valyutadagi narxni tasdiqlayman.",
+        "Валюта ўзгарди. Янги валютадаги нархни тасдиқлайман.",
+        "Валюта изменена. Подтверждаю цену в новой валюте.",
+    ),
+    "fx_rate": ("1 USD uchun kurs", "1 USD учун курс", "Курс за 1 USD"),
+    "fx_rate_current": ("Amaldagi kurs", "Амалдаги курс", "Текущий курс"),
+    "fx_rate_revision": ("Kurs versiyasi", "Курс версияси", "Версия курса"),
+    "fx_rate_updated": ("Oxirgi yangilanish", "Охирги янгиланиш", "Последнее обновление"),
+    "fx_rate_updated_by": ("Yangilagan admin", "Янгилаган админ", "Изменил администратор"),
+    "fx_rate_missing": ("Kurs hali sozlanmagan", "Курс ҳали созланмаган", "Курс ещё не настроен"),
+    "fx_rate_missing_help": (
+        "USDda kiritilgan narxlarni so‘mga hisoblash uchun kurs kiriting.",
+        "USDда киритилган нархларни сўмга ҳисоблаш учун курс киритинг.",
+        "Укажите курс для пересчёта цен, введённых в USD, в сумы.",
+    ),
+    "fx_rate_preview": ("Yangi kursni tekshiring", "Янги курсни текширинг", "Проверьте новый курс"),
+    "fx_rate_publish": ("Kursni e’lon qilish", "Курсни эълон қилиш", "Опубликовать курс"),
+    "fx_rate_saved": (
+        "Valyuta kursi yangilandi.",
+        "Валюта курси янгиланди.",
+        "Курс валюты обновлён.",
+    ),
+    "fx_rate_invalid": (
+        "Musbat va to‘g‘ri kurs kiriting.",
+        "Мусбат ва тўғри курс киритинг.",
+        "Введите корректный положительный курс.",
+    ),
+    "fx_rate_conflict": (
+        "Kurs boshqa admin tomonidan yangilangan. Sahifani yangilang.",
+        "Курс бошқа админ томонидан янгиланган. Саҳифани янгиланг.",
+        "Курс изменён другим администратором. Обновите страницу.",
+    ),
+    "fx_rate_required": (
+        "USD narxini kiritish uchun avval kursni sozlang.",
+        "USD нархини киритиш учун аввал курсни созланг.",
+        "Сначала настройте курс, чтобы вводить цены в USD.",
+    ),
+    "fx_rate_effect": (
+        "Yangi kurs USD manbali barcha takliflar va ulgurji pog‘onalar narxini "
+        "qayta hisoblaydi. So‘m manbali narxlar va tasdiqlangan buyurtmalar "
+        "o‘zgarmaydi.",
+        "Янги курс USD манбали барча таклифлар ва улгуржи поғоналар нархини "
+        "қайта ҳисоблайди. Сўм манбали нархлар ва тасдиқланган буюртмалар "
+        "ўзгармайди.",
+        "Новый курс пересчитает все предложения и оптовые уровни с ценой в "
+        "USD. Цены в сумах и подтверждённые заказы не изменятся.",
+    ),
+    "fx_rate_form_stale": (
+        "Kurs yangilandi. Yangi qiymatni qayta ko‘rib chiqing.",
+        "Курс янгиланди. Янги қийматни қайта кўриб чиқинг.",
+        "Курс изменился. Проверьте новое значение ещё раз.",
+    ),
+    "wholesale_tiers": (
+        "Ulgurji narx pog‘onalari",
+        "Улгуржи нарх поғоналари",
+        "Оптовые ценовые уровни",
+    ),
+    "tier_min_quantity": ("Boshlang‘ich miqdor", "Бошланғич миқдор", "Минимальное количество"),
+    "tier_price": ("Bir dona narxi", "Бир дона нархи", "Цена за единицу"),
+    "add_tier": ("Pog‘ona qo‘shish", "Поғона қўшиш", "Добавить уровень"),
+    "remove_tier": ("Pog‘onani olib tashlash", "Поғонани олиб ташлаш", "Удалить уровень"),
+    "no_tiers": (
+        "Ulgurji narx pog‘onasi qo‘shilmagan.",
+        "Улгуржи нарх поғонаси қўшилмаган.",
+        "Оптовые уровни цен не добавлены.",
+    ),
+    "tier_invalid": (
+        "Ulgurji miqdor va narxlarni tekshiring.",
+        "Улгуржи миқдор ва нархларни текширинг.",
+        "Проверьте количество и цену для оптовых уровней.",
+    ),
+    "archive": ("Arxivlash", "Архивлаш", "В архив"),
+    "restore": ("Tiklash", "Тиклаш", "Восстановить"),
+    "archive_confirm": (
+        "Mahsulotni arxivlashni tasdiqlaysizmi?",
+        "Маҳсулотни архивлашни тасдиқлайсизми?",
+        "Подтвердить архивацию товара?",
+    ),
+    "restore_confirm": (
+        "Mahsulotni katalogga qaytarasizmi?",
+        "Маҳсулотни каталогга қайтарасизми?",
+        "Вернуть товар в каталог?",
+    ),
+    "archive_status": (
+        "Arxivlangan mahsulot mijozlarga ko‘rsatilmaydi.",
+        "Архивланган маҳсулот мижозларга кўрсатилмайди.",
+        "Архивный товар не показывается клиентам.",
+    ),
+    "save_success": ("Mahsulot saqlandi.", "Маҳсулот сақланди.", "Товар сохранён."),
+    "invalid_form": ("Ma'lumotlarni tekshiring.", "Маълумотларни текширинг.", "Проверьте данные."),
+    "duplicate_product": (
+        "O‘xshash mahsulot bor. Variantligini tasdiqlang yoki mavjud mahsulotni tahrirlang.",
+        "Ўхшаш маҳсулот бор. Вариантлигини тасдиқланг ёки мавжуд маҳсулотни таҳрирланг.",
+        "Похожий товар уже есть. Подтвердите новый вариант или измените существующий.",
+    ),
+    "required": ("Majburiy maydon", "Мажбурий майдон", "Обязательное поле"),
+    "rate_not_configured": (
+        "USD narxlari hozircha faollashtirilmagan.",
+        "USD нархлари ҳозирча фаоллаштирилмаган.",
+        "Цены в USD пока недоступны.",
+    ),
+    "advanced_settings": ("Qo‘shimcha boshqaruv", "Қўшимча бошқарув", "Дополнительные инструменты"),
+    "delivery_settings": ("Yetkazib berish", "Етказиб бериш", "Доставка"),
+    "admin_users": ("Foydalanuvchilar", "Фойдаланувчилар", "Пользователи"),
+    "admin_users_help": ("Mijozlar ro‘yxati", "Мижозлар рўйхати", "Список клиентов"),
+    "admin_management": ("Administratorlar", "Администраторлар", "Администраторы"),
+    "unmatched_queries": (
+        "Mos kelmagan so‘rovlar",
+        "Мос келмаган сўровлар",
+        "Несопоставленные запросы",
+    ),
+    "product_aliases": ("Mahsulot nomlari", "Маҳсулот номлари", "Названия товаров"),
+    "photo_review": ("Rasmlarni tekshirish", "Расмларни текшириш", "Проверка фото"),
+    "offer_freshness": ("Takliflar yangiligi", "Таклифлар янгилиги", "Актуальность предложений"),
+    "analytics": ("Hisobotlar", "Ҳисоботлар", "Отчёты"),
+    "ai_costs": ("AI xarajatlari", "AI харажатлари", "Расходы AI"),
+    "gmv": ("Buyurtmalar summasi", "Буюртмалар суммаси", "Сумма заказов"),
+    "import_template": (
+        "Jadval shablonini yuklab olish",
+        "Жадвал шаблонини юклаб олиш",
+        "Скачать шаблон таблицы",
+    ),
+    "search_no_results": ("Natija topilmadi", "Натижа топилмади", "Ничего не найдено"),
+    "permission_denied_title": ("Ruxsat yo‘q", "Рухсат йўқ", "Нет доступа"),
+    "permission_denied_body": (
+        "Bu bo‘lim administratorlar uchun.",
+        "Бу бўлим администраторлар учун.",
+        "Этот раздел доступен администраторам.",
+    ),
+    "sign_in": ("Kirish", "Кириш", "Войти"),
+    "sign_out": ("Chiqish", "Чиқиш", "Выйти"),
+    "currency_uzs": ("So‘m", "Сўм", "Сум"),
+    "currency_usd": ("AQSH dollari", "АҚШ доллари", "Доллар США"),
+    "currency_changed_warning": (
+        "Valyutani almashtirsangiz, miqdor tozalanadi. Yangi valyutadagi narxni qayta kiriting.",
+        "Валютани алмаштирсангиз, миқдор тозаланади. Янги валютадаги нархни қайта киритинг.",
+        "При смене валюты сумма очистится. Введите цену заново в новой валюте.",
+    ),
+    "currency_changed": (
+        "Valyuta o‘zgartirildi. Yangi valyutadagi narxni kiriting.",
+        "Валюта ўзгартирилди. Янги валютадаги нархни киритинг.",
+        "Валюта изменена. Введите цену в новой валюте.",
+    ),
+    "source_currency_required": (
+        "Narx valyutasini tanlang.",
+        "Нарх валютасини танланг.",
+        "Выберите валюту цены.",
+    ),
+    "current_shop": ("Sizning do‘koningiz", "Сизнинг дўконингиз", "Ваш магазин"),
+    "settings_help": (
+        "Do‘kon sozlamalari va administrator vositalari.",
+        "Дўкон созламалари ва администратор воситалари.",
+        "Настройки магазина и инструменты администратора.",
+    ),
+    "store_settings": ("Do‘kon", "Дўкон", "Магазин"),
+    "admin_tool_help": (
+        "Administrator uchun boshqaruv vositasi.",
+        "Администратор учун бошқарув воситаси.",
+        "Инструмент для администратора.",
+    ),
+    "offer_freshness_help": (
+        "Do‘konlar bo‘yicha narxi uzoq vaqt yangilanmagan takliflarni ko‘ring.",
+        "Дўконлар бўйича нархи узоқ вақт янгиланмаган таклифларни кўринг.",
+        "Просматривайте предложения магазинов с давно не обновлявшейся ценой.",
+    ),
+    "gmv_scope": (
+        "Barcha do‘konlar bo‘yicha buyurtmalar qiymati.",
+        "Барча дўконлар бўйича буюртмалар қиймати.",
+        "Стоимость заказов по всем магазинам.",
+    ),
+    "product_workspace_help": (
+        "Katalog mahsulotlarini va do‘koningiz narx takliflarini shu yerdan boshqaring.",
+        "Каталог маҳсулотларини ва дўконингиз нарх таклифларини шу ердан бошқаринг.",
+        "Управляйте товарами каталога и ценами своего магазина здесь.",
+    ),
+    "product_details_help": (
+        "Katalog ma’lumotlari va do‘kon takliflarini alohida saqlang.",
+        "Каталог маълумотлари ва дўкон таклифларини алоҳида сақланг.",
+        "Данные каталога и предложения магазина хранятся отдельно.",
+    ),
+    "product_details": ("Katalog ma’lumotlari", "Каталог маълумотлари", "Данные каталога"),
+    "optional": ("Ixtiyoriy", "Ихтиёрий", "Необязательно"),
+    "no_offer": ("Narx taklifi yo‘q", "Нарх таклифи йўқ", "Нет ценового предложения"),
+    "no_offers": ("Taklif topilmadi.", "Таклиф топилмади.", "Предложения не найдены."),
+    "more": ("Yana", "Яна", "Далее"),
+    "page_count": (
+        "{page} / {pages}-sahifa",
+        "{page} / {pages}-саҳифа",
+        "Страница {page} из {pages}",
+    ),
+    "fresh": ("Yangi", "Янги", "Актуально"),
+    "aging": ("Yangilash kerak", "Янгилаш керак", "Требует обновления"),
+    "stale": ("Eskirgan", "Эскирган", "Устарело"),
+    "bulk_deactivate_confirm": (
+        "Tanlangan takliflarni o‘chirishni tasdiqlaysizmi?",
+        "Танланган таклифларни ўчиришни тасдиқлайсизми?",
+        "Отключить выбранные предложения?",
+    ),
+    "deactivate_selected": (
+        "Tanlanganlarni o‘chirish",
+        "Танланганларни ўчириш",
+        "Отключить выбранные",
+    ),
+    "system": ("Tizim", "Тизим", "Система"),
+    "confirm_new_variant": (
+        "Yangi mahsulot varianti ekanini tasdiqlayman",
+        "Янги маҳсулот варианти эканини тасдиқлайман",
+        "Подтверждаю, что это новый вариант товара",
+    ),
+    "currency_change_confirmation_required": (
+        "Valyutani almashtirishni tasdiqlang va yangi narxni qayta kiriting.",
+        "Валютани алмаштиришни тасдиқланг ва янги нархни қайта киритинг.",
+        "Подтвердите смену валюты и введите новую цену заново.",
+    ),
+    "offer_invalid": (
+        "Narx taklifidagi maydonlarni tekshiring.",
+        "Нарх таклифидаги майдонларни текширинг.",
+        "Проверьте поля ценового предложения.",
+    ),
+    "incompatible_unit": (
+        "Qadoq birligi mahsulot birligiga mos kelmadi.",
+        "Қадоқ бирлиги маҳсулот бирлигига мос келмади.",
+        "Единица упаковки не соответствует единице товара.",
+    ),
+    "login_denied": (
+        "Administrator hisobidan kiring.",
+        "Администратор ҳисобидан киринг.",
+        "Войдите под учётной записью администратора.",
+    ),
+    "customer": ("Mijoz", "Мижоз", "Клиент"),
+    "telegram_id": ("Telegram ID", "Telegram ID", "Telegram ID"),
+    "blocked": ("Bloklangan", "Блокланган", "Заблокирован"),
+    "no_customers": ("Mijozlar ro‘yxati bo‘sh.", "Мижозлар рўйхати бўш.", "Список клиентов пуст."),
+    "no_admins": (
+        "Administratorlar topilmadi.",
+        "Администраторлар топилмади.",
+        "Администраторы не найдены.",
+    ),
+    "promote_admin": (
+        "Administrator tayinlash",
+        "Администратор тайинлаш",
+        "Назначить администратора",
+    ),
+    "promote_admin_help": (
+        "Mavjud Telegram foydalanuvchisining ID raqamini kiriting.",
+        "Мавжуд Telegram фойдаланувчисининг ID рақамини киритинг.",
+        "Введите ID существующего пользователя Telegram.",
+    ),
+}
+
+ADMIN_UI_MESSAGES: dict[str, dict[str, str]] = {
+    f"admin_ui_{key}": dict(zip(_LANGS, values, strict=True)) for key, values in _LABELS.items()
+}
+
+
+def admin_ui_messages(lang: str) -> dict[str, str]:
+    """Return the admin strings with their template/JavaScript prefix removed."""
+    selected = lang if lang in _LANGS else "uz_cyrl"
+    return {
+        key.removeprefix("admin_ui_"): translations.get(selected, translations["uz_cyrl"])
+        for key, translations in ADMIN_UI_MESSAGES.items()
+    }

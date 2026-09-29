@@ -16,6 +16,14 @@
         <span>Excel / CSV</span>
         <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
       </label>
+      <label class="field" style="flex:0 0 190px;">
+        <span>{{ t('web_shop_import_currency_label', lang=lang) }}</span>
+        <select name="source_currency">
+          <option value="">{{ t('web_shop_import_currency_prompt', lang=lang) }}</option>
+          <option value="UZS">UZS</option>
+          <option value="USD">USD</option>
+        </select>
+      </label>
       <button class="btn btn-primary btn-sm" type="submit">{{ t('web_shop_upload', lang=lang) }}</button>
     </div>
   </form>
@@ -35,10 +43,19 @@
       <div class="total-row">
         <span class="muted">{{ t('web_shop_import_skipped', lang=lang) }}</span><span>{{ summary.skipped }}</span>
       </div>
+      <div class="total-row">
+        <span class="muted">{{ t('web_shop_import_currency_label', lang=lang) }}</span><span>{{ summary.source_currency or '—' }}</span>
+      </div>
+      {% if summary.currency_errors %}
+        <p class="notice warn" role="alert">
+          {{ t('web_shop_import_currency_errors', lang=lang) }}: {{ summary.currency_errors }}.
+          {{ t('web_shop_import_currency_blocked', lang=lang) }}
+        </p>
+      {% endif %}
 
       <div class="row" style="margin-top:16px;">
         <form method="post" action="/shop/{{ shop.id }}/import/{{ batch_id }}/apply">
-          <button class="btn btn-primary btn-sm" type="submit">{{ t('web_shop_import_apply', lang=lang) }}</button>
+          <button class="btn btn-primary btn-sm" type="submit" {{ 'disabled' if summary.currency_errors }}>{{ t('web_shop_import_apply', lang=lang) }}</button>
         </form>
         <form method="post" action="/shop/{{ shop.id }}/import/{{ batch_id }}/cancel">
           <button class="btn btn-sm btn-danger" type="submit">{{ t('web_shop_import_cancel', lang=lang) }}</button>
@@ -55,9 +72,12 @@
               <div class="spread">
                 <span class="name">{{ row.raw_payload.get('raw_name') or row.row_no }}</span>
                 <span class="muted tiny">
-                  {{ row.raw_payload.get('raw_price') or '' }} {{ row.raw_payload.get('raw_unit') or '' }}
+                  {{ row.raw_payload.get('raw_price') or '' }} {{ row.raw_payload.get('raw_currency') or summary.source_currency or '' }} {{ row.raw_payload.get('raw_unit') or '' }}
                 </span>
               </div>
+              {% if row.raw_payload.get('currency_error') %}
+                <p class="notice warn" role="alert">{{ t('web_shop_import_currency_error', lang=lang) }}</p>
+              {% endif %}
 
               <form method="get" action="/shop/{{ shop.id }}/import" class="field-row">
                 <input type="hidden" name="batch" value="{{ batch_id }}">

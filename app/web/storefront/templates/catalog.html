@@ -1,27 +1,42 @@
 {% extends "base.html" %}
-{% block title %}{{ t('web_catalog_title', lang=lang) }} — QurBot{% endblock %}
-
+{% block title %}{{ t('web_catalog_title', lang=lang) }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 {% block content %}
-<section class="section">
-  <div class="section-head">
-    <h1>{% if category %}{{ category.name_ru if lang == 'ru' else category.name_uz }}{% else %}{{ t('web_catalog_title', lang=lang) }}{% endif %}</h1>
-    {% if category %}
-      <a class="muted tiny" href="/catalog">← {{ t('web_back', lang=lang) }}</a>
-    {% else %}
-      <a class="muted tiny" href="/catalog/all">{{ t('web_home_categories', lang=lang) }} →</a>
-    {% endif %}
-  </div>
+<div class="store-page store-catalog-page">
+  <section class="store-catalog-heading">
+    <div>
+      <div class="store-section-kicker">{{ t('store_ui_brand', lang=lang) }} / {{ t('web_nav_catalog', lang=lang) }}</div>
+      <h1>{% if category %}{{ category.name_ru if lang == 'ru' else category.name_uz }}{% else %}{{ t('web_catalog_title', lang=lang) }}{% endif %}</h1>
+      <p>{{ t('store_ui_home_body', lang=lang) }}</p>
+    </div>
+    <a class="store-outline-link" href="/catalog/all">{{ t('store_ui_browse_all', lang=lang) }} <span aria-hidden="true">→</span></a>
+  </section>
 
-  {% if categories %}
-    <div class="grid cols-3">
+  <form class="store-search store-search--listing" action="/catalog/all" method="get" role="search">
+    <label class="sr-only" for="store-category-search">{{ t('store_ui_search', lang=lang) }}</label>
+    <span aria-hidden="true">⌕</span>
+    <input id="store-category-search" type="search" name="q" maxlength="100"
+           placeholder="{{ t('store_ui_home_search', lang=lang) }}" autocomplete="off">
+    <button type="submit" aria-label="{{ t('store_ui_search_button', lang=lang) }}">{{ t('store_ui_search_button', lang=lang) }} <span aria-hidden="true">→</span></button>
+  </form>
+
+  <section class="store-home-section" aria-labelledby="store-category-title">
+    <div class="store-section-heading">
+      <div><span class="store-section-kicker">01 / {{ t('web_nav_catalog', lang=lang) }}</span>
+        <h2 id="store-category-title">{{ t('store_ui_home_categories', lang=lang) }}</h2></div>
+      {% if category %}<a class="store-text-link" href="/catalog">{{ t('store_ui_all_categories', lang=lang) }} <span aria-hidden="true">→</span></a>{% endif %}
+    </div>
+    {% if categories %}
+    <div class="store-category-grid">
       {% for item in categories %}
-        <a class="tile" href="/catalog/{{ item.id }}">
-          <span class="tile-name">{{ item.name_ru if lang == 'ru' else item.name_uz }}</span>
-        </a>
+      <a class="store-category-card" href="/catalog/{{ item.id }}">
+        <div class="store-category-image"><img src="{{ item.image_src }}" alt="" loading="lazy"><span aria-hidden="true">{{ '%02d'|format(loop.index) }}</span></div>
+        <div class="store-category-copy"><h3>{{ item.name }}</h3><span aria-hidden="true">↗</span></div>
+      </a>
       {% endfor %}
     </div>
-  {% else %}
-    <div class="empty">{{ t('web_catalog_empty', lang=lang) }}</div>
-  {% endif %}
-</section>
+    {% else %}
+    <div class="store-empty-card">{{ t('store_ui_no_products', lang=lang) }}</div>
+    {% endif %}
+  </section>
+</div>
 {% endblock %}

@@ -144,7 +144,7 @@ async def test_catalog_fallback_keeps_both_materials(database, monkeypatch):
         1, "fanera 12 mm 1525x1525 va OSB 9 mm kerak", "uz_latn"
     )
     assert [card["name"] for card in cards] == ["fanera", "osb"]
-    assert "1.135" in answer
+    assert "1 135" in answer
 
 
 async def test_channels_share_history_and_replays_do_not_duplicate(database):
@@ -551,7 +551,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
     target = next(button for button in buttons if (button.callback_data or "").startswith(prefix))
     if not checkout:
         assert call.args[1].count("Fanera 10 mm 1525x1525") == 1
-        assert "151.000" in call.args[1]
+        assert "151 000" in call.args[1]
     message = Message(message_id=1, date=datetime.now(UTC), chat=Chat(id=11, type="private"))
     callback = SimpleNamespace(data=target.callback_data, answer=AsyncMock(), message=message)
     monkeypatch.setattr(Message, "answer", AsyncMock())
@@ -575,7 +575,7 @@ async def test_telegram_outbox_cards_quantity_and_existing_confirmation(
             assert not (await CartService(session).get(user.id)).lines
             selection = message.answer.await_args
             assert "1. " in selection.args[0]
-            assert "151.000 so'm" in selection.args[0]
+            assert "151 000 so'm" in selection.args[0]
             quantities = selection.kwargs["reply_markup"].inline_keyboard[0]
             assert len(quantities) == 3
             callback.data = quantities[0].callback_data

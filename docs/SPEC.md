@@ -170,6 +170,14 @@ Indexes: `unique(shop_id, canonical_id, pack_size, pack_unit_code)`,
 `btree(canonical_id, price_per_base_unit)` ← the query index for quotes,
 `btree(updated_at)`, partial index `WHERE is_active AND staleness_state <> 'stale'`.
 
+Offers and wholesale tiers retain the admin-entered `source_currency` (`UZS|USD`)
+and `source_price_per_pack`, plus the materialized `fx_rate_used` and
+`fx_rate_revision`. The optimizer fields above remain UZS. An admin-managed
+singleton FX setting publishes a new revision and reprices all USD-source rows
+in one transaction. Existing UZS rows and confirmed order snapshots are unchanged.
+See [Tezqur currency and interface contract](TEZQUR_REDESIGN.md) for display,
+import and concurrency rules.
+
 **`price_history`** — `shop_product_id`, `price_per_pack`, `price_per_base_unit`,
 `recorded_at`. Append-only. Used for trend badges ("narx 3 kunda 5% oshdi") and audit.
 Partition by month if it grows.

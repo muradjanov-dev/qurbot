@@ -21,21 +21,21 @@ from openpyxl.styles import Alignment, Font, PatternFill  # type: ignore[import-
 from openpyxl.utils import get_column_letter  # type: ignore[import-untyped]
 
 # Column headers per language. Each must match `_COLUMN_PATTERNS` in
-# excel_parser.py -- name, price, unit, pack_size, qty, in that order.
+# excel_parser.py -- name, price, unit, pack_size, qty, currency.
 _HEADERS: Final[dict[str, tuple[str, ...]]] = {
-    "uz_latn": ("Mahsulot nomi", "Birlik", "Narx (so'm)", "Qadoq", "Miqdor"),
-    "uz_cyrl": ("Маҳсулот номи", "Бирлик", "Нарх (сўм)", "Қадоқ", "Миқдор"),
-    "ru": ("Наименование", "Единица", "Цена (сум)", "Фасовка", "Количество"),
+    "uz_latn": ("Mahsulot nomi", "Birlik", "Narx", "Qadoq", "Miqdor", "Currency"),
+    "uz_cyrl": ("Маҳсулот номи", "Бирлик", "Нарх", "Қадоқ", "Миқдор", "Валюта"),
+    "ru": ("Наименование", "Единица", "Цена", "Фасовка", "Количество", "Валюта"),
 }
 
 # Filled-in examples rather than empty placeholders: a shop owner copies the
 # shape of a row far more reliably than they read a description of it. The
 # names are real catalogue products, so an owner who edits only the price ends
 # up with rows that match.
-TEMPLATE_EXAMPLE_ROWS: Final[tuple[tuple[str, str, str, str, str], ...]] = (
-    ("Fanera berezovaya 3x3 12 mm (1525x1525)", "dona", "157000", "1", "40"),
-    ("OSB-3 plita 9 mm (2500x1250)", "dona", "118000", "1", "60"),
-    ("DVP plita (T markasi) 3.2 mm (2745x1700)", "dona", "65000", "1", "25"),
+TEMPLATE_EXAMPLE_ROWS: Final[tuple[tuple[str, str, str, str, str, str], ...]] = (
+    ("Fanera berezovaya 3x3 12 mm (1525x1525)", "dona", "157000", "1", "40", "UZS"),
+    ("OSB-3 plita 9 mm (2500x1250)", "dona", "118000", "1", "60", "UZS"),
+    ("DVP plita (T markasi) 3.2 mm (2745x1700)", "dona", "65000", "1", "25", "UZS"),
 )
 
 # Notes, rendered on their own sheet. They cannot sit under the table: the
@@ -47,18 +47,21 @@ _NOTES: Final[dict[str, tuple[str, ...]]] = {
         "Namunadagi 3 qatorni o'z mahsulotlaringiz bilan almashtiring.",
         "Narxni faqat raqam bilan yozing: 157000 (probel va 'so'm' shart emas).",
         "Miqdor ustuni bo'sh bo'lsa, mahsulot mavjud deb hisoblanadi.",
+        "Valyuta ustuniga UZS yoki USD yozing; bo'sh qoldirsangiz, yuklash oynasida tanlang.",
     ),
     "uz_cyrl": (
         "Устун номларини ўзгартирманг — импорт шу номлар бўйича ишлайди.",
         "Намунадаги 3 қаторни ўз маҳсулотларингиз билан алмаштиринг.",
         "Нархни фақат рақам билан ёзинг: 157000 (пробел ва 'сўм' шарт эмас).",
         "Миқдор устуни бўш бўлса, маҳсулот мавжуд деб ҳисобланади.",
+        "Валюта устунига UZS ёки USD ёзинг; бўш қолдирсангиз, юклаш ойнасида танланг.",
     ),
     "ru": (
         "Не меняйте названия столбцов — импорт ориентируется на них.",
         "Замените 3 строки примера своими товарами.",
         "Цену пишите только цифрами: 157000 (без пробелов и слова «сум»).",
         "Если столбец «Количество» пуст, товар считается в наличии.",
+        "В столбце «Валюта» укажите UZS или USD; иначе выберите её при загрузке.",
     ),
 }
 
@@ -78,7 +81,7 @@ _NOTES_SHEET_TITLE: Final[dict[str, str]] = {
 TEMPLATE_FILENAME: Final[str] = "qurbot_narxlar_shabloni.xlsx"
 
 _HEADER_FILL = PatternFill("solid", fgColor="1F4E78")
-_COLUMN_WIDTHS: Final[tuple[int, ...]] = (46, 12, 16, 10, 12)
+_COLUMN_WIDTHS: Final[tuple[int, ...]] = (46, 12, 16, 10, 12, 10)
 _DEFAULT_LANG: Final[str] = "uz_latn"
 
 
@@ -104,8 +107,8 @@ def build_price_template(lang: str = _DEFAULT_LANG) -> bytes:
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
     for row in TEMPLATE_EXAMPLE_ROWS:
-        name, unit, price, pack_size, qty = row
-        sheet.append([name, unit, int(price), int(pack_size), int(qty)])
+        name, unit, price, pack_size, qty, currency = row
+        sheet.append([name, unit, int(price), int(pack_size), int(qty), currency])
 
     for index, width in enumerate(_COLUMN_WIDTHS, start=1):
         sheet.column_dimensions[get_column_letter(index)].width = width

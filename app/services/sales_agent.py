@@ -49,12 +49,14 @@ from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.normalize.text import normalize_query
 from app.domain.optimizer.models import BasketItemQuery
 from app.domain.optimizer.serde import deserialize_variant, serialize_variant
+from app.domain.pricing.currency import convert_from_uzs
 from app.domain.pricing.units import STANDARD_UNITS
 from app.llm.evaluation import reserve_agent_evaluation
 from app.llm.pricing import CACHE_RATES, RATES
 from app.services.address_service import AddressService
 from app.services.cart_service import CartConflict, CartSnapshot, InvalidCartItem
 from app.services.catalog_service import CatalogService
+from app.services.fx_pricing import FxPricingService
 from app.services.quote_service import QuoteService
 
 logger = get_logger(__name__)
@@ -73,7 +75,7 @@ _LANGUAGES = {
     "ru": ("Russian", "Извините, этот товар не найден."),
 }
 
-SYSTEM_PROMPT = """You are QurBot, a sales assistant in a Telegram chat. QurBot sells \
+SYSTEM_PROMPT = """You are Tezqur, a sales assistant in a Telegram chat. Tezqur sells \
 construction materials (plywood, boards, timber, fasteners) and delivers them.
 
 You are not an FAQ. You take the customer all the way from "I need something" to a
@@ -90,8 +92,8 @@ The path, in order:
    the order returned. Never invent a product, a price or stock. If nothing fits, say so
    plainly and give the support phone.
    For a broad request such as "taxta kerak" or "fanera va OSB kerak", ask for one
-   missing size at a time before naming specific variants. Format UZS with dot
-   thousands groups and no decimal tail (113.500 so'm).
+   missing size at a time before naming specific variants. Format UZS with space
+   thousands groups, preserving nonzero decimals (113 500 so'm).
    When two different materials are requested together, search each one after
    its size is clear and keep both in the reply; do not drop the second item.
 3. CONFIRM. Name the exact product, its unit and the quantity, and get a yes.
@@ -130,6 +132,7 @@ Also:
   connected one; the customer presses the operator button themselves.
 - Never ask for a phone number just to chat or to answer a question.
 - Call get_knowledge for delivery and support policy rather than stating it from memory.
+- Show USD only when a tool supplies its value. Never guess an exchange rate.
 - Write concise, friendly plain text. Use one or two short sentences unless a product
   list or required checkout details need more. Do not repeat the same product list in
   prose when search results already provide it. No markdown."""
@@ -333,6 +336,7 @@ class DbAgentTools:
 
     async def run(self, name: str, args: dict[str, Any], cart: AgentCart) -> dict[str, Any]:
         if name == "get_knowledge":
+            fx = await FxPricingService(self.session).snapshot()
             rules = (
                 await self.session.scalars(
                     select(ShopDeliveryRule)
@@ -345,6 +349,8 @@ class DbAgentTools:
             ).all()
             return {
                 "support_phones": settings.support_phones,
+                "usd_to_uzs_rate": str(fx.rate) if fx.rate is not None else None,
+                "fx_revision": fx.revision,
                 "delivery_eta_min_hours": settings.delivery_eta_min_hours,
                 "delivery_eta_max_hours": settings.delivery_eta_max_hours,
                 "delivery_rules": [
@@ -514,9 +520,11 @@ class DbAgentTools:
             )
         ).all()
         by_id = {product.id: product for product in product_rows}
+        fx = await FxPricingService(self.session).snapshot(lock=True)
         offers = await ShopRepository(self.session).get_active_offers_for_canonicals(
             [c.canonical_id for c in found]
         )
+        offer_by_id = {offer.id: offer for offer in offers}
         cheapest: dict[int, tuple[Decimal, str, Decimal, int]] = {}
         for offer in offers:
             if offer.canonical_id is None:
@@ -539,6 +547,18 @@ class DbAgentTools:
             )
             if needs_confirmation or (price and price[0] <= 0):
                 price = None
+            selected_offer = offer_by_id[price[3]] if price else None
+            usd_price: Decimal | None = None
+            usd_approximate = False
+            if price is not None and selected_offer is not None:
+                if (
+                    selected_offer.source_currency == "USD"
+                    and selected_offer.source_price_per_pack is not None
+                ):
+                    usd_price = selected_offer.source_price_per_pack
+                elif fx.rate is not None and fx.rate > 0:
+                    usd_price = convert_from_uzs(price[0], usd_to_uzs_rate=fx.rate)
+                    usd_approximate = True
             products.append(
                 {
                     "id": cand.canonical_id,
@@ -550,8 +570,15 @@ class DbAgentTools:
                         self.user.lang,
                         name_uz_cyrl=product.name_uz_cyrl,
                     ),
-                    "price_from_uzs": f"{price[0]:.0f}" if price else None,
-                    "unit": (f"{price[2]:f} {price[1]}" if price[2] != 1 else price[1])
+                    "price_from_uzs": format(price[0].normalize(), "f") if price else None,
+                    "price_from_usd": str(usd_price) if usd_price is not None else None,
+                    "price_usd_approximate": usd_approximate,
+                    "fx_revision": fx.revision,
+                    "unit": (
+                        f"{format(price[2].normalize(), 'f')} {price[1]}"
+                        if price[2] != 1
+                        else price[1]
+                    )
                     if price
                     else None,
                     "pack_size": str(price[2]) if price else None,

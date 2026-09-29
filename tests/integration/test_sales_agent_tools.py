@@ -314,3 +314,33 @@ async def test_agent_submits_an_unpriced_basket_as_an_enquiry(
     # An enquiry is not an order, and it empties the basket it was made from.
     assert (await test_session.scalar(select(func.count()).select_from(Order))) == 0
     assert not (await CartService(test_session).get(user.id)).lines
+
+
+@pytest.mark.parametrize(
+    "currency,amount,expected_uzs,expected_usd,approximate",
+    [
+        ("USD", "28", "330973.44", "28", False),
+        ("UZS", "12345.67", "12345.67", "1.04", True),
+    ],
+)
+async def test_search_currency_labels_preserve_source_and_uzs_cents(
+    test_session: AsyncSession, currency, amount, expected_uzs, expected_usd, approximate
+) -> None:
+    from app.services.fx_pricing import FxPricingService
+
+    user, product_id = await _seed(test_session)
+    fx = FxPricingService(test_session)
+    snapshot = await fx.publish_rate(Decimal("11820.48"), user.id)
+    offer = await test_session.scalar(
+        select(ShopProduct).where(ShopProduct.canonical_id == product_id)
+    )
+    assert offer is not None
+    await fx.set_offer_price(offer, Decimal(amount), currency, "dona")
+    result = await DbAgentTools(test_session, user).run(
+        "search_products", {"query": "fanera 10mm"}, AgentCart()
+    )
+    card = next(card for card in result["products"] if card["id"] == product_id)
+    assert card["price_from_uzs"] == expected_uzs
+    assert Decimal(card["price_from_usd"]) == Decimal(expected_usd)
+    assert card["price_usd_approximate"] is approximate
+    assert card["fx_revision"] == snapshot.revision

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Takliflar — QurBot Admin{% endblock %}
+{% block title %}Takliflar — Tezqur Admin{% endblock %}
 {% block content %}
 <h1>Takliflar</h1>
 <p>
@@ -23,7 +23,7 @@
         <td><input type="checkbox" name="offer_ids" value="{{ o.id }}"></td>
         <td>{{ o.raw_name }}</td>
         <td>{{ o.shop.name }}</td>
-        <td>{{ o.price_per_pack }} {{ o.currency }}</td>
+        <td>{{ format_money(o.price_per_pack, 'UZS', lang) }}</td>
         <td><span class="badge {{ o.staleness_state }}">{{ o.staleness_state }}</span></td>
         <td>{{ o.updated_at.strftime("%Y-%m-%d %H:%M") }}</td>
       </tr>
