@@ -1,5 +1,6 @@
 """Order workflow persistence, authorization, privacy and version checks."""
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -304,6 +305,16 @@ async def test_courier_gate_public_contact_outbox_and_private_delivery_notes(tes
     )
     assert order.workflow_revision == 3
     await service.change_status(order.id, admin, "in_transit", 3)
+    departure = await test_session.scalar(
+        select(OrderNotification).where(
+            OrderNotification.order_id == order.id,
+            OrderNotification.kind == "customer_departure",
+        )
+    )
+    assert departure is not None
+    assert "Ali Valiyev" in departure.text
+    assert "+998901234567" in departure.text
+    assert "Van" in departure.text
 
     order = await service.update_courier(
         order.id,
@@ -431,6 +442,54 @@ async def test_manual_retry_resets_attempts_and_records_private_audit(test_sessi
     assert audit.details["notification_id"] == notification.id
     assert audit.details["previous_attempts"] == 5
     assert public_order_event(audit) is None
+
+
+@pytest.mark.asyncio
+async def test_admin_order_text_stays_under_telegram_limit_with_long_content(test_session) -> None:
+    order, customer, _admin = await _order(test_session)
+    part = await test_session.scalar(
+        select(OrderShopPart).where(OrderShopPart.order_id == order.id)
+    )
+    assert part is not None
+    test_session.add_all(
+        [
+            OrderItem(
+                order_shop_part_id=part.id,
+                canonical_id=1,
+                shop_product_id=1,
+                qty=Decimal("10"),
+                unit_code="dona",
+                unit_price_quoted=Decimal("10000"),
+                line_total=Decimal("100000"),
+            )
+            for _ in range(100)
+        ]
+    )
+    order.delivery_address = "<&" * 1000
+    order.comment = "<&" * 1000
+    await test_session.flush()
+
+    event = await OrderWorkflowService(test_session).create_event(order, customer)
+    assert event is not None
+    admin_messages = list(
+        (
+            await test_session.scalars(
+                select(OrderNotification).where(
+                    OrderNotification.order_id == order.id,
+                    OrderNotification.kind == "admin_order_created",
+                )
+            )
+        ).all()
+    )
+
+    assert admin_messages
+    assert all(len(message.text) <= 4000 for message in admin_messages)
+    assert all("&lt;&amp;" in message.text for message in admin_messages)
+    assert all(
+        re.search(r"&(?!amp;|lt;|gt;|quot;|#x27;)", message.text) is None
+        for message in admin_messages
+    )
+    assert all("100 000" in message.text for message in admin_messages)
 
 
 @pytest.mark.asyncio

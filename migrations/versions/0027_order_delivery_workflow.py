@@ -45,7 +45,6 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_order_events")),
     )
     op.create_index("ix_order_events_order_created", "order_events", ["order_id", "created_at"])
 
@@ -81,7 +80,6 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_order_notifications")),
         sa.UniqueConstraint(
             "event_id", "recipient_tg_id", "kind", name="uq_order_notifications_event_recipient"
         ),

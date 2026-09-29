@@ -789,7 +789,12 @@ class OrderWorkflowService:
             raise WorkflowError("stale_status", 409, order.workflow_revision)
 
     def _has_courier(self, order: Order) -> bool:
-        return bool(order.courier_name and order.courier_name.strip() and order.courier_phone)
+        return bool(
+            order.courier_name
+            and order.courier_name.strip()
+            and order.courier_phone
+            and order.courier_phone.strip()
+        )
 
     def _optional_text(self, value: str | None, max_length: int, code: str) -> str | None:
         clean = value.strip() if value is not None else ""

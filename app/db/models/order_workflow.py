@@ -32,9 +32,7 @@ class OrderEvent(Base):
     order_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
     )
-    actor_user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id"), nullable=False
-    )
+    actor_user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
     kind: Mapped[str] = mapped_column(String(40), nullable=False)
     from_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     to_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
