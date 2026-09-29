@@ -290,6 +290,7 @@ async def test_customer_gets_public_timeline_and_courier_but_no_internal_deliver
     )
     assert correction.status_code == 200
     assert "PRIVATE CORRECTION EXPLANATION" in correction.text
+    assert "Yo‘lga chiqish xabari" in correction.text
 
     # Restore the customer's own session before reading their pages.
     _sign_in(client, data.user_id)

@@ -122,6 +122,16 @@ _LABELS: dict[str, tuple[str, str, str]] = {
         "Курьер контакти хабари",
         "Контакт курьера клиенту",
     ),
+    "notification_departure": (
+        "Yo‘lga chiqish xabari",
+        "Йўлга чиқиш хабари",
+        "Сообщение об отправке",
+    ),
+    "notification_admin_location": (
+        "Yetkazish manzili pini",
+        "Етказиш манзили белгиси",
+        "Метка адреса доставки",
+    ),
     "notification_error": ("Xatolik", "Хатолик", "Ошибка"),
     "retry_notification": ("Qayta yuborish", "Қайта юбориш", "Повторить отправку"),
     "no_notifications": (

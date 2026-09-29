@@ -106,7 +106,19 @@
         <div class="delivery-notifications">
           {% for notification in notifications %}
             <article class="delivery-notification">
-              <div class="delivery-notification-head"><strong>{% if notification.kind == 'admin_order_created' %}{{ L.notification_order_created }}{% elif notification.kind == 'customer_order_ack' %}{{ L.notification_customer_ack }}{% elif notification.kind in ('customer_status', 'customer_status_correction') %}{{ L.notification_customer_status if notification.kind == 'customer_status' else L.notification_customer_correction }}{% elif notification.kind == 'customer_courier_contact' %}{{ L.notification_courier_contact }}{% else %}{{ notification.kind }}{% endif %}</strong><span class="delivery-status-pill status-{{ notification.status }}">{% if notification.status == 'pending' %}{{ L.notification_queued_label }}{% elif notification.status == 'sent' %}{{ L.notification_sent_label }}{% elif notification.status == 'failed' %}{{ L.notification_failed_label }}{% else %}{{ notification.status }}{% endif %}</span></div>
+              <div class="delivery-notification-head">
+                <strong>
+                  {% if notification.kind == 'admin_order_created' %}{{ L.notification_order_created }}
+                  {% elif notification.kind == 'admin_order_location' %}{{ L.notification_admin_location }}
+                  {% elif notification.kind == 'customer_order_ack' %}{{ L.notification_customer_ack }}
+                  {% elif notification.kind == 'customer_status' %}{{ L.notification_customer_status }}
+                  {% elif notification.kind == 'customer_status_correction' %}{{ L.notification_customer_correction }}
+                  {% elif notification.kind == 'customer_departure' %}{{ L.notification_departure }}
+                  {% elif notification.kind == 'customer_courier_contact' %}{{ L.notification_courier_contact }}
+                  {% else %}{{ notification.kind }}{% endif %}
+                </strong>
+                <span class="delivery-status-pill status-{{ notification.status }}">{% if notification.status == 'pending' %}{{ L.notification_queued_label }}{% elif notification.status == 'sent' %}{{ L.notification_sent_label }}{% elif notification.status == 'failed' %}{{ L.notification_failed_label }}{% else %}{{ notification.status }}{% endif %}</span>
+              </div>
               <small>{{ L.notification_recipient }}: {{ notification.recipient_tg_id }} · {{ L.notification_attempts }}: {{ notification.attempts }} · {{ format_delivery_time(notification.created_at) }}</small>
               {% if notification.last_error %}<p class="delivery-error-text">{{ notification.last_error }}</p>{% endif %}
               {% if notification.status == 'failed' %}
