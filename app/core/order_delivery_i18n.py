@@ -2,24 +2,24 @@
 
 ORDER_DELIVERY_MESSAGES: dict[str, dict[str, str]] = {
     "delivery_status_new": {
-        "uz_latn": "Yangi",
-        "uz_cyrl": "Янги",
-        "ru": "Новый",
+        "uz_latn": "Admin tasdig‘ini kutmoqda",
+        "uz_cyrl": "Администратор тасдиғини кутмоқда",
+        "ru": "Ожидает подтверждения администратора",
     },
     "delivery_status_confirmed": {
-        "uz_latn": "Tasdiqlandi",
-        "uz_cyrl": "Тасдиқланди",
-        "ru": "Подтверждён",
+        "uz_latn": "Qabul qilindi",
+        "uz_cyrl": "Қабул қилинди",
+        "ru": "Принят",
     },
     "delivery_status_collecting": {
-        "uz_latn": "Yig‘ilmoqda",
-        "uz_cyrl": "Йиғилмоқда",
-        "ru": "Комплектуется",
+        "uz_latn": "Mahsulotlar yig‘ilmoqda",
+        "uz_cyrl": "Маҳсулотлар йиғилмоқда",
+        "ru": "Товары собираются",
     },
     "delivery_status_in_transit": {
-        "uz_latn": "Yo‘lda",
-        "uz_cyrl": "Йўлда",
-        "ru": "В пути",
+        "uz_latn": "Yetkazish uchun yo‘lga chiqdi",
+        "uz_cyrl": "Етказиш учун йўлга чиқди",
+        "ru": "Передан в доставку",
     },
     "delivery_status_fulfilled": {
         "uz_latn": "Yetkazildi",
@@ -36,61 +36,114 @@ ORDER_DELIVERY_MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Қисман бажарилган",
         "ru": "Выполнен частично",
     },
+    "delivery_courier_vehicle_label": {
+        "uz_latn": "Transport",
+        "uz_cyrl": "Транспорт",
+        "ru": "Транспорт",
+    },
     "delivery_notification_admin_order_created": {
         "uz_latn": (
-            "📦 <b>Yangi buyurtma #{order_id}</b>\n"
-            "Mijoz: {customer_name}\nTel: {phone}\nManzil: {address}"
+            "📦 <b>Yangi buyurtma #{order_id}</b>{channel}\n\n"
+            "👤 Mijoz: {customer_name}\n📞 Tel: {phone}\n📍 Manzil: {address}\n"
+            "{comment_line}\n{items_block}\n{totals_block}{order_link}"
         ),
         "uz_cyrl": (
-            "📦 <b>Янги буюртма #{order_id}</b>\n"
-            "Мижоз: {customer_name}\nТел: {phone}\nМанзил: {address}"
+            "📦 <b>Янги буюртма #{order_id}</b>{channel}\n\n"
+            "👤 Мижоз: {customer_name}\n📞 Тел: {phone}\n📍 Манзил: {address}\n"
+            "{comment_line}\n{items_block}\n{totals_block}{order_link}"
         ),
         "ru": (
-            "📦 <b>Новый заказ #{order_id}</b>\n"
-            "Клиент: {customer_name}\nТелефон: {phone}\nАдрес: {address}"
+            "📦 <b>Новый заказ #{order_id}</b>{channel}\n\n"
+            "👤 Клиент: {customer_name}\n📞 Телефон: {phone}\n📍 Адрес: {address}\n"
+            "{comment_line}\n{items_block}\n{totals_block}{order_link}"
+        ),
+    },
+    "delivery_notification_admin_order_summary": {
+        "uz_latn": (
+            "📦 <b>Yangi buyurtma #{order_id}</b>\n" "{items_summary}\n{totals_block}{order_link}"
+        ),
+        "uz_cyrl": (
+            "📦 <b>Янги буюртма #{order_id}</b>\n" "{items_summary}\n{totals_block}{order_link}"
+        ),
+        "ru": ("📦 <b>Новый заказ #{order_id}</b>\n" "{items_summary}\n{totals_block}{order_link}"),
+    },
+    "delivery_notification_admin_open_order": {
+        "uz_latn": "Buyurtmani ochish",
+        "uz_cyrl": "Буюртмани очиш",
+        "ru": "Открыть заказ",
+    },
+    "delivery_notification_admin_channel_web": {
+        "uz_latn": " (sayt)",
+        "uz_cyrl": " (сайт)",
+        "ru": " (сайт)",
+    },
+    "delivery_notification_admin_comment": {
+        "uz_latn": "💬 Izoh: {comment}",
+        "uz_cyrl": "💬 Изоҳ: {comment}",
+        "ru": "💬 Комментарий: {comment}",
+    },
+    "delivery_notification_admin_item_line": {
+        "uz_latn": "   • {product} × {qty} {unit} — {line_total} so‘m",
+        "uz_cyrl": "   • {product} × {qty} {unit} — {line_total} сўм",
+        "ru": "   • {product} × {qty} {unit} — {line_total} сум",
+    },
+    "delivery_notification_admin_items_truncated": {
+        "uz_latn": "… qolgan mahsulotlar buyurtma sahifasida",
+        "uz_cyrl": "… қолган маҳсулотлар буюртма саҳифасида",
+        "ru": "… остальные товары доступны на странице заказа",
+    },
+    "delivery_notification_admin_group_total": {
+        "uz_latn": "<i>   Jami: {subtotal} + dostavka {delivery} so‘m</i>",
+        "uz_cyrl": "<i>   Жами: {subtotal} + доставка {delivery} сўм</i>",
+        "ru": "<i>   Итого: {subtotal} + доставка {delivery} сум</i>",
+    },
+    "delivery_notification_admin_totals": {
+        "uz_latn": (
+            "Mahsulotlar: {items_total} so‘m\nDostavka: {delivery_total} so‘m\n"
+            "<b>JAMI: {total} so‘m</b>"
+        ),
+        "uz_cyrl": (
+            "Маҳсулотлар: {items_total} сўм\nДоставка: {delivery_total} сўм\n"
+            "<b>ЖАМИ: {total} сўм</b>"
+        ),
+        "ru": (
+            "Товары: {items_total} сум\nДоставка: {delivery_total} сум\n"
+            "<b>ИТОГО: {total} сум</b>"
         ),
     },
     "delivery_notification_customer_order_ack": {
-        "uz_latn": (
-            "✅ Buyurtmangiz <b>#{order_id}</b> qabul qilindi.\n"
-            "Holati: <b>{status}</b>."
-        ),
-        "uz_cyrl": (
-            "✅ Буюртмангиз <b>#{order_id}</b> қабул қилинди.\n"
-            "Ҳолати: <b>{status}</b>."
-        ),
-        "ru": (
-            "✅ Ваш заказ <b>#{order_id}</b> принят.\n"
-            "Статус: <b>{status}</b>."
-        ),
+        "uz_latn": ("✅ Buyurtmangiz <b>#{order_id}</b> olindi.\n" "Holati: <b>{status}</b>."),
+        "uz_cyrl": ("✅ Буюртмангиз <b>#{order_id}</b> олинди.\n" "Ҳолати: <b>{status}</b>."),
+        "ru": ("✅ Ваш заказ <b>#{order_id}</b> получен.\n" "Статус: <b>{status}</b>."),
     },
     "delivery_notification_customer_status": {
         "uz_latn": "📦 Buyurtma <b>#{order_id}</b> holati: <b>{status}</b>.",
         "uz_cyrl": "📦 Буюртма <b>#{order_id}</b> ҳолати: <b>{status}</b>.",
         "ru": "📦 Статус заказа <b>#{order_id}</b>: <b>{status}</b>.",
     },
-    "delivery_notification_customer_cancelled": {
+    "delivery_notification_customer_departure": {
         "uz_latn": (
-            "❌ Buyurtma <b>#{order_id}</b> bekor qilindi.\nSabab: {reason}"
+            "🚚 Buyurtma <b>#{order_id}</b> yo‘lga chiqdi.\n"
+            "Kuryer: {courier_name}\nTelefon: {courier_phone}{vehicle_line}"
         ),
         "uz_cyrl": (
-            "❌ Буюртма <b>#{order_id}</b> бекор қилинди.\nСабаб: {reason}"
+            "🚚 Буюртма <b>#{order_id}</b> йўлга чиқди.\n"
+            "Курьер: {courier_name}\nТелефон: {courier_phone}{vehicle_line}"
         ),
+        "ru": (
+            "🚚 Заказ <b>#{order_id}</b> отправлен.\n"
+            "Курьер: {courier_name}\nТелефон: {courier_phone}{vehicle_line}"
+        ),
+    },
+    "delivery_notification_customer_cancelled": {
+        "uz_latn": ("❌ Buyurtma <b>#{order_id}</b> bekor qilindi.\nSabab: {reason}"),
+        "uz_cyrl": ("❌ Буюртма <b>#{order_id}</b> бекор қилинди.\nСабаб: {reason}"),
         "ru": "❌ Заказ <b>#{order_id}</b> отменён.\nПричина: {reason}",
     },
     "delivery_notification_customer_correction": {
-        "uz_latn": (
-            "ℹ️ Buyurtma <b>#{order_id}</b> holati tuzatildi: <b>{status}</b>.\n"
-            "Sabab: {reason}"
-        ),
-        "uz_cyrl": (
-            "ℹ️ Буюртма <b>#{order_id}</b> ҳолати тузатилди: <b>{status}</b>.\n"
-            "Сабаб: {reason}"
-        ),
-        "ru": (
-            "ℹ️ Статус заказа <b>#{order_id}</b> исправлен: <b>{status}</b>.\n"
-            "Причина: {reason}"
-        ),
+        "uz_latn": ("ℹ️ Buyurtma <b>#{order_id}</b> holati tuzatildi: <b>{status}</b>."),
+        "uz_cyrl": ("ℹ️ Буюртма <b>#{order_id}</b> ҳолати тузатилди: <b>{status}</b>."),
+        "ru": ("ℹ️ Статус заказа <b>#{order_id}</b> исправлен: <b>{status}</b>."),
     },
     "delivery_notification_customer_courier_contact": {
         "uz_latn": (
