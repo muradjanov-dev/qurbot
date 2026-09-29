@@ -227,6 +227,17 @@ def render(
         "js_messages": js_messages(lang),
     }
     payload.update(context)
+    # Only the isolated local runner sets this flag. Production cannot select
+    # a prototype by supplying a query parameter or a cookie.
+    if settings.app_env in {"local", "staging"} and getattr(
+        request.app.state, "design_preview", False
+    ):
+        from app.web.storefront.prototypes.rendering import preview_context
+
+        preview = preview_context(request, template, lang)
+        if preview is not None:
+            template, design = preview
+            payload.update(design)
     response = templates.TemplateResponse(request, template, payload, status_code=status_code)
     response.headers["Cache-Control"] = "no-store"
     return response

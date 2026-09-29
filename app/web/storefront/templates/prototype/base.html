@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="{{ 'ru' if lang == 'ru' else 'uz' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f8f6">
+  <title>Tezqur · {{ L.design_preview }} {{ variant }}</title>
+  <link rel="icon" href="/static/store/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/store/prototype/base.css">
+  <link id="variant-style" rel="stylesheet" href="/static/store/prototype/variant_{{ variant|lower }}.css">
+</head>
+<body class="prototype-page variant-{{ variant|lower }}">
+  <main id="prototype-view">{% block variant_content %}{% endblock %}</main>
+  <aside class="preview-toolbar" aria-label="{{ L.design_preview }}">
+    <span class="preview-tag"><span></span>{{ L.design_preview }}</span>
+    <div class="preview-variants">
+      <button type="button" data-variant-step="-1" aria-label="{{ L.previous }}">←</button>
+      {% for value in ['A','B','C'] %}<button type="button" data-variant="{{ value }}" aria-pressed="{{ 'true' if variant == value else 'false' }}">{{ value }}</button>{% endfor %}
+      <button type="button" data-variant-step="1" aria-label="{{ L.next }}">→</button>
+    </div>
+    <label class="preview-control"><span>{{ L.screen }}</span><select data-preview-screen>
+      {% for key in ['dashboard','products','catalog','chat','cart'] %}<option value="{{ key }}" {{ 'selected' if screen == key }}>{{ L[key] }}</option>{% endfor %}
+    </select></label>
+    <label class="preview-control preview-language"><span>{{ L.language }}</span><select data-preview-lang>
+      <option value="uz_cyrl" {{ 'selected' if lang == 'uz_cyrl' }}>ЎЗ</option><option value="uz_latn" {{ 'selected' if lang == 'uz_latn' }}>UZ</option><option value="ru" {{ 'selected' if lang == 'ru' }}>RU</option>
+    </select></label>
+    <button class="preview-reset" data-preview-reset type="button" title="{{ L.reset }}">↺</button>
+  </aside>
+  <div class="preview-toast" role="status" data-preview-toast hidden></div>
+  <dialog class="preview-dialog" id="preview-editor">
+    <form data-editor-form>
+      <header><div><small>TEZQUR / {{ L.products }}</small><h2>{{ L.edit_product }}</h2></div><button type="button" data-close-dialog aria-label="{{ L.close }}">×</button></header>
+      <input type="hidden" name="id">
+      <label>{{ L.product_name }}<input type="text" name="name" maxlength="255" required></label>
+      <div class="preview-form-row"><label>{{ L.source_currency }}<select name="currency"><option>UZS</option><option>USD</option></select></label><label>{{ L.source_amount }}<input name="amount" type="text" inputmode="decimal" required></label></div>
+      <p class="preview-form-hint" data-currency-hint>{{ L.currency_change_hint }}</p>
+      <div class="preview-price-preview"><small>{{ L.preview_amount }}</small><strong data-edit-uzs>—</strong><span data-edit-usd>—</span></div>
+      <div class="preview-form-row"><label>{{ L.category }}<input name="category" type="text" required></label><label>{{ L.pack }}<input name="pack" type="text" value="1" required></label></div>
+      <label>{{ L.description }}<textarea name="description" rows="3"></textarea></label>
+      <label>{{ L.upload_photo }}<input name="photo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <label class="preview-check"><input type="checkbox" name="available">{{ L.available }}</label>
+      <p class="preview-form-hint">{{ L.stock_unlimited }}</p>
+      <footer><button type="button" class="preview-secondary" data-close-dialog>{{ L.cancel }}</button><button type="submit" class="preview-primary">{{ L.save }}</button></footer>
+    </form>
+  </dialog>
+  <dialog class="preview-dialog preview-rate" id="preview-rate">
+    <form data-rate-form>
+      <header><div><small>TEZQUR / {{ L.settings }}</small><h2>{{ L.fx_settings }}</h2></div><button type="button" data-close-dialog aria-label="{{ L.close }}">×</button></header>
+      <p>{{ L.rate_help }}</p>
+      <label>1 USD = <input name="rate" type="text" inputmode="decimal" required></label>
+      <p class="preview-form-hint">{{ L.rate_note }}</p>
+      <footer><button type="button" class="preview-secondary" data-close-dialog>{{ L.cancel }}</button><button type="submit" class="preview-primary">{{ L.save_rate }}</button></footer>
+    </form>
+  </dialog>
+  <dialog class="preview-dialog preview-info" id="preview-info">
+    <header><h2 data-info-title></h2><button type="button" data-close-dialog aria-label="{{ L.close }}">×</button></header>
+    <p>{{ L.demo_only }}</p>
+  </dialog>
+  <script id="preview-data" type="application/json">{{ preview_json|tojson }}</script>
+  <script src="/static/store/prototype/preview.js" defer></script>
+</body>
+</html>

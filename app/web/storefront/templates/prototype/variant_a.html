@@ -1,0 +1,264 @@
+{% extends "prototype/base.html" %}
+
+{% block variant_content %}
+{% set is_customer_view = screen in ['catalog', 'chat', 'cart'] %}
+<div class="a-shell">
+  <aside class="a-sidebar" aria-label="{{ L['admin'] }}">
+    <a class="a-brand" href="{{ screen_url('catalog') if is_customer_view else screen_url('dashboard') }}">
+      <span class="a-brand-mark" aria-hidden="true">T</span>
+      <span class="a-brand-word">Tezqur</span>
+      <span class="a-brand-chip">B2B</span>
+    </a>
+
+    <div class="a-profile">
+      <span class="a-avatar" aria-hidden="true">{{ L['admin'][:1] }}</span>
+      <span class="a-profile-copy"><strong>{{ L['guest'] if is_guest else (L['account'] if is_customer_view else L['admin']) }}</strong><small>Tezqur</small></span>
+      <span class="a-online" aria-hidden="true"></span>
+    </div>
+
+    <nav class="a-nav" aria-label="{{ L['catalog'] if is_customer_view else L['dashboard'] }}">
+      {% if is_customer_view %}
+      <a class="a-nav-link {{ 'is-active' if screen == 'catalog' }}" href="{{ screen_url('catalog') }}" {% if screen == 'catalog' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h4"/></svg><span>{{ L['catalog'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'chat' }}" href="{{ screen_url('ai') }}" {% if screen == 'chat' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/></svg><span>{{ L['ai'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'cart' }}" href="{{ screen_url('cart') }}" {% if screen == 'cart' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.5L21 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span>{{ L['cart'] }}</span><em class="a-cart-count" data-cart-count>0</em>
+      </a>
+      <a class="a-nav-link" href="{{ screen_url('orders') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg><span>{{ L['orders'] }}</span>
+      </a>
+      <a class="a-nav-link" href="{{ screen_url('account') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg><span>{{ L['account'] }}</span><span class="a-nav-arrow">{{ L['login'] if is_guest else L['logout'] }}</span>
+      </a>
+      {% else %}
+      <a class="a-nav-link {{ 'is-active' if screen == 'dashboard' }}" href="{{ screen_url('dashboard') }}" {% if screen == 'dashboard' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+        <span>{{ L['dashboard'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'products' }}" href="{{ screen_url('products') }}" {% if screen == 'products' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4M4 7v10M20 7v10"/></svg>
+        <span>{{ L['products'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'orders' }}" href="{{ screen_url('orders') }}" {% if screen == 'orders' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
+        <span>{{ L['orders'] }}</span>
+        {% if stats.orders %}<em class="a-nav-count">{{ stats.orders }}</em>{% endif %}
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'chat' }}" href="{{ screen_url('chat') }}" {% if screen == 'chat' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+        <span>{{ L['chats'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'customers' }}" href="{{ screen_url('customers') }}" {% if screen == 'customers' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0M16 5.2a3.4 3.4 0 0 1 0 6.6m1.2 2.3a5.3 5.3 0 0 1 4 5.1"/></svg>
+        <span>{{ L['customers'] }}</span>
+      </a>
+      <a class="a-nav-link {{ 'is-active' if screen == 'settings' }}" href="{{ screen_url('settings') }}" {% if screen == 'settings' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8.5 8.5 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8.5 8.5 0 0 1-1.7-1l-1.7.6-1.4-2.4L5.3 15a8 8 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.6a8.5 8.5 0 0 1 1.7-1L9 7.3h2.8l.3 1.8a8.5 8.5 0 0 1 1.7 1l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 2Z" transform="translate(0 -2)"/></svg>
+        <span>{{ L['settings'] }}</span>
+      </a>
+      {% endif %}
+    </nav>
+
+    {% if not is_customer_view %}<div class="a-sidebar-foot">
+      <button class="a-rate-card" type="button" data-open-rate>
+        <span class="a-rate-icon" aria-hidden="true">₽</span>
+        <span class="a-rate-copy"><small>{{ L['rate'] }}</small><strong><span data-rate-value>{{ fx_rate_label }}</span></strong></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <a class="a-account" href="{{ screen_url('account') }}">
+        <span class="a-account-avatar" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg></span>
+        <span class="a-account-copy"><strong>{{ L['account'] }}</strong><small>{{ L['guest'] if is_guest else L['admin'] }}</small></span>
+        <span class="a-account-action">{{ L['login'] if is_guest else L['logout'] }}</span>
+      </a>
+    </div>{% endif %}
+  </aside>
+
+  <div class="a-workspace">
+    <header class="a-topbar">
+      <div class="a-crumb">
+        <span class="a-crumb-brand">Tezqur</span><span class="a-crumb-slash">/</span>
+        {% if screen == 'dashboard' %}<strong>{{ L['dashboard'] }}</strong>
+        {% elif screen == 'products' %}<strong>{{ L['products'] }}</strong>
+        {% elif screen == 'catalog' %}<strong>{{ L['catalog'] }}</strong>
+        {% elif screen == 'chat' %}<strong>{{ L['chats'] }}</strong>
+        {% elif screen == 'cart' %}<strong>{{ L['cart'] }}</strong>
+        {% elif screen == 'orders' %}<strong>{{ L['orders'] }}</strong>
+        {% elif screen == 'customers' %}<strong>{{ L['customers'] }}</strong>
+        {% elif screen == 'settings' %}<strong>{{ L['settings'] }}</strong>
+        {% elif screen == 'account' %}<strong>{{ L['account'] }}</strong>
+        {% else %}<strong>{{ L['ai'] }}</strong>{% endif %}
+      </div>
+      <div class="a-top-actions">
+        {% if is_customer_view %}<div class="a-top-rate a-top-rate-static" aria-label="{{ L['rate'] }}">
+          <span class="a-live-dot" aria-hidden="true"></span>
+          <span><small>{{ L['rate'] }}</small><strong data-rate-value>{{ fx_rate_label }}</strong></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+        </div>{% else %}<button class="a-top-rate" type="button" data-open-rate>
+          <span class="a-live-dot" aria-hidden="true"></span>
+          <span><small>{{ L['rate'] }}</small><strong data-rate-value>{{ fx_rate_label }}</strong></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+        </button>{% endif %}
+        <a class="a-top-account" href="{{ screen_url('account') }}" aria-label="{{ L['account'] }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <main class="a-content">
+      {% if screen == 'dashboard' %}
+        <section class="a-page-heading">
+          <div><p class="a-eyebrow">{{ L['overview'] }}</p><h1>{{ L['welcome'] }}</h1><p class="a-subtitle">{{ L['dashboard_hint'] }}</p></div>
+          <a class="a-button a-button-primary" href="{{ screen_url('catalog') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ L['catalog'] }}
+          </a>
+        </section>
+
+        <section class="a-stat-grid" aria-label="{{ L['overview'] }}">
+          <article class="a-stat-card"><span class="a-stat-icon tone-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/></svg></span><div><small>{{ L['products'] }}</small><strong>{{ stats.products }}</strong></div><span class="a-stat-foot">{{ L['catalogue_count'] }}</span></article>
+          <article class="a-stat-card"><span class="a-stat-icon tone-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span><div><small>{{ L['active_products'] }}</small><strong>{{ stats.offers }}</strong></div><span class="a-stat-foot">{{ L['available'] }}</span></article>
+          <article class="a-stat-card"><span class="a-stat-icon tone-orange"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6"/></svg></span><div><small>{{ L['pending_orders'] }}</small><strong>{{ stats.orders }}</strong></div><a class="a-stat-foot a-stat-link" href="{{ screen_url('orders') }}">{{ L['orders'] }} <span aria-hidden="true">→</span></a></article>
+          <article class="a-stat-card"><span class="a-stat-icon tone-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0m.8-13.9a3.4 3.4 0 0 1 0 6.6m1.2 2.3a5.3 5.3 0 0 1 4 5.1"/></svg></span><div><small>{{ L['customers'] }}</small><strong>{{ stats.customers }}</strong></div><a class="a-stat-foot a-stat-link" href="{{ screen_url('customers') }}">{{ L['view_all'] }} <span aria-hidden="true">→</span></a></article>
+        </section>
+
+        <section class="a-dashboard-grid">
+          <article class="a-panel a-panel-products">
+            <header class="a-panel-heading"><div><p class="a-eyebrow">{{ L['quick_order_hint'] }}</p><h2>{{ L['catalog'] }}</h2></div><a class="a-text-link" href="{{ screen_url('catalog') }}">{{ L['view_all'] }} <span aria-hidden="true">→</span></a></header>
+            <div class="a-quick-list">
+              {% for product in products[:5] %}
+              <div class="a-quick-row {{ 'is-disabled' if not product.available }}" data-product-row data-name="{{ product.name|lower }}" data-category="{{ product.category }}" data-available="{{ 'true' if product.available else 'false' }}" data-product-id="{{ product.id }}" data-raw-price-uzs="{{ product.price_uzs }}">
+                <span class="a-product-thumb">{% if product.image_url %}<img src="{{ product.image_url }}" alt="" loading="lazy">{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>{% endif %}</span>
+                <span class="a-quick-name"><strong data-product-title="{{ product.id }}">{{ product.name }}</strong><small>{{ product.pack_label }}</small></span>
+                <span class="a-quick-price"><strong data-price-uzs="{{ product.id }}">{{ product.uzs }}</strong><small data-price-usd="{{ product.id }}">{{ product.usd }}</small></span>
+                <label class="a-quantity-wrap"><span class="a-visually-hidden">{{ L['quantity'] }}</span><input type="number" min="1" step="1" value="1" data-quantity aria-label="{{ L['quantity'] }}" {{ 'disabled' if not product.available }}></label>
+                <button class="a-icon-button a-add-button" type="button" data-add-product="{{ product.id }}" aria-label="{{ L['add_to_cart'] }}" {{ 'disabled' if not product.available }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+              </div>
+              {% else %}
+              <div class="a-empty-products"><span class="a-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg></span><p>{{ L['all_products'] }}</p></div>
+              {% endfor %}
+            </div>
+          </article>
+
+          <aside class="a-side-stack">
+            <article class="a-panel a-rate-panel">
+              <div class="a-panel-heading"><div><p class="a-eyebrow">{{ L['fx_settings'] }}</p><h2>{{ L['rate'] }}</h2></div><button class="a-round-link" type="button" data-open-rate aria-label="{{ L['more'] }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              <div class="a-rate-value"><strong><span data-rate-value>{{ fx_rate_label }}</span></strong><span>UZS / USD</span></div>
+              <p class="a-note"><span class="a-note-mark" aria-hidden="true">i</span>{{ L['rate_note'] }}</p>
+              <button class="a-text-link a-rate-source" type="button" data-open-rate>{{ L['price_source'] }} <span aria-hidden="true">↗</span></button>
+            </article>
+            <a class="a-import-card" href="{{ screen_url('products') }}" data-demo-action="import-prices">
+              <span class="a-import-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></span>
+              <span><strong>{{ L['import_prices'] }}</strong><small>{{ L['products'] }}</small></span>
+              <span class="a-import-arrow" aria-hidden="true">→</span>
+            </a>
+          </aside>
+        </section>
+
+      {% elif screen == 'products' %}
+        <section class="a-page-heading">
+          <div><p class="a-eyebrow">{{ L['admin'] }}</p><h1>{{ L['products'] }}</h1><p class="a-subtitle">{{ L['inventory_hint'] }}</p></div>
+          <div class="a-heading-actions">
+            <button class="a-button a-button-quiet" type="button" data-demo-action="import-prices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>{{ L['import_prices'] }}</button>
+            <button class="a-button a-button-primary" type="button" data-demo-action="new-product"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ L['new_product'] }}</button>
+          </div>
+        </section>
+        <section class="a-panel a-inventory-panel">
+          <div class="a-filterbar">
+            <label class="a-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" data-product-search placeholder="{{ L['search_placeholder'] }}" aria-label="{{ L['search'] }}"></label>
+            <div class="a-filter-actions"><button class="a-filter-pill is-selected" type="button">{{ L['all_products'] }} <span>{{ products|length }}</span></button><select class="a-filter-select" data-category-filter aria-label="{{ L['all_categories'] }}"><option value="all">{{ L['all_categories'] }}</option>{% for category in products|map(attribute='category')|unique %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select><button class="a-filter-pill is-selected" type="button" data-availability-filter="all">{{ L['all_products'] }}</button><button class="a-filter-pill" type="button" data-availability-filter="available">{{ L['available'] }}</button><button class="a-filter-pill" type="button" data-availability-filter="unavailable">{{ L['unavailable'] }}</button></div>
+          </div>
+          <div class="a-table-wrap"><table class="a-table">
+            <thead><tr><th>{{ L['product_name'] }}</th><th>{{ L['category'] }}</th><th>{{ L['price'] }}</th><th>{{ L['availability'] }}</th><th class="a-actions-col">{{ L['actions'] }}</th></tr></thead>
+            <tbody>
+              {% for product in products %}
+              <tr data-product-row data-name="{{ product.name|lower }}" data-category="{{ product.category }}" data-available="{{ 'true' if product.available else 'false' }}" data-product-id="{{ product.id }}" data-raw-price-uzs="{{ product.price_uzs }}" class="{{ 'is-selected' if selected_product and selected_product.id == product.id }}">
+                <td><div class="a-table-product"><span class="a-product-thumb">{% if product.image_url %}<img src="{{ product.image_url }}" alt="" loading="lazy">{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>{% endif %}</span><span><strong data-product-title="{{ product.id }}">{{ product.name }}</strong><small>{{ product.pack_label }}</small></span></div></td>
+                <td><span class="a-category-label">{{ product.category }}</span></td>
+                <td><span class="a-table-price"><strong data-price-uzs="{{ product.id }}">{{ product.uzs }}</strong><small data-price-usd="{{ product.id }}">{{ product.usd }}</small></span></td>
+                <td><span class="a-status {{ 'is-available' if product.available else 'is-unavailable' }}" data-product-status="{{ product.id }}"><i></i>{{ L['available'] if product.available else L['unavailable'] }}</span></td>
+                <td><button class="a-button a-button-small" type="button" data-edit-product="{{ product.id }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/></svg>{{ L['edit'] }}</button></td>
+              </tr>
+              {% else %}<tr><td colspan="5"><div class="a-empty-row">{{ L['all_products'] }}</div></td></tr>{% endfor %}
+            </tbody>
+          </table></div>
+          {% if selected_product %}<aside class="a-selected-product"><div class="a-selected-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><div><small>{{ L['search_results'] }}</small><strong>{{ selected_product.name }}</strong></div><button class="a-button a-button-small" type="button" data-edit-product="{{ selected_product.id }}">{{ L['edit'] }}</button></aside>{% endif %}
+          <footer class="a-table-footer"><span>{{ L['products'] }} <strong>{{ products|length }}</strong></span><div class="a-pager"><button type="button" disabled aria-label="{{ L['back'] }}">‹</button><span>1</span><button type="button" data-demo-action="next-page" aria-label="{{ L['more'] }}">›</button></div></footer>
+        </section>
+
+      {% elif screen == 'catalog' %}
+        <section class="a-page-heading">
+          <div><p class="a-eyebrow">{{ L['wholesale'] }}</p><h1>{{ L['catalog'] }}</h1><p class="a-subtitle">{{ L['quick_order_hint'] }}</p></div>
+          <a class="a-button a-button-quiet" href="{{ screen_url('cart') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.5L21 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>{{ L['cart'] }} <em class="a-cart-count" data-cart-count>0</em></a>
+        </section>
+        <section class="a-panel a-catalog-panel">
+          <div class="a-filterbar a-catalog-filterbar">
+            <label class="a-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" data-product-search placeholder="{{ L['search_placeholder'] }}" aria-label="{{ L['search'] }}"></label>
+            <select class="a-filter-select" data-category-filter aria-label="{{ L['all_categories'] }}"><option value="all">{{ L['all_categories'] }}</option>{% for category in products|map(attribute='category')|unique %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select><button class="a-filter-pill is-selected" type="button" data-availability-filter="all">{{ L['all_products'] }}</button><button class="a-filter-pill" type="button" data-availability-filter="available">{{ L['available'] }}</button><button class="a-filter-pill" type="button" data-availability-filter="unavailable">{{ L['unavailable'] }}</button>
+          </div>
+          <div class="a-catalog-list">
+            {% for product in products %}
+            <article class="a-catalog-row {{ 'is-disabled' if not product.available }}" data-product-row data-name="{{ product.name|lower }}" data-category="{{ product.category }}" data-available="{{ 'true' if product.available else 'false' }}" data-product-id="{{ product.id }}" data-raw-price-uzs="{{ product.price_uzs }}">
+              <span class="a-product-thumb a-catalog-thumb">{% if product.image_url %}<img src="{{ product.image_url }}" alt="" loading="lazy">{% else %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>{% endif %}</span>
+              <span class="a-catalog-name"><strong data-product-title="{{ product.id }}">{{ product.name }}</strong><small><span>{{ product.category }}</span><i></i>{{ product.pack_label }}</small></span>
+              <span class="a-status {{ 'is-available' if product.available else 'is-unavailable' }}" data-product-status="{{ product.id }}"><i></i>{{ L['available'] if product.available else L['unavailable'] }}</span>
+              <span class="a-catalog-price"><strong data-price-uzs="{{ product.id }}">{{ product.uzs }}</strong><small data-price-usd="{{ product.id }}">{{ product.usd }}</small></span>
+              <div class="a-catalog-add"><label class="a-quantity-wrap"><span class="a-visually-hidden">{{ L['quantity'] }}</span><input type="number" min="1" step="1" value="1" data-quantity aria-label="{{ L['quantity'] }}" {{ 'disabled' if not product.available }}></label><button class="a-button a-button-primary a-button-small" type="button" data-add-product="{{ product.id }}" {{ 'disabled' if not product.available }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ L['add_to_cart'] }}</button></div>
+            </article>
+            {% else %}<div class="a-empty-products"><span class="a-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg></span><p>{{ L['all_products'] }}</p></div>{% endfor %}
+          </div>
+          <div class="a-catalog-bottom"><span><i class="a-live-dot" aria-hidden="true"></i>{{ L['available'] }}</span><a class="a-text-link" href="{{ screen_url('cart') }}">{{ L['cart'] }} <span aria-hidden="true">→</span></a></div>
+        </section>
+
+      {% elif screen == 'chat' %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['ai'] }}</p><h1>{{ L['chats'] }}</h1><p class="a-subtitle">{{ L['chat_intro'] }}</p></div><a class="a-button a-button-quiet" href="{{ screen_url('catalog') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4ZM4 12l8 4 8-4M4 17l8 4 8-4"/></svg>{{ L['catalog'] }}</a></section>
+        <section class="a-chat-layout">
+          <article class="a-panel a-chat-panel">
+            <header class="a-chat-header"><span class="a-chat-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/></svg></span><span><strong>{{ L['ai'] }}</strong><small><i class="a-live-dot"></i>{{ L['available'] }}</small></span><button class="a-round-link" type="button" data-demo-action="chat-options" aria-label="{{ L['more'] }}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></header>
+            <div class="a-chat-log" data-chat-log aria-live="polite"><div class="a-chat-date">{{ L['welcome'] }}</div><div class="a-message-row"><span class="a-chat-avatar a-chat-avatar-small"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/></svg></span><p class="a-message a-message-bot">{{ L['chat_intro'] }}</p></div></div>
+            <form class="a-chat-form" data-chat-form>
+              <textarea name="message" rows="1" placeholder="{{ L['message_placeholder'] }}" aria-label="{{ L['message_placeholder'] }}" required></textarea>
+              <div class="a-chat-form-foot"><span class="a-chat-hint">{{ L['guest'] }}</span><button class="a-send-button" type="submit" aria-label="{{ L['send'] }}"><span>{{ L['send'] }}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Z"/><path d="M7 12h14"/></svg></button></div>
+            </form>
+          </article>
+          <aside class="a-chat-aside"><article class="a-panel a-chat-info"><span class="a-info-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span><h2>{{ L['wholesale'] }}</h2><p>{{ L['chat_intro'] }}</p><a class="a-button a-button-primary a-full-button" href="{{ screen_url('catalog') }}">{{ L['catalog'] }} <span aria-hidden="true">→</span></a></article><article class="a-panel a-chat-rate"><small>{{ L['rate'] }}</small><strong><span data-rate-value>{{ fx_rate_label }}</span></strong><span>{{ L['rate_note'] }}</span><small class="a-chat-rate-source">{{ L['price_source'] }}</small></article></aside>
+        </section>
+
+      {% elif screen == 'cart' %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['catalog'] }}</p><h1>{{ L['cart'] }}</h1><p class="a-subtitle">{{ L['delivery_notice'] }}</p></div><a class="a-button a-button-quiet" href="{{ screen_url('catalog') }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{ L['continue_shopping'] }}</a></section>
+        <section class="a-cart-layout">
+          <article class="a-panel a-cart-panel"><header class="a-panel-heading"><div><p class="a-eyebrow">{{ L['products'] }}</p><h2>{{ L['cart'] }} <span class="a-inline-count" data-cart-count>0</span></h2></div><a class="a-text-link" href="{{ screen_url('catalog') }}">{{ L['continue_shopping'] }} <span aria-hidden="true">→</span></a></header><div class="a-cart-lines" data-cart-lines>{{ L['empty_cart'] }}</div></article>
+          <aside class="a-panel a-checkout-panel"><div class="a-checkout-heading"><span class="a-checkout-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 10 17l9-10"/></svg></span><div><p class="a-eyebrow">{{ L['confirm_order'] }}</p><h2>{{ L['checkout'] }}</h2></div></div>
+            <div class="a-total-row"><span>{{ L['total'] }}</span><strong data-cart-total>0</strong></div>
+            <p class="a-note"><span class="a-note-mark" aria-hidden="true">i</span>{{ L['delivery_notice'] }}</p>
+            <form class="a-checkout-form" data-checkout-form>
+              <label>{{ L['contact_name'] }}<input name="contact_name" autocomplete="name" required></label>
+              <label>{{ L['phone'] }}<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required></label>
+              <label>{{ L['address'] }}<textarea name="address" rows="3" autocomplete="street-address" required></textarea></label>
+              <button class="a-button a-button-primary a-full-button" type="submit">{{ L['confirm_order'] }}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+            </form>
+          </aside>
+        </section>
+
+      {% elif screen == 'orders' %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['dashboard'] }}</p><h1>{{ L['orders'] }}</h1><p class="a-subtitle">{{ L['pending_orders'] }}</p></div></section>
+        <section class="a-stat-grid a-stat-grid-short"><article class="a-stat-card"><span class="a-stat-icon tone-orange"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/></svg></span><div><small>{{ L['pending_orders'] }}</small><strong>{{ stats.orders }}</strong></div></article></section>
+        <section class="a-panel a-empty-workspace"><span class="a-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-8-4-8 4V5a2 2 0 0 1 2-2Z"/><path d="M9 8h6"/></svg></span><h2>{{ L['orders'] }}</h2><a class="a-button a-button-quiet" href="{{ screen_url('dashboard') }}">{{ L['back'] }}</a></section>
+
+      {% elif screen == 'customers' %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['dashboard'] }}</p><h1>{{ L['customers'] }}</h1><p class="a-subtitle">{{ L['customers'] }}</p></div></section>
+        <section class="a-stat-grid a-stat-grid-short"><article class="a-stat-card"><span class="a-stat-icon tone-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0m.8-13.9a3.4 3.4 0 0 1 0 6.6m1.2 2.3a5.3 5.3 0 0 1 4 5.1"/></svg></span><div><small>{{ L['customers'] }}</small><strong>{{ stats.customers }}</strong></div></article></section>
+        <section class="a-panel a-empty-workspace"><span class="a-empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0"/></svg></span><h2>{{ L['customers'] }}</h2><a class="a-button a-button-quiet" href="{{ screen_url('dashboard') }}">{{ L['back'] }}</a></section>
+
+      {% elif screen == 'settings' %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['admin'] }}</p><h1>{{ L['settings'] }}</h1></div></section>
+        <section class="a-panel a-settings-card"><div class="a-settings-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6m-3 7h16m-5-3v6"/></svg></div><div class="a-settings-copy"><h2>{{ L['fx_settings'] }}</h2><p>{{ L['rate_note'] }}</p><small>{{ L['price_source'] }} · <span data-rate-value>{{ fx_rate_label }}</span></small></div><button class="a-button a-button-primary" type="button" data-open-rate>{{ L['more'] }}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></section>
+
+      {% else %}
+        <section class="a-page-heading"><div><p class="a-eyebrow">{{ L['admin'] }}</p><h1>{{ L['account'] }}</h1></div><a class="a-button a-button-primary" href="{{ screen_url('dashboard') }}">{{ L['back'] }}</a></section>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}
