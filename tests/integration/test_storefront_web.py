@@ -748,11 +748,10 @@ async def test_admin_answers_an_order_and_the_customer_sees_it(
     order = await test_session.get(Order, part.order_id)
     assert order is not None
     assert order.status == "confirmed"
-    # The retired shop-part decision field remains untouched; order workflow
-    # status is now the single source of truth.
-    assert part.shop_response == "pending"
-    assert part.status == "new"
-    assert part.responded_at is None
+    # The central workflow also keeps the historical house-part projection in sync.
+    assert part.shop_response == "accepted"
+    assert part.status == "accepted"
+    assert part.responded_at is not None
 
 
 @pytest.mark.asyncio

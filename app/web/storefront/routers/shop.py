@@ -26,10 +26,10 @@ from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.domain.pricing.units import unit_price
 from app.services.house_shop import shop_for_admin
+from app.services.order_workflow import OrderWorkflowService, WorkflowError
 from app.services.supplier_service import SupplierService
 from app.web.storefront.deps import current_lang, current_user, render
 from app.web.storefront.security import require_csrf
-from app.services.order_workflow import OrderWorkflowService, WorkflowError
 
 logger = get_logger(__name__)
 
@@ -222,9 +222,7 @@ async def respond_to_order(
         else:
             notice = "workflow_error"
         return RedirectResponse(f"/manage/orders/{order_id}?notice={notice}", status_code=303)
-    return RedirectResponse(
-        f"/manage/orders/{order_id}?notice=status_saved", status_code=303
-    )
+    return RedirectResponse(f"/manage/orders/{order_id}?notice=status_saved", status_code=303)
 
 
 @router.get("/{shop_id}/delivery")

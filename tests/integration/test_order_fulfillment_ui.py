@@ -21,6 +21,8 @@ from tests.integration.test_storefront_web import (
     _seed,
     _sign_in,
     _sign_in_admin,
+)
+from tests.integration.test_storefront_web import (
     client as storefront_client,
 )
 
@@ -160,6 +162,21 @@ async def test_customer_gets_public_timeline_and_courier_but_no_internal_deliver
         assert order is not None
         revision = order.workflow_revision
 
+    courier_changed = client.post(
+        f"/manage/orders/{order_id}/courier",
+        data={
+            "name": "Courier Max",
+            "phone": "+998901112234",
+            "vehicle": "Kia K5",
+            "cost_uzs": "9876543",
+            "expected_revision": str(revision),
+        },
+    )
+    assert courier_changed.status_code == 200
+    order = await test_session.get(Order, order_id)
+    assert order is not None
+    revision = order.workflow_revision
+
     correction = client.post(
         f"/manage/orders/{order_id}/status",
         data={
@@ -180,7 +197,7 @@ async def test_customer_gets_public_timeline_and_courier_but_no_internal_deliver
     for response in (detail, history):
         assert response.status_code == 200
         assert "Courier Max" in response.text
-        assert "+998901112233" in response.text
+        assert "+998901112234" in response.text
         assert "INTERNAL NOTE: loading bay" not in response.text
         assert "9876543" not in response.text
         assert "PRIVATE CORRECTION EXPLANATION" not in response.text

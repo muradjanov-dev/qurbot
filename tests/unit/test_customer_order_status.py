@@ -8,9 +8,9 @@ from app.bot.handlers.customer import _customer_order_status_label
 @pytest.mark.parametrize(
     ("status", "lang", "expected"),
     [
-        ("new", "uz_latn", "Yangi"),
-        ("collecting", "ru", "Комплектуется"),
-        ("in_transit", "uz_cyrl", "Йўлда"),
+        ("new", "uz_latn", "Admin tasdig‘ini kutmoqda"),
+        ("collecting", "ru", "Товары собираются"),
+        ("in_transit", "uz_cyrl", "Етказиш учун йўлга чиқди"),
         ("fulfilled", "ru", "Доставлен"),
     ],
 )

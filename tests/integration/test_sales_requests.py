@@ -72,7 +72,8 @@ async def test_mixed_cart_request_and_operator_lifecycle(web, test_session, outc
     denied = await client.post(
         "/api/order", json={**body, "expected_total": "0"}, headers=headers(client)
     )
-    assert denied.json()["requires_confirmation"]
+    assert denied.status_code == 401
+    assert denied.json()["code"] == "telegram_login_required"
     assert (await client.post("/api/sales-requests", json=body)).status_code == 403
     response = await client.post("/api/sales-requests", json=body, headers=headers(client))
     assert response.status_code == 200, response.text
