@@ -19,6 +19,7 @@ _LABELS: dict[str, tuple[str, str, str]] = {
     "next": ("Keyingi", "Кейинги", "Далее"),
     "order": ("Buyurtma", "Буюртма", "Заказ"),
     "customer": ("Mijoz", "Мижоз", "Клиент"),
+    "telegram_unlinked": ("Telegram akkaunti ulanmagan", "Telegram аккаунти уланмаган", "Telegram-аккаунт не подключён"),
     "phone": ("Telefon", "Телефон", "Телефон"),
     "address": ("Yetkazish manzili", "Етказиш манзили", "Адрес доставки"),
     "customer_comment": ("Mijoz izohi", "Мижоз изоҳи", "Комментарий клиента"),

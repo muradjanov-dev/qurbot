@@ -22,6 +22,7 @@
   <div class="delivery-two-col">
     <section class="delivery-panel">
       <h2>{{ L.customer }}</h2>
+      {% if not order.user.tg_id %}<p class="delivery-muted"><span class="delivery-status-pill">{{ L.telegram_unlinked }}</span></p>{% endif %}
       <dl class="delivery-facts">
         <div><dt>{{ L.phone }}</dt><dd><a href="tel:{{ order.contact_phone }}">{{ order.contact_phone }}</a></dd></div>
         <div><dt>{{ L.address }}</dt><dd>{{ order.delivery_address }}</dd></div>

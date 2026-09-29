@@ -2,7 +2,7 @@
 {% block title %}#{{ order.id }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 
 {% block content %}
-<section class="section">
+<section class="section delivery-customer-detail">
   <div class="section-head">
     <h1>#{{ order.id }}</h1>
     <a class="muted tiny" href="/orders">← {{ t('web_orders_title', lang=lang) }}</a>
@@ -82,7 +82,8 @@
         {% for event in public_events %}
           <li>
             <time>{{ format_delivery_time(event.created_at) }}</time>
-            {% if event.status %}<strong>{{ t('delivery_status_' ~ event.status, lang=lang) }}</strong>
+            {% if event.kind == 'courier_contact_updated' %}<strong>{{ L.courier_event }}</strong>
+            {% elif event.status %}<strong>{{ t('delivery_status_' ~ event.status, lang=lang) }}</strong>
             {% else %}<strong>{{ L.courier_event }}</strong>{% endif %}
             {% if event.cancel_reason %}<p>{{ event.cancel_reason }}</p>{% endif %}
           </li>

@@ -14,8 +14,9 @@
             <span class="muted tiny">{{ format_delivery_time(order.created_at) }}</span>
             {% if public_events.get(order.id) %}
               <span class="delivery-customer-mini-timeline">
-                {% for event in public_events[order.id] %}
-                  <span>{{ t('delivery_status_' ~ event.status, lang=lang) if event.status else L.courier_event }}</span>
+                {% if public_events[order.id]|length > 3 %}<span aria-hidden="true">…</span>{% endif %}
+                {% for event in public_events[order.id][-3:] %}
+                  <span>{% if event.kind == 'courier_contact_updated' %}{{ L.courier_event }}{% elif event.status %}{{ t('delivery_status_' ~ event.status, lang=lang) }}{% else %}{{ L.courier_event }}{% endif %}</span>
                 {% endfor %}
               </span>
             {% endif %}

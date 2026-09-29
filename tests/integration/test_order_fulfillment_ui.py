@@ -185,6 +185,8 @@ async def test_customer_gets_public_timeline_and_courier_but_no_internal_deliver
         assert "9876543" not in response.text
         assert "PRIVATE CORRECTION EXPLANATION" not in response.text
     assert "Kia K5" in detail.text
+    assert "Kuryer ma’lumoti yangilandi" in detail.text
+    assert "Kuryer ma’lumoti yangilandi" in history.text
     for status in ("confirmed", "in_transit", "fulfilled"):
         label = ORDER_DELIVERY_MESSAGES[f"delivery_status_{status}"]["uz_latn"]
         assert label in detail.text
