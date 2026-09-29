@@ -5,11 +5,24 @@
 <section class="section">
   <h1>{{ t('web_basket_title', lang=lang) }}</h1>
   {% if request.query_params.get('msg') == 'web_guest_cart_review' %}
-  <div class="card" data-guest-cart-review>
+  <div class="card" data-guest-cart-review
+       data-preview-loading="{{ t('guest_claim_preview_loading', lang=lang) }}"
+       data-preview-empty="{{ t('guest_claim_empty', lang=lang) }}"
+       data-preview-failed="{{ t('guest_claim_preview_failed', lang=lang) }}"
+       data-drop-label="{{ t('guest_claim_drop_item', lang=lang) }}"
+       data-confirm-label="{{ t('guest_claim_requires_confirmation', lang=lang) }}">
     <p>{{ t('web_guest_cart_review', lang=lang) }}</p>
-    <button class="btn btn-primary btn-sm" type="button" data-retry-guest-claim>
-      {{ t('web_guest_cart_retry', lang=lang) }}
-    </button>
+    <p>{{ t('guest_claim_review_hint', lang=lang) }}</p>
+    <p data-guest-claim-message role="status">{{ t('guest_claim_preview_loading', lang=lang) }}</p>
+    <ul data-guest-cart-source></ul>
+    <div class="row">
+      <button class="btn btn-primary btn-sm" type="button" data-retry-guest-claim>
+        {{ t('guest_claim_merge', lang=lang) }}
+      </button>
+      <button class="btn btn-sm" type="button" data-drop-guest-claim disabled>
+        {{ t('guest_claim_drop_selected', lang=lang) }}
+      </button>
+    </div>
   </div>
   {% endif %}
   <a class="btn btn-primary" href="/chat?cart=1">{{ t('sales_view_cart', lang=lang) }} / {{ t('sales_send_request', lang=lang) }}</a>

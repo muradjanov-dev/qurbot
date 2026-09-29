@@ -606,6 +606,101 @@
     if (choice) choice.checked = true;
   }
 
+  async function initGuestCartClaimReview() {
+    var card = $("[data-guest-cart-review]");
+    if (!card) return;
+    var lineList = $("[data-guest-cart-source]", card);
+    var message = $("[data-guest-claim-message]", card);
+    var retry = $("[data-retry-guest-claim]", card);
+    var drop = $("[data-drop-guest-claim]", card);
+    var previewLabels = {
+      loading: card.dataset.previewLoading || T.loading,
+      empty: card.dataset.previewEmpty || T.error,
+      failed: card.dataset.previewFailed || T.error,
+      drop: card.dataset.dropLabel || "",
+      confirm: card.dataset.confirmLabel || ""
+    };
+
+    function selectedIds() {
+      return $$('input[data-drop-guest-id]:checked', lineList).map(function (input) {
+        return Number(input.value);
+      }).filter(function (id) { return Number.isSafeInteger(id) && id > 0; });
+    }
+
+    function updateDropState() {
+      drop.disabled = selectedIds().length === 0;
+    }
+
+    function renderSourceLines(lines) {
+      lineList.replaceChildren();
+      lines.forEach(function (line) {
+        var item = document.createElement("li");
+        var label = document.createElement("label");
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.dropGuestId = "";
+        checkbox.value = String(line.canonical_id);
+        checkbox.addEventListener("change", updateDropState);
+        var text = document.createElement("span");
+        text.textContent = String(line.name || ("#" + line.canonical_id)) +
+          " — " + String(line.qty) + " " + String(line.unit_code);
+        label.append(checkbox, text);
+        label.append(document.createTextNode(" — " + previewLabels.drop));
+        item.append(label);
+        if (line.requires_confirmation) {
+          var note = document.createElement("small");
+          note.textContent = previewLabels.confirm;
+          item.append(note);
+        }
+        lineList.append(item);
+      });
+      updateDropState();
+    }
+
+    async function loadPreview() {
+      message.textContent = previewLabels.loading;
+      var result = await cartRequest("/api/cart/claim-guest", "GET");
+      if (!result.ok) {
+        message.textContent = result.error || previewLabels.failed;
+        return false;
+      }
+      if (result.status === "none") {
+        card.hidden = true;
+        return false;
+      }
+      var lines = Array.isArray(result.source_lines) ? result.source_lines : [];
+      renderSourceLines(lines);
+      message.textContent = lines.length ? "" : previewLabels.empty;
+      retry.disabled = false;
+      return true;
+    }
+
+    async function resolveClaim(payload) {
+      retry.disabled = true;
+      drop.disabled = true;
+      var result = await cartRequest("/api/cart/claim-guest", "POST", payload);
+      if (result.ok) {
+        window.location.replace("/basket");
+        return;
+      }
+      message.textContent = result.error || T.error;
+      retry.disabled = false;
+      await loadPreview();
+      updateDropState();
+    }
+
+    retry.disabled = true;
+    drop.disabled = true;
+    retry.addEventListener("click", function () {
+      void resolveClaim({});
+    });
+    drop.addEventListener("click", function () {
+      var ids = selectedIds();
+      if (ids.length) void resolveClaim({drop_guest_ids: ids});
+    });
+    await loadPreview();
+  }
+
   function initCheckout() {
     var root = $("[data-checkout]");
     if (!root) return;
@@ -804,20 +899,8 @@
 
   document.addEventListener("DOMContentLoaded", async function () {
     if (window.QB.ready && !await window.QB.ready) return;
-    var retryGuestClaim = $("[data-retry-guest-claim]");
-    if (retryGuestClaim) {
-      retryGuestClaim.addEventListener("click", async function () {
-        retryGuestClaim.disabled = true;
-        var result = await cartRequest("/api/cart/claim-guest", "POST", {});
-        if (result.ok) {
-          window.location.replace("/basket");
-          return;
-        }
-        retryGuestClaim.disabled = false;
-        toast(result.error || T.error);
-      });
-    }
     if (!await loadCart()) return;
+    await initGuestCartClaimReview();
     syncCount();
     initQtyWidgets();
     initAddToBasket();
