@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.fulfillment_ui_i18n import FULFILLMENT_UI_MESSAGES
 from app.core.i18n import MESSAGES
 from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
@@ -82,6 +83,22 @@ async def test_delivery_workspace_is_admin_only_and_filters_orders(
     assert 'action="/manage/orders/' + str(order_id) + '/status"' in detail.text
     assert 'action="/manage/orders/' + str(order_id) + '/courier"' in detail.text
     assert 'action="/manage/orders/' + str(order_id) + '/note"' in detail.text
+
+
+@pytest.mark.asyncio
+async def test_test_admin_cannot_read_real_order_contact_details(
+    client: TestClient, test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, order_id = await _place_order(client, test_session)
+    admin = await _sign_in_admin(client, test_session)
+    admin.is_test = True
+    await test_session.commit()
+    assert client.get("/manage/orders").status_code == 403
+    assert client.get(f"/manage/orders/{order_id}").status_code == 403
+    admin.is_test = False
+    await test_session.commit()
+    monkeypatch.setattr(settings, "test_tg_ids", [admin.tg_id])
+    assert client.get(f"/manage/orders/{order_id}").status_code == 403
 
 
 @pytest.mark.asyncio

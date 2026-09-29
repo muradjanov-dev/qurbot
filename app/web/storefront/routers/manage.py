@@ -51,7 +51,13 @@ _MAX_DECIMAL_INPUT_LENGTH = 64
 
 
 async def _admin(user: User | None = Depends(current_user)) -> User:
-    if user is None or user.tg_id is None or not is_admin(user):
+    if (
+        user is None
+        or user.tg_id is None
+        or not is_admin(user)
+        or user.is_test
+        or user.tg_id in settings.test_tg_ids
+    ):
         raise HTTPException(403, "admin_required")
     return user
 
@@ -64,7 +70,7 @@ def _admin_page(request: Request, user: User | None, lang: str) -> User | Respon
             target = f"{target}?{request.url.query}"
         target = safe_next(target, "/manage")
         return RedirectResponse(f"/login?next={quote(target, safe='/')}", status_code=303)
-    if not is_admin(user):
+    if not is_admin(user) or user.is_test or user.tg_id in settings.test_tg_ids:
         return render(request, "permission_denied.html", user=user, lang=lang, status_code=403)
     return user
 
@@ -356,7 +362,7 @@ async def admins(
     )
 
 
-@router.post("/admins")
+@router.post("/admins", dependencies=[Depends(require_csrf)])
 async def promote_admin(
     tg_id: str = Form(...),
     session: AsyncSession = Depends(get_db_session),

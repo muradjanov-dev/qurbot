@@ -1,8 +1,11 @@
 import asyncio
 import re
+from contextlib import suppress
 from decimal import Decimal, InvalidOperation
+from urllib.parse import urlsplit
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     BufferedInputFile,
@@ -34,7 +37,7 @@ from app.bot.states import ShopOwnerStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.db.models.catalog import CanonicalProduct
-from app.db.models.order import OrderShopPart
+from app.db.models.order import Order, OrderShopPart
 from app.db.models.shop import ImportRow, Shop, ShopProduct
 from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
@@ -43,6 +46,7 @@ from app.db.repositories.shop_repo import ShopRepository
 from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.catalog_service import CatalogService
 from app.services.house_shop import is_admin, is_house_shop, shop_for_admin
+from app.services.order_workflow import OrderWorkflowService, WorkflowError
 from app.services.supplier_service import SupplierService
 
 router = Router(name="shop")
@@ -65,7 +69,12 @@ async def _owns_shop(user: User, session: AsyncSession, shop_id: int) -> bool:
     on a shop-scoped object re-checks here -- without it anyone could accept an
     order or apply a price import just by sending the callback data by hand.
     """
-    return is_admin(user) and await is_house_shop(session, shop_id)
+    return (
+        is_admin(user)
+        and not user.is_test
+        and user.tg_id not in settings.test_tg_ids
+        and await is_house_shop(session, shop_id)
+    )
 
 
 async def _batch_belongs_to_user(user: User, session: AsyncSession, batch_id: int) -> bool:
@@ -96,7 +105,7 @@ async def menu_shop_portal(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if not is_admin(user):
+    if not is_admin(user) or user.is_test or user.tg_id in settings.test_tg_ids:
         await message.answer(t("admin_only", lang=lang))
         return
 
@@ -123,7 +132,7 @@ async def cmd_shop_orders(
     state: FSMContext,
     lang: str,
 ) -> None:
-    if not is_admin(user):
+    if not is_admin(user) or user.is_test or user.tg_id in settings.test_tg_ids:
         return
 
     shop = await _get_user_shop(user, session)
@@ -131,9 +140,14 @@ async def cmd_shop_orders(
         await message.answer(t("no_shop_found", lang=lang))
         return
 
-    part_stmt = select(OrderShopPart).where(
-        OrderShopPart.shop_id == shop.id,
-        OrderShopPart.status == "pending",
+    part_stmt = (
+        select(OrderShopPart)
+        .join(Order, Order.id == OrderShopPart.order_id)
+        .where(
+            OrderShopPart.shop_id == shop.id,
+            Order.status == "new",
+            Order.is_test.is_(False),
+        )
     )
     part_res = await session.execute(part_stmt)
     pending_parts = list(part_res.scalars().all())
@@ -166,31 +180,69 @@ async def callback_shop_order_decision(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    if not callback.data:
-        await callback.answer()
+    try:
+        prefix, action, raw_part_id = (callback.data or "").split(":", 2)
+        part_id = int(raw_part_id)
+        if prefix != "shop_order" or action not in {"accept", "reject"} or part_id <= 0:
+            raise ValueError("invalid legacy order callback")
+    except (TypeError, ValueError):
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
-    parts = callback.data.split(":")
-    action = parts[1]  # accept or reject
-    part_id = int(parts[2])
 
     order_part = await session.get(OrderShopPart, part_id)
     if not order_part:
-        if isinstance(callback.message, Message):
-            await callback.message.answer("Buyurtma topilmadi.")
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
 
     if not await _owns_shop(user, session, order_part.shop_id):
         await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
-    if action == "accept":
-        order_part.status = "accepted"
-        msg_text = f"✅ Buyurtma #{order_part.order_id} (Qism #{part_id}) qabul qilindi!"
-    else:
-        order_part.status = "rejected"
-        msg_text = f"❌ Buyurtma #{order_part.order_id} (Qism #{part_id}) rad etildi."
+    order_id = order_part.order_id
+    if action == "reject":
+        order = await session.get(Order, order_id)
+        if order is None or order.status != "new":
+            await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+            return
+        origin = urlsplit(settings.storefront_webapp_url or settings.webhook_base_url)
+        if origin.scheme not in {"http", "https"} or not origin.netloc:
+            await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+            return
+        url = f"{origin.scheme}://{origin.netloc}/manage/orders/{order_id}"
+        await callback.answer(
+            "Bekor qilish sababini buyurtma sahifasida kiriting.", show_alert=True
+        )
+        if isinstance(callback.message, Message):
+            await callback.message.edit_text(
+                f"❌ Buyurtma #{order_id}ni bekor qilish uchun sababni kiriting: {url}"
+            )
+        return
 
-    await session.commit()
+    target = "confirmed" if action == "accept" else "cancelled"
+    try:
+        await OrderWorkflowService(session).change_status(
+            order_id=order_id,
+            actor=user,
+            target=target,
+            expected_revision=None,
+            expected_status="new",
+            reason="",
+        )
+        await session.commit()
+    except WorkflowError:
+        await session.rollback()
+        if isinstance(callback.message, Message):
+            with suppress(TelegramAPIError):
+                await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        return
+
+    msg_text = (
+        f"✅ Buyurtma #{order_id} qabul qilindi!"
+        if action == "accept"
+        else f"❌ Buyurtma #{order_id} bekor qilindi."
+    )
+    await callback.answer(msg_text)
     if isinstance(callback.message, Message):
         await callback.message.edit_text(msg_text)
 

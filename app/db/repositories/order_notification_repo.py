@@ -74,6 +74,14 @@ async def claim_due_notifications(
     )
     claims: list[ClaimedOrderNotification] = []
     for row in rows:
+        # A worker may die after committing the lease, before it can record a
+        # failure. Never grant a sixth send merely because that lease expired.
+        if row.attempts >= MAX_ATTEMPTS:
+            row.status = "failed"
+            row.lease_until = None
+            row.lease_token = None
+            row.last_error = "lease_expired_attempts_exhausted"
+            continue
         token = str(uuid4())
         row.status = "sending"
         row.attempts += 1

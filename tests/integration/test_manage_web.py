@@ -341,6 +341,9 @@ async def test_only_super_admin_promotes_existing_telegram_account(
     assert client.post("/manage/admins", data={"tg_id": str(fixture.user_id)}).status_code == 403
     monkeypatch.setattr(settings, "super_admin_tg_ids", [admin.tg_id])
     assert client.get("/manage/admins").status_code == 200
+    csrf = client.headers.pop("X-CSRF-Token")
+    assert client.post("/manage/admins", data={"tg_id": "5550001"}).status_code == 403
+    client.headers["X-CSRF-Token"] = csrf
     assert client.post("/manage/admins", data={"tg_id": "999999999"}).status_code == 422
     assert (
         client.post("/manage/admins", data={"tg_id": "5550001"}, follow_redirects=False).status_code

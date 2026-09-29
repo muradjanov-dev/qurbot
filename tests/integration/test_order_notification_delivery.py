@@ -17,6 +17,7 @@ from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.telegram_message import TelegramMessage
 from app.db.models.user import User
 from app.db.repositories.order_notification_repo import (
+    MAX_ATTEMPTS,
     RETRY_DELAYS,
     as_utc,
     claim_due_notifications,
@@ -137,6 +138,38 @@ async def _event(session, *, order_id: int, actor_id: int, label: str) -> OrderE
     session.add(row)
     await session.flush()
     return row
+
+
+@pytest.mark.asyncio
+async def test_expired_fifth_lease_becomes_failed_without_a_sixth_send(test_session) -> None:
+    customer, admin, order, event = await _base(test_session)
+    first = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=customer.tg_id,
+    )
+    next_event = await _event(test_session, order_id=order.id, actor_id=admin.id, label="next")
+    await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=next_event.id,
+        recipient=customer.tg_id,
+    )
+    now = datetime.now(UTC)
+    first.status = "sending"
+    first.attempts = MAX_ATTEMPTS
+    first.lease_token = "expired-fifth-attempt"
+    first.lease_until = now - timedelta(seconds=1)
+    await test_session.commit()
+
+    assert await claim_due_notifications(test_session, now=now) == []
+    await test_session.refresh(first)
+    assert first.status == "failed"
+    assert first.attempts == MAX_ATTEMPTS
+    assert first.last_error == "lease_expired_attempts_exhausted"
+    # A failed FIFO head cannot let the later status reach Telegram out of order.
+    assert await claim_due_notifications(test_session, now=now + timedelta(hours=1)) == []
 
 
 @pytest.mark.asyncio

@@ -32,7 +32,6 @@ from app.web.storefront.security import require_same_origin_write
 from app.web.storefront.session import GUEST_COOKIE, SESSION_COOKIE, read_session, sign_session
 from app.web.storefront.telegram_auth import (
     TelegramIdentity,
-    verify_login_widget,
     verify_webapp_init_data,
 )
 from app.web.storefront.visitor import create_visitor, ip_key, limit
@@ -362,28 +361,9 @@ async def cancel_bot_login(request: Request) -> Response:
 
 
 @router.get("/auth/telegram")
-async def telegram_callback(
-    request: Request,
-    session: AsyncSession = Depends(get_db_session),
-    lang: str = Depends(current_lang),
-) -> Response:
-    """Where the Telegram Login Widget sends the browser back to."""
-    params = dict(request.query_params)
-    target = safe_next(params.pop("next", None))
-
-    identity = verify_login_widget(params)
-    if identity is None:
-        logger.warning("web_login_rejected", reason="bad_signature")
-        return RedirectResponse("/login?msg=web_login_failed", status_code=303)
-
-    user = await _sign_in(session, identity, lang=lang)
-    if user is None:
-        return RedirectResponse("/login?msg=web_login_blocked", status_code=303)
-
-    claim = await _claim_browser_cart(session, request, user)
-    response = RedirectResponse(_login_target(target, claim), status_code=303)
-    _attach_claimed_session(response, request, user, claim)
-    return response
+async def telegram_callback() -> Response:
+    """Retire the unbound widget callback; use browser-bound bot confirmation."""
+    return RedirectResponse("/login?msg=web_login_failed", status_code=303)
 
 
 @router.post("/auth/webapp")

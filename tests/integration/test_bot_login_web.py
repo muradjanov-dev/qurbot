@@ -150,6 +150,18 @@ def test_bot_login_feature_is_disabled_without_a_valid_bot_username(
     assert unavailable.status_code == 503
 
 
+def test_old_widget_callback_never_attaches_a_session(client: TestClient) -> None:
+    page = client.get("/login")
+    assert "telegram-widget.js" not in page.text
+    response = client.get(
+        "/auth/telegram?id=4242&auth_date=9999999999&hash=attacker&next=/checkout",
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?msg=web_login_failed"
+    assert read_session(client.cookies.get(SESSION_COOKIE)) is None
+
+
 @pytest.mark.asyncio
 async def test_start_checks_origin_rate_limits_and_reuses_browser_cookie(
     client: TestClient,
