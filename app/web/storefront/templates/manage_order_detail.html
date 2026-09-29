@@ -28,7 +28,7 @@
         <div><dt>{{ L.address }}</dt><dd>{{ order.delivery_address }}</dd></div>
         {% if order.comment %}<div><dt>{{ L.customer_comment }}</dt><dd>{{ order.comment }}</dd></div>{% endif %}
       </dl>
-      <h3>{{ L.items }}</h3>
+      <h3>{{ L['items'] }}</h3>
       <div class="delivery-lines">
         {% for item in items %}
           <div class="delivery-line"><span>{{ item.name }} <small>{{ format_qty(item.qty) }} {{ item.unit }}</small></span><strong>{{ format_uzs(item.total) }} {{ t('web_currency', lang=lang) }}</strong></div>
