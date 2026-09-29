@@ -180,6 +180,13 @@ def _basket_line(product_id: int, qty: str = "10") -> dict[str, object]:
 @pytest.mark.asyncio
 async def test_home_page_renders(client: TestClient, test_session: AsyncSession) -> None:
     fixture = await _seed(test_session)
+    fasteners = Category(
+        slug="mahkamlash-materiallari",
+        name_uz="Mahkamlash materiallari",
+        name_ru="Крепёжные материалы",
+    )
+    test_session.add(fasteners)
+    await test_session.flush()
     response = client.get("/")
     assert response.status_code == 200
     assert "Tezqur" in response.text
@@ -187,6 +194,19 @@ async def test_home_page_renders(client: TestClient, test_session: AsyncSession)
     assert "chat.js?v=" not in response.text
     assert 'href="/chat"' in response.text
     assert f'href="/catalog/{fixture.category_id}"' in response.text
+    card_start = response.text.index(
+        f'<a class="store-category-card" href="/catalog/{fasteners.id}">'
+    )
+    card_end = response.text.index("</a>", card_start)
+    fastener_card = response.text[card_start:card_end]
+    assert 'src="/static/store/images/screws.webp"' in fastener_card
+    assert 'src="/static/store/images/no-photo.svg"' not in fastener_card
+    catalog = client.get("/catalog")
+    card_start = catalog.text.index(
+        f'<a class="store-category-card" href="/catalog/{fasteners.id}">'
+    )
+    card_end = catalog.text.index("</a>", card_start)
+    assert 'src="/static/store/images/screws.webp"' in catalog.text[card_start:card_end]
     chat = client.get("/chat")
     assert chat.status_code == 200 and "data-chat-form" in chat.text
 

@@ -14,7 +14,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
-from app.domain.catalog_images import photo_filename
+from app.domain.catalog_images import category_photo_filename, photo_filename
 from app.domain.normalize.translit import latin_to_cyrillic_uz
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.session import LANG_COOKIE, normalize_lang
@@ -43,7 +43,7 @@ async def home(
                 if lang == "uz_cyrl"
                 else category.name_uz
             ),
-            "image_src": f"/static/store/images/{photo_filename(category.slug, '')}",
+            "image_src": f"/static/store/images/{category_photo_filename(category.slug)}",
         }
         for category in categories
     ]

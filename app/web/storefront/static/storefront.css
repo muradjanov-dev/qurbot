@@ -318,3 +318,51 @@
 @media (prefers-reduced-motion: reduce) {
   .storefront-b *, .storefront-b *::before, .storefront-b *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Account access is the clear entry point for guest and admin users. */
+.storefront-b .store-account-access {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 20px 22px;
+  border: 1px solid #dfe8df;
+  border-radius: 16px;
+  background: linear-gradient(110deg, #f3f8f2, #fff 76%);
+  box-shadow: var(--shadow);
+}
+.storefront-b .store-account-access--admin { border-color: #d2e4d5; background: linear-gradient(110deg, #eaf4eb, #fff 78%); }
+.storefront-b .store-account-access-copy { display: flex; align-items: flex-start; gap: 15px; min-width: 0; }
+.storefront-b .store-account-access-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border: 1px solid #d8e8d9;
+  border-radius: 16px;
+  background: #e6f1e7;
+  color: var(--accent);
+}
+.storefront-b .store-account-access-icon--telegram { border-color: #d5eaf4; background: #e7f5fb; color: #1687b8; }
+.storefront-b .store-account-access-icon svg,
+.storefront-b .store-account-access-primary svg { width: 23px; height: 23px; fill: currentColor; }
+.storefront-b .store-account-access--admin .store-account-access-icon svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.storefront-b .store-account-access-kicker { display: block; margin: 1px 0 5px; color: #7d8b80; font-size: .65rem; font-weight: 740; letter-spacing: .09em; }
+.storefront-b .store-account-access h2 { margin: 0; color: var(--ink); font-size: 1.08rem; font-weight: 710; letter-spacing: -.035em; line-height: 1.2; }
+.storefront-b .store-account-access p { max-width: 64ch; margin: 6px 0 0; color: var(--ink-2); font-size: .875rem; line-height: 1.48; }
+.storefront-b .store-account-access-actions { display: flex; flex: none; align-items: center; gap: 8px; }
+.storefront-b .store-account-access-primary { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 9px; padding: 0 16px; white-space: nowrap; }
+.storefront-b .store-account-access-secondary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 0 13px; white-space: nowrap; }
+.storefront-b .store-account-access-secondary span { color: #8c9b91; }
+
+@media (max-width: 720px) {
+  .storefront-b .store-account-access { align-items: stretch; flex-direction: column; gap: 15px; padding: 16px; }
+  .storefront-b .store-account-access-copy { gap: 12px; }
+  .storefront-b .store-account-access-icon { width: 46px; height: 46px; border-radius: 14px; }
+  .storefront-b .store-account-access h2 { font-size: 1rem; }
+  .storefront-b .store-account-access p { font-size: .875rem; }
+  .storefront-b .store-account-access-actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .storefront-b .store-account-access-primary,
+  .storefront-b .store-account-access-secondary { width: 100%; min-height: 46px; }
+}

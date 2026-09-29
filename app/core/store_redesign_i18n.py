@@ -156,4 +156,60 @@ STORE_UI_MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Кўриш",
         "ru": "Смотреть",
     },
+    "store_ui_account_guest_kicker": {
+        "uz_latn": "TELEGRAM HISOBI",
+        "uz_cyrl": "ТЕЛЕГРАМ ҲИСОБИ",
+        "ru": "АККАУНТ TELEGRAM",
+    },
+    "store_ui_account_guest_title": {
+        "uz_latn": "Hisobingizga kiring",
+        "uz_cyrl": "Ҳисобингизга киринг",
+        "ru": "Войдите в аккаунт",
+    },
+    "store_ui_account_guest_body": {
+        "uz_latn": (
+            "Telegram hisobingiz bilan kiring. Admin huquqingiz bo‘lsa, kabinetda "
+            "boshqaruv tugmasi ko‘rinadi."
+        ),
+        "uz_cyrl": (
+            "Telegram ҳисобингиз билан киринг. Админ ҳуқуқингиз бўлса, кабинетда "
+            "бошқарув тугмаси кўринади."
+        ),
+        "ru": (
+            "Войдите через свой аккаунт Telegram. Если у вас есть права администратора, "
+            "в кабинете появится кнопка управления."
+        ),
+    },
+    "store_ui_telegram_signin": {
+        "uz_latn": "Telegram orqali kirish",
+        "uz_cyrl": "Telegram орқали кириш",
+        "ru": "Войти через Telegram",
+    },
+    "store_ui_account_admin_kicker": {
+        "uz_latn": "BOSHQARUV",
+        "uz_cyrl": "БОШҚАРУВ",
+        "ru": "УПРАВЛЕНИЕ",
+    },
+    "store_ui_account_admin_title": {
+        "uz_latn": "Boshqaruv paneli",
+        "uz_cyrl": "Бошқарув панели",
+        "ru": "Панель управления",
+    },
+    "store_ui_account_admin_body": {
+        "uz_latn": (
+            "Katalog va buyurtmalarni boshqaring. Mijoz murojaatlari operatorlar bo‘limida."
+        ),
+        "uz_cyrl": ("Каталог ва буюртмаларни бошқаринг. Мижоз мурожаатлари операторлар бўлимида."),
+        "ru": ("Управляйте каталогом и заказами. Обращения клиентов — во входящих оператора."),
+    },
+    "store_ui_manage_dashboard": {
+        "uz_latn": "Boshqaruv panelini ochish",
+        "uz_cyrl": "Бошқарув панелини очиш",
+        "ru": "Открыть панель управления",
+    },
+    "store_ui_admin_inbox": {
+        "uz_latn": "Murojaatlarni ko‘rish",
+        "uz_cyrl": "Мурожаатларни кўриш",
+        "ru": "Входящие обращения",
+    },
 }

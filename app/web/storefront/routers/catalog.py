@@ -22,7 +22,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
-from app.domain.catalog_images import photo_filename
+from app.domain.catalog_images import category_photo_filename
 from app.domain.normalize.translit import latin_to_cyrillic_uz
 from app.services.fx_pricing import FxPricingService
 from app.web.storefront.deps import current_lang, current_user, render
@@ -92,7 +92,7 @@ def _category_views(categories: Sequence[Category], lang: str) -> list[dict[str,
             "id": category.id,
             "name": _category_name(category, lang),
             "slug": category.slug,
-            "image_src": f"/static/store/images/{photo_filename(category.slug, '')}",
+            "image_src": f"/static/store/images/{category_photo_filename(category.slug)}",
         }
         for category in categories
     ]
