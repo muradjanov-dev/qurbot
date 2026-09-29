@@ -2614,8 +2614,10 @@ from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES  # noqa: E402
 MESSAGES.update(ORDER_DELIVERY_MESSAGES)
 
 from app.core.fulfillment_ui_i18n import FULFILLMENT_UI_MESSAGES  # noqa: E402
+from app.core.guest_claim_i18n import GUEST_CLAIM_MESSAGES  # noqa: E402
 
 MESSAGES.update(FULFILLMENT_UI_MESSAGES)
+MESSAGES.update(GUEST_CLAIM_MESSAGES)
 MESSAGES["order_created_waiting_approval"] = {
     "uz_latn": "✅ Buyurtma #{order_id} yuborildi. Admin tasdig‘ini kutmoqda.",
     "uz_cyrl": "✅ Буюртма #{order_id} юборилди. Админ тасдиғини кутмоқда.",

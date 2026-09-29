@@ -374,6 +374,7 @@ async def webapp_login(
     lang: str = Depends(current_lang),
 ) -> Response:
     """Sign in silently when the site is opened as a Telegram Mini App."""
+    await require_same_origin_write(request)
     identity = verify_webapp_init_data(body.init_data)
     if identity is not None:
         user = await _sign_in(session, identity, lang=lang)
