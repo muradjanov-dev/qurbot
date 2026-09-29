@@ -8,9 +8,9 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from hashlib import sha256
 from io import BytesIO
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -558,11 +558,22 @@ async def bulk_deactivate_stale_offers(
     return RedirectResponse("/manage/price-health", status_code=303)
 
 
+def _products_url(page: int, q: str, category_id: int | None, status: str) -> str:
+    params: dict[str, str | int] = {"status": status}
+    if page > 1:
+        params["page"] = page
+    if q:
+        params["q"] = q
+    if category_id is not None:
+        params["category_id"] = category_id
+    return "/manage/products?" + urlencode(params)
+
+
 @router.get("/products")
 async def products(
     request: Request,
     q: str = "",
-    category_id: int | None = None,
+    raw_category_id: str | None = Query(default=None, alias="category_id"),
     status: str = "all",
     page: int = 1,
     session: AsyncSession = Depends(get_db_session),
@@ -575,6 +586,12 @@ async def products(
     user = admin
     shop = await _shop(session, user)
     status = status if status in {"all", "available", "unavailable", "archived"} else "all"
+    category_id: int | None = None
+    if raw_category_id is not None and raw_category_id.strip():
+        try:
+            category_id = int(raw_category_id.strip())
+        except ValueError as exc:
+            raise HTTPException(422, "invalid_category_id") from exc
     page_size = settings.web_manage_products_page_size
     filters = []
     if category_id is not None:
@@ -709,6 +726,12 @@ async def products(
         counts=counts,
         page=page,
         page_size=page_size,
+        prev_url=_products_url(page - 1, q, category_id, status),
+        next_url=_products_url(page + 1, q, category_id, status),
+        status_urls={
+            key: _products_url(1, q, category_id, key)
+            for key in ("all", "available", "unavailable", "archived")
+        },
         q=q,
         category_id=category_id,
         status=status,

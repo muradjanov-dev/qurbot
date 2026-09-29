@@ -12,7 +12,7 @@
 
   <div class="admin-product-counts" role="list" aria-label="{{ t('admin_ui_status', lang=lang) }}">
     {% for key, label in [('all','admin_ui_all_products'),('available','admin_ui_available'),('unavailable','admin_ui_unavailable'),('archived','admin_ui_archived')] %}
-    <a role="listitem" class="admin-count-chip {{ 'is-active' if status == key }}" href="/manage/products?q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ key }}"><span>{{ t(label, lang=lang) }}</span><strong>{{ counts[key] }}</strong></a>
+    <a role="listitem" class="admin-count-chip {{ 'is-active' if status == key }}" href="{{ status_urls[key] }}"><span>{{ t(label, lang=lang) }}</span><strong>{{ counts[key] }}</strong></a>
     {% endfor %}
     <a class="admin-template-link" href="/manage/import-template">{{ t('admin_ui_import_template', lang=lang) }} <span aria-hidden="true">↓</span></a>
   </div>
@@ -49,8 +49,8 @@
       </tbody>
     </table></div>
     <footer class="admin-table-footer"><span>{{ t('admin_ui_page_count', lang=lang, page=page, pages=pages) }}</span><nav aria-label="{{ t('admin_ui_products', lang=lang) }}">
-      {% if page > 1 %}<a class="admin-page-arrow" href="/manage/products?page={{ page - 1 }}&q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ status }}" aria-label="{{ t('admin_ui_back', lang=lang) }}">‹</a>{% endif %}
-      {% if page < pages %}<a class="admin-page-arrow" href="/manage/products?page={{ page + 1 }}&q={{ q|urlencode }}&category_id={{ category_id or '' }}&status={{ status }}" aria-label="{{ t('admin_ui_more', lang=lang) }}">›</a>{% endif %}
+      {% if page > 1 %}<a class="admin-page-arrow" href="{{ prev_url }}" aria-label="{{ t('admin_ui_back', lang=lang) }}">‹</a>{% endif %}
+      {% if page < pages %}<a class="admin-page-arrow" href="{{ next_url }}" aria-label="{{ t('admin_ui_more', lang=lang) }}">›</a>{% endif %}
     </nav></footer>
   </section>
 </section>
