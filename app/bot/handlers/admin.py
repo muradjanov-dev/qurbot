@@ -12,6 +12,8 @@ from app.bot.formatters.common import esc, format_catalog_price, format_uzs
 from app.bot.keyboards.inline import (
     get_admin_admins_keyboard,
     get_admin_back_keyboard,
+    get_admin_order_decision_keyboard,
+    get_admin_order_detail_url,
     get_admin_panel_keyboard,
     get_admin_products_keyboard,
 )
@@ -45,8 +47,8 @@ async def callback_admin_order_decision(
     session: AsyncSession,
     lang: str,
 ) -> None:
-    """Confirm or cancel an order after an operator calls the customer."""
-    if not is_admin(user):
+    """Confirm a new order in Telegram or open the form to cancel it."""
+    if not is_admin(user) or user.is_test or user.tg_id in settings.test_tg_ids:
         await callback.answer(t("admin_only", lang=lang), show_alert=True)
         return
 
@@ -60,20 +62,46 @@ async def callback_admin_order_decision(
         await callback.answer("Noto'g'ri amal.", show_alert=True)
         return
 
-    target_status = "confirmed" if action == "confirm" else "cancelled"
-    reason = ""
     if action == "cancel":
-        reason = t("order_admin_cancel_reason", lang=lang)
-        if reason == "order_admin_cancel_reason":
-            reason = ORDER_DELIVERY_MESSAGES["delivery_status_cancelled"].get(lang, "Cancelled")
+        result = await session.execute(
+            select(Order).where(Order.id == order_id, Order.is_test.is_(False)).with_for_update()
+        )
+        order = result.scalar_one_or_none()
+        order_url = get_admin_order_detail_url(order_id)
+        if order is None or order.status != "new" or order_url is None:
+            await session.rollback()
+            if isinstance(callback.message, Message):
+                try:
+                    await callback.message.edit_reply_markup(reply_markup=None)
+                except TelegramAPIError:
+                    logger.warning("admin_order_markup_remove_failed", order_id=order_id)
+            await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+            return
+
+        await session.commit()
+        if isinstance(callback.message, Message):
+            try:
+                await callback.message.edit_reply_markup(
+                    reply_markup=get_admin_order_decision_keyboard(order_id)
+                )
+            except TelegramAPIError:
+                logger.warning("admin_order_cancel_link_update_failed", order_id=order_id)
+                await callback.message.answer(
+                    ORDER_DELIVERY_MESSAGES["delivery_notification_admin_open_order"].get(
+                        lang, "Buyurtmani ochish"
+                    ),
+                    reply_markup=get_admin_order_decision_keyboard(order_id),
+                )
+        await callback.answer()
+        return
+
     try:
         await OrderWorkflowService(session).change_status(
             order_id=order_id,
             actor=user,
-            target=target_status,
+            target="confirmed",
             expected_revision=None,
             expected_status="new",
-            reason=reason,
         )
         await session.commit()
     except WorkflowError:
@@ -86,10 +114,7 @@ async def callback_admin_order_decision(
         await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
 
-    if action == "confirm":
-        admin_result = t("order_admin_confirmed_customer", lang=lang, order_id=order_id)
-    else:
-        admin_result = t("order_admin_cancelled_customer", lang=lang, order_id=order_id)
+    admin_result = t("order_admin_confirmed_customer", lang=lang, order_id=order_id)
 
     await callback.answer(admin_result)
     if isinstance(callback.message, Message):

@@ -423,11 +423,10 @@ async def test_an_order_left_unconfirmed_reminds_the_admins(test_session: AsyncS
     assert sent == 1
     assert len(bot.sent) == len(settings.admin_tg_ids)
     assert f"#{order.id}" in bot.sent[0][1]
-    callbacks = [button.callback_data for row in bot.markups[0].inline_keyboard for button in row]
-    assert callbacks == [
-        f"admin_order:confirm:{order.id}",
-        f"admin_order:cancel:{order.id}",
-    ]
+    buttons = [button for row in bot.markups[0].inline_keyboard for button in row]
+    assert buttons[0].callback_data == f"admin_order:confirm:{order.id}"
+    assert buttons[1].url.endswith(f"/manage/orders/{order.id}")
+    assert buttons[1].callback_data is None
 
 
 @pytest.mark.asyncio

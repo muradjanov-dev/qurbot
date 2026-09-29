@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.handlers.admin import callback_admin_order_decision
 from app.core.config import settings
 from app.db.models.order import Basket, Order, OrderShopPart, Quote
-from app.db.models.order_workflow import OrderNotification
+from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.shop import District, Shop
 from app.db.models.user import User
 
@@ -80,17 +80,9 @@ def _callback(order_id: int, action: str) -> CallbackQuery:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("action", "expected_status"),
-    [("confirm", "confirmed"), ("cancel", "cancelled")],
-)
-async def test_admin_can_finish_an_order(
-    test_session: AsyncSession,
-    action: str,
-    expected_status: str,
-) -> None:
+async def test_admin_can_confirm_an_order(test_session: AsyncSession) -> None:
     order, customer, admin = await _order_and_users(test_session)
-    callback = _callback(order.id, action)
+    callback = _callback(order.id, "confirm")
 
     await callback_admin_order_decision(
         callback=callback,
@@ -100,7 +92,7 @@ async def test_admin_can_finish_an_order(
     )
 
     await test_session.refresh(order)
-    assert order.status == expected_status
+    assert order.status == "confirmed"
     callback.message.edit_reply_markup.assert_awaited_once_with(reply_markup=None)
     callback.answer.assert_awaited_once()
     notification = await test_session.scalar(
@@ -110,6 +102,38 @@ async def test_admin_can_finish_an_order(
     assert notification.recipient_tg_id == customer.tg_id
     assert notification.kind == "customer_status"
     assert f"#{order.id}" in notification.text
+
+
+@pytest.mark.asyncio
+async def test_legacy_cancel_callback_only_opens_reason_form(test_session: AsyncSession) -> None:
+    order, _customer, admin = await _order_and_users(test_session)
+    callback = _callback(order.id, "cancel")
+
+    await callback_admin_order_decision(
+        callback=callback,
+        user=admin,
+        session=test_session,
+        lang="uz_latn",
+    )
+
+    await test_session.refresh(order)
+    assert order.status == "new"
+    assert (
+        await test_session.scalar(select(OrderEvent.id).where(OrderEvent.order_id == order.id))
+        is None
+    )
+    assert (
+        await test_session.scalar(
+            select(OrderNotification.id).where(OrderNotification.order_id == order.id)
+        )
+        is None
+    )
+    callback.message.edit_reply_markup.assert_awaited_once()
+    markup = callback.message.edit_reply_markup.await_args.kwargs["reply_markup"]
+    assert markup.inline_keyboard[0][0].callback_data == f"admin_order:confirm:{order.id}"
+    assert markup.inline_keyboard[0][1].url.endswith(f"/manage/orders/{order.id}")
+    assert markup.inline_keyboard[0][1].callback_data is None
+    callback.answer.assert_awaited_once_with()
 
 
 @pytest.mark.asyncio
@@ -147,3 +171,4 @@ async def test_an_order_cannot_be_decided_twice(test_session: AsyncSession) -> N
     await test_session.refresh(order)
     assert order.status == "confirmed"
     assert callback.answer.await_args.kwargs["show_alert"] is True
+    callback.message.edit_reply_markup.assert_awaited_once_with(reply_markup=None)

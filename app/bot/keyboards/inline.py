@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from urllib.parse import urlsplit
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -472,18 +473,34 @@ def get_shop_order_decision_keyboard(order_part_id: int) -> InlineKeyboardMarkup
     return builder.as_markup()
 
 
+def get_admin_order_detail_url(order_id: int) -> str | None:
+    """Return the configured admin detail URL used by order decision buttons."""
+    if order_id <= 0:
+        return None
+    for candidate in (settings.webhook_base_url, settings.storefront_webapp_url):
+        if not candidate:
+            continue
+        parts = urlsplit(candidate.strip())
+        if parts.scheme in {"http", "https"} and parts.netloc:
+            url = f"{parts.scheme}://{parts.netloc}/manage/orders/{order_id}"
+            return url if len(url) <= 300 else None
+    return None
+
+
 def get_admin_order_decision_keyboard(order_id: int) -> InlineKeyboardMarkup:
-    """Let an operator close the order after calling the customer."""
+    """Confirm in Telegram; open the web form to cancel with a real reason."""
     builder = InlineKeyboardBuilder()
     builder.button(
         text="✅ Buyurtmani tasdiqlash",
         callback_data=f"admin_order:confirm:{order_id}",
     )
-    builder.button(
-        text="❌ Buyurtmani bekor qilish",
-        callback_data=f"admin_order:cancel:{order_id}",
-    )
-    builder.adjust(2)
+    order_url = get_admin_order_detail_url(order_id)
+    if order_url is not None:
+        builder.button(text="❌ Buyurtmani bekor qilish", url=order_url)
+        builder.adjust(2)
+    else:
+        # Without a public site URL, never expose an unreasoned cancel action.
+        builder.adjust(1)
     return builder.as_markup()
 
 

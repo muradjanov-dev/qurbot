@@ -147,11 +147,13 @@ def test_shop_order_decision_keyboard() -> None:
     assert kb.inline_keyboard[0][1].callback_data == "shop_order:reject:42"
 
 
-def test_admin_order_decision_keyboard() -> None:
+def test_admin_order_decision_keyboard_routes_cancel_to_reason_form() -> None:
     kb = get_admin_order_decision_keyboard(order_id=42)
     assert len(kb.inline_keyboard) == 1
     assert kb.inline_keyboard[0][0].callback_data == "admin_order:confirm:42"
-    assert kb.inline_keyboard[0][1].callback_data == "admin_order:cancel:42"
+    assert kb.inline_keyboard[0][1].text == "❌ Buyurtmani bekor qilish"
+    assert kb.inline_keyboard[0][1].url.endswith("/manage/orders/42")
+    assert kb.inline_keyboard[0][1].callback_data is None
 
 
 def test_main_menu_keyboard() -> None:

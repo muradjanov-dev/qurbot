@@ -129,11 +129,10 @@ async def test_create_event_is_idempotent_and_targets_unblocked_admins(test_sess
     assert all("/manage/orders/" in row.text for row in admin_rows)
     for admin_row in admin_rows:
         keyboard = admin_row.payload["reply_markup"]["inline_keyboard"]
-        assert [button["callback_data"] for button in keyboard[0]] == [
-            f"admin_order:confirm:{order.id}",
-            f"admin_order:cancel:{order.id}",
-        ]
-        assert "/manage/orders/" in keyboard[1][0]["url"]
+        assert keyboard[0][0]["callback_data"] == f"admin_order:confirm:{order.id}"
+        assert keyboard[0][1]["text"] == "❌ Buyurtmani bekor qilish"
+        assert keyboard[0][1]["url"].endswith(f"/manage/orders/{order.id}")
+        assert "callback_data" not in keyboard[0][1]
 
     location_rows = [row for row in rows if row.kind == "admin_order_location"]
     assert {row.recipient_tg_id for row in location_rows} == recipients

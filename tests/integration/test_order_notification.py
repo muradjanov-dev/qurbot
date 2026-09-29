@@ -199,10 +199,10 @@ async def test_the_admins_get_the_whole_picture(test_session: AsyncSession) -> N
     callbacks = [
         button["callback_data"] for row in keyboard for button in row if "callback_data" in button
     ]
-    assert callbacks == [
-        f"admin_order:confirm:{placed.order.id}",
-        f"admin_order:cancel:{placed.order.id}",
-    ]
+    assert callbacks == [f"admin_order:confirm:{placed.order.id}"]
+    cancel_button = next(button for row in keyboard for button in row if "url" in button)
+    assert cancel_button["text"] == "❌ Buyurtmani bekor qilish"
+    assert cancel_button["url"].endswith(f"/manage/orders/{placed.order.id}")
 
 
 @pytest.mark.asyncio

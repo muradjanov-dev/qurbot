@@ -6,14 +6,13 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from html import escape
 from typing import Any
-from urllib.parse import urlsplit
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.bot.formatters.common import format_qty, format_uzs
-from app.bot.keyboards.inline import get_admin_order_decision_keyboard
+from app.bot.keyboards.inline import get_admin_order_decision_keyboard, get_admin_order_detail_url
 from app.core.config import settings
 from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
 from app.db.models.order import Order, OrderItem, OrderShopPart
@@ -129,14 +128,13 @@ class OrderWorkflowService:
             ).all()
         )
         for recipient_tg_id, admin_lang in await self._admin_recipients():
-            order_url = self._public_order_url(locked_order.id)
+            order_url = get_admin_order_detail_url(locked_order.id)
             order_link = ""
             keyboard = get_admin_order_decision_keyboard(locked_order.id).model_dump(
                 mode="json", exclude_none=True
             )
             if order_url is not None:
                 open_label = self._message("delivery_notification_admin_open_order", admin_lang)
-                keyboard.get("inline_keyboard", []).append([{"text": open_label, "url": order_url}])
                 order_link = (
                     f'\n<a href="{escape(order_url, quote=True)}">' f"{escape(open_label)}</a>"
                 )
@@ -672,16 +670,6 @@ class OrderWorkflowService:
             return user.lang
         default = settings.default_lang
         return default if default in SUPPORTED_LANGUAGES else "uz_latn"
-
-    def _public_order_url(self, order_id: int) -> str | None:
-        for candidate in (settings.webhook_base_url, settings.storefront_webapp_url):
-            if not candidate:
-                continue
-            parts = urlsplit(candidate.strip())
-            if parts.scheme in {"http", "https"} and parts.netloc:
-                order_url = f"{parts.scheme}://{parts.netloc}/manage/orders/{order_id}"
-                return order_url if len(order_url) <= 300 else None
-        return None
 
     def _admin_order_breakdown(
         self, parts: list[OrderShopPart], lang: str, quoted_total: Decimal
