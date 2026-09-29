@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ L.orders_title }} — Tezqur{% endblock %}
+{% block content %}
+<section class="delivery-workspace">
+  <header class="delivery-page-head">
+    <div>
+      <p class="delivery-eyebrow">Tezqur</p>
+      <h1>{{ L.orders_title }}</h1>
+      <p class="delivery-muted">{{ L.orders_hint }}</p>
+    </div>
+  </header>
+
+  <form class="delivery-filter" method="get" action="/manage/orders">
+    <label class="delivery-field delivery-search">
+      <span>{{ L.search }}</span>
+      <input name="q" type="search" value="{{ search }}" placeholder="{{ L.search_placeholder }}" maxlength="160">
+    </label>
+    <label class="delivery-field">
+      <span>{{ L.status_filter }}</span>
+      <select name="status">
+        <option value="">{{ L.all_statuses }}</option>
+        {% for status in statuses %}
+          <option value="{{ status }}" {{ 'selected' if selected_status == status }}>{{ t('delivery_status_' ~ status, lang=lang) }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="delivery-check"><input type="checkbox" name="problem" value="1" {{ 'checked' if problem_only }}><span>{{ L.problem_only }}</span></label>
+    <button class="btn btn-primary delivery-button" type="submit">{{ L.apply_filter }}</button>
+  </form>
+
+  <div class="delivery-list-meta"><span>{{ L.order_count.format(count=total) }}</span></div>
+  {% if orders %}
+    <div class="delivery-order-list">
+      {% for order in orders %}
+        <a class="delivery-order-card" href="/manage/orders/{{ order.id }}">
+          <span class="delivery-order-main">
+            <span class="delivery-order-id">#{{ order.id }}</span>
+            <span class="delivery-order-customer">{{ order.contact_name or order.user.full_name or order.user.username or L.customer }}</span>
+            <span class="delivery-muted delivery-order-sub">{{ order.contact_phone }} · {{ format_delivery_time(order.created_at) }}</span>
+          </span>
+          <span class="delivery-order-side">
+            {% if order.delivery_problem %}<span class="delivery-problem-badge">{{ L.problem_badge }}</span>{% endif %}
+            <span class="delivery-status-pill status-{{ order.status }}">{{ t('delivery_status_' ~ order.status, lang=lang) }}</span>
+            <strong>{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</strong>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="delivery-empty">{{ L.no_orders }}</div>
+  {% endif %}
+
+  {% if page_count > 1 %}
+    <nav class="delivery-pagination" aria-label="{{ L.orders_title }}">
+      {% if page > 1 %}<a class="btn btn-ghost delivery-button" href="{{ page_url(page - 1) }}">← {{ L.previous }}</a>{% else %}<span></span>{% endif %}
+      <span>{{ page }} / {{ page_count }}</span>
+      {% if page < page_count %}<a class="btn btn-ghost delivery-button" href="{{ page_url(page + 1) }}">{{ L.next }} →</a>{% else %}<span></span>{% endif %}
+    </nav>
+  {% endif %}
+</section>
+<link rel="stylesheet" href="{{ static_url }}/delivery.css?v={{ asset_version }}">
+{% endblock %}

@@ -6,18 +6,28 @@
   <h1>{{ t('web_orders_title', lang=lang) }}</h1>
 
   {% if orders %}
-    <div class="list">
+    <div class="list delivery-customer-orders">
       {% for order in orders %}
         <a class="list-row" href="/orders/{{ order.id }}">
           <span class="grow">
             <span class="name">#{{ order.id }}</span>
-            <span class="muted tiny">{{ order.created_at.strftime('%d.%m.%Y') if order.created_at }}</span>
+            <span class="muted tiny">{{ format_delivery_time(order.created_at) }}</span>
+            {% if public_events.get(order.id) %}
+              <span class="delivery-customer-mini-timeline">
+                {% for event in public_events[order.id] %}
+                  <span>{{ t('delivery_status_' ~ event.status, lang=lang) if event.status else L.courier_event }}</span>
+                {% endfor %}
+              </span>
+            {% endif %}
           </span>
-          <span class="badge {{ 'ok' if order.status in ('fulfilled', 'confirmed') else ('bad' if order.status == 'cancelled' else '') }}">
-            {{ t('web_order_status_' ~ order.status, lang=lang) }}
+          <span class="badge {{ 'ok' if order.status in ('fulfilled',) else ('bad' if order.status == 'cancelled' else '') }}">
+            {{ t('delivery_status_' ~ order.status, lang=lang) }}
           </span>
           <span class="price">{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</span>
         </a>
+        {% if order.courier_name or order.courier_phone %}
+          <div class="delivery-customer-driver"><strong>{{ L.driver_contact }}:</strong> {{ order.courier_name or '' }} {% if order.courier_phone %}<a href="tel:{{ order.courier_phone }}">{{ order.courier_phone }}</a>{% endif %}</div>
+        {% endif %}
       {% endfor %}
     </div>
   {% else %}
@@ -27,4 +37,5 @@
     </div>
   {% endif %}
 </section>
+<link rel="stylesheet" href="{{ static_url }}/delivery.css?v={{ asset_version }}">
 {% endblock %}

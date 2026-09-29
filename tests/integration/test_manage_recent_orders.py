@@ -111,11 +111,11 @@ async def test_dashboard_recent_orders_scope_limit_fallbacks_and_links(
     assert response.status_code == 200
     expected_ids = list(reversed(house_order_ids[-5:]))
     for order_id in expected_ids:
-        assert f'href="/shop/{fixture.shop_id}/orders#order-{order_id}"' in response.text
+        assert f'href="/manage/orders/{order_id}"' in response.text
         assert f"#{order_id}" in response.text
     for order_id in house_order_ids[:2] + [other_order_id, test_order_id]:
         assert f"#{order_id}" not in response.text
-        assert f'href="/shop/{fixture.shop_id}/orders#order-{order_id}"' not in response.text
+        assert f'href="/manage/orders/{order_id}"' not in response.text
 
     assert response.text.count('class="admin-order-state order-new"') == 5
     assert "Yangi" in response.text

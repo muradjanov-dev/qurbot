@@ -24,10 +24,10 @@
       <div class="admin-recent-scroll"><table class="admin-table admin-recent-orders">
         <thead><tr><th>{{ t('admin_ui_orders', lang=lang) }}</th><th>{{ t('admin_ui_customers', lang=lang) }}</th><th>{{ t('web_quote_grand_total', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th></tr></thead>
         <tbody>{% for order in recent_orders %}<tr>
-          <td><a href="/shop/{{ shop.id }}/orders#order-{{ order.id }}">#{{ order.id }}</a></td>
+          <td><a href="/manage/orders/{{ order.id }}">#{{ order.id }}</a></td>
           <td>{{ order.contact_name or '—' }}</td>
           <td>{{ format_money(order.grand_total_quoted, 'UZS', lang) }}</td>
-          <td><span class="admin-order-state order-{{ order.status }}">{{ t('web_order_status_' ~ order.status, lang=lang) }}</span></td>
+          <td><span class="admin-order-state order-{{ order.status }}">{{ t('delivery_status_' ~ order.status, lang=lang) }}</span></td>
         </tr>{% endfor %}</tbody>
       </table></div>
       {% else %}<p class="admin-recent-empty">{{ t('admin_ui_no_recent_orders', lang=lang) }}</p>{% endif %}

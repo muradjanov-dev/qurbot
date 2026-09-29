@@ -742,11 +742,17 @@ async def test_admin_answers_an_order_and_the_customer_sees_it(
     part = (await test_session.execute(select(OrderShopPart))).scalars().one()
     response = client.post(f"/shop/{data.shop_id}/orders/{part.id}/accept", follow_redirects=False)
     assert response.status_code == 303
+    assert response.headers["location"].startswith(f"/manage/orders/{part.order_id}")
 
     await test_session.refresh(part)
-    assert part.shop_response == "accepted"
-    assert part.status == "accepted"
-    assert part.responded_at is not None
+    order = await test_session.get(Order, part.order_id)
+    assert order is not None
+    assert order.status == "confirmed"
+    # The retired shop-part decision field remains untouched; order workflow
+    # status is now the single source of truth.
+    assert part.shop_response == "pending"
+    assert part.status == "new"
+    assert part.responded_at is None
 
 
 @pytest.mark.asyncio

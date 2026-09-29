@@ -12,17 +12,20 @@ from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import String, and_, cast, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import localized_name
 from app.core.admin_redesign_i18n import admin_ui_messages
 from app.core.config import settings
+from app.core.delivery_format import format_delivery_time
+from app.core.fulfillment_ui_i18n import fulfillment_ui_messages
 from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.conversation import Conversation
 from app.db.models.ops import UnmatchedQuery
 from app.db.models.order import Order, OrderShopPart
+from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.shop import (
     ProductPhotoBlob,
     Shop,
@@ -38,6 +41,7 @@ from app.domain.normalize.text import normalize_query
 from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.fx_pricing import FxPricingError, FxPricingService
 from app.services.house_shop import is_admin, shop_for_admin
+from app.services.order_workflow import OrderWorkflowService, WorkflowError
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.pricing import format_money, price_pair
 from app.web.storefront.security import require_csrf
@@ -271,12 +275,9 @@ async def home(
             )
         ),
         "orders": await session.scalar(
-            select(func.count(OrderShopPart.id))
-            .join(Order, Order.id == OrderShopPart.order_id)
-            .where(
-                OrderShopPart.shop_id == shop.id,
+            select(func.count(Order.id)).where(
                 Order.is_test.is_(False),
-                OrderShopPart.shop_response == "pending",
+                Order.status == "new",
             )
         ),
         "gmv": await session.scalar(
@@ -368,8 +369,181 @@ async def promote_admin(
     return RedirectResponse("/manage/admins", status_code=303)
 
 
+_WORKFLOW_STATUSES = ("new", "confirmed", "collecting", "in_transit", "fulfilled", "cancelled")
+_ORDER_FILTER_STATUSES = (*_WORKFLOW_STATUSES, "partially_fulfilled")
+_NORMAL_STATUS_TARGETS: dict[str, tuple[str, ...]] = {
+    "new": ("confirmed", "cancelled"),
+    "confirmed": ("collecting", "cancelled"),
+    "collecting": ("in_transit", "cancelled"),
+    "in_transit": ("fulfilled", "cancelled"),
+    "fulfilled": (),
+    "cancelled": (),
+    "partially_fulfilled": (),
+}
+_ORDER_PAGE_SIZE = 40
+
+
+def _workflow_error_key(error: WorkflowError) -> str:
+    code = error.code.casefold()
+    if any(word in code for word in ("stale", "revision", "conflict", "version")):
+        return "stale_order"
+    if "transition" in code or "terminal" in code or "legacy" in code or "invalid_status" in code:
+        return "invalid_transition"
+    if "invalid_courier_cost" in code:
+        return "invalid_courier_cost"
+    if "courier" in code:
+        return "courier_required"
+    if "reason" in code:
+        return "cancel_reason_required"
+    return "workflow_error"
+
+
+def _fulfillment_items(order: Order, lang: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for part in order.shop_parts:
+        for item in part.items:
+            product = item.canonical_product
+            name = (
+                localized_name(
+                    product.name_uz,
+                    product.name_ru,
+                    lang,
+                    name_uz_cyrl=product.name_uz_cyrl,
+                )
+                if product
+                else str(item.canonical_id)
+            )
+            rows.append(
+                {"name": name, "qty": item.qty, "unit": item.unit_code, "total": item.line_total}
+            )
+    return rows
+
+
+async def _render_order_detail(
+    request: Request,
+    session: AsyncSession,
+    order_id: int,
+    admin: User,
+    lang: str,
+    *,
+    error_key: str | None = None,
+    success_key: str | None = None,
+    status_code: int = 200,
+) -> Response:
+    order = await session.get(Order, order_id)
+    if order is None or order.is_test:
+        raise HTTPException(404, "order_not_found")
+    event_result = await session.execute(
+        select(OrderEvent)
+        .where(OrderEvent.order_id == order.id)
+        .order_by(OrderEvent.created_at, OrderEvent.id)
+    )
+    notification_result = await session.execute(
+        select(OrderNotification)
+        .where(OrderNotification.order_id == order.id)
+        .order_by(OrderNotification.created_at.desc(), OrderNotification.id.desc())
+        .limit(100)
+    )
+    return render(
+        request,
+        "manage_order_detail.html",
+        user=admin,
+        lang=lang,
+        order=order,
+        items=_fulfillment_items(order, lang),
+        events=event_result.scalars().all(),
+        notifications=notification_result.scalars().all(),
+        normal_targets=_NORMAL_STATUS_TARGETS.get(order.status, ()),
+        supported_statuses=_WORKFLOW_STATUSES,
+        error_key=error_key,
+        success_key=success_key,
+        format_delivery_time=format_delivery_time,
+        L=fulfillment_ui_messages(lang),
+        status_code=status_code,
+    )
+
+
 @router.get("/orders")
-async def shop_orders_redirect(
+async def manage_orders(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+    q: str = Query(default="", max_length=160),
+    status: str = Query(default=""),
+    problem: bool = Query(default=False),
+    page: int = Query(default=1, ge=1),
+) -> Response:
+    admin = _admin_page(request, user, lang)
+    if isinstance(admin, Response):
+        return admin
+    search = q.strip()
+    selected_status = status if status in _ORDER_FILTER_STATUSES else ""
+    conditions: list[Any] = [Order.is_test.is_(False)]
+    if selected_status:
+        conditions.append(Order.status == selected_status)
+    if problem:
+        conditions.append(Order.delivery_problem.is_(True))
+    if search:
+        pattern = f"%{search}%"
+        conditions.append(
+            or_(
+                cast(Order.id, String).ilike(pattern),
+                Order.contact_name.ilike(pattern),
+                Order.contact_phone.ilike(pattern),
+                Order.delivery_address.ilike(pattern),
+                User.full_name.ilike(pattern),
+                User.username.ilike(pattern),
+            )
+        )
+    base = select(Order).join(User, User.id == Order.user_id).where(*conditions)
+    total = int(
+        await session.scalar(
+            select(func.count(Order.id)).join(User, User.id == Order.user_id).where(*conditions)
+        )
+        or 0
+    )
+    page_count = max(1, (total + _ORDER_PAGE_SIZE - 1) // _ORDER_PAGE_SIZE)
+    page = min(page, page_count)
+    result = await session.execute(
+        base.order_by(Order.created_at.desc(), Order.id.desc())
+        .offset((page - 1) * _ORDER_PAGE_SIZE)
+        .limit(_ORDER_PAGE_SIZE)
+    )
+    orders = result.scalars().all()
+
+    def page_url(target_page: int) -> str:
+        params: dict[str, str] = {"page": str(target_page)}
+        if search:
+            params["q"] = search
+        if selected_status:
+            params["status"] = selected_status
+        if problem:
+            params["problem"] = "true"
+        return f"/manage/orders?{urlencode(params)}"
+
+    return render(
+        request,
+        "manage_orders.html",
+        user=admin,
+        lang=lang,
+        orders=orders,
+        search=search,
+        statuses=_ORDER_FILTER_STATUSES,
+        selected_status=selected_status,
+        problem_only=problem,
+        total=total,
+        page=page,
+        page_count=page_count,
+        page_url=page_url,
+        format_delivery_time=format_delivery_time,
+        L=fulfillment_ui_messages(lang),
+    )
+
+
+@router.get("/orders/{order_id}")
+async def manage_order_detail(
+    order_id: int,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
     user: User | None = Depends(current_user),
@@ -378,8 +552,217 @@ async def shop_orders_redirect(
     admin = _admin_page(request, user, lang)
     if isinstance(admin, Response):
         return admin
-    shop = await _shop(session, admin)
-    return RedirectResponse(f"/shop/{shop.id}/orders", status_code=303)
+    notice = request.query_params.get("notice", "")
+    known_errors = {
+        "stale_order",
+        "invalid_transition",
+        "workflow_error",
+        "cancel_reason_required",
+        "courier_required",
+    }
+    known_successes = {"status_saved", "courier_saved", "note_saved", "notification_queued"}
+    return await _render_order_detail(
+        request,
+        session,
+        order_id,
+        admin,
+        lang,
+        error_key=notice if notice in known_errors else None,
+        success_key=notice if notice in known_successes else None,
+    )
+
+
+@router.post("/orders/{order_id}/status", dependencies=[Depends(require_csrf)])
+async def change_order_status(
+    order_id: int,
+    request: Request,
+    target_status: str = Form(...),
+    expected_revision: int = Form(...),
+    expected_status: str = Form(...),
+    reason: str = Form(default=""),
+    correction: bool = Form(default=False),
+    session: AsyncSession = Depends(get_db_session),
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+) -> Response:
+    admin = _admin_page(request, user, lang)
+    if isinstance(admin, Response):
+        return admin
+    try:
+        await OrderWorkflowService(session).change_status(
+            order_id=order_id,
+            actor=admin,
+            target=target_status,
+            expected_revision=expected_revision,
+            expected_status=expected_status,
+            reason=reason.strip(),
+            correction=correction,
+        )
+        await session.commit()
+    except WorkflowError as error:
+        await session.rollback()
+        await session.refresh(admin)
+        return await _render_order_detail(
+            request,
+            session,
+            order_id,
+            admin,
+            lang,
+            error_key=_workflow_error_key(error),
+            status_code=error.status_code,
+        )
+    return await _render_order_detail(
+        request, session, order_id, admin, lang, success_key="status_saved"
+    )
+
+
+@router.post("/orders/{order_id}/courier", dependencies=[Depends(require_csrf)])
+async def update_order_courier(
+    order_id: int,
+    request: Request,
+    name: str = Form(...),
+    phone: str = Form(...),
+    vehicle: str = Form(default=""),
+    cost_uzs: str = Form(default=""),
+    expected_revision: int = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+) -> Response:
+    admin = _admin_page(request, user, lang)
+    if isinstance(admin, Response):
+        return admin
+    cost: Decimal | None = None
+    raw_cost = cost_uzs.strip().replace(" ", "").replace(",", ".")
+    if raw_cost:
+        try:
+            cost = Decimal(raw_cost)
+        except InvalidOperation:
+            cost = Decimal("-1")
+        try:
+            valid_cost = (
+                cost.is_finite()
+                and cost >= 0
+                and cost.adjusted() < 12
+                and cost == cost.quantize(Decimal("0.01"))
+            )
+        except InvalidOperation:
+            valid_cost = False
+        if not valid_cost:
+            return await _render_order_detail(
+                request,
+                session,
+                order_id,
+                admin,
+                lang,
+                error_key="invalid_courier_cost",
+                status_code=422,
+            )
+    try:
+        await OrderWorkflowService(session).update_courier(
+            order_id=order_id,
+            actor=admin,
+            name=name.strip(),
+            phone=phone.strip(),
+            vehicle=vehicle.strip() or None,
+            cost_uzs=cost,
+            expected_revision=expected_revision,
+        )
+        await session.commit()
+    except WorkflowError as error:
+        await session.rollback()
+        await session.refresh(admin)
+        return await _render_order_detail(
+            request,
+            session,
+            order_id,
+            admin,
+            lang,
+            error_key=_workflow_error_key(error),
+            status_code=error.status_code,
+        )
+    return await _render_order_detail(
+        request, session, order_id, admin, lang, success_key="courier_saved"
+    )
+
+
+@router.post("/orders/{order_id}/note", dependencies=[Depends(require_csrf)])
+async def update_order_note(
+    order_id: int,
+    request: Request,
+    note: str = Form(default=""),
+    is_problem: bool = Form(default=False),
+    expected_revision: int = Form(...),
+    session: AsyncSession = Depends(get_db_session),
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+) -> Response:
+    admin = _admin_page(request, user, lang)
+    if isinstance(admin, Response):
+        return admin
+    try:
+        await OrderWorkflowService(session).update_note(
+            order_id=order_id,
+            actor=admin,
+            note=note.strip(),
+            is_problem=is_problem,
+            expected_revision=expected_revision,
+        )
+        await session.commit()
+    except WorkflowError as error:
+        await session.rollback()
+        await session.refresh(admin)
+        return await _render_order_detail(
+            request,
+            session,
+            order_id,
+            admin,
+            lang,
+            error_key=_workflow_error_key(error),
+            status_code=error.status_code,
+        )
+    return await _render_order_detail(
+        request, session, order_id, admin, lang, success_key="note_saved"
+    )
+
+
+@router.post(
+    "/orders/{order_id}/notifications/{notification_id}/retry",
+    dependencies=[Depends(require_csrf)],
+)
+async def retry_order_notification(
+    order_id: int,
+    notification_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
+) -> Response:
+    admin = _admin_page(request, user, lang)
+    if isinstance(admin, Response):
+        return admin
+    try:
+        await OrderWorkflowService(session).retry_notification(
+            order_id=order_id,
+            notification_id=notification_id,
+            actor=admin,
+        )
+        await session.commit()
+    except WorkflowError as error:
+        await session.rollback()
+        await session.refresh(admin)
+        return await _render_order_detail(
+            request,
+            session,
+            order_id,
+            admin,
+            lang,
+            error_key=_workflow_error_key(error),
+            status_code=error.status_code,
+        )
+    return await _render_order_detail(
+        request, session, order_id, admin, lang, success_key="notification_queued"
+    )
 
 
 @router.get("/settings")

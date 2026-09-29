@@ -28,6 +28,8 @@ from app.domain.pricing.units import unit_price
 from app.services.house_shop import shop_for_admin
 from app.services.supplier_service import SupplierService
 from app.web.storefront.deps import current_lang, current_user, render
+from app.web.storefront.security import require_csrf
+from app.services.order_workflow import OrderWorkflowService, WorkflowError
 
 logger = get_logger(__name__)
 
@@ -169,18 +171,22 @@ async def shop_orders(
     user: User | None = Depends(current_user),
     lang: str = Depends(current_lang),
 ) -> Response:
-    shop = await _require_shop(session, user, shop_id)
-    parts = await OrderRepository(session).list_parts_for_shop(shop.id)
-    return render(request, "shop_orders.html", user=user, lang=lang, shop=shop, parts=parts)
+    await _require_shop(session, user, shop_id)
+    return RedirectResponse("/manage/orders", status_code=303)
 
 
-@router.post("/{shop_id}/orders/{part_id}/{decision}")
+@router.post(
+    "/{shop_id}/orders/{part_id}/{decision}",
+    dependencies=[Depends(require_csrf)],
+)
 async def respond_to_order(
     shop_id: int,
     part_id: int,
     decision: str,
+    reason: str = Form(default=""),
     session: AsyncSession = Depends(get_db_session),
     user: User | None = Depends(current_user),
+    lang: str = Depends(current_lang),
 ) -> Response:
     shop = await _require_shop(session, user, shop_id)
     if decision not in ("accept", "reject"):
@@ -191,11 +197,34 @@ async def respond_to_order(
     if part is None or part.shop_id != shop.id:
         raise HTTPException(status_code=404, detail="order_part_not_found")
 
-    response = "accepted" if decision == "accept" else "rejected"
-    await repo.update_shop_response(part.id, response)
-    part.status = response
-    await session.flush()
-    return RedirectResponse(f"/shop/{shop_id}/orders?msg=web_shop_updated", status_code=303)
+    assert user is not None
+    order = part.order
+    order_id = order.id
+    try:
+        await OrderWorkflowService(session).change_status(
+            order_id=order_id,
+            actor=user,  # _require_shop already requires a signed-in admin.
+            target="confirmed" if decision == "accept" else "cancelled",
+            expected_revision=order.workflow_revision,
+            expected_status="new",
+            reason=reason.strip(),
+        )
+        await session.commit()
+    except WorkflowError as error:
+        await session.rollback()
+        code = error.code.casefold()
+        if any(word in code for word in ("stale", "revision", "status")):
+            notice = "stale_order"
+        elif "reason" in code:
+            notice = "cancel_reason_required"
+        elif "transition" in code or "legacy" in code:
+            notice = "invalid_transition"
+        else:
+            notice = "workflow_error"
+        return RedirectResponse(f"/manage/orders/{order_id}?notice={notice}", status_code=303)
+    return RedirectResponse(
+        f"/manage/orders/{order_id}?notice=status_saved", status_code=303
+    )
 
 
 @router.get("/{shop_id}/delivery")

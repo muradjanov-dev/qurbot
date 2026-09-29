@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}#{{ order.id }} — {{ L.orders_title }} — Tezqur{% endblock %}
+{% block content %}
+<section class="delivery-workspace delivery-detail">
+  <header class="delivery-page-head delivery-detail-head">
+    <div>
+      <a class="delivery-back" href="/manage/orders">← {{ L.orders_title }}</a>
+      <p class="delivery-eyebrow">{{ L.order }} #{{ order.id }}</p>
+      <h1>{{ order.contact_name or order.user.full_name or order.user.username or L.customer }}</h1>
+      <div class="delivery-inline-meta">
+        <span class="delivery-status-pill status-{{ order.status }}">{{ t('delivery_status_' ~ order.status, lang=lang) }}</span>
+        {% if order.delivery_problem %}<span class="delivery-problem-badge">{{ L.problem_badge }}</span>{% endif %}
+        <span class="delivery-muted">{{ format_delivery_time(order.created_at) }}</span>
+      </div>
+    </div>
+    <strong class="delivery-total">{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</strong>
+  </header>
+
+  {% if error_key %}<div class="delivery-alert delivery-alert-error" role="alert">{{ L[error_key] }}</div>{% endif %}
+  {% if success_key %}<div class="delivery-alert delivery-alert-success" role="status">{{ L[success_key] }}</div>{% endif %}
+
+  <div class="delivery-two-col">
+    <section class="delivery-panel">
+      <h2>{{ L.customer }}</h2>
+      <dl class="delivery-facts">
+        <div><dt>{{ L.phone }}</dt><dd><a href="tel:{{ order.contact_phone }}">{{ order.contact_phone }}</a></dd></div>
+        <div><dt>{{ L.address }}</dt><dd>{{ order.delivery_address }}</dd></div>
+        {% if order.comment %}<div><dt>{{ L.customer_comment }}</dt><dd>{{ order.comment }}</dd></div>{% endif %}
+      </dl>
+      <h3>{{ L.items }}</h3>
+      <div class="delivery-lines">
+        {% for item in items %}
+          <div class="delivery-line"><span>{{ item.name }} <small>{{ format_qty(item.qty) }} {{ item.unit }}</small></span><strong>{{ format_uzs(item.total) }} {{ t('web_currency', lang=lang) }}</strong></div>
+        {% else %}<p class="delivery-muted">—</p>{% endfor %}
+      </div>
+    </section>
+
+    <div class="delivery-side-stack">
+      <section class="delivery-panel">
+        <div class="delivery-panel-heading"><h2>{{ L.delivery_management }}</h2><span class="delivery-muted">{{ L.courier_required_hint }}</span></div>
+        <form method="post" action="/manage/orders/{{ order.id }}/courier" class="delivery-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="expected_revision" value="{{ order.workflow_revision }}">
+          <label class="delivery-field"><span>{{ L.courier_name }}</span><input name="name" maxlength="120" value="{{ order.courier_name or '' }}" {{ 'required' if order.status in ('in_transit', 'fulfilled') }} autocomplete="name"></label>
+          <label class="delivery-field"><span>{{ L.courier_phone }}</span><input name="phone" type="tel" maxlength="50" value="{{ order.courier_phone or '' }}" {{ 'required' if order.status in ('in_transit', 'fulfilled') }} autocomplete="tel"></label>
+          <label class="delivery-field"><span>{{ L.vehicle }}</span><input name="vehicle" maxlength="100" value="{{ order.courier_vehicle or '' }}"></label>
+          <label class="delivery-field"><span>{{ L.internal_cost }}</span><input name="cost_uzs" type="number" min="0" step="0.01" inputmode="decimal" maxlength="16" value="{{ order.courier_cost_uzs if order.courier_cost_uzs is not none else '' }}"></label>
+          <button class="btn btn-primary delivery-button" type="submit">{{ L.save_courier }}</button>
+        </form>
+      </section>
+
+      <section class="delivery-panel">
+        <h2>{{ L.delivery_note }}</h2>
+        <form method="post" action="/manage/orders/{{ order.id }}/note" class="delivery-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="expected_revision" value="{{ order.workflow_revision }}">
+          <label class="delivery-field"><span>{{ L.delivery_note }}</span><textarea name="note" rows="3" maxlength="10000">{{ order.delivery_note or '' }}</textarea></label>
+          <label class="delivery-check"><input type="checkbox" name="is_problem" value="true" {{ 'checked' if order.delivery_problem }}><span>{{ L.problem_marker }}</span></label>
+          <button class="btn btn-primary delivery-button" type="submit">{{ L.save_note }}</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="delivery-two-col delivery-lower-grid">
+    <section class="delivery-panel">
+      <h2>{{ L.change_status }}</h2>
+      {% if normal_targets %}
+        <form method="post" action="/manage/orders/{{ order.id }}/status" class="delivery-form" data-status-form>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="expected_revision" value="{{ order.workflow_revision }}">
+          <input type="hidden" name="expected_status" value="{{ order.status }}">
+          <label class="delivery-field"><span>{{ L.target_status }}</span><select name="target_status" required data-status-target>
+            {% for status in normal_targets %}<option value="{{ status }}">{{ t('delivery_status_' ~ status, lang=lang) }}</option>{% endfor %}
+          </select></label>
+          <label class="delivery-field"><span>{{ L.reason }}</span><textarea name="reason" rows="2" maxlength="1000" data-cancel-reason></textarea></label>
+          <button class="btn btn-primary delivery-button" type="submit">{{ L.save_status }}</button>
+        </form>
+      {% else %}
+        <p class="delivery-muted">{% if order.status == 'partially_fulfilled' %}{{ L.legacy_status_help }}{% else %}{{ L.terminal_status_help }}{% endif %}</p>
+      {% endif %}
+      <details class="delivery-correction">
+        <summary>{{ L.correction }}</summary>
+        <p class="delivery-muted">{{ L.correction_hint }}</p>
+        <form method="post" action="/manage/orders/{{ order.id }}/status" class="delivery-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <input type="hidden" name="expected_revision" value="{{ order.workflow_revision }}">
+          <input type="hidden" name="expected_status" value="{{ order.status }}">
+          <input type="hidden" name="correction" value="true">
+          <label class="delivery-field"><span>{{ L.target_status }}</span><select name="target_status" required>
+            {% for status in supported_statuses %}<option value="{{ status }}">{{ t('delivery_status_' ~ status, lang=lang) }}</option>{% endfor %}
+          </select></label>
+          <label class="delivery-field"><span>{{ L.reason }}</span><textarea name="reason" rows="2" maxlength="1000" required></textarea></label>
+          <button class="btn btn-ghost delivery-button" type="submit">{{ L.save_correction }}</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="delivery-panel">
+      <h2>{{ L.notifications }}</h2>
+      {% if notifications %}
+        <div class="delivery-notifications">
+          {% for notification in notifications %}
+            <article class="delivery-notification">
+              <div class="delivery-notification-head"><strong>{% if notification.kind == 'admin_order_created' %}{{ L.notification_order_created }}{% elif notification.kind == 'customer_order_ack' %}{{ L.notification_customer_ack }}{% elif notification.kind in ('customer_status', 'customer_status_correction') %}{{ L.notification_customer_status if notification.kind == 'customer_status' else L.notification_customer_correction }}{% elif notification.kind == 'customer_courier_contact' %}{{ L.notification_courier_contact }}{% else %}{{ notification.kind }}{% endif %}</strong><span class="delivery-status-pill status-{{ notification.status }}">{% if notification.status == 'pending' %}{{ L.notification_queued_label }}{% elif notification.status == 'sent' %}{{ L.notification_sent_label }}{% elif notification.status == 'failed' %}{{ L.notification_failed_label }}{% else %}{{ notification.status }}{% endif %}</span></div>
+              <small>{{ L.notification_recipient }}: {{ notification.recipient_tg_id }} · {{ L.notification_attempts }}: {{ notification.attempts }} · {{ format_delivery_time(notification.created_at) }}</small>
+              {% if notification.last_error %}<p class="delivery-error-text">{{ notification.last_error }}</p>{% endif %}
+              {% if notification.status == 'failed' %}
+                <form method="post" action="/manage/orders/{{ order.id }}/notifications/{{ notification.id }}/retry">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                  <button class="btn btn-ghost delivery-button" type="submit">{{ L.retry_notification }}</button>
+                </form>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}<p class="delivery-muted">{{ L.no_notifications }}</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="delivery-panel delivery-timeline-panel">
+    <h2>{{ L.timeline }}</h2>
+    {% if events %}
+      <ol class="delivery-timeline">
+        {% for event in events %}
+          <li>
+            <time>{{ format_delivery_time(event.created_at) }}</time>
+            <strong>
+              {% if event.kind == 'order_created' %}{{ L.order }} #{{ order.id }}
+              {% elif event.kind == 'status_changed' %}{{ L.status_event }}
+              {% elif event.kind == 'status_corrected' %}{{ L.status_correction_event }}
+              {% elif event.kind == 'courier_updated' or event.kind == 'courier_contact_updated' %}{{ L.courier_event }}
+              {% elif event.kind == 'delivery_note_updated' %}{{ L.note_event }}
+              {% else %}{{ event.kind }}{% endif %}
+            </strong>
+            {% if event.from_status or event.to_status %}<span>{{ t('delivery_status_' ~ event.from_status, lang=lang) if event.from_status else '—' }} → {{ t('delivery_status_' ~ event.to_status, lang=lang) if event.to_status else '—' }}</span>{% endif %}
+            {% if event.reason %}<p>{{ event.reason }}</p>{% endif %}
+            {% if event.details %}<pre>{{ event.details|tojson(indent=2) }}</pre>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}<p class="delivery-muted">{{ L.no_public_updates }}</p>{% endif %}
+  </section>
+</section>
+<link rel="stylesheet" href="{{ static_url }}/delivery.css?v={{ asset_version }}">
+<script src="{{ static_url }}/delivery.js?v={{ asset_version }}" defer></script>
+{% endblock %}

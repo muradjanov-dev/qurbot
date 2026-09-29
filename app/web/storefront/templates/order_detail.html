@@ -16,10 +16,10 @@
 
   <div class="card">
     <div class="spread" style="margin-bottom:12px;">
-      <span class="badge {{ 'ok' if order.status in ('fulfilled', 'confirmed') else ('bad' if order.status == 'cancelled' else '') }}">
-        {{ t('web_order_status_' ~ order.status, lang=lang) }}
+      <span class="badge {{ 'ok' if order.status == 'fulfilled' else ('bad' if order.status == 'cancelled' else '') }}">
+        {{ t('delivery_status_' ~ order.status, lang=lang) }}
       </span>
-      <span class="muted tiny">{{ order.created_at.strftime('%d.%m.%Y %H:%M') if order.created_at }}</span>
+      <span class="muted tiny">{{ format_delivery_time(order.created_at) }}</span>
     </div>
 
     <h2>{{ t('web_order_items', lang=lang) }}</h2>
@@ -65,5 +65,31 @@
       </div>
     {% endif %}
   </div>
+
+  {% if order.courier_name or order.courier_phone %}
+    <div class="card delivery-customer-courier">
+      <h2>{{ L.driver_contact }}</h2>
+      {% if order.courier_name %}<p><strong>{{ order.courier_name }}</strong></p>{% endif %}
+      {% if order.courier_phone %}<p><a class="btn btn-primary btn-sm" href="tel:{{ order.courier_phone }}">{{ order.courier_phone }}</a></p>{% endif %}
+      {% if order.courier_vehicle %}<p class="muted tiny">{{ order.courier_vehicle }}</p>{% endif %}
+    </div>
+  {% endif %}
+
+  <section class="card delivery-public-timeline">
+    <h2>{{ L.public_delivery }}</h2>
+    {% if public_events %}
+      <ol class="delivery-timeline">
+        {% for event in public_events %}
+          <li>
+            <time>{{ format_delivery_time(event.created_at) }}</time>
+            {% if event.status %}<strong>{{ t('delivery_status_' ~ event.status, lang=lang) }}</strong>
+            {% else %}<strong>{{ L.courier_event }}</strong>{% endif %}
+            {% if event.cancel_reason %}<p>{{ event.cancel_reason }}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}<p class="muted">{{ L.no_public_updates }}</p>{% endif %}
+  </section>
 </section>
+<link rel="stylesheet" href="{{ static_url }}/delivery.css?v={{ asset_version }}">
 {% endblock %}

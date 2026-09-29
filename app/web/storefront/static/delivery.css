@@ -1,0 +1,109 @@
+.delivery-workspace {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+  color: #18241d;
+  font-size: 14px;
+}
+.delivery-workspace h1 { margin: 0; font-size: clamp(22px, 3vw, 30px); line-height: 1.2; }
+.delivery-workspace h2 { margin: 0 0 14px; font-size: 17px; line-height: 1.3; }
+.delivery-workspace h3 { margin: 18px 0 8px; font-size: 14px; }
+.delivery-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin: 0 0 18px; }
+.delivery-detail-head { align-items: center; }
+.delivery-eyebrow { margin: 0 0 5px; color: #587160; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.delivery-muted { color: #64736a; font-size: 13px; line-height: 1.5; }
+.delivery-page-head > div > .delivery-muted { margin: 8px 0 0; }
+.delivery-back { display: inline-flex; min-height: 36px; align-items: center; margin-bottom: 7px; color: #326c47; font-weight: 650; text-decoration: none; }
+.delivery-inline-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 11px; }
+.delivery-total { white-space: nowrap; font-size: 18px; }
+.delivery-filter { display: grid; grid-template-columns: minmax(220px, 1.6fr) minmax(170px, .8fr) auto auto; align-items: end; gap: 12px; margin: 0 0 14px; padding: 14px; border: 1px solid #e2e9e3; border-radius: 14px; background: #fff; }
+.delivery-field { display: grid; gap: 6px; min-width: 0; color: #4f6055; font-size: 13px; font-weight: 650; }
+.delivery-field input, .delivery-field select, .delivery-field textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #ccd8cf; border-radius: 9px; background: #fff; color: #18241d; font: inherit; font-weight: 450; }
+.delivery-field textarea { min-height: 72px; resize: vertical; }
+.delivery-field input:focus, .delivery-field select:focus, .delivery-field textarea:focus { border-color: #338450; outline: 3px solid rgb(51 132 80 / 14%); }
+.delivery-check { display: flex; min-height: 44px; align-items: center; gap: 9px; color: #36463b; font-size: 13px; font-weight: 600; }
+.delivery-check input { width: 19px; height: 19px; accent-color: #277543; }
+.delivery-button { min-height: 44px; justify-content: center; white-space: nowrap; }
+.delivery-list-meta { display: flex; justify-content: space-between; margin: 10px 2px; color: #64736a; font-size: 13px; }
+.delivery-order-list { display: grid; gap: 8px; }
+.delivery-order-card { display: flex; min-height: 80px; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid #e2e9e3; border-radius: 13px; background: #fff; color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.delivery-order-card:hover, .delivery-order-card:focus-visible { border-color: #8db99a; box-shadow: 0 5px 18px rgb(31 66 42 / 8%); outline: none; }
+.delivery-order-main, .delivery-order-side { display: grid; gap: 5px; }
+.delivery-order-side { justify-items: end; text-align: right; }
+.delivery-order-id { color: #2e7145; font-weight: 750; }
+.delivery-order-customer { font-weight: 700; }
+.delivery-order-sub { font-size: 12px; }
+.delivery-order-side strong { font-size: 13px; }
+.delivery-status-pill, .delivery-problem-badge { display: inline-flex; min-height: 26px; align-items: center; justify-content: center; padding: 4px 9px; border-radius: 999px; background: #eef2ef; color: #46564b; font-size: 12px; font-weight: 700; line-height: 1.15; }
+.delivery-status-pill.status-confirmed, .delivery-status-pill.status-collecting { background: #e6f0ff; color: #214e85; }
+.delivery-status-pill.status-in_transit { background: #fff2d9; color: #80520a; }
+.delivery-status-pill.status-fulfilled, .delivery-status-pill.status-sent { background: #e0f3e5; color: #236139; }
+.delivery-status-pill.status-cancelled, .delivery-status-pill.status-failed { background: #fde9e6; color: #963e34; }
+.delivery-problem-badge { background: #fff1e0; color: #8a4d10; }
+.delivery-empty { padding: 36px 18px; border: 1px dashed #cbd8cf; border-radius: 13px; color: #64736a; text-align: center; }
+.delivery-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 16px; color: #64736a; font-size: 13px; text-align: center; }
+.delivery-pagination > :last-child { justify-self: end; }
+.delivery-two-col { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, .9fr); align-items: start; gap: 14px; }
+.delivery-lower-grid { margin-top: 14px; }
+.delivery-side-stack { display: grid; gap: 14px; }
+.delivery-panel { min-width: 0; padding: 17px; border: 1px solid #e2e9e3; border-radius: 14px; background: #fff; }
+.delivery-panel-heading { display: grid; gap: 2px; margin-bottom: 12px; }
+.delivery-panel-heading h2 { margin-bottom: 0; }
+.delivery-facts { display: grid; gap: 10px; margin: 0; }
+.delivery-facts > div { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #edf1ed; }
+.delivery-facts dt { color: #64736a; font-size: 13px; }
+.delivery-facts dd { margin: 0; overflow-wrap: anywhere; font-size: 14px; }
+.delivery-facts a { color: #236d3e; text-decoration: none; }
+.delivery-lines { display: grid; gap: 8px; }
+.delivery-line { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #edf1ed; font-size: 13px; }
+.delivery-line small { display: block; margin-top: 3px; color: #64736a; font-size: 12px; }
+.delivery-line strong { white-space: nowrap; font-size: 13px; }
+.delivery-form { display: grid; gap: 11px; }
+.delivery-form .delivery-check { min-height: 36px; }
+.delivery-correction { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e8eee9; }
+.delivery-correction summary { min-height: 40px; display: flex; align-items: center; color: #80520a; cursor: pointer; font-weight: 700; }
+.delivery-correction > p { margin: 3px 0 12px; }
+.delivery-alert { margin: 0 0 14px; padding: 12px 14px; border-radius: 10px; font-size: 14px; }
+.delivery-alert-error { border: 1px solid #f2c9c3; background: #fff3f1; color: #873b32; }
+.delivery-alert-success { border: 1px solid #bfdfc7; background: #eff8f1; color: #285b35; }
+.delivery-notifications { display: grid; gap: 10px; }
+.delivery-notification { display: grid; gap: 7px; padding: 11px; border: 1px solid #e8eee9; border-radius: 10px; }
+.delivery-notification-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.delivery-notification small { color: #64736a; font-size: 12px; overflow-wrap: anywhere; }
+.delivery-error-text { margin: 0; color: #963e34; font-size: 13px; overflow-wrap: anywhere; }
+.delivery-notification .delivery-button { justify-self: start; }
+.delivery-timeline-panel { margin-top: 14px; }
+.delivery-timeline { display: grid; gap: 0; margin: 0; padding: 0 0 0 18px; list-style: none; }
+.delivery-timeline li { position: relative; display: grid; gap: 5px; padding: 0 0 19px 18px; border-left: 2px solid #dce9df; }
+.delivery-timeline li:last-child { padding-bottom: 0; border-left-color: transparent; }
+.delivery-timeline li::before { position: absolute; top: 2px; left: -7px; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; background: #44895a; content: ""; box-shadow: 0 0 0 1px #44895a; }
+.delivery-timeline time { color: #64736a; font-size: 12px; }
+.delivery-timeline strong { font-size: 13px; }
+.delivery-timeline span, .delivery-timeline p { margin: 0; color: #4e5c52; font-size: 13px; overflow-wrap: anywhere; }
+.delivery-timeline pre { max-height: 180px; overflow: auto; margin: 0; padding: 9px; border-radius: 8px; background: #f5f7f5; font-size: 12px; }
+.delivery-customer-mini-timeline { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; color: #64736a; font-size: 12px; }
+.delivery-customer-mini-timeline span + span::before { content: "· "; }
+.delivery-customer-driver { padding: 8px 12px 11px; color: #405248; font-size: 13px; }
+.delivery-customer-driver a { color: #236d3e; }
+.delivery-customer-courier h2, .delivery-public-timeline h2 { margin-bottom: 12px; }
+.delivery-customer-courier p { margin: 7px 0; }
+@media (max-width: 760px) {
+  .delivery-workspace { padding: 14px 12px 32px; }
+  .delivery-page-head { align-items: flex-start; }
+  .delivery-detail-head { flex-direction: column; }
+  .delivery-filter { grid-template-columns: 1fr 1fr; }
+  .delivery-search { grid-column: 1 / -1; }
+  .delivery-two-col { grid-template-columns: 1fr; }
+  .delivery-order-card { align-items: flex-start; }
+  .delivery-order-side { max-width: 42%; }
+}
+@media (max-width: 440px) {
+  .delivery-filter { grid-template-columns: 1fr; }
+  .delivery-search { grid-column: auto; }
+  .delivery-filter .delivery-button { width: 100%; }
+  .delivery-order-card { flex-direction: column; gap: 10px; }
+  .delivery-order-side { width: 100%; max-width: none; grid-template-columns: auto 1fr; justify-items: start; text-align: left; }
+  .delivery-order-side strong { grid-column: 1 / -1; }
+  .delivery-facts > div { grid-template-columns: 1fr; gap: 4px; }
+  .delivery-line { align-items: flex-start; flex-direction: column; }
+}
