@@ -105,7 +105,7 @@ async def test_customer_gets_public_timeline_and_courier_but_no_internal_deliver
     )
     assert rejected.status_code == 403
 
-    await _sign_in_admin(client, test_session)
+    _sign_in(client, admin.id, tg_id=7770001)
     saved_note = client.post(
         f"/manage/orders/{order_id}/note",
         data={

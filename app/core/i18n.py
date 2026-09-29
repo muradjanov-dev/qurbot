@@ -2612,10 +2612,33 @@ MESSAGES.update(BOT_LOGIN_MESSAGES)
 from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES  # noqa: E402
 
 MESSAGES.update(ORDER_DELIVERY_MESSAGES)
+
+from app.core.fulfillment_ui_i18n import FULFILLMENT_UI_MESSAGES  # noqa: E402
+
+MESSAGES.update(FULFILLMENT_UI_MESSAGES)
 MESSAGES["order_created_waiting_approval"] = {
     "uz_latn": "✅ Buyurtma #{order_id} yuborildi. Admin tasdig‘ini kutmoqda.",
     "uz_cyrl": "✅ Буюртма #{order_id} юборилди. Админ тасдиғини кутмоқда.",
     "ru": "✅ Заказ #{order_id} отправлен. Ожидает подтверждения администратора.",
+}
+MESSAGES["web_guest_cart_review"] = {
+    "uz_latn": (
+        "Mehmon savatini birlashtirish uchun ayrim mahsulotlarni tekshirish kerak. "
+        "Ikkala savat saqlandi. Mos kelmaydigan qatorni o‘chirib, qayta birlashtiring."
+    ),
+    "uz_cyrl": (
+        "Меҳмон саватини бирлаштириш учун айрим маҳсулотларни текшириш керак. "
+        "Иккала сават сақланди. Мос келмайдиган қаторни ўчириб, қайта бирлаштиринг."
+    ),
+    "ru": (
+        "Для объединения гостевой корзины нужно проверить некоторые товары. "
+        "Обе корзины сохранены. Удалите несовместимую позицию и повторите объединение."
+    ),
+}
+MESSAGES["web_guest_cart_retry"] = {
+    "uz_latn": "Mehmon savatini qayta birlashtirish",
+    "uz_cyrl": "Меҳмон саватини қайта бирлаштириш",
+    "ru": "Повторить объединение гостевой корзины",
 }
 for _status in ("new", "confirmed", "collecting", "in_transit", "fulfilled", "cancelled"):
     MESSAGES[f"web_order_status_{_status}"] = ORDER_DELIVERY_MESSAGES[f"delivery_status_{_status}"]
