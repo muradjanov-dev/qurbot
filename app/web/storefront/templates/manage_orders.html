@@ -36,7 +36,10 @@
           <span class="delivery-order-main">
             <span class="delivery-order-id">#{{ order.id }}</span>
             <span class="delivery-order-customer">{{ order.contact_name or order.user.full_name or order.user.username or L.customer }}</span>
-            <span class="delivery-muted delivery-order-sub">{{ order.contact_phone }} · {{ format_delivery_time(order.created_at) }}</span>
+            <span class="delivery-muted delivery-order-sub">{{ order.contact_phone }} · {{ L['updated'] }}: {{ format_delivery_time(last_update_at_by_order[order.id]) }}</span>
+            {% if order.courier_name or order.courier_phone %}
+              <span class="delivery-muted delivery-order-sub">{{ L.courier }}: {{ order.courier_name or '—' }}{% if order.courier_phone %} · {{ order.courier_phone }}{% endif %}</span>
+            {% endif %}
           </span>
           <span class="delivery-order-side">
             {% if order.delivery_problem %}<span class="delivery-problem-badge">{{ L.problem_badge }}</span>{% endif %}

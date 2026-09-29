@@ -1,6 +1,7 @@
 """Browser-facing authorization and privacy checks for the delivery workspace."""
 
 from collections.abc import Iterator
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -10,11 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.delivery_format import format_delivery_time
 from app.core.fulfillment_ui_i18n import FULFILLMENT_UI_MESSAGES
 from app.core.i18n import MESSAGES
 from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
 from app.db.models.order import Order
-from app.db.models.order_workflow import OrderNotification
+from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.services.order_workflow import OrderWorkflowService
 from tests.integration.test_storefront_web import (
     _basket_line,
@@ -68,7 +70,11 @@ async def test_delivery_workspace_is_admin_only_and_filters_orders(
     customer_view = client.get("/manage/orders")
     assert customer_view.status_code == 403
 
-    await _sign_in_admin(client, test_session)
+    admin = await _sign_in_admin(client, test_session)
+    order = await test_session.get(Order, order_id)
+    assert order is not None
+    await OrderWorkflowService(test_session).create_event(order, actor=admin, source="web")
+    await test_session.commit()
     listing = client.get("/manage/orders?q=Test%20Mijoz&status=new")
     assert listing.status_code == 200
     assert f'href="/manage/orders/{order_id}"' in listing.text
@@ -83,6 +89,84 @@ async def test_delivery_workspace_is_admin_only_and_filters_orders(
     assert 'action="/manage/orders/' + str(order_id) + '/status"' in detail.text
     assert 'action="/manage/orders/' + str(order_id) + '/courier"' in detail.text
     assert 'action="/manage/orders/' + str(order_id) + '/note"' in detail.text
+    assert '<details class="delivery-event-details">' in detail.text
+    assert '<details class="delivery-event-details" open' not in detail.text
+
+
+@pytest.mark.asyncio
+async def test_admin_order_list_shows_courier_and_latest_activity_ordered_first(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    _, order_id = await _place_order(client, test_session)
+    admin = await _sign_in_admin(client, test_session)
+    order = await test_session.get(Order, order_id)
+    assert order is not None
+
+    event_time = order.created_at + timedelta(hours=3)
+    order.updated_at = order.created_at + timedelta(hours=2)
+    order.courier_name = "Courier QA Latest"
+    order.courier_phone = "+99800000033"
+    second = Order(
+        quote_id=order.quote_id,
+        user_id=order.user_id,
+        status="new",
+        contact_phone="+99800000044",
+        contact_name="Activity QA Older",
+        delivery_address="Older activity fixture",
+        grand_total_quoted=Decimal("12000"),
+        created_at=order.created_at + timedelta(hours=1),
+        updated_at=order.created_at + timedelta(hours=1),
+    )
+    test_session.add(second)
+    test_session.add(
+        OrderEvent(
+            order_id=order.id,
+            actor_user_id=admin.id,
+            kind="delivery_note_updated",
+            from_status=order.status,
+            to_status=order.status,
+            reason="",
+            details={"source": "test"},
+            created_at=event_time,
+        )
+    )
+    await test_session.commit()
+
+    response = client.get("/manage/orders?status=new")
+    assert response.status_code == 200
+    first_position = response.text.index(f'href="/manage/orders/{order_id}"')
+    second_position = response.text.index(f'href="/manage/orders/{second.id}"')
+    assert first_position < second_position
+    assert "Courier QA Latest" in response.text
+    assert "+99800000033" in response.text
+    assert format_delivery_time(event_time) in response.text
+
+
+@pytest.mark.asyncio
+async def test_correction_requires_explicit_target_and_legacy_partial_is_read_only(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    _, order_id = await _place_order(client, test_session)
+    await _sign_in_admin(client, test_session)
+
+    detail = client.get(f"/manage/orders/{order_id}")
+    assert detail.status_code == 200
+    correction_form = detail.text.split('<details class="delivery-correction">', 1)[1].split(
+        "</details>", 1
+    )[0]
+    assert '<option value="" disabled selected>' in correction_form
+    assert '<option value="new" selected' not in correction_form
+
+    order = await test_session.get(Order, order_id)
+    assert order is not None
+    order.status = "partially_fulfilled"
+    await test_session.commit()
+    legacy_detail = client.get(f"/manage/orders/{order_id}")
+    assert legacy_detail.status_code == 200
+    assert '<details class="delivery-correction">' not in legacy_detail.text
+    assert FULFILLMENT_UI_MESSAGES["fulfillment_ui_legacy_status_help"]["uz_latn"] in (
+        legacy_detail.text
+    )
 
 
 @pytest.mark.asyncio

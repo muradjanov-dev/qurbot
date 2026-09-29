@@ -82,6 +82,8 @@
 .delivery-timeline time { color: #64736a; font-size: 13px; }
 .delivery-timeline strong { font-size: 13px; }
 .delivery-timeline span, .delivery-timeline p { margin: 0; color: #4e5c52; font-size: 13px; overflow-wrap: anywhere; }
+.delivery-event-details { min-width: 0; }
+.delivery-event-details summary { min-height: 44px; display: flex; align-items: center; color: #526c59; cursor: pointer; font-size: 13px; font-weight: 650; }
 .delivery-timeline pre { max-height: 180px; overflow: auto; margin: 0; padding: 9px; border-radius: 8px; background: #f5f7f5; font-size: 12px; }
 .delivery-customer-mini-timeline { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; color: #64736a; font-size: 13px; }
 .delivery-customer-mini-timeline span + span::before { content: "· "; }
@@ -117,4 +119,6 @@
   .delivery-line { align-items: flex-start; flex-direction: column; }
   .delivery-customer-orders .list-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; min-height: 72px; }
   .delivery-customer-orders .list-row .price { grid-column: 1 / -1; justify-self: end; white-space: nowrap; }
+  .delivery-customer-detail .delivery-address-row { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .delivery-customer-detail .delivery-address-row .right { width: 100%; text-align: left; overflow-wrap: anywhere; }
 }

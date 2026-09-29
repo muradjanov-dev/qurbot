@@ -80,6 +80,7 @@
       {% else %}
         <p class="delivery-muted">{% if order.status == 'partially_fulfilled' %}{{ L.legacy_status_help }}{% else %}{{ L.terminal_status_help }}{% endif %}</p>
       {% endif %}
+      {% if order.status != 'partially_fulfilled' %}
       <details class="delivery-correction">
         <summary>{{ L.correction }}</summary>
         <p class="delivery-muted">{{ L.correction_hint }}</p>
@@ -89,12 +90,14 @@
           <input type="hidden" name="expected_status" value="{{ order.status }}">
           <input type="hidden" name="correction" value="true">
           <label class="delivery-field"><span>{{ L.target_status }}</span><select name="target_status" required>
+            <option value="" disabled selected>{{ L.target_status }}</option>
             {% for status in supported_statuses %}<option value="{{ status }}">{{ t('delivery_status_' ~ status, lang=lang) }}</option>{% endfor %}
           </select></label>
           <label class="delivery-field"><span>{{ L.reason }}</span><textarea name="reason" rows="2" maxlength="1000" required></textarea></label>
           <button class="btn btn-ghost delivery-button" type="submit">{{ L.save_correction }}</button>
         </form>
       </details>
+      {% endif %}
     </section>
 
     <section class="delivery-panel">
@@ -136,7 +139,7 @@
             </strong>
             {% if event.from_status or event.to_status %}<span>{{ t('delivery_status_' ~ event.from_status, lang=lang) if event.from_status else '—' }} → {{ t('delivery_status_' ~ event.to_status, lang=lang) if event.to_status else '—' }}</span>{% endif %}
             {% if event.reason %}<p>{{ event.reason }}</p>{% endif %}
-            {% if event.details %}<pre>{{ event.details|tojson(indent=2) }}</pre>{% endif %}
+            {% if event.details %}<details class="delivery-event-details"><summary>{{ L.details }}</summary><pre>{{ event.details|tojson(indent=2) }}</pre></details>{% endif %}
           </li>
         {% endfor %}
       </ol>

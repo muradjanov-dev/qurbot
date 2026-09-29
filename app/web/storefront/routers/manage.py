@@ -12,7 +12,7 @@ from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
-from sqlalchemy import String, and_, cast, exists, func, or_, select
+from sqlalchemy import String, and_, case, cast, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -502,7 +502,21 @@ async def manage_orders(
                 User.username.ilike(pattern),
             )
         )
-    base = select(Order).join(User, User.id == Order.user_id).where(*conditions)
+    latest_event_at = (
+        select(func.max(OrderEvent.created_at))
+        .where(OrderEvent.order_id == Order.id)
+        .correlate(Order)
+        .scalar_subquery()
+    )
+    last_activity_at = case(
+        (latest_event_at > Order.updated_at, latest_event_at),
+        else_=Order.updated_at,
+    )
+    base = (
+        select(Order, last_activity_at.label("last_activity_at"))
+        .join(User, User.id == Order.user_id)
+        .where(*conditions)
+    )
     total = int(
         await session.scalar(
             select(func.count(Order.id)).join(User, User.id == Order.user_id).where(*conditions)
@@ -512,11 +526,13 @@ async def manage_orders(
     page_count = max(1, (total + _ORDER_PAGE_SIZE - 1) // _ORDER_PAGE_SIZE)
     page = min(page, page_count)
     result = await session.execute(
-        base.order_by(Order.created_at.desc(), Order.id.desc())
+        base.order_by(last_activity_at.desc(), Order.id.desc())
         .offset((page - 1) * _ORDER_PAGE_SIZE)
         .limit(_ORDER_PAGE_SIZE)
     )
-    orders = result.scalars().all()
+    rows = result.all()
+    orders = [row[0] for row in rows]
+    last_update_at_by_order = {row[0].id: row[1] for row in rows}
 
     def page_url(target_page: int) -> str:
         params: dict[str, str] = {"page": str(target_page)}
@@ -534,6 +550,7 @@ async def manage_orders(
         user=admin,
         lang=lang,
         orders=orders,
+        last_update_at_by_order=last_update_at_by_order,
         search=search,
         statuses=_ORDER_FILTER_STATUSES,
         selected_status=selected_status,
