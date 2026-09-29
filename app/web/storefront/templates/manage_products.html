@@ -27,13 +27,16 @@
   <section class="admin-card admin-table-card">
     <div class="admin-table-summary"><strong>{{ t('admin_ui_result_count', lang=lang, count=total) }}</strong><span>{{ counts.available }} {{ t('admin_ui_available', lang=lang) }}</span></div>
     <div class="admin-table-scroll"><table class="admin-table admin-products-table">
-      <thead><tr><th>{{ t('admin_ui_product_name', lang=lang) }}</th><th>{{ t('admin_ui_source_amount', lang=lang) }}</th><th>{{ t('admin_ui_price_uzs', lang=lang) }}</th><th>{{ t('admin_ui_price_usd', lang=lang) }}</th><th>{{ t('admin_ui_pack', lang=lang) }}</th><th>{{ t('admin_ui_status', lang=lang) }}</th><th>{{ t('admin_ui_actions', lang=lang) }}</th></tr></thead>
+      <thead><tr><th scope="col">{{ t('admin_ui_product_name', lang=lang) }}</th><th scope="col">{{ t('admin_ui_source_amount', lang=lang) }}</th><th scope="col">{{ t('admin_ui_price_uzs', lang=lang) }}</th><th scope="col">{{ t('admin_ui_price_usd', lang=lang) }}</th><th scope="col">{{ t('admin_ui_pack', lang=lang) }}</th><th scope="col">{{ t('admin_ui_status', lang=lang) }}</th><th scope="col">{{ t('admin_ui_actions', lang=lang) }}</th></tr></thead>
       <tbody>
         {% for row in products %}
         <tr>
           <td><div class="admin-product-cell">
-            {% if row.image_url %}<img class="admin-product-image" src="{{ row.image_url }}" alt="" loading="lazy">{% else %}<span class="admin-product-image admin-product-image-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7"/></svg></span>{% endif %}
-            <span><a class="admin-product-name" href="/manage/products/{{ row.product.id }}">{{ row.product.name_uz }}</a><small>{{ row.product.source_ref or row.product.source }}{% if row.offer_count %} · {{ row.offer_count }} {{ t('admin_ui_active_offers', lang=lang) }}{% endif %}</small></span>
+            {% if row.image_url and not row.image_url.endswith('/no-photo.svg') %}<button type="button" class="admin-image-preview" data-image-preview="{{ row.image_url }}" data-image-name="{{ row.display_name }}" aria-label="{{ t('admin_ui_preview_image', lang=lang, name=row.display_name) }}" aria-haspopup="dialog" aria-controls="admin-image-dialog">
+              <img class="admin-product-image" src="{{ row.image_url }}" alt="" loading="lazy">
+              <span class="admin-image-eye" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+            </button>{% else %}<span class="admin-product-image admin-product-image-empty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7"/></svg></span>{% endif %}
+            <span><a class="admin-product-name" href="/manage/products/{{ row.product.id }}">{{ row.display_name }}</a><small>{{ row.product.source_ref or row.product.source }}{% if row.offer_count %} · {{ row.offer_count }} {{ t('admin_ui_active_offers', lang=lang) }}{% endif %}</small></span>
           </div></td>
           <td>{% if row.prices %}<span class="admin-money-main">{{ row.prices.source_amount_label }}</span><small class="admin-money-sub">{{ row.offer.source_currency }}</small>{% else %}<span class="admin-muted">{{ t('admin_ui_no_offer', lang=lang) }}</span>{% endif %}</td>
           <td>{% if row.prices %}<span class="admin-money-main">{{ row.prices.price_uzs_label }}</span>{% else %}<span class="admin-muted">—</span>{% endif %}</td>
@@ -51,4 +54,9 @@
     </nav></footer>
   </section>
 </section>
+<dialog id="admin-image-dialog" class="admin-image-dialog" aria-labelledby="admin-image-title" data-image-dialog>
+  <header><h2 id="admin-image-title" data-image-title>{{ t('admin_ui_image_preview', lang=lang) }}</h2><button type="button" data-image-close aria-label="{{ t('admin_ui_close_preview', lang=lang) }}" autofocus>×</button></header>
+  <div class="admin-image-stage"><p role="status" data-image-status data-loading="{{ t('admin_ui_image_loading', lang=lang) }}" data-error="{{ t('admin_ui_image_failed', lang=lang) }}"></p><img data-image-full alt="" hidden></div>
+  <footer><a data-image-original target="_blank" rel="noopener noreferrer">{{ t('admin_ui_image_original', lang=lang) }} ↗</a></footer>
+</dialog>
 {% endblock %}

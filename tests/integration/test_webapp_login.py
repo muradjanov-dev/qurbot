@@ -54,7 +54,7 @@ async def test_signed_launch_preserves_database_role(test_session, monkeypatch, 
         assert (await client.post("/api/chat/handoff", json={})).status_code == 403
         logout = await client.post("/logout", headers={"Origin": "https://shop.example"})
         assert logout.status_code == 303
-        assert len(logout.headers.get_list("set-cookie")) == 4
+        assert len(logout.headers.get_list("set-cookie")) == 6
         assert (await client.get("/api/cart")).status_code == 401
 
 

@@ -16,6 +16,7 @@ from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.formatters.common import localized_name
 from app.core.admin_redesign_i18n import admin_ui_messages
 from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct, Category, Unit
@@ -286,6 +287,23 @@ async def home(
         "unmatched": await session.scalar(select(func.count(UnmatchedQuery.id))),
         "chats": await session.scalar(select(func.count(Conversation.id))),
     }
+    recent_orders = (
+        (
+            await session.execute(
+                select(Order.id, Order.contact_name, Order.grand_total_quoted, Order.status)
+                .where(
+                    Order.is_test.is_(False),
+                    exists().where(
+                        OrderShopPart.order_id == Order.id, OrderShopPart.shop_id == shop.id
+                    ),
+                )
+                .order_by(Order.created_at.desc(), Order.id.desc())
+                .limit(5)
+            )
+        )
+        .mappings()
+        .all()
+    )
     fx_snapshot = await FxPricingService(session).snapshot()
     return render(
         request,
@@ -294,6 +312,7 @@ async def home(
         lang=lang,
         shop=shop,
         counts=counts,
+        recent_orders=recent_orders,
         fx_snapshot=fx_snapshot,
         is_super_admin=user.tg_id in settings.super_admin_tg_ids,
         **_admin_i18n(lang),
@@ -662,6 +681,9 @@ async def products(
         rows.append(
             {
                 "product": product,
+                "display_name": localized_name(
+                    product.name_uz, product.name_ru, lang, name_uz_cyrl=product.name_uz_cyrl
+                ),
                 "image_url": product.display_image_url,
                 "offer": primary,
                 "offers": product_offers,

@@ -2600,12 +2600,14 @@ MESSAGES.update(
 
 
 from app.core.admin_redesign_i18n import ADMIN_UI_MESSAGES  # noqa: E402
+from app.core.bot_login_i18n import BOT_LOGIN_MESSAGES  # noqa: E402
 from app.core.redesign_i18n import UI_MESSAGES  # noqa: E402
 from app.core.store_redesign_i18n import STORE_UI_MESSAGES  # noqa: E402
 
 MESSAGES.update(UI_MESSAGES)
 MESSAGES.update(ADMIN_UI_MESSAGES)
 MESSAGES.update(STORE_UI_MESSAGES)
+MESSAGES.update(BOT_LOGIN_MESSAGES)
 
 
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs: Any) -> str:

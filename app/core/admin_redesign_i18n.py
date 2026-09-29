@@ -5,6 +5,23 @@ from __future__ import annotations
 _LANGS = ("uz_latn", "uz_cyrl", "ru")
 
 _LABELS: dict[str, tuple[str, str, str]] = {
+    "preview_image": ("Rasmni ko‘rish: {name}", "Расмни кўриш: {name}", "Посмотреть фото: {name}"),
+    "image_preview": ("Mahsulot rasmi", "Маҳсулот расми", "Фото товара"),
+    "close_preview": ("Yopish", "Ёпиш", "Закрыть"),
+    "image_loading": ("Rasm yuklanmoqda…", "Расм юкланмоқда…", "Загрузка фото…"),
+    "image_failed": (
+        "Rasmni yuklab bo‘lmadi.",
+        "Расмни юклаб бўлмади.",
+        "Не удалось загрузить фото.",
+    ),
+    "image_original": ("Asl rasmni ochish", "Асл расмни очиш", "Открыть оригинал"),
+    "recent_orders": ("Oxirgi buyurtmalar", "Охирги буюртмалар", "Последние заказы"),
+    "all_orders": ("Barcha buyurtmalar", "Барча буюртмалар", "Все заказы"),
+    "no_recent_orders": (
+        "Hozircha buyurtmalar yo‘q.",
+        "Ҳозирча буюртмалар йўқ.",
+        "Заказов пока нет.",
+    ),
     "dashboard": ("Bosh sahifa", "Бош саҳифа", "Обзор"),
     "products": ("Mahsulotlar", "Маҳсулотлар", "Товары"),
     "orders": ("Buyurtmalar", "Буюртмалар", "Заказы"),
