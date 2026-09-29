@@ -115,6 +115,9 @@ class Order(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(32), default="new", nullable=False
     )  # new|confirmed|partially_fulfilled|fulfilled|cancelled
+    workflow_revision: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     contact_phone: Mapped[str] = mapped_column(String(50), nullable=False)
     contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     delivery_address: Mapped[str] = mapped_column(Text, nullable=False)
@@ -128,6 +131,14 @@ class Order(Base, TimestampMixin):
     grand_total_quoted: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     grand_total_final: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    courier_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    courier_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    courier_vehicle: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    courier_cost_uzs: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    delivery_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    delivery_problem: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
 
     quote: Mapped[Quote] = relationship("Quote", back_populates="orders", lazy="selectin")
     user: Mapped[User] = relationship("User", lazy="selectin")

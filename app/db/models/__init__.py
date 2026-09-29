@@ -16,6 +16,7 @@ from app.db.models.order import (
     OrderShopPart,
     Quote,
 )
+from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.sales_request import SalesRequest, SalesRequestItem
 from app.db.models.shop import (
     District,
@@ -74,6 +75,8 @@ __all__ = [
     "Order",
     "OrderShopPart",
     "OrderItem",
+    "OrderEvent",
+    "OrderNotification",
     # Ops & Metrics
     "UnmatchedQuery",
     "LLMCall",
