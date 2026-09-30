@@ -34,6 +34,11 @@ _LABELS = {
         "Исм, username ёки ID бўйича қидиринг",
         "Поиск по имени, username или ID",
     ),
+    "search_placeholder": (
+        "Ism, username yoki ID",
+        "Исм, username ёки ID",
+        "Имя, username или ID",
+    ),
     "clear_search": ("Qidiruvni tozalash", "Қидирувни тозалаш", "Очистить поиск"),
     "admin_login": ("Administrator kirishi", "Администратор кириши", "Вход для администратора"),
     "waiting": ("Kutayotganlar", "Кутаётганлар", "Ожидают"),

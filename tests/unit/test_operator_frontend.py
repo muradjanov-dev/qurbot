@@ -188,8 +188,8 @@ def launch_browser() -> tuple[object, Browser]:
     return playwright, browser
 
 
-def open_operator(page: Page, conversation: int | None = None) -> None:
-    html = operator_html()
+def open_operator(page: Page, conversation: int | None = None, lang: str = "uz_latn") -> None:
+    html = operator_html(lang)
 
     def route(request_route) -> None:
         url = urlsplit(request_route.request.url)
@@ -229,6 +229,99 @@ def browser_page():
     finally:
         browser.close()
         playwright.stop()
+
+
+@pytest.mark.parametrize("width", [320, 390, 1280])
+def test_operator_search_keyboard_focus_uses_one_wrapper_ring(
+    browser_page: Page, width: int
+) -> None:
+    page = browser_page
+    page.set_viewport_size({"width": width, "height": 800})
+    open_operator(page)
+    search = page.locator("[data-search]")
+    unfocused = search.evaluate(
+        """input => {
+          const wrapper = input.parentElement;
+          const style = getComputedStyle(wrapper);
+          return {
+            height: wrapper.getBoundingClientRect().height,
+            borderColor: style.borderTopColor,
+          };
+        }"""
+    )
+
+    search.focus()
+    styles = search.evaluate(
+        """input => {
+          const inputStyle = getComputedStyle(input);
+          const wrapper = input.parentElement;
+          const wrapperStyle = getComputedStyle(wrapper);
+          return {
+            active: document.activeElement === input,
+            keyboardFocus: input.matches(':focus-visible'),
+            outlineStyle: inputStyle.outlineStyle,
+            outlineWidth: inputStyle.outlineWidth,
+            borderWidths: [inputStyle.borderTopWidth, inputStyle.borderRightWidth,
+              inputStyle.borderBottomWidth, inputStyle.borderLeftWidth],
+            boxShadow: inputStyle.boxShadow,
+            backgroundColor: inputStyle.backgroundColor,
+            fontSize: inputStyle.fontSize,
+            wrapperBorderColor: wrapperStyle.borderTopColor,
+            wrapperBoxShadow: wrapperStyle.boxShadow,
+            wrapperHeight: wrapper.getBoundingClientRect().height,
+          };
+        }"""
+    )
+
+    assert styles["active"] and styles["keyboardFocus"]
+    assert styles["outlineStyle"] == "none"
+    assert styles["outlineWidth"] == "0px"
+    assert styles["borderWidths"] == ["0px"] * 4
+    assert styles["boxShadow"] == "none"
+    assert styles["backgroundColor"] == "rgba(0, 0, 0, 0)"
+    assert styles["fontSize"] == ("16px" if width <= 760 else "12px")
+    assert styles["wrapperBorderColor"] != unfocused["borderColor"]
+    assert styles["wrapperBoxShadow"] != "none"
+    assert styles["wrapperHeight"] == pytest.approx(unfocused["height"])
+    assert styles["wrapperHeight"] == (42 if width <= 760 else 40)
+    assert styles["wrapperHeight"] <= 42
+
+
+@pytest.mark.parametrize(
+    ("lang", "placeholder"),
+    [
+        ("uz_latn", "Ism, username yoki ID"),
+        ("uz_cyrl", "Исм, username ёки ID"),
+        ("ru", "Имя, username или ID"),
+    ],
+)
+def test_operator_search_placeholder_fits_mobile_and_desktop_widths(
+    browser_page: Page, lang: str, placeholder: str
+) -> None:
+    page = browser_page
+    page.set_viewport_size({"width": 320, "height": 800})
+    open_operator(page, lang=lang)
+    search = page.locator("[data-search]")
+
+    for width in (320, 390, 1280):
+        page.set_viewport_size({"width": width, "height": 800})
+        metrics = search.evaluate(
+            """input => {
+              const style = getComputedStyle(input);
+              const context = document.createElement('canvas').getContext('2d');
+              context.font = style.font;
+              return {
+                placeholder: input.placeholder,
+                textWidth: context.measureText(input.placeholder).width,
+                availableWidth: input.clientWidth
+                  - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+              };
+            }"""
+        )
+        assert (
+            metrics["textWidth"] <= metrics["availableWidth"]
+        ), f"{lang} placeholder is clipped at {width}px: {metrics}"
+        assert metrics["placeholder"] == placeholder
 
 
 def test_search_debounces_and_late_results_cannot_replace_newer_query(browser_page: Page) -> None:
@@ -439,16 +532,28 @@ def new_url_path(url: str) -> str:
 
 
 @pytest.mark.parametrize(
-    ("lang", "search_label", "retry_label"),
+    ("lang", "search_placeholder", "search_label", "retry_label"),
     [
-        ("uz_latn", "Ism, username yoki ID bo‘yicha qidiring", "Qayta urinib ko‘rish"),
-        ("uz_cyrl", "Исм, username ёки ID бўйича қидиринг", "Қайта уриниб кўриш"),
-        ("ru", "Поиск по имени, username или ID", "Повторить"),
+        (
+            "uz_latn",
+            "Ism, username yoki ID",
+            "Ism, username yoki ID bo‘yicha qidiring",
+            "Qayta urinib ko‘rish",
+        ),
+        (
+            "uz_cyrl",
+            "Исм, username ёки ID",
+            "Исм, username ёки ID бўйича қидиринг",
+            "Қайта уриниб кўриш",
+        ),
+        ("ru", "Имя, username или ID", "Поиск по имени, username или ID", "Повторить"),
     ],
 )
 def test_operator_controls_use_the_saved_language(
-    lang: str, search_label: str, retry_label: str
+    lang: str, search_placeholder: str, search_label: str, retry_label: str
 ) -> None:
     html = operator_html(lang)
-    assert f'placeholder="{search_label}"' in html
+    assert f'placeholder="{search_placeholder}"' in html
+    assert f'aria-label="{search_label}"' in html
+    assert f'for="operator-search">{search_label}</label>' in html
     assert retry_label in html

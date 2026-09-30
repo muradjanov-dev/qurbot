@@ -105,13 +105,18 @@ body.admin-layout.operator-page #main.page > [data-telegram-auth]:not([hidden]) 
   border-radius: 8px;
 }
 
+body.admin-layout.operator-page .operator-search-wrap:focus-within {
+  border-color: #8bb99b;
+  box-shadow: 0 0 0 3px rgb(54 130 88 / 12%);
+}
+
 .operator-search-wrap > svg {
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
 }
 
-.operator-search-wrap input {
+body.admin-layout.operator-page .operator-search-wrap input {
   width: 100%;
   min-width: 0;
   height: 38px;
@@ -121,6 +126,7 @@ body.admin-layout.operator-page #main.page > [data-telegram-auth]:not([hidden]) 
   background: transparent;
   border: 0;
   outline: 0;
+  box-shadow: none;
 }
 
 .operator-search-wrap input::placeholder { color: #93a097; }
@@ -357,7 +363,7 @@ body.admin-layout.operator-page #main.page > [data-telegram-auth]:not([hidden]) 
   .operator-inbox-heading { padding: 10px 13px 8px; }
   .operator-inbox-heading h1 { font-size: 16px; }
   .operator-search-wrap { min-height: 42px; margin: 0 10px 8px; }
-  .operator-search-wrap input { height: 40px; font-size: 16px; }
+  body.admin-layout.operator-page .operator-search-wrap input { height: 40px; font-size: 16px; }
   .operator-filters { gap: 5px; padding: 0 9px 8px; }
   .operator-filters .btn { min-height: 38px; font-size: 11px; }
   .operator-row { min-height: 74px; padding: 11px 42px 10px 13px; }
