@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
+from time import sleep
 from types import SimpleNamespace
 from urllib.parse import urlsplit
 
@@ -232,7 +234,9 @@ def browser_page():
 def test_search_debounces_and_late_results_cannot_replace_newer_query(browser_page: Page) -> None:
     page = browser_page
     open_operator(page)
-    page.clock.install()
+    frozen_time = datetime(2030, 1, 1, tzinfo=UTC)
+    page.clock.install(time=frozen_time)
+    page.clock.pause_at(frozen_time)
     search = page.get_by_role("searchbox")
 
     search.fill("o")
@@ -240,6 +244,8 @@ def test_search_debounces_and_late_results_cannot_replace_newer_query(browser_pa
     search.fill("ol")
     page.clock.fast_forward(100)
     search.fill("old")
+    # Host/CI scheduling time must not consume the controlled 300ms debounce window.
+    sleep(0.35)
     page.clock.fast_forward(299)
     assert [
         new_url_query(call["url"]).get("q")
