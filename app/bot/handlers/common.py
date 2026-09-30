@@ -45,20 +45,11 @@ async def cmd_start(
     message: Message,
     state: FSMContext,
     user: User,
-    session: AsyncSession,
     lang: str,
 ) -> None:
-    """Handle /start: always offer the language picker first.
-
-    Returning users are not walked through the rest of onboarding again --
-    callback_set_lang sends them straight to the menu once district is known.
-    """
+    """Return to the saved-language main menu and discard transient FSM state."""
     await state.clear()
-    await state.set_state(RegistrationStates.waiting_for_language)
-    await message.answer(
-        t("choose_language", lang=lang or DEFAULT_LANG),
-        reply_markup=get_language_keyboard(),
-    )
+    await _finish_registration(message, user, lang or user.lang or DEFAULT_LANG)
 
 
 @router.callback_query(F.data.startswith("set_lang:"), RegistrationStates.waiting_for_language)

@@ -58,7 +58,7 @@ body.admin-layout .admin-sidebar-bottom .btn { min-height: 34px; border-radius: 
 /* Top bar and page canvas */
 body.admin-layout .admin-topbar { position: sticky; z-index: 4; top: 0; grid-column: 2; grid-row: 1; min-width: 0; height: 56px; background: rgb(244 247 245 / 92%); border-bottom: 1px solid #e8eeea; backdrop-filter: blur(14px); }
 body.admin-layout .admin-topbar .topbar-inner { display: flex; align-items: center; justify-content: space-between; height: 100%; max-width: none; padding: 0 30px; }
-body.admin-layout .admin-topbar .admin-breadcrumb { display: inline-flex; align-items: center; gap: 9px; color: #76867d; font-size: 12px; }
+body.admin-layout .admin-topbar .admin-breadcrumb { display: inline-flex; align-items: center; gap: 9px; margin: 0; color: #76867d; font-size: 12px; }
 body.admin-layout .admin-topbar .admin-breadcrumb > span { color: #c4cec8; }
 body.admin-layout .admin-topbar .topbar-side { display: flex; align-items: center; gap: 9px; }
 body.admin-layout .admin-topbar .menu > summary { display: grid; place-items: center; width: 34px; height: 34px; color: #63756b; font-size: 12px; font-weight: 700; background: #fff; border: 1px solid var(--adm-border); border-radius: 9px; cursor: pointer; list-style: none; }
@@ -365,6 +365,10 @@ body.admin-layout .admin-promote-form .admin-field { margin: 0; }
 }
 
 @media (max-width: 680px) {
+  body.admin-layout .admin-topbar { height: auto; min-height: 48px; }
+  body.admin-layout .admin-topbar .topbar-inner { flex-wrap: wrap; gap: 8px; padding-block: 8px; }
+  body.admin-layout .admin-topbar .admin-breadcrumb { flex-basis: 100%; }
+  body.admin-layout .admin-topbar .topbar-side { justify-content: space-between; width: 100%; }
   body.admin-layout .page { padding: 15px 10px 30px; }
   body.admin-layout .admin-page-heading { align-items: start; flex-direction: column; gap: 12px; margin-bottom: 13px; }
   body.admin-layout .admin-page-heading h1 { font-size: 27px; }

@@ -3,11 +3,12 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import Update
+from aiogram.types import ReplyKeyboardMarkup, Update
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.i18n import DEFAULT_LANG, t
 from app.main import app
 
 START_UPDATE = {
@@ -87,10 +88,14 @@ async def test_dispatcher_reaches_start_handler_via_real_update(
 
         await test_session.commit()
 
-    # The bug crashed cmd_start before it ever reached message.answer(...), so
-    # nothing was sent -- assert the outgoing SendMessage carries the expected
-    # onboarding content (language picker), not just that some call happened.
+    # The regression must reach the saved-language welcome and ordinary menu,
+    # not restart onboarding at the language picker.
     mock_call.assert_called_once()
     sent_method = mock_call.call_args.args[0]
-    assert sent_method.text is not None
-    assert sent_method.reply_markup is not None
+    assert sent_method.text == t(
+        "welcome_done",
+        lang=DEFAULT_LANG,
+        eta_min=settings.delivery_eta_min_hours,
+        eta_max=settings.delivery_eta_max_hours,
+    )
+    assert isinstance(sent_method.reply_markup, ReplyKeyboardMarkup)

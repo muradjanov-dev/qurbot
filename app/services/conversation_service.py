@@ -334,9 +334,10 @@ class ConversationService:
             raise PermissionError("admin_required")
 
     async def queue(
-        self, admin: User, after_id: int = 0, scope: str = "all"
+        self, admin: User, after_id: int = 0, scope: str = "all", q: str = ""
     ) -> list[dict[str, Any]]:
         self._admin(admin)
+        search = q.strip()
         condition: ColumnElement[bool] = Conversation.status.in_(["waiting", "human"])
         if scope == "waiting":
             condition = Conversation.status == "waiting"
@@ -344,14 +345,45 @@ class ConversationService:
             condition = (Conversation.status == "human") & (Conversation.operator_id == admin.id)
         elif scope == "others":
             condition = (Conversation.status == "human") & (Conversation.operator_id != admin.id)
-        rows = (
-            await self.session.scalars(
-                select(Conversation)
-                .where(condition, Conversation.id > after_id)
-                .order_by(Conversation.id)
-                .limit(50)
+        stmt = (
+            select(Conversation, User)
+            .join(User, User.id == Conversation.user_id)
+            .where(condition, Conversation.id > after_id)
+            .order_by(Conversation.id)
+        )
+        numeric_id: int | None = None
+        if search and search.isascii() and search.isdecimal():
+            numeric_id = int(search)
+            if numeric_id > (1 << 63) - 1:
+                return []
+            stmt = stmt.where(User.id == numeric_id)
+        elif search and self.session.get_bind().dialect.name != "sqlite":
+            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
+            stmt = stmt.where(
+                or_(
+                    User.full_name.ilike(pattern, escape="\\"),
+                    User.username.ilike(pattern, escape="\\"),
+                )
             )
-        ).all()
+
+        if search and numeric_id is None and self.session.get_bind().dialect.name == "sqlite":
+            folded_search = search.casefold()
+            rows = []
+            stream = await self.session.stream(stmt.execution_options(yield_per=128))
+            try:
+                async for row, customer in stream:
+                    if (
+                        folded_search in (customer.full_name or "").casefold()
+                        or folded_search in (customer.username or "").casefold()
+                    ):
+                        rows.append(row)
+                        if len(rows) == 50:
+                            break
+            finally:
+                await stream.close()
+        else:
+            rows = [row for row, _customer in (await self.session.execute(stmt.limit(50))).all()]
         result = []
         for row in rows:
             customer = await self.session.get(User, row.user_id)

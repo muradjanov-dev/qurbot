@@ -9,6 +9,12 @@ _LABELS = {
     "guest": ("Mehmon rejimi", "Меҳмон режими", "Гостевой режим"),
     "admin": ("Administrator", "Администратор", "Администратор"),
     "customer_view": ("Mijoz ko‘rinishi", "Мижоз кўриниши", "Витрина"),
+    "customer_site": ("Mijoz sayti", "Мижоз сайти", "Сайт для клиентов"),
+    "dashboard_back": (
+        "Boshqaruvga qaytish",
+        "Бошқарувга қайтиш",
+        "Вернуться к управлению",
+    ),
     "admin_menu": ("Boshqaruv menyusi", "Бошқарув менюси", "Меню управления"),
     "permission_title": (
         "Administrator huquqi kerak",

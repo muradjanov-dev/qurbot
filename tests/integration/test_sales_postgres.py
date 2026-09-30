@@ -7,15 +7,17 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
 from app.db.base import Base
 from app.db.models import CanonicalProduct, Category, Unit, User
+from app.db.models.conversation import Conversation
 from app.db.models.order import Basket, Order, OrderShopPart, Quote
 from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct
+from app.db.repositories.user_repo import UserRepository
 from app.services.cart_service import CartConflict, CartService
 from app.services.conversation_service import ConversationConflict, ConversationService
 from app.services.order_service import place_order
@@ -80,6 +82,75 @@ async def seed(factory: async_sessionmaker[AsyncSession]) -> tuple[int, int, tup
         await session.flush()
         await session.commit()
         return user.id, product.id, (admins[0].id, admins[1].id)
+
+
+@pytest.mark.asyncio
+async def test_postgres_operator_queue_search_matches_unicode_literal_and_exact_id(
+    pg_sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    async with pg_sessions() as session:
+        admin = User(tg_id=7_500_000_001, role="admin")
+        cyrillic = User(tg_id=7_500_000_002, full_name="Абдуллаов Бахтиёр")
+        literal = User(tg_id=7_500_000_003, username="Seller_A_B%50")
+        similar = User(tg_id=7_500_000_004, username="SellerXA B50")
+        escaped = User(tg_id=7_500_000_005, username=r"Seller\ID_50%")
+        session.add_all([admin, cyrillic, literal, similar, escaped])
+        await session.flush()
+        conversations = [
+            Conversation(user_id=user.id, status="waiting")
+            for user in (cyrillic, literal, similar, escaped)
+        ]
+        session.add_all(conversations)
+        await session.flush()
+
+        service = ConversationService(session)
+        by_cyrillic = await service.queue(admin, q="АБДУЛЛА")
+        assert [row["id"] for row in by_cyrillic] == [conversations[0].id]
+        by_literal = await service.queue(admin, q="_B%50")
+        assert [row["id"] for row in by_literal] == [conversations[1].id]
+        by_id = await service.queue(admin, q=str(literal.id))
+        assert [row["id"] for row in by_id] == [conversations[1].id]
+        by_backslash = await service.queue(admin, q=r"\ID")
+        assert [row["id"] for row in by_backslash] == [conversations[3].id]
+
+
+@pytest.mark.asyncio
+async def test_postgres_user_upsert_race_preserves_caller_writes(
+    pg_sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    barrier = asyncio.Barrier(2)
+    shared_tg_id = 7_400_000_001
+
+    async def create_user(index: int) -> tuple[int, int]:
+        async with pg_sessions() as session:
+            unrelated = User(tg_id=shared_tg_id + 100 + index, full_name=f"Other {index}")
+            session.add(unrelated)
+            await session.flush()
+            await barrier.wait()
+            user = await UserRepository(session).upsert_user(
+                shared_tg_id,
+                username=f"user_{index}",
+                full_name=f"Concurrent {index}",
+                lang="ru" if index else "uz_cyrl",
+            )
+            await session.commit()
+            return user.id, unrelated.id
+
+    results = await asyncio.gather(create_user(0), create_user(1))
+    assert results[0][0] == results[1][0]
+
+    async with pg_sessions() as session:
+        shared = await UserRepository(session).get_by_tg_id(shared_tg_id)
+        assert shared is not None
+        assert shared.id == results[0][0]
+        assert shared.username in {"user_0", "user_1"}
+        assert shared.full_name in {"Concurrent 0", "Concurrent 1"}
+        saved_unrelated = await session.scalars(
+            select(User).where(
+                User.tg_id.in_([shared_tg_id, shared_tg_id + 100, shared_tg_id + 101])
+            )
+        )
+        assert len(saved_unrelated.all()) == 3
 
 
 @pytest.mark.asyncio

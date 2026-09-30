@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares._unwrap import unwrap_event
 from app.core.i18n import DEFAULT_LANG
-from app.db.models.user import User
 from app.db.repositories.user_repo import UserRepository
 
 logger = logging.getLogger("bot.user")
@@ -34,20 +33,13 @@ class UserContextMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         user_repo = UserRepository(session)
-        user = await user_repo.get_by_tg_id(from_user.id)
-
-        if not user:
-            # Create user with default preferences
-            user = User(
-                tg_id=from_user.id,
-                username=from_user.username,
-                full_name=from_user.full_name or from_user.first_name,
-                lang=DEFAULT_LANG,
-                role="customer",
-                is_blocked=False,
-            )
-            session.add(user)
-            await session.flush()
+        user = await user_repo.upsert_user(
+            tg_id=from_user.id,
+            username=from_user.username,
+            full_name=from_user.full_name or from_user.first_name,
+            lang=DEFAULT_LANG,
+            referral_source=None,
+        )
 
         if user.is_blocked:
             logger.warning("Blocked user %d attempted interaction", from_user.id)

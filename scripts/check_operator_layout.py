@@ -4,6 +4,9 @@ Real templates/CSS/JS, synthetic HTTP only. Requires optional Playwright and Chr
 """
 
 import json
+import os
+import shutil
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
@@ -27,12 +30,18 @@ def check(browser, width, height, lang):
     )
     env.globals.update(t=t, csrf_token=lambda request: "fixture", asset_version="scroll-test")
     html = env.get_template("operator.html").render(
-        user=SimpleNamespace(id=1, tg_id=1),
+        user=SimpleNamespace(id=1, tg_id=1, full_name="Visual operator", username="visual"),
         lang=lang,
         path="/operator",
         static_url="/static/store",
         js_messages={},
         request=None,
+        is_admin=True,
+        admin_surface=True,
+        admin_active="chats",
+        store_ui_messages={},
+        admin_ui_messages={},
+        flash=None,
     )
     messages = [
         {
@@ -72,7 +81,7 @@ def check(browser, width, height, lang):
             r.fulfill(
                 json={
                     "status": "human",
-                    "operator_id": 2,
+                    "operator_id": 1,
                     "messages": [m for m in messages if m["sequence"] > after],
                 }
             )
@@ -94,7 +103,9 @@ def check(browser, width, height, lang):
         metrics = page.evaluate("""() => {
             const log = document.querySelector('[data-thread-log]');
             const form = document.querySelector('[data-operator-form]').getBoundingClientRect();
-            return {height: Math.min(innerHeight, Telegram.WebApp.viewportHeight),
+            const shell = document.querySelector('[data-operator]').getBoundingClientRect();
+            return {height: Math.min(innerHeight, Telegram.WebApp.viewportHeight || innerHeight),
+                shellBottom: shell.bottom,
                 composerBottom: form.bottom, logBottom: log.getBoundingClientRect().bottom,
                 composerTop: form.top, logHeight: log.clientHeight, contentHeight: log.scrollHeight,
                 pageHeight: document.documentElement.scrollHeight, windowHeight: innerHeight};
@@ -104,6 +115,7 @@ def check(browser, width, height, lang):
             0 < metrics["logHeight"] < metrics["contentHeight"]
         ), "History has no scrollable viewport"
         assert metrics["composerBottom"] <= metrics["height"] + 1, "Composer clipped below WebApp"
+        assert metrics["shellBottom"] <= metrics["height"] + 1, "Workspace extends under keyboard"
         assert metrics["logBottom"] <= metrics["composerTop"] + 1
         assert metrics["pageHeight"] <= metrics["windowHeight"] + 1, "Outer page overflow"
 
@@ -146,10 +158,20 @@ def check(browser, width, height, lang):
     layout()
     page.evaluate("Telegram.WebApp.testHeight = 0; Telegram.WebApp.viewportChanged()")
     page.set_viewport_size({"width": width, "height": 380})
-    page.wait_for_function("document.body.getBoundingClientRect().height === 380")
+    page.wait_for_function("window.innerHeight === 380")
+    page.wait_for_function("""() => {
+        const bottom = document.querySelector('[data-operator]').getBoundingClientRect().bottom;
+        const height = Math.min(innerHeight, Telegram.WebApp.viewportHeight || innerHeight);
+        return Math.abs(bottom - height) <= 1;
+    }""")
     layout()
     page.set_viewport_size({"width": width, "height": height})
-    page.wait_for_function(f"document.body.getBoundingClientRect().height === {height}")
+    page.wait_for_function(f"window.innerHeight === {height}")
+    page.wait_for_function("""() => {
+        const bottom = document.querySelector('[data-operator]').getBoundingClientRect().bottom;
+        const height = Math.min(innerHeight, Telegram.WebApp.viewportHeight || innerHeight);
+        return Math.abs(bottom - height) <= 1;
+    }""")
     layout()
     (ROOT / ".artifacts").mkdir(exist_ok=True)
     page.screenshot(path=str(ROOT / f".artifacts/operator-scroll-{width}.png"))
@@ -171,15 +193,31 @@ def check(browser, width, height, lang):
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path="/usr/bin/google-chrome")
-        for width, height, lang in [
-            (500, 790, "uz_latn"),
-            (390, 700, "uz_cyrl"),
-            (320, 568, "ru"),
-            (1280, 800, "uz_latn"),
-        ]:
-            check(browser, width, height, lang)
-        browser.close()
+        executable = os.environ.get("QURBOT_BROWSER_EXECUTABLE")
+        try:
+            browser = (
+                p.chromium.launch(
+                    executable_path=executable,
+                    headless=True,
+                )
+                if executable
+                else p.chromium.launch(headless=True)
+            )
+        except Exception:
+            system_chrome = shutil.which("google-chrome") or shutil.which("chromium")
+            if executable or not sys.platform.startswith("linux") or not system_chrome:
+                raise
+            browser = p.chromium.launch(executable_path=system_chrome, headless=True)
+        try:
+            for width, height, lang in [
+                (500, 790, "uz_latn"),
+                (390, 700, "uz_cyrl"),
+                (320, 568, "ru"),
+                (1280, 800, "uz_latn"),
+            ]:
+                check(browser, width, height, lang)
+        finally:
+            browser.close()
     print(
         {
             "ok": True,

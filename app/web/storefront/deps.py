@@ -55,6 +55,7 @@ ASSET_VERSION = sha256(
             "chat_cart.js",
             "money.js",
             "operator.js",
+            "operator.css",
             "location.js",
             "leaflet.js",
             "leaflet.css",
@@ -238,9 +239,13 @@ def render(
         "js_messages": js_messages(lang),
     }
     path = request.url.path
-    admin_surface = is_admin(user) and path.startswith(("/manage", "/shop", "/admin"))
+    admin_surface = is_admin(user) and (
+        path == "/operator" or path.startswith(("/manage", "/shop", "/admin"))
+    )
     active = "dashboard"
-    if any(part in path for part in ("/products", "/offers", "/import")):
+    if path == "/operator":
+        active = "chats"
+    elif any(part in path for part in ("/products", "/offers", "/import")):
         active = "products"
     elif "/orders" in path:
         active = "orders"

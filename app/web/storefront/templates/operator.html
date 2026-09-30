@@ -1,39 +1,56 @@
 {% extends 'base.html' %}
 {% block title %}{{ t('sales_inbox', lang=lang) }} — {{ t('store_ui_brand', lang=lang) }}{% endblock %}
 {% block body_class %}operator-page{% endblock %}
-{% block site_header %}{% endblock %}
+{% block page_styles %}<link rel="stylesheet" href="{{ static_url }}/operator.css?v={{ asset_version }}">{% endblock %}
 {% block site_footer %}{% endblock %}
 {% block content %}
-<section class="operator-shell" data-operator data-admin-id="{{ user.id }}">
-  <aside class="operator-sidebar">
-    <header class="section-head"><h1>{{ t('sales_inbox', lang=lang) }}</h1><a href="/chat" class="btn btn-ghost btn-sm">{{ t('store_ui_brand', lang=lang) }}</a></header>
+<section class="operator-shell" data-operator data-admin-id="{{ user.id }}" aria-label="{{ t('sales_inbox', lang=lang) }}">
+  <aside class="operator-sidebar" aria-label="{{ t('sales_inbox', lang=lang) }}">
+    <header class="operator-inbox-heading"><h1>{{ t('sales_inbox', lang=lang) }}</h1></header>
+    <label class="sr-only" for="operator-search">{{ t('sales_search', lang=lang) }}</label>
+    <div class="operator-search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 4.2 4.2"/></svg>
+      <input id="operator-search" type="search" data-search maxlength="100" autocomplete="off"
+        placeholder="{{ t('sales_search', lang=lang) }}" aria-label="{{ t('sales_search', lang=lang) }}">
+      <button class="operator-search-clear" type="button" data-search-clear aria-label="{{ t('sales_clear_search', lang=lang) }}" hidden>×</button>
+    </div>
     <nav class="operator-filters" aria-label="{{ t('sales_inbox', lang=lang) }}">
-      {% for key in ['waiting', 'mine', 'others'] %}<button class="btn btn-ghost btn-sm" data-filter="{{ key }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t('sales_' ~ key, lang=lang) }}</button>{% endfor %}
+      {% for key in ['waiting', 'mine', 'others'] %}<button class="btn btn-ghost btn-sm" type="button" data-filter="{{ key }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ t('sales_' ~ key, lang=lang) }}</button>{% endfor %}
     </nav>
-    <div class="operator-list" data-inbox></div>
-    <button class="btn btn-ghost" data-more hidden>{{ t('sales_more', lang=lang) }}</button>
+    <p class="operator-inbox-status" data-inbox-status role="status" aria-live="polite">{{ t('sales_loading', lang=lang) }}</p>
+    <div class="operator-list" data-inbox aria-label="{{ t('sales_inbox', lang=lang) }}"></div>
+    <div class="operator-inbox-actions">
+      <button class="btn btn-ghost" type="button" data-more hidden>{{ t('sales_more', lang=lang) }}</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-retry-list hidden>{{ t('sales_retry', lang=lang) }}</button>
+    </div>
   </aside>
-  <section class="operator-thread">
-    <header class="chat-header">
-      <button class="btn btn-ghost btn-sm operator-back" data-back>{{ t('sales_back', lang=lang) }}</button>
+  <section class="operator-thread" aria-label="{{ t('sales_select', lang=lang) }}">
+    <header class="operator-thread-header chat-header">
+      <button class="btn btn-ghost btn-sm operator-back" type="button" data-back>{{ t('sales_back', lang=lang) }}</button>
       <div class="chat-identity"><h2 data-thread-title>{{ t('sales_select', lang=lang) }}</h2><small data-thread-mode></small></div>
-      <button class="btn btn-primary btn-sm" data-claim hidden>{{ t('sales_claim', lang=lang) }}</button>
-      <button class="btn btn-ghost btn-sm" data-finish hidden>{{ t('sales_finish', lang=lang) }}</button>
+      <button class="btn btn-primary btn-sm" type="button" data-claim hidden>{{ t('sales_claim', lang=lang) }}</button>
+      <button class="btn btn-ghost btn-sm" type="button" data-finish hidden>{{ t('sales_finish', lang=lang) }}</button>
     </header>
-    <div class="chat-log" data-thread-log role="log" aria-live="polite" aria-label="{{ t('web_chat_history', lang=lang) }}"></div>
-    <p data-operator-status role="status" class="chat-status"></p>
-    <form class="chat-composer" data-operator-form>
+    <p class="operator-thread-status" data-thread-status role="status" aria-live="polite"></p>
+    <div class="operator-thread-empty" data-thread-empty>
+      <p>{{ t('sales_select', lang=lang) }}</p>
+    </div>
+    <div class="chat-log operator-thread-log" data-thread-log role="log" aria-live="polite" aria-relevant="additions" aria-label="{{ t('web_chat_history', lang=lang) }}" tabindex="0" hidden></div>
+    <button class="operator-jump-latest" type="button" data-jump-latest hidden>{{ t('sales_jump_new', lang=lang) }}</button>
+    <button class="btn btn-ghost btn-sm operator-retry-thread" type="button" data-retry-thread hidden>{{ t('sales_retry', lang=lang) }}</button>
+    <form class="chat-composer operator-composer" data-operator-form hidden>
       <label class="sr-only" for="operator-message">{{ t('web_chat_message', lang=lang) }}</label>
       <textarea id="operator-message" name="message" rows="1" required maxlength="4000" placeholder="{{ t('web_chat_placeholder', lang=lang) }}" disabled></textarea>
-      <button class="btn btn-primary" type="submit" disabled>{{ t('web_chat_send', lang=lang) }}</button>
+      <button class="btn btn-primary chat-send" type="submit" disabled aria-label="{{ t('web_chat_send', lang=lang) }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-3-6-6-1Zm6 1 8-8"/></svg>
+      </button>
     </form>
   </section>
 </section>
 {% endblock %}
 {% block scripts %}
 <script id="operator-strings" type="application/json">{
-"currency": {{ t('web_currency', lang=lang)|tojson }},
-{% for key in ['waiting', 'mine', 'others', 'empty', 'select', 'customer', 'finish_confirm', 'requests', 'request_open', 'request_agreed', 'request_cancelled', 'resolution_note', 'resolve_first', 'price_request'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
+{% for key in ['waiting', 'mine', 'others', 'empty', 'select', 'customer', 'finish_confirm', 'requests', 'request_open', 'request_agreed', 'request_cancelled', 'resolution_note', 'resolve_first', 'price_request', 'no_results', 'inbox_loading', 'searching', 'inbox_error', 'thread_loading', 'thread_error', 'retry', 'jump_new', 'unread', 'claim_hint', 'no_messages'] %}{{ key|tojson }}: {{ t('sales_' ~ key, lang=lang)|tojson }},{% endfor %}
 "user": {{ t('sales_customer', lang=lang)|tojson }}, "assistant": {{ t('web_chat_assistant', lang=lang)|tojson }},
 "operator": {{ t('web_chat_operator_name', lang=lang)|tojson }}, "system": {{ t('store_ui_brand', lang=lang)|tojson }},
 "error": {{ t('chat_claim_conflict', lang=lang)|tojson }}

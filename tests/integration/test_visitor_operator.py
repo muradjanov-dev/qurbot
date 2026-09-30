@@ -14,7 +14,7 @@ from starlette.requests import Request
 
 from app.core.config import settings
 from app.db.models.cart import CheckoutAttempt
-from app.db.models.conversation import ConversationNotification
+from app.db.models.conversation import Conversation, ConversationNotification
 from app.db.models.order import Order
 from app.db.models.shop import District, ShopDeliveryRule
 from app.db.models.user import User, VisitorSession
@@ -176,6 +176,150 @@ async def test_inbox_consent_claim_read_close_and_notification_channel(web, test
     ).status_code == 200
     assert (await client.get("/api/chat/operator")).json()["conversations"] == []
     assert (await client.get(f"/api/chat/operator/{conversation_id}")).status_code == 404
+
+
+async def test_operator_queue_search_filters_before_fifty_row_pagination(web, test_session):
+    client, _ = web
+    admin = User(tg_id=910001, role="admin")
+    test_session.add(admin)
+    await test_session.flush()
+    client.cookies.set(SESSION_COOKIE, sign_session(user_id=admin.id, tg_id=admin.tg_id))
+
+    users = [
+        User(tg_id=920000 + index, full_name=f"Unrelated buyer {index}") for index in range(51)
+    ] + [User(tg_id=930000 + index, full_name=f"Needle buyer {index}") for index in range(55)]
+    test_session.add_all(users)
+    await test_session.flush()
+    conversations = [Conversation(user_id=user.id, status="waiting") for user in users]
+    test_session.add_all(conversations)
+    await test_session.flush()
+    expected_ids = [row.id for row in conversations[51:]]
+    await test_session.commit()
+
+    first = await client.get("/api/chat/operator", params={"scope": "waiting", "q": "needle"})
+    assert first.status_code == 200
+    payload = first.json()
+    assert [row["id"] for row in payload["conversations"]] == expected_ids[:50]
+    assert payload["next_cursor"] == expected_ids[49]
+    assert "phone" not in payload["conversations"][0]
+
+    second = await client.get(
+        "/api/chat/operator",
+        params={"scope": "waiting", "q": "needle", "after_id": payload["next_cursor"]},
+    )
+    assert second.status_code == 200
+    assert [row["id"] for row in second.json()["conversations"]] == expected_ids[50:]
+    assert second.json()["next_cursor"] is None
+
+    too_long = await client.get("/api/chat/operator", params={"q": "x" * 101})
+    assert too_long.status_code == 422
+
+
+async def test_operator_queue_search_matches_cyrillic_and_literal_username_text(test_session):
+    admin = User(tg_id=940001, role="admin")
+    customers = [
+        User(tg_id=940002, full_name="Абдуллаов Бахтиёр"),
+        User(tg_id=940003, username="Seller_A_B%50"),
+        User(tg_id=940004, username="SellerXA B50"),
+    ]
+    test_session.add_all([admin, *customers])
+    await test_session.flush()
+    conversations = [Conversation(user_id=user.id, status="waiting") for user in customers]
+    test_session.add_all(conversations)
+    await test_session.flush()
+
+    service = ConversationService(test_session)
+    cyrillic = await service.queue(admin, q="АБДУЛЛА")
+    assert [row["id"] for row in cyrillic] == [conversations[0].id]
+
+    literal = await service.queue(admin, q="_B%50")
+    assert [row["id"] for row in literal] == [conversations[1].id]
+
+    unfiltered = await service.queue(admin, q="   ")
+    assert [row["id"] for row in unfiltered] == [row.id for row in conversations]
+
+
+async def test_sqlite_operator_search_streams_until_fifty_matches(test_session, monkeypatch):
+    admin = User(tg_id=945001, role="admin")
+    customers = [
+        User(tg_id=946000 + index, full_name=f"Needle buyer {index}") for index in range(60)
+    ]
+    test_session.add_all([admin, *customers])
+    await test_session.flush()
+    conversations = [Conversation(user_id=user.id, status="waiting") for user in customers]
+    test_session.add_all(conversations)
+    await test_session.flush()
+
+    streamed_ids: list[int] = []
+    stream_options: list[int | None] = []
+    result_closed = False
+    real_stream = test_session.stream
+
+    async def track_stream(statement, *args, **kwargs):
+        nonlocal result_closed
+        stream_options.append(statement.get_execution_options().get("yield_per"))
+        result = await real_stream(statement, *args, **kwargs)
+
+        class TrackedResult:
+            def __aiter__(self):
+                return self.rows()
+
+            async def rows(self):
+                async for item in result:
+                    streamed_ids.append(item[0].id)
+                    yield item
+
+            async def close(self):
+                nonlocal result_closed
+                result_closed = True
+                await result.close()
+
+        return TrackedResult()
+
+    monkeypatch.setattr(test_session, "stream", track_stream)
+    rows = await ConversationService(test_session).queue(admin, q="NEEDLE")
+
+    assert [row["id"] for row in rows] == [row.id for row in conversations[:50]]
+    assert streamed_ids == [row.id for row in conversations[:50]]
+    assert len(stream_options) == 1
+    assert stream_options[0] is not None and 0 < stream_options[0] <= 128
+    assert result_closed
+
+
+async def test_operator_queue_search_uses_exact_user_id_and_keeps_scopes(test_session):
+    admin = User(tg_id=950001, role="admin")
+    other_admin = User(tg_id=950002, role="admin")
+    customers = [
+        User(id=50321, tg_id=950003, full_name="Needle exact"),
+        User(id=15321, tg_id=950004, full_name="Needle prefix"),
+        User(id=25321, tg_id=950005, full_name="Needle 50321"),
+        User(id=35321, tg_id=950006, full_name="Needle mine"),
+        User(id=45321, tg_id=950007, full_name="Needle others"),
+        User(id=55321, tg_id=950008, full_name="Needle ai"),
+    ]
+    test_session.add_all([admin, other_admin, *customers])
+    await test_session.flush()
+    conversations = [
+        Conversation(user_id=customers[0].id, status="waiting"),
+        Conversation(user_id=customers[1].id, status="waiting"),
+        Conversation(user_id=customers[2].id, status="waiting"),
+        Conversation(user_id=customers[3].id, status="human", operator_id=admin.id),
+        Conversation(user_id=customers[4].id, status="human", operator_id=other_admin.id),
+        Conversation(user_id=customers[5].id, status="ai"),
+    ]
+    test_session.add_all(conversations)
+    await test_session.flush()
+
+    service = ConversationService(test_session)
+    by_id = await service.queue(admin, q="50321")
+    assert [row["id"] for row in by_id] == [conversations[0].id]
+
+    waiting = await service.queue(admin, scope="waiting", q="needle")
+    assert [row["id"] for row in waiting] == [row.id for row in conversations[:3]]
+    mine = await service.queue(admin, scope="mine", q="needle")
+    assert [row["id"] for row in mine] == [conversations[3].id]
+    others = await service.queue(admin, scope="others", q="needle")
+    assert [row["id"] for row in others] == [conversations[4].id]
 
 
 async def test_guest_must_sign_in_before_order_and_old_receipts_still_replay(web, test_session):

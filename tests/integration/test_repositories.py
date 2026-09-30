@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -7,6 +8,7 @@ from app.db.models import (
     CanonicalProduct,
     Category,
     Unit,
+    User,
 )
 from app.db.repositories import (
     BasketRepository,
@@ -105,6 +107,48 @@ async def test_user_and_basket_repository(test_session: AsyncSession) -> None:
     )
     assert quote.id is not None
     assert quote.grand_total == Decimal("1240000.00")
+
+
+@pytest.mark.asyncio
+async def test_user_upsert_refreshes_identity_without_resetting_account_state(
+    test_session: AsyncSession,
+) -> None:
+    user_repo = UserRepository(test_session)
+    user = User(
+        tg_id=777001,
+        full_name="Original name",
+        username="original",
+        lang="uz_cyrl",
+        role="admin",
+        is_blocked=True,
+        is_test=True,
+    )
+    unrelated = User(tg_id=777002, full_name="Before")
+    test_session.add_all([user, unrelated])
+    await test_session.flush()
+    user_id = user.id
+    user.updated_at = datetime(2000, 1, 1, tzinfo=UTC)
+    unrelated.full_name = "Changed in caller transaction"
+    await test_session.flush()
+
+    updated = await user_repo.upsert_user(
+        tg_id=777001,
+        username="fresh_handle",
+        full_name="Fresh name",
+        lang="ru",
+        referral_source="new_referral",
+    )
+    assert updated.id == user_id
+    assert updated.username == "fresh_handle"
+    assert updated.full_name == "Fresh name"
+    assert updated.lang == "uz_cyrl"
+    assert updated.role == "admin"
+    assert updated.is_blocked is True
+    assert updated.is_test is True
+    assert updated.updated_at.year > 2000
+
+    await test_session.commit()
+    assert (await test_session.get(User, unrelated.id)).full_name == "Changed in caller transaction"
 
 
 @pytest.mark.asyncio

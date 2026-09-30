@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct
+from app.db.models.user import User
+from app.web.storefront.session import LANG_COOKIE, SESSION_COOKIE, sign_session
 from tests.integration.test_storefront_web import _seed, client  # noqa: F401
 
 
@@ -48,9 +50,15 @@ async def test_catalogue_return_and_layout_in_browser(
     )
     await test_session.flush()
     monkeypatch.setattr(settings, "web_catalog_page_size", 24)
+    tablet_admin = User(tg_id=998001, full_name="Tablet admin", role="admin", lang="uz_latn")
+    test_session.add(tablet_admin)
+    await test_session.flush()
+    await test_session.commit()
 
-    async with playwright.async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True, executable_path=executable)
+    async with (
+        playwright.async_playwright() as pw,
+        await pw.chromium.launch(headless=True, executable_path=executable) as browser,
+    ):
         page = await browser.new_page(viewport={"width": 390, "height": 720})
 
         async def serve(route: object) -> None:
@@ -109,6 +117,37 @@ async def test_catalogue_return_and_layout_in_browser(
             await page.locator("[data-catalog-product]").nth(6).click()
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
 
+        await page.set_viewport_size({"width": 820, "height": 720})
+        for lang in ("uz_cyrl", "uz_latn", "ru"):
+            storefront_client.cookies.set(LANG_COOKIE, lang)
+            for is_admin in (False, True):
+                storefront_client.cookies.delete(SESSION_COOKIE)
+                if is_admin:
+                    storefront_client.cookies.set(
+                        SESSION_COOKIE,
+                        sign_session(user_id=tablet_admin.id, tg_id=tablet_admin.tg_id),
+                    )
+                await page.goto(f"http://qurbot.test/product/{data.product_id}")
+                assert await page.locator("body").get_attribute("data-lang") == lang
+                assert await page.locator("body").get_attribute("data-authed") == (
+                    "1" if is_admin else "0"
+                )
+                assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (
+                    lang,
+                    is_admin,
+                )
+                nav = page.locator("header.topbar nav.topnav")
+                assert await nav.is_visible(), (lang, is_admin)
+                nav_links = nav.locator("a")
+                assert await nav_links.count() == 4
+                for index in range(await nav_links.count()):
+                    box = await nav_links.nth(index).bounding_box()
+                    assert box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 820
+                manage_link = page.locator("header.topbar .topbar-side a[href='/manage']")
+                assert await manage_link.count() == int(is_admin), (lang, is_admin)
+                if is_admin:
+                    assert await manage_link.is_visible()
+
         await page.set_viewport_size({"width": 390, "height": 720})
         await page.evaluate(
             "sessionStorage.setItem('qb_catalog_scroll:/catalog/"
@@ -118,4 +157,3 @@ async def test_catalogue_return_and_layout_in_browser(
         await page.goto(f"http://qurbot.test/product/{data.product_id}")
         await page.locator('a[href="/catalog/' + str(data.category_id) + '"]').first.click()
         assert await page.evaluate("window.scrollY") == 0
-        await browser.close()

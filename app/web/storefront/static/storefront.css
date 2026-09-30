@@ -425,3 +425,7 @@
   .storefront-b .store-dev-login { align-items: stretch; flex-direction: column; }
   .storefront-b .store-dev-login .btn { width: 100%; min-height: 44px; }
 }
+
+@media (max-width: 860px) {
+  .storefront-b .topbar-inner { gap: 14px; padding-inline: 16px; }
+}

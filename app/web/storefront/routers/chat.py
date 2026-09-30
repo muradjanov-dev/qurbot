@@ -89,10 +89,11 @@ async def handoff(
 async def operator_queue(
     after_id: int = Query(0, ge=0),
     scope: Literal["all", "waiting", "mine", "others"] = "all",
+    q: str = Query("", max_length=100),
     user: User = Depends(require_api_user),
     chat: ConversationService = Depends(service),
 ) -> dict[str, Any]:
-    rows = await chat.queue(user, after_id, scope)
+    rows = await chat.queue(user, after_id, scope, q)
     return {"conversations": rows, "next_cursor": rows[-1]["id"] if len(rows) == 50 else None}
 
 

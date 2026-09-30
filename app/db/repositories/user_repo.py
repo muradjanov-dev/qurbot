@@ -1,7 +1,10 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Any, cast
 
 from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.i18n import DEFAULT_LANG
@@ -27,27 +30,35 @@ class UserRepository(BaseRepository[User]):
         referral_source: str | None = None,
     ) -> User:
         now = datetime.now(UTC)
-        user = await self.get_by_tg_id(tg_id)
-        if user:
-            if username is not None:
-                user.username = username
-            if full_name is not None:
-                user.full_name = full_name
-            user.last_active_at = now
-            await self.session.flush()
-            return user
+        values = {
+            "tg_id": tg_id,
+            "username": username,
+            "full_name": full_name,
+            "lang": lang,
+            "referral_source": referral_source,
+            "last_active_at": now,
+        }
+        dialect = self.session.get_bind().dialect.name
+        statement: Any
+        if dialect == "postgresql":
+            statement = postgresql_insert(User).values(**values)
+        elif dialect == "sqlite":
+            statement = sqlite_insert(User).values(**values)
+        else:
+            raise RuntimeError(f"User upsert is unsupported for database dialect: {dialect}")
 
-        new_user = User(
-            tg_id=tg_id,
-            username=username,
-            full_name=full_name,
-            lang=lang,
-            referral_source=referral_source,
-            last_active_at=now,
+        updates: dict[str, Any] = {"last_active_at": now, "updated_at": now}
+        if username is not None:
+            updates["username"] = statement.excluded.username
+        if full_name is not None:
+            updates["full_name"] = statement.excluded.full_name
+        returning_statement = (
+            statement.on_conflict_do_update(index_elements=[User.tg_id], set_=updates)
+            .returning(User)
+            .execution_options(populate_existing=True)
         )
-        self.session.add(new_user)
-        await self.session.flush()
-        return new_user
+        result = await self.session.execute(returning_statement)
+        return cast(User, result.scalar_one())
 
     async def update_last_active(self, user_id: int) -> None:
         now = datetime.now(UTC)

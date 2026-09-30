@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="{{ static_url }}/app.css?v={{ asset_version }}">
   <link rel="stylesheet" href="{{ static_url }}/{{ 'admin' if admin_surface else 'storefront' }}.css?v={{ asset_version }}">
   <link rel="stylesheet" href="{{ static_url }}/leaflet.css?v={{ asset_version }}">
+  {% block page_styles %}{% endblock %}
   <link rel="icon" href="{{ static_url }}/favicon.svg" type="image/svg+xml">
   <script src="https://telegram.org/js/telegram-web-app.js" async></script>
 </head>
@@ -24,7 +25,8 @@
   <header class="topbar {{ 'admin-topbar' if admin_surface }}">
     <div class="topbar-inner">
       {% if admin_surface %}
-        <span class="admin-breadcrumb">Tezqur <span>/</span> {{ t('ui_' ~ admin_active, lang=lang) if admin_active in ['dashboard','products','customers','settings'] else t('manage_title', lang=lang) }}</span>
+        {% set breadcrumb_key = {'chats': 'sales_inbox', 'orders': 'web_nav_orders', 'dashboard': 'ui_dashboard', 'products': 'ui_products', 'customers': 'ui_customers', 'settings': 'ui_settings'}.get(admin_active, 'manage_title') %}
+        <span class="admin-breadcrumb"><a href="/manage">{% if admin_active == 'chats' %}<span aria-hidden="true">←</span> {{ t('ui_dashboard_back', lang=lang) }}{% else %}Tezqur{% endif %}</a> <span>/</span> {{ t(breadcrumb_key, lang=lang) }}</span>
       {% else %}
         <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">T</span><span class="brand-name">Tezqur</span></a>
         <nav class="topnav" aria-label="{{ t('web_nav_catalog', lang=lang) }}">
@@ -35,6 +37,7 @@
         </nav>
       {% endif %}
       <div class="topbar-side">
+        {% if admin_surface %}<a class="admin-button admin-button-small admin-customer-site" href="/catalog/all">{{ t('ui_customer_site', lang=lang) }} <span aria-hidden="true">↗</span></a>{% endif %}
         <details class="menu"><summary aria-label="{{ t('web_account_language', lang=lang) }}">{{ 'RU' if lang == 'ru' else ('ЎЗ' if lang == 'uz_cyrl' else 'UZ') }}</summary>
           <div class="menu-body">{% for code, label in langs %}<a href="/lang/{{ code }}?next={{ path }}" class="{{ 'is-active' if code == lang }}">{{ label }}</a>{% endfor %}</div>
         </details>
