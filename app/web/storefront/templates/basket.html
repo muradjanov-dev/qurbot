@@ -4,6 +4,27 @@
 {% block content %}
 <section class="section">
   <h1>{{ t('web_basket_title', lang=lang) }}</h1>
+  <div class="card" data-local-cart-review hidden
+       data-drop-label="{{ t('legacy_cart_drop_item', lang=lang) }}"
+       data-review-failed="{{ t('legacy_cart_review_failed', lang=lang) }}"
+       data-review-conflict="{{ t('legacy_cart_review_conflict', lang=lang) }}"
+       data-review-changed="{{ t('legacy_cart_review_changed', lang=lang) }}"
+       data-review-retrying="{{ t('legacy_cart_retrying', lang=lang) }}"
+       data-review-discarded="{{ t('legacy_cart_discarded', lang=lang) }}"
+       data-review-storage-failed="{{ t('legacy_cart_storage_failed', lang=lang) }}">
+    <h2>{{ t('legacy_cart_source_title', lang=lang) }}</h2>
+    <p>{{ t('legacy_cart_review_hint', lang=lang) }}</p>
+    <p data-local-cart-message role="status"></p>
+    <ul data-local-cart-draft></ul>
+    <div class="row">
+      <button class="btn btn-primary btn-sm" type="button" data-retry-local-cart>
+        {{ t('legacy_cart_retry', lang=lang) }}
+      </button>
+      <button class="btn btn-sm" type="button" data-drop-local-cart disabled>
+        {{ t('legacy_cart_drop_selected', lang=lang) }}
+      </button>
+    </div>
+  </div>
   {% if request.query_params.get('msg') == 'web_guest_cart_review' %}
   <div class="card" data-guest-cart-review
        data-preview-loading="{{ t('guest_claim_preview_loading', lang=lang) }}"

@@ -12,8 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from test_sales_postgres import pg_sessions as _pg_sessions
 
 from app.core.config import settings
-from app.db.models.order import Basket, Order, Quote
+from app.db.models.order import Basket, Order, OrderShopPart, Quote
 from app.db.models.order_workflow import OrderEvent, OrderNotification
+from app.db.models.shop import District
 from app.db.models.telegram_message import TelegramMessage
 from app.db.models.user import User
 from app.db.repositories.order_notification_repo import (
@@ -23,7 +24,9 @@ from app.db.repositories.order_notification_repo import (
     claim_due_notifications,
     mark_notification_sent,
 )
+from app.services.house_shop import get_house_shop
 from app.services.order_notification_service import deliver_order_notifications
+from app.services.order_workflow import OrderWorkflowService
 
 pg_sessions = _pg_sessions
 
@@ -53,6 +56,28 @@ class FakeBot:
         self.message_id += 1
         self.locations.append((chat_id, latitude, longitude, reply_to_message_id))
         return SimpleNamespace(message_id=self.message_id)
+
+
+class ControlledClock:
+    def __init__(self, current: datetime) -> None:
+        self.current = current
+
+    def __call__(self) -> datetime:
+        return self.current
+
+    def advance(self, delta: timedelta) -> None:
+        self.current += delta
+
+
+class AdvancingFakeBot(FakeBot):
+    def __init__(self, clock: ControlledClock, elapsed: timedelta, *errors: Exception) -> None:
+        super().__init__(*errors)
+        self.clock = clock
+        self.elapsed = elapsed
+
+    async def send_message(self, chat_id: int, text: str, **kwargs: object):
+        self.clock.advance(self.elapsed)
+        return await super().send_message(chat_id, text, **kwargs)
 
 
 async def _base(session):
@@ -138,6 +163,122 @@ async def _event(session, *, order_id: int, actor_id: int, label: str) -> OrderE
     session.add(row)
     await session.flush()
     return row
+
+
+@pytest.mark.asyncio
+async def test_normal_delivery_flow_sends_departure_and_following_delivery_status(
+    test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    customer, admin, order, _event_row = await _base(test_session)
+    customer.lang = "ru"
+    test_session.add(District(name_uz="Test", name_ru="Test"))
+    await test_session.flush()
+    house = await get_house_shop(test_session)
+    assert house is not None
+    test_session.add(
+        OrderShopPart(order_id=order.id, shop_id=house.id, subtotal=100, delivery_fee=0)
+    )
+    await test_session.flush()
+    service = OrderWorkflowService(test_session)
+    await service.change_status(order.id, admin, "confirmed", 0)
+    await service.change_status(order.id, admin, "collecting", 1)
+    await service.update_courier(order.id, admin, "Audit Courier", "+998901112233", "Van", None, 2)
+    await service.change_status(order.id, admin, "in_transit", 3)
+    await service.change_status(order.id, admin, "fulfilled", 4)
+    await test_session.commit()
+
+    bot = FakeBot()
+    sent_count = 0
+    for _ in range(4):
+        sent_count += await deliver_order_notifications(test_session, bot)
+
+    assert sent_count == 4
+    assert [recipient for recipient, _text, _kwargs in bot.messages] == [customer.tg_id] * 4
+    assert "Audit Courier" in bot.messages[2][1]
+    assert "+998901112233" in bot.messages[2][1]
+    assert "Van" in bot.messages[2][1]
+    rows = (
+        await test_session.scalars(select(OrderNotification).order_by(OrderNotification.id))
+    ).all()
+    notification_statuses = (
+        await test_session.execute(
+            select(OrderNotification.kind, OrderEvent.to_status)
+            .join(OrderEvent, OrderEvent.id == OrderNotification.event_id)
+            .order_by(OrderNotification.id)
+        )
+    ).all()
+    assert notification_statuses == [
+        ("customer_status", "confirmed"),
+        ("customer_status", "collecting"),
+        ("customer_departure", "in_transit"),
+        ("customer_status", "fulfilled"),
+    ]
+    assert [row.status for row in rows] == ["sent"] * 4
+    assert bot.messages[3][1] == (f"📦 Статус заказа <b>#{order.id}</b>: <b>Доставлен</b>.")
+
+
+@pytest.mark.asyncio
+async def test_unknown_customer_notification_is_not_sent(
+    test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    customer, _admin, order, event = await _base(test_session)
+    row = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=customer.tg_id,
+        kind="unknown_customer_notification",
+    )
+    await test_session.commit()
+    bot = FakeBot()
+    assert await deliver_order_notifications(test_session, bot) == 0
+    await test_session.refresh(row)
+    assert row.status == "failed"
+    assert row.last_error == "unsupported_notification_kind"
+    assert bot.messages == []
+
+
+@pytest.mark.parametrize(
+    ("error", "retry_delay"),
+    [
+        pytest.param(
+            TelegramRetryAfter(
+                SendMessage(chat_id=77001, text="retry"), "rate limited", retry_after=1
+            ),
+            timedelta(seconds=1),
+            id="telegram-retry-after",
+        ),
+        pytest.param(RuntimeError("network"), timedelta(seconds=30), id="transient-error"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_retry_delay_starts_when_failed_send_returns(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    retry_delay: timedelta,
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    customer, _admin, order, event = await _base(test_session)
+    started_at = datetime.now(UTC)
+    send_elapsed = timedelta(seconds=20)
+    clock = ControlledClock(started_at)
+    row = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=customer.tg_id,
+        available_at=started_at - timedelta(seconds=1),
+    )
+    await test_session.commit()
+
+    bot = AdvancingFakeBot(clock, send_elapsed, error)
+    await deliver_order_notifications(test_session, bot, now=started_at, clock=clock)
+
+    await test_session.refresh(row)
+    assert as_utc(row.available_at) == started_at + send_elapsed + retry_delay
 
 
 @pytest.mark.asyncio
@@ -418,6 +559,105 @@ async def test_admin_location_follows_text_and_replies_to_its_telegram_message(
 
     assert await deliver_order_notifications(test_session, bot) == 1
     assert bot.locations == [(admin.tg_id, 41.25, 69.2, bot.messages[0][2].get("message_id", 101))]
+
+
+@pytest.mark.asyncio
+async def test_missing_admin_keyboard_uses_current_revision_and_recipient_language(
+    test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    monkeypatch.setattr(settings, "webhook_base_url", "https://shop.test")
+    monkeypatch.setattr(settings, "storefront_webapp_url", None)
+    _customer, admin, order, event = await _base(test_session)
+    admin.lang = "ru"
+    order.workflow_revision = 7
+    test_session.add(District(name_uz="Test", name_ru="Test"))
+    await test_session.flush()
+    house = await get_house_shop(test_session)
+    assert house is not None
+    test_session.add(
+        OrderShopPart(order_id=order.id, shop_id=house.id, subtotal=100, delivery_fee=0)
+    )
+    row = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=admin.tg_id,
+        kind="admin_order_created",
+        payload=None,
+    )
+    await test_session.commit()
+    bot = FakeBot()
+
+    assert await deliver_order_notifications(test_session, bot) == 1
+
+    await test_session.refresh(row)
+    markup = bot.messages[0][2]["reply_markup"]
+    confirm, cancel = markup.inline_keyboard[0]
+    assert row.status == "sent"
+    assert confirm.text == "✅ Подтвердить заказ"
+    assert confirm.callback_data == f"admin_order:confirm:{order.id}:7"
+    assert cancel.text == "❌ Отменить заказ"
+    assert cancel.url.endswith(f"/manage/orders/{order.id}")
+
+
+@pytest.mark.asyncio
+async def test_missing_admin_keyboard_does_not_confirm_an_order_past_new(
+    test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    monkeypatch.setattr(settings, "webhook_base_url", "https://shop.test")
+    monkeypatch.setattr(settings, "storefront_webapp_url", None)
+    _customer, admin, order, event = await _base(test_session)
+    admin.lang = "uz_cyrl"
+    order.status = "confirmed"
+    order.workflow_revision = 2
+    row = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=admin.tg_id,
+        kind="admin_order_created",
+        payload=None,
+    )
+    await test_session.commit()
+    bot = FakeBot()
+
+    assert await deliver_order_notifications(test_session, bot) == 1
+
+    await test_session.refresh(row)
+    assert row.status == "sent"
+    markup = bot.messages[0][2]["reply_markup"]
+    assert len(markup.inline_keyboard) == 1
+    open_order = markup.inline_keyboard[0][0]
+    assert open_order.text == "Буюртмани очиш"
+    assert open_order.url.endswith(f"/manage/orders/{order.id}")
+    assert open_order.callback_data is None
+
+
+@pytest.mark.asyncio
+async def test_malformed_admin_keyboard_still_permanently_fails(
+    test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "telegram_notifications_enabled", True)
+    _customer, admin, order, event = await _base(test_session)
+    row = await _notification(
+        test_session,
+        order_id=order.id,
+        event_id=event.id,
+        recipient=admin.tg_id,
+        kind="admin_order_created",
+        payload={"reply_markup": "not-a-keyboard"},
+    )
+    await test_session.commit()
+    bot = FakeBot()
+
+    assert await deliver_order_notifications(test_session, bot) == 0
+
+    await test_session.refresh(row)
+    assert row.status == "failed"
+    assert row.last_error == "invalid_reply_markup"
+    assert bot.messages == []
 
 
 @pytest.mark.asyncio

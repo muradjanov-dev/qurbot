@@ -92,9 +92,22 @@ async def _order(
     return order, customer, admin
 
 
+@pytest.mark.parametrize(
+    ("admin_lang", "confirm_label", "cancel_label"),
+    [
+        ("uz_latn", "✅ Buyurtmani tasdiqlash", "❌ Buyurtmani bekor qilish"),
+        ("uz_cyrl", "✅ Буюртмани тасдиқлаш", "❌ Буюртмани бекор қилиш"),
+        ("ru", "✅ Подтвердить заказ", "❌ Отменить заказ"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_create_event_is_idempotent_and_targets_unblocked_admins(test_session) -> None:
-    order, customer, _admin = await _order(test_session)
+async def test_create_event_is_idempotent_and_targets_unblocked_admins(
+    test_session, admin_lang: str, confirm_label: str, cancel_label: str
+) -> None:
+    order, customer, admin = await _order(test_session)
+    admin.lang = admin_lang
+    order.workflow_revision = 4
+    await test_session.flush()
     blocked_id = settings.admin_tg_ids[0]
     test_session.add(User(tg_id=blocked_id, role="admin", is_blocked=True))
     await test_session.flush()
@@ -129,10 +142,13 @@ async def test_create_event_is_idempotent_and_targets_unblocked_admins(test_sess
     assert all("/manage/orders/" in row.text for row in admin_rows)
     for admin_row in admin_rows:
         keyboard = admin_row.payload["reply_markup"]["inline_keyboard"]
-        assert keyboard[0][0]["callback_data"] == f"admin_order:confirm:{order.id}"
-        assert keyboard[0][1]["text"] == "❌ Buyurtmani bekor qilish"
+        assert keyboard[0][0]["callback_data"] == f"admin_order:confirm:{order.id}:4"
         assert keyboard[0][1]["url"].endswith(f"/manage/orders/{order.id}")
         assert "callback_data" not in keyboard[0][1]
+    configured_admin_row = next(row for row in admin_rows if row.recipient_tg_id == 987654)
+    configured_keyboard = configured_admin_row.payload["reply_markup"]["inline_keyboard"]
+    assert configured_keyboard[0][0]["text"] == confirm_label
+    assert configured_keyboard[0][1]["text"] == cancel_label
 
     location_rows = [row for row in rows if row.kind == "admin_order_location"]
     assert {row.recipient_tg_id for row in location_rows} == recipients

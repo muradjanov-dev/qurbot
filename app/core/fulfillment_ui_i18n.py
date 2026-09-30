@@ -27,6 +27,19 @@ _LABELS: dict[str, tuple[str, str, str]] = {
     "apply_filter": ("Ko‘rsatish", "Кўрсатиш", "Показать"),
     "order_count": ("Buyurtmalar: {count}", "Буюртмалар: {count}", "Заказов: {count}"),
     "no_orders": ("Buyurtmalar topilmadi.", "Буюртмалар топилмади.", "Заказы не найдены."),
+    "read_only_badge": (
+        "Tarixiy · faqat ko‘rish",
+        "Тарихий · фақат кўриш",
+        "Исторический · только просмотр",
+    ),
+    "historical_read_only": (
+        "Bu buyurtma joriy do‘konga tegishli emas. Saqlangan ma’lumotlar ko‘rsatiladi, "
+        "ish jarayonini o‘zgartirib bo‘lmaydi.",
+        "Бу буюртма жорий дўконга тегишли эмас. Сақланган маълумотлар кўрсатилади, "
+        "иш жараёнини ўзгартириб бўлмайди.",
+        "Этот заказ не относится к текущему магазину. Сохранённые данные доступны для "
+        "просмотра, менять процесс нельзя.",
+    ),
     "previous": ("Oldingi", "Олдинги", "Назад"),
     "next": ("Keyingi", "Кейинги", "Далее"),
     "order": ("Buyurtma", "Буюртма", "Заказ"),
@@ -91,6 +104,11 @@ _LABELS: dict[str, tuple[str, str, str]] = {
     "details": ("Batafsil", "Батафсил", "Подробнее"),
     "notifications": ("Bildirishnomalar", "Билдиришномалар", "Уведомления"),
     "notification_status": ("Holat", "Ҳолат", "Статус"),
+    "notification_attention": (
+        "Qayta yuborish kerak",
+        "Қайта юбориш керак",
+        "Требуется повторная отправка",
+    ),
     "notification_queued_label": ("Navbatda", "Навбатда", "В очереди"),
     "notification_sent_label": ("Yuborildi", "Юборилди", "Отправлено"),
     "notification_failed_label": ("Xato", "Хато", "Ошибка"),

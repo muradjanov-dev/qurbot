@@ -12,15 +12,19 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from aiogram.exceptions import TelegramForbiddenError
+from aiogram.methods import SendMessage
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.models.ops import DailyMetrics
+from app.db.models.ops import DailyMetrics, Event
 from app.db.models.order import Basket, Order, OrderShopPart, Quote
 from app.db.models.shop import District, Shop, ShopProduct
 from app.db.models.user import User
 from app.db.repositories.ops_repo import OpsRepository
 from app.workers.tasks import (
+    ORDER_REMINDER_EVENT,
     _abandon_baskets_impl,
     _admin_digest_impl,
     _mark_price_staleness_impl,
@@ -415,6 +419,14 @@ async def _placed_but_unconfirmed(session: AsyncSession, minutes_ago: int) -> Or
 async def test_an_order_left_unconfirmed_reminds_the_admins(test_session: AsyncSession) -> None:
     """The customer has already been told it is placed; the silence is on our side."""
     order = await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    order.workflow_revision = 7
+    admin_id = settings.admin_tg_ids[0]
+    admin = await test_session.scalar(select(User).where(User.tg_id == admin_id))
+    if admin is None:
+        test_session.add(User(tg_id=admin_id, role="admin", lang="ru"))
+    else:
+        admin.lang = "ru"
+    await test_session.commit()
     bot = FakeBot()
     cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
 
@@ -424,9 +436,287 @@ async def test_an_order_left_unconfirmed_reminds_the_admins(test_session: AsyncS
     assert len(bot.sent) == len(settings.admin_tg_ids)
     assert f"#{order.id}" in bot.sent[0][1]
     buttons = [button for row in bot.markups[0].inline_keyboard for button in row]
-    assert buttons[0].callback_data == f"admin_order:confirm:{order.id}"
+    assert buttons[0].text == "✅ Подтвердить заказ"
+    assert buttons[0].callback_data == f"admin_order:confirm:{order.id}:7"
+    assert buttons[1].text == "❌ Отменить заказ"
     assert buttons[1].url.endswith(f"/manage/orders/{order.id}")
     assert buttons[1].callback_data is None
+
+
+@pytest.mark.asyncio
+async def test_order_reminder_escapes_customer_phone_and_address(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    admin_id = 900905
+    monkeypatch.setattr(settings, "admin_tg_ids", [admin_id])
+    monkeypatch.setattr(
+        settings, "test_tg_ids", [tg_id for tg_id in settings.test_tg_ids if tg_id != admin_id]
+    )
+    test_session.add(User(tg_id=admin_id, role="admin", lang="uz_latn"))
+    order = await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    order.contact_phone = "<b>Phone</b> & gate"
+    order.delivery_address = "<b>Customer text</b> & gate"
+    await test_session.commit()
+    bot = FakeBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 1
+    reminder = bot.sent[0][1]
+    assert "Tel: &lt;b&gt;Phone&lt;/b&gt; &amp; gate" in reminder
+    assert "Manzil: &lt;b&gt;Customer text&lt;/b&gt; &amp; gate" in reminder
+    assert "<b>Customer text</b>" not in reminder
+    assert "<b>100 000 so'm</b>" in reminder
+
+
+@pytest.mark.parametrize(
+    ("lang", "expected_text"),
+    [
+        (
+            "uz_latn",
+            "⏰ <b>Buyurtma #{order_id} hali tasdiqlanmagan</b>\n\n"
+            "120 daqiqadan beri kutmoqda.\n"
+            "Summa: <b>100 000 so'm</b>\n"
+            "📞 Tel: +998901234567\n"
+            "📍 Manzil: Chilonzor 9\n\n"
+            "Iltimos, mijozga qo'ng'iroq qilib tasdiqlang.",
+        ),
+        (
+            "uz_cyrl",
+            "⏰ <b>Буюртма #{order_id} ҳали тасдиқланмаган</b>\n\n"
+            "120 дақиқадан бери кутмоқда.\n"
+            "Сумма: <b>100 000 сўм</b>\n"
+            "📞 Тел: +998901234567\n"
+            "📍 Манзил: Chilonzor 9\n\n"
+            "Илтимос, мижозга қўнғироқ қилиб тасдиқланг.",
+        ),
+        (
+            "ru",
+            "⏰ <b>Заказ #{order_id} ещё не подтверждён</b>\n\n"
+            "Ожидает подтверждения уже 120 мин.\n"
+            "Сумма: <b>100 000 сум</b>\n"
+            "📞 Телефон: +998901234567\n"
+            "📍 Адрес: Chilonzor 9\n\n"
+            "Пожалуйста, позвоните клиенту и подтвердите заказ.",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_order_reminder_translates_the_complete_message(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    lang: str,
+    expected_text: str,
+) -> None:
+    admin_id = 900902
+    monkeypatch.setattr(settings, "admin_tg_ids", [admin_id])
+    monkeypatch.setattr(
+        settings, "test_tg_ids", [tg_id for tg_id in settings.test_tg_ids if tg_id != admin_id]
+    )
+    test_session.add(User(tg_id=admin_id, role="admin", lang=lang))
+    order = await _placed_but_unconfirmed(test_session, minutes_ago=120)
+    await test_session.commit()
+    bot = FakeBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 1
+    assert bot.sent == [(admin_id, expected_text.format(order_id=order.id))]
+
+
+@pytest.mark.parametrize("unavailable_reason", ["blocked", "test_user", "test_id"])
+@pytest.mark.asyncio
+async def test_reminder_waits_for_an_eligible_admin_before_marking_order(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    unavailable_reason: str,
+) -> None:
+    await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    admin_ids = list(dict.fromkeys(settings.admin_tg_ids))
+    assert admin_ids
+    admin_users = {
+        user.tg_id: user
+        for user in (
+            await test_session.scalars(select(User).where(User.tg_id.in_(admin_ids)))
+        ).all()
+        if user.tg_id is not None
+    }
+    for admin_id in admin_ids:
+        admin = admin_users.get(admin_id)
+        if admin is None:
+            admin = User(tg_id=admin_id, role="admin", lang="ru")
+            test_session.add(admin)
+            admin_users[admin_id] = admin
+        if unavailable_reason == "blocked":
+            admin.is_blocked = True
+        elif unavailable_reason == "test_user":
+            admin.is_test = True
+
+    original_test_ids = list(settings.test_tg_ids)
+    if unavailable_reason == "test_id":
+        monkeypatch.setattr(settings, "test_tg_ids", list(set(original_test_ids) | set(admin_ids)))
+    await test_session.commit()
+
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+    bot = FakeBot()
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 0
+    assert bot.sent == []
+    assert (
+        await test_session.scalar(select(Event.id).where(Event.name == ORDER_REMINDER_EVENT))
+        is None
+    )
+
+    eligible_id = admin_ids[0]
+    eligible = admin_users[eligible_id]
+    eligible.is_blocked = False
+    eligible.is_test = False
+    eligible.role = "customer"  # Configured IDs remain authoritative without a role row.
+    monkeypatch.setattr(
+        settings,
+        "test_tg_ids",
+        [tg_id for tg_id in settings.test_tg_ids if tg_id != eligible_id],
+    )
+    await test_session.commit()
+
+    later_bot = FakeBot()
+    later_sent = await _remind_unconfirmed_orders_impl(test_session, later_bot, cutoff)  # type: ignore[arg-type]
+
+    assert later_sent == 1
+    assert [chat_id for chat_id, _text in later_bot.sent] == [eligible_id]
+    assert (
+        await test_session.scalar(select(Event.id).where(Event.name == ORDER_REMINDER_EVENT))
+        is not None
+    )
+
+
+@pytest.mark.asyncio
+async def test_configured_admin_without_user_row_receives_reminder(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    admin_id = 900903
+    monkeypatch.setattr(settings, "admin_tg_ids", [admin_id])
+    monkeypatch.setattr(
+        settings, "test_tg_ids", [tg_id for tg_id in settings.test_tg_ids if tg_id != admin_id]
+    )
+    await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    assert await test_session.scalar(select(User).where(User.tg_id == admin_id)) is None
+    bot = FakeBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 1
+    assert [chat_id for chat_id, _text in bot.sent] == [admin_id]
+    assert (
+        await test_session.scalar(select(Event.id).where(Event.name == ORDER_REMINDER_EVENT))
+        is not None
+    )
+    assert await test_session.scalar(select(User).where(User.tg_id == admin_id)) is None
+
+
+@pytest.mark.asyncio
+async def test_failed_reminder_send_does_not_mark_order_as_reminded(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    admin_id = 900904
+    monkeypatch.setattr(settings, "admin_tg_ids", [admin_id])
+    monkeypatch.setattr(
+        settings, "test_tg_ids", [tg_id for tg_id in settings.test_tg_ids if tg_id != admin_id]
+    )
+    test_session.add(User(tg_id=admin_id, role="admin"))
+    await _placed_but_unconfirmed(test_session, minutes_ago=15)
+    await test_session.flush()
+
+    class FailingBot(FakeBot):
+        async def send_message(self, chat_id: int, text: str, **kwargs: object) -> None:
+            raise TelegramForbiddenError(SendMessage(chat_id=chat_id, text=text), "blocked")
+
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+    failed_sent = await _remind_unconfirmed_orders_impl(
+        test_session,
+        FailingBot(),
+        cutoff,  # type: ignore[arg-type]
+    )
+
+    assert failed_sent == 0
+    assert (
+        await test_session.scalar(select(Event.id).where(Event.name == ORDER_REMINDER_EVENT))
+        is None
+    )
+
+    later_bot = FakeBot()
+    later_sent = await _remind_unconfirmed_orders_impl(
+        test_session,
+        later_bot,
+        cutoff,  # type: ignore[arg-type]
+    )
+
+    assert later_sent == 1
+    assert [chat_id for chat_id, _text in later_bot.sent] == [admin_id]
+    assert (
+        await test_session.scalar(select(Event.id).where(Event.name == ORDER_REMINDER_EVENT))
+        is not None
+    )
+
+
+@pytest.mark.asyncio
+async def test_reminder_rechecks_admin_revocation_before_each_order(
+    test_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    admin_id = 900901
+    monkeypatch.setattr(settings, "admin_tg_ids", [admin_id])
+    monkeypatch.setattr(
+        settings, "test_tg_ids", [tg_id for tg_id in settings.test_tg_ids if tg_id != admin_id]
+    )
+    admin = User(tg_id=admin_id, role="admin")
+    test_session.add(admin)
+    first = await _placed_but_unconfirmed(test_session, minutes_ago=30)
+    second = Order(
+        quote_id=first.quote_id,
+        user_id=first.user_id,
+        status="new",
+        contact_phone="+998900000002",
+        delivery_address="Second private address",
+        grand_total_quoted=first.grand_total_quoted,
+        created_at=first.created_at,
+    )
+    test_session.add(second)
+    await test_session.flush()
+
+    class RevokingBot(FakeBot):
+        async def send_message(self, chat_id: int, text: str, **kwargs: object) -> None:
+            await super().send_message(chat_id, text, **kwargs)
+            if len(self.sent) == 1:
+                await test_session.execute(
+                    User.__table__.update().where(User.tg_id == admin_id).values(is_blocked=True)
+                )
+                assert not admin.is_blocked  # Core update leaves the identity map stale.
+
+    bot = RevokingBot()
+    cutoff = datetime.now(UTC) - timedelta(minutes=settings.order_confirm_reminder_minutes)
+
+    sent = await _remind_unconfirmed_orders_impl(test_session, bot, cutoff)  # type: ignore[arg-type]
+
+    assert sent == 1
+    assert [chat_id for chat_id, _text in bot.sent] == [admin_id]
+    assert "Second private address" not in bot.sent[0][1]
+    reminded_order_ids = {
+        props["order_id"]
+        for (props,) in (
+            await test_session.execute(
+                select(Event.props).where(Event.name == ORDER_REMINDER_EVENT)
+            )
+        ).all()
+    }
+    assert reminded_order_ids == {first.id}
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,35 @@
 {% extends "base.html" %}
+{% macro notification_card(notification, order, request, L, format_delivery_time, can_retry=false) %}
+  <article class="delivery-notification">
+    <div class="delivery-notification-head">
+      <strong>
+        {% if notification.kind == 'admin_order_created' %}{{ L.notification_order_created }}
+        {% elif notification.kind == 'admin_order_location' %}{{ L.notification_admin_location }}
+        {% elif notification.kind == 'customer_order_ack' %}{{ L.notification_customer_ack }}
+        {% elif notification.kind == 'customer_status' %}{{ L.notification_customer_status }}
+        {% elif notification.kind == 'customer_status_correction' %}{{ L.notification_customer_correction }}
+        {% elif notification.kind == 'customer_departure' %}{{ L.notification_departure }}
+        {% elif notification.kind == 'customer_courier_contact' %}{{ L.notification_courier_contact }}
+        {% else %}{{ notification.kind }}{% endif %}
+      </strong>
+      <span class="delivery-status-pill status-{{ notification.status }}">
+        {% if notification.status == 'pending' %}{{ L.notification_queued_label }}
+        {% elif notification.status == 'sent' %}{{ L.notification_sent_label }}
+        {% elif notification.status == 'failed' %}{{ L.notification_failed_label }}
+        {% else %}{{ notification.status }}{% endif %}
+      </span>
+    </div>
+    <small>{{ L.notification_recipient }}: {{ notification.recipient_tg_id }} · {{ L.notification_attempts }}: {{ notification.attempts }} · {{ format_delivery_time(notification.created_at) }}</small>
+    {% if notification.last_error %}<p class="delivery-error-text">{{ notification.last_error }}</p>{% endif %}
+    {% if can_retry %}
+      <form method="post" action="/manage/orders/{{ order.id }}/notifications/{{ notification.id }}/retry">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        <button class="btn btn-ghost delivery-button" type="submit">{{ L.retry_notification }}</button>
+      </form>
+    {% endif %}
+  </article>
+{% endmacro %}
+
 {% block title %}#{{ order.id }} — {{ L.orders_title }} — Tezqur{% endblock %}
 {% block content %}
 <section class="delivery-workspace delivery-detail">
@@ -18,6 +49,11 @@
 
   {% if error_key %}<div class="delivery-alert delivery-alert-error" role="alert">{{ L[error_key] }}</div>{% endif %}
   {% if success_key %}<div class="delivery-alert delivery-alert-success" role="status">{{ L[success_key] }}</div>{% endif %}
+  {% if not can_manage_order %}
+    <div class="delivery-alert" role="status">
+      <strong>{{ L.read_only_badge }}</strong> — {{ L.historical_read_only }}
+    </div>
+  {% endif %}
 
   <div class="delivery-two-col">
     <section class="delivery-panel">
@@ -36,7 +72,7 @@
       </div>
     </section>
 
-    <div class="delivery-side-stack">
+    {% if can_manage_order %}<div class="delivery-side-stack">
       <section class="delivery-panel">
         <div class="delivery-panel-heading"><h2>{{ L.delivery_management }}</h2><span class="delivery-muted">{{ L.courier_required_hint }}</span></div>
         <form method="post" action="/manage/orders/{{ order.id }}/courier" class="delivery-form">
@@ -60,12 +96,13 @@
           <button class="btn btn-primary delivery-button" type="submit">{{ L.save_note }}</button>
         </form>
       </section>
-    </div>
+    </div>{% endif %}
   </div>
 
   <div class="delivery-two-col delivery-lower-grid">
     <section class="delivery-panel">
       <h2>{{ L.change_status }}</h2>
+      {% if can_manage_order %}
       {% if normal_targets %}
         <form method="post" action="/manage/orders/{{ order.id }}/status" class="delivery-form" data-status-form>
           <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
@@ -98,39 +135,26 @@
         </form>
       </details>
       {% endif %}
+      {% else %}<p class="delivery-muted">{{ L.historical_read_only }}</p>{% endif %}
     </section>
 
     <section class="delivery-panel">
       <h2>{{ L.notifications }}</h2>
+      {% if actionable_notifications %}
+        <div class="delivery-notifications delivery-notification-attention">
+          <h3>{{ L.notification_attention }}</h3>
+          {% for notification in actionable_notifications %}
+            {{ notification_card(notification, order, request, L, format_delivery_time, can_retry=can_manage_order and notification.status == 'failed') }}
+          {% endfor %}
+        </div>
+      {% endif %}
       {% if notifications %}
         <div class="delivery-notifications">
           {% for notification in notifications %}
-            <article class="delivery-notification">
-              <div class="delivery-notification-head">
-                <strong>
-                  {% if notification.kind == 'admin_order_created' %}{{ L.notification_order_created }}
-                  {% elif notification.kind == 'admin_order_location' %}{{ L.notification_admin_location }}
-                  {% elif notification.kind == 'customer_order_ack' %}{{ L.notification_customer_ack }}
-                  {% elif notification.kind == 'customer_status' %}{{ L.notification_customer_status }}
-                  {% elif notification.kind == 'customer_status_correction' %}{{ L.notification_customer_correction }}
-                  {% elif notification.kind == 'customer_departure' %}{{ L.notification_departure }}
-                  {% elif notification.kind == 'customer_courier_contact' %}{{ L.notification_courier_contact }}
-                  {% else %}{{ notification.kind }}{% endif %}
-                </strong>
-                <span class="delivery-status-pill status-{{ notification.status }}">{% if notification.status == 'pending' %}{{ L.notification_queued_label }}{% elif notification.status == 'sent' %}{{ L.notification_sent_label }}{% elif notification.status == 'failed' %}{{ L.notification_failed_label }}{% else %}{{ notification.status }}{% endif %}</span>
-              </div>
-              <small>{{ L.notification_recipient }}: {{ notification.recipient_tg_id }} · {{ L.notification_attempts }}: {{ notification.attempts }} · {{ format_delivery_time(notification.created_at) }}</small>
-              {% if notification.last_error %}<p class="delivery-error-text">{{ notification.last_error }}</p>{% endif %}
-              {% if notification.status == 'failed' %}
-                <form method="post" action="/manage/orders/{{ order.id }}/notifications/{{ notification.id }}/retry">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
-                  <button class="btn btn-ghost delivery-button" type="submit">{{ L.retry_notification }}</button>
-                </form>
-              {% endif %}
-            </article>
+            {{ notification_card(notification, order, request, L, format_delivery_time) }}
           {% endfor %}
         </div>
-      {% else %}<p class="delivery-muted">{{ L.no_notifications }}</p>{% endif %}
+      {% elif not actionable_notifications %}<p class="delivery-muted">{{ L.no_notifications }}</p>{% endif %}
     </section>
   </div>
 

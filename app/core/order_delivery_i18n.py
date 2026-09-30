@@ -72,6 +72,46 @@ ORDER_DELIVERY_MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "Буюртмани очиш",
         "ru": "Открыть заказ",
     },
+    "delivery_admin_confirm_order_button": {
+        "uz_latn": "✅ Buyurtmani tasdiqlash",
+        "uz_cyrl": "✅ Буюртмани тасдиқлаш",
+        "ru": "✅ Подтвердить заказ",
+    },
+    "delivery_admin_cancel_order_button": {
+        "uz_latn": "❌ Buyurtmani bekor qilish",
+        "uz_cyrl": "❌ Буюртмани бекор қилиш",
+        "ru": "❌ Отменить заказ",
+    },
+    "delivery_admin_accept_order_button": {
+        "uz_latn": "✅ Qabul qilish",
+        "uz_cyrl": "✅ Қабул қилиш",
+        "ru": "✅ Принять",
+    },
+    "delivery_admin_reject_order_button": {
+        "uz_latn": "❌ Rad etish",
+        "uz_cyrl": "❌ Рад этиш",
+        "ru": "❌ Отклонить",
+    },
+    "delivery_admin_cancel_reason_hint": {
+        "uz_latn": "Bekor qilish sababini buyurtma sahifasida kiriting.",
+        "uz_cyrl": "Бекор қилиш сабабини буюртма саҳифасида киритинг.",
+        "ru": "Укажите причину отмены на странице заказа.",
+    },
+    "delivery_admin_cancel_reason_link": {
+        "uz_latn": "❌ Buyurtma #{order_id}ni bekor qilish uchun sababni kiriting: {url}",
+        "uz_cyrl": "❌ Буюртма #{order_id}ни бекор қилиш учун сабабни киритинг: {url}",
+        "ru": "❌ Чтобы отменить заказ #{order_id}, укажите причину на странице заказа: {url}",
+    },
+    "delivery_admin_order_stale": {
+        "uz_latn": "Buyurtma yangilandi; joriy holatni panelda tekshiring.",
+        "uz_cyrl": "Буюртма янгиланди; жорий ҳолатни панелда текширинг.",
+        "ru": "Заказ обновлён. Проверьте его текущее состояние в панели.",
+    },
+    "delivery_admin_order_confirmed_feedback": {
+        "uz_latn": "✅ Buyurtma #{order_id} tasdiqlandi.",
+        "uz_cyrl": "✅ Буюртма #{order_id} тасдиқланди.",
+        "ru": "✅ Заказ #{order_id} подтверждён.",
+    },
     "delivery_notification_admin_channel_web": {
         "uz_latn": " (sayt)",
         "uz_cyrl": " (сайт)",

@@ -464,11 +464,19 @@ def get_quote_carousel_keyboard(
     return builder.as_markup()
 
 
-def get_shop_order_decision_keyboard(order_part_id: int) -> InlineKeyboardMarkup:
+def get_shop_order_decision_keyboard(
+    order_part_id: int, workflow_revision: int = 0, lang: str = DEFAULT_LANG
+) -> InlineKeyboardMarkup:
     """Build admin accept/reject buttons for an incoming order part."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Qabul qilish", callback_data=f"shop_order:accept:{order_part_id}")
-    builder.button(text="❌ Rad etish", callback_data=f"shop_order:reject:{order_part_id}")
+    builder.button(
+        text=t("delivery_admin_accept_order_button", lang=lang),
+        callback_data=f"shop_order:accept:{order_part_id}:{workflow_revision}",
+    )
+    builder.button(
+        text=t("delivery_admin_reject_order_button", lang=lang),
+        callback_data=f"shop_order:reject:{order_part_id}:{workflow_revision}",
+    )
     builder.adjust(2)
     return builder.as_markup()
 
@@ -487,16 +495,21 @@ def get_admin_order_detail_url(order_id: int) -> str | None:
     return None
 
 
-def get_admin_order_decision_keyboard(order_id: int) -> InlineKeyboardMarkup:
+def get_admin_order_decision_keyboard(
+    order_id: int, workflow_revision: int = 0, lang: str = DEFAULT_LANG
+) -> InlineKeyboardMarkup:
     """Confirm in Telegram; open the web form to cancel with a real reason."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="✅ Buyurtmani tasdiqlash",
-        callback_data=f"admin_order:confirm:{order_id}",
+        text=t("delivery_admin_confirm_order_button", lang=lang),
+        callback_data=f"admin_order:confirm:{order_id}:{workflow_revision}",
     )
     order_url = get_admin_order_detail_url(order_id)
     if order_url is not None:
-        builder.button(text="❌ Buyurtmani bekor qilish", url=order_url)
+        builder.button(
+            text=t("delivery_admin_cancel_order_button", lang=lang),
+            url=order_url,
+        )
         builder.adjust(2)
     else:
         # Without a public site URL, never expose an unreasoned cancel action.

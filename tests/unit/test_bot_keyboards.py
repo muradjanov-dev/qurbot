@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from app.bot.keyboards.inline import (
     get_admin_order_decision_keyboard,
     get_basket_actions_keyboard,
@@ -140,18 +142,41 @@ def test_quote_carousel_hides_ordering_when_nothing_was_sourced() -> None:
     assert "back_to_basket" in callbacks
 
 
-def test_shop_order_decision_keyboard() -> None:
-    kb = get_shop_order_decision_keyboard(order_part_id=42)
+@pytest.mark.parametrize(
+    ("lang", "accept_label", "reject_label"),
+    [
+        ("uz_latn", "✅ Qabul qilish", "❌ Rad etish"),
+        ("uz_cyrl", "✅ Қабул қилиш", "❌ Рад этиш"),
+        ("ru", "✅ Принять", "❌ Отклонить"),
+    ],
+)
+def test_shop_order_decision_keyboard_localizes_actions(
+    lang: str, accept_label: str, reject_label: str
+) -> None:
+    kb = get_shop_order_decision_keyboard(order_part_id=42, workflow_revision=7, lang=lang)
     assert len(kb.inline_keyboard) == 1
-    assert kb.inline_keyboard[0][0].callback_data == "shop_order:accept:42"
-    assert kb.inline_keyboard[0][1].callback_data == "shop_order:reject:42"
+    assert kb.inline_keyboard[0][0].text == accept_label
+    assert kb.inline_keyboard[0][0].callback_data == "shop_order:accept:42:7"
+    assert kb.inline_keyboard[0][1].text == reject_label
+    assert kb.inline_keyboard[0][1].callback_data == "shop_order:reject:42:7"
 
 
-def test_admin_order_decision_keyboard_routes_cancel_to_reason_form() -> None:
-    kb = get_admin_order_decision_keyboard(order_id=42)
+@pytest.mark.parametrize(
+    ("lang", "confirm_label", "cancel_label"),
+    [
+        ("uz_latn", "✅ Buyurtmani tasdiqlash", "❌ Buyurtmani bekor qilish"),
+        ("uz_cyrl", "✅ Буюртмани тасдиқлаш", "❌ Буюртмани бекор қилиш"),
+        ("ru", "✅ Подтвердить заказ", "❌ Отменить заказ"),
+    ],
+)
+def test_admin_order_decision_keyboard_localizes_actions_and_preserves_cancel_url(
+    lang: str, confirm_label: str, cancel_label: str
+) -> None:
+    kb = get_admin_order_decision_keyboard(order_id=42, workflow_revision=7, lang=lang)
     assert len(kb.inline_keyboard) == 1
-    assert kb.inline_keyboard[0][0].callback_data == "admin_order:confirm:42"
-    assert kb.inline_keyboard[0][1].text == "❌ Buyurtmani bekor qilish"
+    assert kb.inline_keyboard[0][0].text == confirm_label
+    assert kb.inline_keyboard[0][0].callback_data == "admin_order:confirm:42:7"
+    assert kb.inline_keyboard[0][1].text == cancel_label
     assert kb.inline_keyboard[0][1].url.endswith("/manage/orders/42")
     assert kb.inline_keyboard[0][1].callback_data is None
 

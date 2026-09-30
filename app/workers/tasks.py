@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from html import escape
 from typing import Any
 
 from aiogram import Bot
@@ -22,6 +23,7 @@ from app.bot.keyboards.inline import get_admin_order_decision_keyboard, get_pric
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.db.models.ops import DailyMetrics, Event
+from app.db.models.user import User
 from app.db.repositories.basket_repo import BasketRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
@@ -303,6 +305,52 @@ async def ai_cost_report(ctx: dict[str, Any]) -> None:
 
 ORDER_REMINDER_EVENT = "order_confirm_reminder_sent"
 
+_ORDER_REMINDER_TEMPLATES: dict[str, str] = {
+    "uz_latn": (
+        "⏰ <b>Buyurtma #{order_id} hali tasdiqlanmagan</b>\n\n"
+        "{waiting_minutes} daqiqadan beri kutmoqda.\n"
+        "Summa: <b>{amount} so'm</b>\n"
+        "📞 Tel: {phone}\n"
+        "📍 Manzil: {address}\n\n"
+        "Iltimos, mijozga qo'ng'iroq qilib tasdiqlang."
+    ),
+    "uz_cyrl": (
+        "⏰ <b>Буюртма #{order_id} ҳали тасдиқланмаган</b>\n\n"
+        "{waiting_minutes} дақиқадан бери кутмоқда.\n"
+        "Сумма: <b>{amount} сўм</b>\n"
+        "📞 Тел: {phone}\n"
+        "📍 Манзил: {address}\n\n"
+        "Илтимос, мижозга қўнғироқ қилиб тасдиқланг."
+    ),
+    "ru": (
+        "⏰ <b>Заказ #{order_id} ещё не подтверждён</b>\n\n"
+        "Ожидает подтверждения уже {waiting_minutes} мин.\n"
+        "Сумма: <b>{amount} сум</b>\n"
+        "📞 Телефон: {phone}\n"
+        "📍 Адрес: {address}\n\n"
+        "Пожалуйста, позвоните клиенту и подтвердите заказ."
+    ),
+}
+
+
+def _format_order_reminder(
+    *,
+    order_id: int,
+    waiting_minutes: int,
+    total: Decimal,
+    phone: str,
+    address: str,
+    lang: str,
+) -> str:
+    template = _ORDER_REMINDER_TEMPLATES.get(lang, _ORDER_REMINDER_TEMPLATES[settings.default_lang])
+    return template.format(
+        order_id=order_id,
+        waiting_minutes=waiting_minutes,
+        amount=format_uzs(total),
+        phone=escape(phone),
+        address=escape(address),
+    )
+
 
 async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutoff: datetime) -> int:
     """DM the admins about every order that has sat unconfirmed past `cutoff`.
@@ -318,6 +366,7 @@ async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutof
     stale_orders = await order_repo.list_unconfirmed_before(cutoff)
     if not stale_orders:
         return 0
+    test_admin_ids = set(settings.test_tg_ids)
 
     already = await session.execute(select(Event.props).where(Event.name == ORDER_REMINDER_EVENT))
     reminded = {
@@ -336,23 +385,40 @@ async def _remind_unconfirmed_orders_impl(session: AsyncSession, bot: Bot, cutof
         if created_at.tzinfo is None:
             created_at = created_at.replace(tzinfo=UTC)
         waiting_minutes = int((datetime.now(UTC) - created_at).total_seconds() // 60)
-        text = (
-            f"\u23f0 <b>Buyurtma #{order.id} hali tasdiqlanmagan</b>\n\n"
-            f"{waiting_minutes} daqiqadan beri kutmoqda.\n"
-            f"Summa: <b>{format_uzs(order.grand_total_quoted)} so'm</b>\n"
-            f"\U0001f4de Tel: {order.contact_phone}\n"
-            f"\U0001f4cd Manzil: {order.delivery_address}\n\n"
-            f"Iltimos, mijozga qo'ng'iroq qilib tasdiqlang."
-        )
+        delivered = False
         for admin_id in settings.admin_tg_ids:
+            if admin_id in test_admin_ids:
+                continue
+            admin = await session.scalar(
+                select(User).where(User.tg_id == admin_id).execution_options(populate_existing=True)
+            )
+            if admin is not None and (admin.is_blocked or admin.is_test):
+                continue
+            lang = admin.lang if admin is not None else settings.default_lang
+            text = _format_order_reminder(
+                order_id=order.id,
+                waiting_minutes=waiting_minutes,
+                total=order.grand_total_quoted,
+                phone=order.contact_phone,
+                address=order.delivery_address,
+                lang=lang,
+            )
             try:
                 await bot.send_message(
                     admin_id,
                     text,
-                    reply_markup=get_admin_order_decision_keyboard(order.id),
+                    reply_markup=get_admin_order_decision_keyboard(
+                        order.id,
+                        order.workflow_revision,
+                        lang=lang,
+                    ),
                 )
             except TelegramAPIError as exc:
                 logger.warning("order_reminder_send_failed", admin_id=admin_id, error=str(exc))
+            else:
+                delivered = True
+        if not delivered:
+            continue
         await ops_repo.log_event(name=ORDER_REMINDER_EVENT, props={"order_id": order.id})
         sent += 1
 

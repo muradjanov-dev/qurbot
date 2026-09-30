@@ -102,6 +102,7 @@ async def _customer_timeline(
             "status": projection.get("to_status"),
             "created_at": projection["created_at"],
             "cancel_reason": projection.get("public_reason"),
+            "public_contact": projection.get("public_contact"),
         }
         timeline[event.order_id].append(row)
     return timeline

@@ -15,6 +15,7 @@ from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import String, and_, case, cast, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased, selectinload
 
 from app.bot.formatters.common import localized_name
 from app.core.admin_redesign_i18n import admin_ui_messages
@@ -24,7 +25,7 @@ from app.core.fulfillment_ui_i18n import fulfillment_ui_messages
 from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.conversation import Conversation
 from app.db.models.ops import UnmatchedQuery
-from app.db.models.order import Order, OrderShopPart
+from app.db.models.order import Order, OrderItem, OrderShopPart
 from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.shop import (
     ProductPhotoBlob,
@@ -40,7 +41,7 @@ from app.db.session import get_db_session
 from app.domain.normalize.text import normalize_query
 from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.fx_pricing import FxPricingError, FxPricingService
-from app.services.house_shop import is_admin, shop_for_admin
+from app.services.house_shop import get_house_shop, is_admin, shop_for_admin
 from app.services.order_workflow import OrderWorkflowService, WorkflowError
 from app.web.storefront.deps import current_lang, current_user, render, safe_next
 from app.web.storefront.pricing import format_money, price_pair
@@ -425,6 +426,28 @@ def _fulfillment_items(order: Order, lang: str) -> list[dict[str, Any]]:
     return rows
 
 
+async def _current_house_order_ids(session: AsyncSession, order_ids: list[int]) -> set[int]:
+    """Orders whose saved parts all belong to the one current house shop."""
+    if not order_ids:
+        return set()
+    house = await get_house_shop(session)
+    if house is None:
+        return set()
+    result = await session.execute(
+        select(OrderShopPart.order_id, OrderShopPart.shop_id).where(
+            OrderShopPart.order_id.in_(order_ids)
+        )
+    )
+    shop_ids_by_order: dict[int, list[int]] = {}
+    for order_id, shop_id in result.all():
+        shop_ids_by_order.setdefault(order_id, []).append(shop_id)
+    return {
+        order_id
+        for order_id, shop_ids in shop_ids_by_order.items()
+        if shop_ids and all(shop_id == house.id for shop_id in shop_ids)
+    }
+
+
 async def _render_order_detail(
     request: Request,
     session: AsyncSession,
@@ -436,29 +459,68 @@ async def _render_order_detail(
     success_key: str | None = None,
     status_code: int = 200,
 ) -> Response:
-    order = await session.get(Order, order_id)
+    order_result = await session.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            selectinload(Order.user),
+            selectinload(Order.shop_parts)
+            .selectinload(OrderShopPart.items)
+            .selectinload(OrderItem.canonical_product),
+        )
+        .execution_options(populate_existing=True)
+    )
+    order = order_result.scalar_one_or_none()
     if order is None or order.is_test:
         raise HTTPException(404, "order_not_found")
+    editable_order_ids = await _current_house_order_ids(session, [order.id])
     event_result = await session.execute(
         select(OrderEvent)
         .where(OrderEvent.order_id == order.id)
         .order_by(OrderEvent.created_at, OrderEvent.id)
     )
+    earlier_notification = aliased(OrderNotification)
+    is_failed_fifo_head = ~exists(
+        select(1).where(
+            earlier_notification.order_id == OrderNotification.order_id,
+            earlier_notification.recipient_tg_id == OrderNotification.recipient_tg_id,
+            earlier_notification.id < OrderNotification.id,
+            earlier_notification.status != "sent",
+        )
+    )
+    actionable_result = await session.execute(
+        select(OrderNotification)
+        .where(
+            OrderNotification.order_id == order.id,
+            OrderNotification.status == "failed",
+            is_failed_fifo_head,
+        )
+        .order_by(OrderNotification.created_at.desc(), OrderNotification.id.desc())
+    )
+    actionable_notifications = actionable_result.scalars().all()
+    actionable_ids = {notification.id for notification in actionable_notifications}
     notification_result = await session.execute(
         select(OrderNotification)
         .where(OrderNotification.order_id == order.id)
         .order_by(OrderNotification.created_at.desc(), OrderNotification.id.desc())
         .limit(100)
     )
+    recent_notifications = notification_result.scalars().all()
     return render(
         request,
         "manage_order_detail.html",
         user=admin,
         lang=lang,
         order=order,
+        can_manage_order=order.id in editable_order_ids,
         items=_fulfillment_items(order, lang),
         events=event_result.scalars().all(),
-        notifications=notification_result.scalars().all(),
+        notifications=[
+            notification
+            for notification in recent_notifications
+            if notification.id not in actionable_ids
+        ],
+        actionable_notifications=actionable_notifications,
         normal_targets=_NORMAL_STATUS_TARGETS.get(order.status, ()),
         supported_statuses=_WORKFLOW_STATUSES,
         error_key=error_key,
@@ -533,6 +595,7 @@ async def manage_orders(
     rows = result.all()
     orders = [row[0] for row in rows]
     last_update_at_by_order = {row[0].id: row[1] for row in rows}
+    editable_order_ids = await _current_house_order_ids(session, [order.id for order in orders])
 
     def page_url(target_page: int) -> str:
         params: dict[str, str] = {"page": str(target_page)}
@@ -550,6 +613,7 @@ async def manage_orders(
         user=admin,
         lang=lang,
         orders=orders,
+        editable_order_ids=editable_order_ids,
         last_update_at_by_order=last_update_at_by_order,
         search=search,
         statuses=_ORDER_FILTER_STATUSES,

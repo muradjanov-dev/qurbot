@@ -9,6 +9,7 @@ can still produce a duplicate when the lease is retried.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -23,19 +24,21 @@ from aiogram.exceptions import (
     TelegramRetryAfter,
     TelegramServerError,
 )
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.bot.keyboards.inline import get_admin_order_decision_keyboard
+from app.bot.keyboards.inline import get_admin_order_decision_keyboard, get_admin_order_detail_url
 from app.core.config import settings
+from app.core.i18n import t
 from app.core.logging import get_logger
 from app.db.models.order import Order
 from app.db.models.order_workflow import OrderNotification
 from app.db.models.user import User
 from app.db.repositories.order_notification_repo import (
     ClaimedOrderNotification,
+    as_utc,
     claim_due_notifications,
     mark_notification_failed,
     mark_notification_sent,
@@ -49,6 +52,7 @@ CUSTOMER_NOTIFICATION_KINDS = frozenset(
         "customer_order_ack",
         "customer_status",
         "customer_status_correction",
+        "customer_departure",
         "customer_courier_contact",
     }
 )
@@ -126,6 +130,35 @@ def _reply_markup(payload: dict[str, object] | None) -> InlineKeyboardMarkup | N
         raise ValueError("invalid_reply_markup") from exc
 
 
+async def _fallback_admin_order_keyboard(
+    session: AsyncSession, claim: ClaimedOrderNotification
+) -> InlineKeyboardMarkup | None:
+    order = await session.scalar(
+        select(Order).where(Order.id == claim.order_id).execution_options(populate_existing=True)
+    )
+    if order is None:
+        return None
+
+    recipient = await _current_user_for_tg(session, claim.recipient_tg_id)
+    lang = recipient.lang if recipient is not None else settings.default_lang
+    if order.status == "new":
+        return get_admin_order_decision_keyboard(order.id, order.workflow_revision, lang=lang)
+
+    order_url = get_admin_order_detail_url(order.id)
+    if order_url is None:
+        return None
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("delivery_notification_admin_open_order", lang=lang),
+                    url=order_url,
+                )
+            ]
+        ]
+    )
+
+
 async def _related_admin_message_id(
     session: AsyncSession,
     claim: ClaimedOrderNotification,
@@ -186,7 +219,12 @@ async def _send_claim(
             markup = _reply_markup(claim.payload)
         except ValueError as exc:
             raise _PermanentDeliveryError(str(exc)) from exc
-        kwargs["reply_markup"] = markup or get_admin_order_decision_keyboard(claim.order_id)
+        if markup is not None:
+            kwargs["reply_markup"] = markup
+        else:
+            fallback_markup = await _fallback_admin_order_keyboard(session, claim)
+            if fallback_markup is not None:
+                kwargs["reply_markup"] = fallback_markup
     message = await bot.send_message(
         chat_id=claim.recipient_tg_id,
         text=claim.text,
@@ -204,22 +242,42 @@ async def deliver_order_notifications(
     bot: Bot,
     *,
     now: datetime | None = None,
+    clock: Callable[[], datetime] | None = None,
     limit: int = 1,
 ) -> int:
-    """Deliver one batch of ready order events; return the successful sends."""
+    """Deliver ready events, anchoring retry delays to the transport result.
+
+    ``now`` pins the batch and result timestamps for deterministic callers.
+    ``clock`` overrides result timestamps when tests need to model elapsed
+    transport time without sleeping; production reads UTC wall time after each
+    Telegram call.
+    """
     # A disabled integration must leave durable rows pending for a later
     # re-enable; it must not claim, skip, or falsely mark them delivered.
     if not settings.telegram_notifications_enabled:
         return 0
 
-    current = now or datetime.now(UTC)
+    if now is not None:
+        current = as_utc(now)
+    elif clock is not None:
+        current = as_utc(clock())
+    else:
+        current = datetime.now(UTC)
+
+    def result_time() -> datetime:
+        if clock is not None:
+            return as_utc(clock())
+        return current if now is not None else datetime.now(UTC)
+
     claimed = await claim_due_notifications(session, now=current, limit=limit)
     delivered = 0
     for claim in claimed:
         try:
             message_id = await _send_claim(session, bot, claim)
         except _PermanentDeliveryError as exc:
-            await mark_notification_failed(session, claim, str(exc), permanent=True, now=current)
+            await mark_notification_failed(
+                session, claim, str(exc), permanent=True, now=result_time()
+            )
             logger.warning(
                 "order_notification_suppressed",
                 notification_id=claim.id,
@@ -235,7 +293,7 @@ async def deliver_order_notifications(
                 label,
                 permanent=permanent,
                 retry_after=retry_after,
-                now=current,
+                now=result_time(),
             )
             logger.warning(
                 "order_notification_send_failed",
@@ -245,7 +303,9 @@ async def deliver_order_notifications(
                 reason=label,
             )
         else:
-            if await mark_notification_sent(session, claim, message_id=message_id, now=current):
+            if await mark_notification_sent(
+                session, claim, message_id=message_id, now=result_time()
+            ):
                 delivered += 1
             else:
                 # Telegram may already have accepted this send, but another

@@ -15,6 +15,9 @@
   var CHECKOUT_DRAFT_KEY = "qb_checkout_restore_v1";
   var cartRevision = 0;
   var cartLines = [];
+  var legacyCartLines = [];
+  var legacyCartStorageValue = null;
+  var legacyCartReviewMessage = "";
   var cartBusy = false;
   var csrf = document.querySelector('meta[name="csrf-token"]');
   var csrfToken = csrf ? csrf.content : "";
@@ -63,6 +66,37 @@
     syncCount();
   }
 
+  function readLegacyCart() {
+    try {
+      var raw = window.localStorage.getItem(STORE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return { raw: raw, lines: Array.isArray(parsed) ? parsed : [] };
+    } catch (err) { return { raw: null, lines: [] }; }
+  }
+
+  function clearLegacyCart(raw) {
+    try {
+      if (window.localStorage.getItem(STORE_KEY) !== raw) return false;
+      window.localStorage.removeItem(STORE_KEY);
+      window.localStorage.removeItem("qb_cart_merge_key");
+      return true;
+    } catch (err) { return false; }
+  }
+
+  function durableMergeKey() {
+    try {
+      var stored = window.localStorage.getItem("qb_cart_merge_key");
+      if (stored) return stored;
+      var created = requestKey();
+      window.localStorage.setItem("qb_cart_merge_key", created);
+      return created;
+    } catch (err) { return null; }
+  }
+
+  function hasCartSnapshot(result) {
+    return result && Number.isInteger(result.revision) && Array.isArray(result.lines);
+  }
+
   async function loadCart() {
     if (!QB.authed) return true;
     var result = await cartRequest("/api/cart");
@@ -70,20 +104,45 @@
     var drafts = [];
     try { drafts = JSON.parse(sessionStorage.getItem(draftKey) || "[]"); } catch (err) { /* empty draft */ }
     acceptCart(result, Array.isArray(drafts) ? drafts : []);
-    var guest = [];
-    try { guest = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch (err) { /* empty guest cart */ }
+    var stored = readLegacyCart();
+    var guest = stored.lines;
+    legacyCartLines = [];
+    legacyCartStorageValue = stored.raw;
+    legacyCartReviewMessage = "";
     if (!Array.isArray(guest) || !guest.length) return true;
-    var mergeKey;
-    try {
-      mergeKey = localStorage.getItem("qb_cart_merge_key") || requestKey();
-      localStorage.setItem("qb_cart_merge_key", mergeKey);
-    } catch (err) { mergeKey = requestKey(); }
+    var mergeKey = durableMergeKey();
+    if (!mergeKey) {
+      legacyCartLines = guest;
+      legacyCartStorageValue = stored.raw;
+      legacyCartReviewMessage = "failed";
+      return true;
+    }
     var merged = await cartRequest("/api/cart/merge", "POST", {
       lines: basket.payload(guest), merge_key: mergeKey, expected_revision: cartRevision
     });
-    if (!merged.ok) { toast(merged.error || T.error); return true; }
+    if (!merged.ok) {
+      legacyCartLines = guest;
+      legacyCartStorageValue = stored.raw;
+      legacyCartReviewMessage = merged.code === "unit_conflict" ? "conflict" : "failed";
+      if (hasCartSnapshot(merged)) {
+        acceptCart(merged, drafts);
+      } else {
+        var fresh = await cartRequest("/api/cart");
+        if (fresh.ok) acceptCart(fresh, drafts);
+      }
+      return true;
+    }
     acceptCart(merged, drafts.concat(guest.filter(function (line) { return !line.canonical_id; })));
-    try { localStorage.removeItem(STORE_KEY); localStorage.removeItem("qb_cart_merge_key"); } catch (err) { /* receipt prevents remerge */ }
+    if (clearLegacyCart(stored.raw)) {
+      legacyCartLines = [];
+      legacyCartStorageValue = null;
+      legacyCartReviewMessage = "";
+    } else {
+      var changed = readLegacyCart();
+      legacyCartLines = changed.lines;
+      legacyCartStorageValue = changed.raw;
+      legacyCartReviewMessage = changed.lines.length ? "changed" : "";
+    }
     return true;
   }
 
@@ -434,6 +493,180 @@
 
     var calc = $("[data-calculate]");
     if (calc) calc.addEventListener("click", function () { runQuote(calc); });
+  }
+
+  async function initLegacyCartReview() {
+    var card = $("[data-local-cart-review]");
+    if (!card || !QB.authed) return;
+    var lineList = $("[data-local-cart-draft]", card);
+    var message = $("[data-local-cart-message]", card);
+    var retry = $("[data-retry-local-cart]", card);
+    var drop = $("[data-drop-local-cart]", card);
+    var labels = {
+      drop: card.dataset.dropLabel || "",
+      failed: card.dataset.reviewFailed || T.error,
+      conflict: card.dataset.reviewConflict || card.dataset.reviewFailed || T.error,
+      changed: card.dataset.reviewChanged || card.dataset.reviewFailed || T.error,
+      retrying: card.dataset.reviewRetrying || T.loading,
+      discarded: card.dataset.reviewDiscarded || "",
+      storageFailed: card.dataset.reviewStorageFailed || T.error
+    };
+
+    function selectedIndexes() {
+      return $$('input[data-drop-local-index]:checked', lineList).map(function (input) {
+        var index = Number(input.value);
+        return Number.isSafeInteger(index) && index >= 0 ? index : -1;
+      }).filter(function (index) { return index >= 0; });
+    }
+
+    function updateDropState() {
+      drop.disabled = selectedIndexes().length === 0;
+    }
+
+    function renderDraft() {
+      card.hidden = legacyCartLines.length === 0;
+      lineList.replaceChildren();
+      legacyCartLines.forEach(function (line, index) {
+        var item = document.createElement("li");
+        var label = document.createElement("label");
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.dropLocalIndex = "";
+        checkbox.value = String(index);
+        checkbox.addEventListener("change", updateDropState);
+        var name = line.canonical_name || line.parsed_name || line.raw_text || (line.canonical_id ? "#" + line.canonical_id : "");
+        var quantity = [line.qty, line.unit_code].filter(Boolean).join(" ");
+        var text = document.createElement("span");
+        text.textContent = [name, quantity].filter(Boolean).join(" — ");
+        label.append(checkbox, text);
+        label.append(document.createTextNode(" — " + labels.drop));
+        item.append(label);
+        lineList.append(item);
+      });
+      message.textContent = legacyCartReviewMessage === "changed"
+        ? labels.changed
+        : legacyCartReviewMessage === "conflict" ? labels.conflict
+        : legacyCartReviewMessage === "discarded" ? labels.discarded
+        : legacyCartReviewMessage ? labels.failed : "";
+      retry.disabled = legacyCartLines.length === 0;
+      updateDropState();
+    }
+
+    async function retryMerge() {
+      if (!legacyCartLines.length) return;
+      retry.disabled = true;
+      drop.disabled = true;
+      message.textContent = labels.retrying;
+
+      // A prior 409 may have advanced the server cart; always use a fresh revision.
+      var fresh = await cartRequest("/api/cart");
+      if (!fresh.ok) {
+        legacyCartReviewMessage = "failed";
+        message.textContent = labels.failed;
+        retry.disabled = false;
+        updateDropState();
+        return;
+      }
+      var drafts = cartLines.filter(function (line) { return !line.canonical_id; });
+      acceptCart(fresh, drafts);
+      renderBasket();
+
+      var stored = readLegacyCart();
+      if (stored.raw !== legacyCartStorageValue) {
+        legacyCartLines = stored.lines;
+        legacyCartStorageValue = stored.raw;
+        legacyCartReviewMessage = "changed";
+        renderDraft();
+        return;
+      }
+      var guest = stored.lines;
+      if (!guest.length) {
+        legacyCartLines = [];
+        legacyCartReviewMessage = "";
+        renderDraft();
+        return;
+      }
+
+      var mergeKey = durableMergeKey();
+      if (!mergeKey) {
+        legacyCartReviewMessage = "failed";
+        message.textContent = labels.failed;
+        retry.disabled = false;
+        updateDropState();
+        return;
+      }
+      var merged = await cartRequest("/api/cart/merge", "POST", {
+        lines: basket.payload(guest), merge_key: mergeKey, expected_revision: cartRevision
+      });
+      if (!merged.ok) {
+        legacyCartLines = guest;
+        legacyCartStorageValue = stored.raw;
+        legacyCartReviewMessage = merged.code === "unit_conflict" ? "conflict"
+          : merged.code === "cart_conflict" ? "changed" : "failed";
+        if (hasCartSnapshot(merged)) {
+          acceptCart(merged, drafts);
+        } else {
+          var current = await cartRequest("/api/cart");
+          if (current.ok) acceptCart(current, drafts);
+        }
+        renderBasket();
+        message.textContent = legacyCartReviewMessage === "conflict" ? labels.conflict
+          : legacyCartReviewMessage === "changed" ? labels.changed : labels.failed;
+        retry.disabled = false;
+        updateDropState();
+        return;
+      }
+
+      acceptCart(merged, drafts.concat(guest.filter(function (line) { return !line.canonical_id; })));
+      if (clearLegacyCart(stored.raw)) {
+        legacyCartLines = [];
+        legacyCartStorageValue = null;
+        legacyCartReviewMessage = "";
+      } else {
+        var changed = readLegacyCart();
+        legacyCartLines = changed.lines;
+        legacyCartStorageValue = changed.raw;
+        legacyCartReviewMessage = changed.lines.length ? "changed" : "";
+      }
+      renderBasket();
+      renderDraft();
+    }
+
+    function discardSelected() {
+      var selected = selectedIndexes();
+      if (!selected.length) return;
+      var stored = readLegacyCart();
+      if (stored.raw !== legacyCartStorageValue) {
+        legacyCartLines = stored.lines;
+        legacyCartStorageValue = stored.raw;
+        legacyCartReviewMessage = "changed";
+        renderDraft();
+        return;
+      }
+      var remove = new Set(selected);
+      var remaining = legacyCartLines.filter(function (_, index) { return !remove.has(index); });
+      try {
+        if (remaining.length) {
+          window.localStorage.setItem(STORE_KEY, JSON.stringify(remaining));
+        } else {
+          window.localStorage.removeItem(STORE_KEY);
+          window.localStorage.removeItem("qb_cart_merge_key");
+        }
+      } catch (err) {
+        legacyCartReviewMessage = "storage_failed";
+        message.textContent = labels.storageFailed;
+        updateDropState();
+        return;
+      }
+      legacyCartLines = remaining;
+      legacyCartStorageValue = remaining.length ? JSON.stringify(remaining) : null;
+      legacyCartReviewMessage = remaining.length ? "discarded" : "";
+      renderDraft();
+    }
+
+    retry.addEventListener("click", retryMerge);
+    drop.addEventListener("click", discardSelected);
+    renderDraft();
   }
 
   async function runQuote(button) {
@@ -901,6 +1134,7 @@
     if (window.QB.ready && !await window.QB.ready) return;
     if (!await loadCart()) return;
     await initGuestCartClaimReview();
+    await initLegacyCartReview();
     syncCount();
     initQtyWidgets();
     initAddToBasket();

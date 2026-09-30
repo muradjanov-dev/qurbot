@@ -33,6 +33,7 @@ from app.bot.keyboards.inline import (
     get_unmatched_row_keyboard,
     get_upload_template_keyboard,
 )
+from app.bot.order_callbacks import parse_order_decision_callback
 from app.bot.states import ShopOwnerStates
 from app.core.config import settings
 from app.core.i18n import t
@@ -170,7 +171,12 @@ async def cmd_shop_orders(
             f"(Mahsulotlar: {format_uzs(part.subtotal)} + "
             f"Yetkazish: {format_uzs(part.delivery_fee)})"
         )
-        await message.answer(msg_text, reply_markup=get_shop_order_decision_keyboard(part.id))
+        await message.answer(
+            msg_text,
+            reply_markup=get_shop_order_decision_keyboard(
+                part.id, part.order.workflow_revision, lang=lang
+            ),
+        )
 
 
 @router.callback_query(F.data.startswith("shop_order:"))
@@ -181,10 +187,11 @@ async def callback_shop_order_decision(
     lang: str,
 ) -> None:
     try:
-        prefix, action, raw_part_id = (callback.data or "").split(":", 2)
-        part_id = int(raw_part_id)
-        if prefix != "shop_order" or action not in {"accept", "reject"} or part_id <= 0:
-            raise ValueError("invalid legacy order callback")
+        action, part_id, workflow_revision = parse_order_decision_callback(
+            callback.data, "shop_order"
+        )
+        if action not in {"accept", "reject"}:
+            raise ValueError("invalid legacy order callback action")
     except (TypeError, ValueError):
         await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
@@ -201,20 +208,26 @@ async def callback_shop_order_decision(
     order_id = order_part.order_id
     if action == "reject":
         order = await session.get(Order, order_id)
-        if order is None or order.status != "new":
+        if order is None:
             await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+            return
+        if order.status != "new" or order.workflow_revision != workflow_revision:
+            await callback.answer(t("delivery_admin_order_stale", lang=lang), show_alert=True)
             return
         origin = urlsplit(settings.storefront_webapp_url or settings.webhook_base_url)
         if origin.scheme not in {"http", "https"} or not origin.netloc:
             await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
             return
         url = f"{origin.scheme}://{origin.netloc}/manage/orders/{order_id}"
-        await callback.answer(
-            "Bekor qilish sababini buyurtma sahifasida kiriting.", show_alert=True
-        )
+        await callback.answer(t("delivery_admin_cancel_reason_hint", lang=lang), show_alert=True)
         if isinstance(callback.message, Message):
             await callback.message.edit_text(
-                f"❌ Buyurtma #{order_id}ni bekor qilish uchun sababni kiriting: {url}"
+                t(
+                    "delivery_admin_cancel_reason_link",
+                    lang=lang,
+                    order_id=order_id,
+                    url=url,
+                )
             )
         return
 
@@ -224,27 +237,29 @@ async def callback_shop_order_decision(
             order_id=order_id,
             actor=user,
             target=target,
-            expected_revision=None,
+            expected_revision=workflow_revision,
             expected_status="new",
             reason="",
         )
         await session.commit()
-    except WorkflowError:
+    except WorkflowError as error:
         await session.rollback()
         if isinstance(callback.message, Message):
             with suppress(TelegramAPIError):
                 await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        feedback = (
+            t("delivery_admin_order_stale", lang=lang)
+            if error.code in {"stale_revision", "stale_status"}
+            else t("web_error_generic", lang=lang)
+        )
+        await callback.answer(feedback, show_alert=True)
         return
 
-    msg_text = (
-        f"✅ Buyurtma #{order_id} qabul qilindi!"
-        if action == "accept"
-        else f"❌ Buyurtma #{order_id} bekor qilindi."
-    )
-    await callback.answer(msg_text)
+    feedback = t("delivery_admin_order_confirmed_feedback", lang=lang, order_id=order_id)
+    admin_message = t("order_admin_confirmed_customer", lang=lang, order_id=order_id)
+    await callback.answer(feedback)
     if isinstance(callback.message, Message):
-        await callback.message.edit_text(msg_text)
+        await callback.message.edit_text(admin_message)
 
 
 # ---------------------------------------------------------------------------

@@ -17,11 +17,11 @@ from app.bot.keyboards.inline import (
     get_admin_panel_keyboard,
     get_admin_products_keyboard,
 )
+from app.bot.order_callbacks import parse_order_decision_callback
 from app.bot.states import AdminPanelStates
 from app.core.config import settings
 from app.core.i18n import t
 from app.core.logging import get_logger
-from app.core.order_delivery_i18n import ORDER_DELIVERY_MESSAGES
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.ops import UnmatchedQuery
 from app.db.models.order import Order
@@ -53,13 +53,14 @@ async def callback_admin_order_decision(
         return
 
     try:
-        _prefix, action, raw_order_id = (callback.data or "").split(":", 2)
-        order_id = int(raw_order_id)
+        action, order_id, workflow_revision = parse_order_decision_callback(
+            callback.data, "admin_order"
+        )
     except (TypeError, ValueError):
-        await callback.answer("Noto'g'ri buyurtma tugmasi.", show_alert=True)
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
     if action not in {"confirm", "cancel"}:
-        await callback.answer("Noto'g'ri amal.", show_alert=True)
+        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
         return
 
     if action == "cancel":
@@ -68,29 +69,39 @@ async def callback_admin_order_decision(
         )
         order = result.scalar_one_or_none()
         order_url = get_admin_order_detail_url(order_id)
-        if order is None or order.status != "new" or order_url is None:
+        stale_order = order is not None and (
+            order.status != "new" or order.workflow_revision != workflow_revision
+        )
+        if order is None or stale_order or order_url is None:
             await session.rollback()
             if isinstance(callback.message, Message):
                 try:
                     await callback.message.edit_reply_markup(reply_markup=None)
                 except TelegramAPIError:
                     logger.warning("admin_order_markup_remove_failed", order_id=order_id)
-            await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+            feedback = (
+                t("delivery_admin_order_stale", lang=lang)
+                if stale_order
+                else t("web_error_generic", lang=lang)
+            )
+            await callback.answer(feedback, show_alert=True)
             return
 
         await session.commit()
         if isinstance(callback.message, Message):
             try:
                 await callback.message.edit_reply_markup(
-                    reply_markup=get_admin_order_decision_keyboard(order_id)
+                    reply_markup=get_admin_order_decision_keyboard(
+                        order_id, order.workflow_revision, lang=lang
+                    )
                 )
             except TelegramAPIError:
                 logger.warning("admin_order_cancel_link_update_failed", order_id=order_id)
                 await callback.message.answer(
-                    ORDER_DELIVERY_MESSAGES["delivery_notification_admin_open_order"].get(
-                        lang, "Buyurtmani ochish"
+                    t("delivery_notification_admin_open_order", lang=lang),
+                    reply_markup=get_admin_order_decision_keyboard(
+                        order_id, order.workflow_revision, lang=lang
                     ),
-                    reply_markup=get_admin_order_decision_keyboard(order_id),
                 )
         await callback.answer()
         return
@@ -100,23 +111,29 @@ async def callback_admin_order_decision(
             order_id=order_id,
             actor=user,
             target="confirmed",
-            expected_revision=None,
+            expected_revision=workflow_revision,
             expected_status="new",
         )
         await session.commit()
-    except WorkflowError:
+    except WorkflowError as error:
         await session.rollback()
         if isinstance(callback.message, Message):
             try:
                 await callback.message.edit_reply_markup(reply_markup=None)
             except TelegramAPIError:
                 logger.warning("admin_order_markup_remove_failed", order_id=order_id)
-        await callback.answer(t("web_error_generic", lang=lang), show_alert=True)
+        feedback = (
+            t("delivery_admin_order_stale", lang=lang)
+            if error.code in {"stale_revision", "stale_status"}
+            else t("web_error_generic", lang=lang)
+        )
+        await callback.answer(feedback, show_alert=True)
         return
 
     admin_result = t("order_admin_confirmed_customer", lang=lang, order_id=order_id)
+    feedback = t("delivery_admin_order_confirmed_feedback", lang=lang, order_id=order_id)
 
-    await callback.answer(admin_result)
+    await callback.answer(feedback)
     if isinstance(callback.message, Message):
         try:
             await callback.message.edit_reply_markup(reply_markup=None)

@@ -85,6 +85,10 @@
             {% if event.kind == 'courier_contact_updated' %}<strong>{{ L.courier_event }}</strong>
             {% elif event.status %}<strong>{{ t('delivery_status_' ~ event.status, lang=lang) }}</strong>
             {% else %}<strong>{{ L.courier_event }}</strong>{% endif %}
+            {% if event.public_contact %}
+              {% if event.public_contact.courier_name %}<p><strong>{{ event.public_contact.courier_name }}</strong></p>{% endif %}
+              {% if event.public_contact.courier_phone %}<p><a href="tel:{{ event.public_contact.courier_phone }}">{{ event.public_contact.courier_phone }}</a></p>{% endif %}
+            {% endif %}
             {% if event.cancel_reason %}<p>{{ event.cancel_reason }}</p>{% endif %}
           </li>
         {% endfor %}

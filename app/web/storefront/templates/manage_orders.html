@@ -42,6 +42,7 @@
             {% endif %}
           </span>
           <span class="delivery-order-side">
+            {% if order.id not in editable_order_ids %}<span class="delivery-status-pill">{{ L.read_only_badge }}</span>{% endif %}
             {% if order.delivery_problem %}<span class="delivery-problem-badge">{{ L.problem_badge }}</span>{% endif %}
             <span class="delivery-status-pill status-{{ order.status }}">{{ t('delivery_status_' ~ order.status, lang=lang) }}</span>
             <strong>{{ format_uzs(order.grand_total_quoted) }} {{ t('web_currency', lang=lang) }}</strong>

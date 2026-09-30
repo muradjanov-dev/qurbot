@@ -130,9 +130,9 @@ class OrderWorkflowService:
         for recipient_tg_id, admin_lang in await self._admin_recipients():
             order_url = get_admin_order_detail_url(locked_order.id)
             order_link = ""
-            keyboard = get_admin_order_decision_keyboard(locked_order.id).model_dump(
-                mode="json", exclude_none=True
-            )
+            keyboard = get_admin_order_decision_keyboard(
+                locked_order.id, locked_order.workflow_revision, lang=admin_lang
+            ).model_dump(mode="json", exclude_none=True)
             if order_url is not None:
                 open_label = self._message("delivery_notification_admin_open_order", admin_lang)
                 order_link = (
