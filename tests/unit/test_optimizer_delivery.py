@@ -11,12 +11,13 @@ def test_delivery_fee_default_rule() -> None:
     assert is_eligible is True
 
 
-def test_default_delivery_policy_boundary() -> None:
-    at_threshold = calculate_shop_delivery_fee(None, Decimal("5000000"))
-    above_threshold = calculate_shop_delivery_fee(None, Decimal("5000001"))
-
-    assert at_threshold == (Decimal("50000"), False, True)
-    assert above_threshold == (Decimal("0"), True, True)
+def test_default_delivery_policy_never_becomes_free_above_five_million() -> None:
+    for subtotal in (
+        Decimal("4999999"),
+        Decimal("5000000"),
+        Decimal("5000001"),
+    ):
+        assert calculate_shop_delivery_fee(None, subtotal) == (Decimal("50000"), False, True)
 
 
 def test_configured_delivery_threshold_is_strictly_above() -> None:

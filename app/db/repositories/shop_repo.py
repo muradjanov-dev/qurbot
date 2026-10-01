@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy import case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models.catalog import CanonicalProduct
 from app.db.models.order import OrderShopPart
 from app.db.models.shop import (
@@ -19,6 +20,7 @@ from app.db.models.shop import (
     ShopProduct,
 )
 from app.db.repositories.base import BaseRepository
+from app.domain.optimizer.delivery import DEFAULT_DELIVERY_FEE_UZS, PUBLIC_TASHKENT_REGION
 from app.services.fx_pricing import FxPricingError, FxPricingService
 
 
@@ -428,6 +430,19 @@ class ShopRepository(BaseRepository[Shop]):
         min_order: Decimal = Decimal("0"),
         eta_hours: int = 24,
     ) -> ShopDeliveryRule:
+        if district_id is not None:
+            shop = await self.session.get(Shop, shop_id)
+            district = await self.session.get(District, district_id)
+            if (
+                shop is not None
+                and shop.name == settings.house_shop_name
+                and district is not None
+                and district.region == PUBLIC_TASHKENT_REGION
+            ):
+                fee = DEFAULT_DELIVERY_FEE_UZS
+                free_above = None
+                min_order = Decimal("0")
+
         if district_id is not None:
             stmt = select(ShopDeliveryRule).where(
                 ShopDeliveryRule.shop_id == shop_id,

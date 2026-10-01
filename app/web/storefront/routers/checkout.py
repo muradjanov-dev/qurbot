@@ -24,6 +24,7 @@ from app.db.repositories.address_repo import AddressRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
 from app.domain.normalize.phone import normalize_uz_phone
+from app.domain.optimizer.delivery import PUBLIC_TASHKENT_REGION
 from app.domain.optimizer.models import QuoteVariant
 from app.services.address_service import AddressService, ResolvedLocation
 from app.services.cart_policy import assess_lines
@@ -129,15 +130,22 @@ class DurableOrderIn(OrderIn):
 async def delivery_confirmed(
     session: AsyncSession, variant: QuoteVariant, district_id: int
 ) -> bool:
-    rules = await ShopRepository(session).get_delivery_rules_for_shops(
+    repo = ShopRepository(session)
+    rules = await repo.get_delivery_rules_for_shops(
         [group.shop_id for group in variant.shop_groups], district_id
     )
-    return all(
-        (rule := rules.get(group.shop_id)) is not None
-        and not rule.is_pickup_only
-        and group.subtotal_uzs >= rule.min_order
-        for group in variant.shop_groups
-    )
+    district = await repo.get_district(district_id)
+    public_tashkent = district is not None and district.region == PUBLIC_TASHKENT_REGION
+
+    for group in variant.shop_groups:
+        rule = rules.get(group.shop_id)
+        if public_tashkent and group.shop_name == settings.house_shop_name:
+            if rule is not None and rule.is_pickup_only:
+                return False
+            continue
+        if rule is None or rule.is_pickup_only or group.subtotal_uzs < rule.min_order:
+            return False
+    return True
 
 
 @router.get("/api/checkout/options")

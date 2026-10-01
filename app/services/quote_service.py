@@ -1,5 +1,7 @@
 import logging
+from decimal import Decimal
 
+from app.core.config import settings
 from app.core.metrics import quote_latency_seconds
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.shop_repo import ShopRepository
@@ -10,6 +12,7 @@ from app.domain.optimizer import (
     OptimizationResult,
     ShopOffer,
 )
+from app.domain.optimizer.delivery import DEFAULT_DELIVERY_FEE_UZS, PUBLIC_TASHKENT_REGION
 from app.services.fx_pricing import FxPricingService
 
 logger = logging.getLogger(__name__)
@@ -41,12 +44,19 @@ class QuoteService:
         # offers and their select-in-loaded volume tiers are read below.
         await FxPricingService(self.shop_repo.session).snapshot(lock=True)
 
-        # If coordinates not provided, try to lookup district centroid
-        if (customer_lat is None or customer_lon is None) and district_id is not None:
-            district = await self.shop_repo.get_district(district_id)
-            if district and district.centroid_lat and district.centroid_lng:
-                customer_lat = float(district.centroid_lat)
-                customer_lon = float(district.centroid_lng)
+        district = (
+            await self.shop_repo.get_district(district_id) if district_id is not None else None
+        )
+
+        # If coordinates not provided, try to lookup district centroid.
+        if (
+            (customer_lat is None or customer_lon is None)
+            and district is not None
+            and district.centroid_lat
+            and district.centroid_lng
+        ):
+            customer_lat = float(district.centroid_lat)
+            customer_lon = float(district.centroid_lng)
 
         canonical_ids = list({item.canonical_id for item in basket_items})
 
@@ -114,8 +124,24 @@ class QuoteService:
                 )
             )
 
+        public_house_shop_ids = {
+            offer.shop_id
+            for offer in db_offers
+            if offer.shop is not None and offer.shop.name == settings.house_shop_name
+        }
+        public_house_policy = district is None or district.region == PUBLIC_TASHKENT_REGION
         domain_rules: dict[int, DeliveryTier] = {}
         for s_id, r in db_rules.items():
+            if public_house_policy and s_id in public_house_shop_ids:
+                domain_rules[s_id] = DeliveryTier(
+                    shop_id=s_id,
+                    district_id=district_id or 0,
+                    base_fee_uzs=DEFAULT_DELIVERY_FEE_UZS,
+                    free_above_uzs=None,
+                    min_order_uzs=Decimal("0"),
+                    eta_hours=r.eta_hours,
+                )
+                continue
             domain_rules[s_id] = DeliveryTier(
                 shop_id=r.shop_id,
                 district_id=r.district_id or 0,
@@ -124,6 +150,19 @@ class QuoteService:
                 min_order_uzs=r.min_order,
                 eta_hours=r.eta_hours,
             )
+
+        # The public fee is provisional while the address is unknown and fixed
+        # for Tashkent city. A known outside-city district uses its saved rule.
+        if public_house_policy:
+            for shop_id in public_house_shop_ids - domain_rules.keys():
+                domain_rules[shop_id] = DeliveryTier(
+                    shop_id=shop_id,
+                    district_id=district_id or 0,
+                    base_fee_uzs=DEFAULT_DELIVERY_FEE_UZS,
+                    free_above_uzs=None,
+                    min_order_uzs=Decimal("0"),
+                    eta_hours=24,
+                )
 
         # 4. Run pure in-memory optimizer
         optimizer = BasketOptimizer(

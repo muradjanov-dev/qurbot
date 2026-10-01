@@ -24,6 +24,10 @@ from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.order_repo import OrderRepository
 from app.db.repositories.shop_repo import ShopRepository
 from app.db.session import get_db_session
+from app.domain.optimizer.delivery import (
+    DEFAULT_DELIVERY_FEE_UZS,
+    PUBLIC_TASHKENT_REGION,
+)
 from app.domain.pricing.units import unit_price
 from app.services.house_shop import shop_for_admin
 from app.services.order_workflow import OrderWorkflowService, WorkflowError
@@ -243,6 +247,10 @@ async def shop_delivery(
         shop=shop,
         rules=await repo.get_shop_delivery_rules(shop.id),
         districts=await repo.list_districts(),
+        public_tashkent_policy=shop.name == settings.house_shop_name,
+        public_tashkent_fee_uzs=DEFAULT_DELIVERY_FEE_UZS,
+        public_tashkent_min_order_uzs=Decimal("0"),
+        public_tashkent_region=PUBLIC_TASHKENT_REGION,
     )
 
 

@@ -74,6 +74,7 @@ async def test_search_returns_stocked_products_with_price(test_session: AsyncSes
     )
     assert result["products"][0]["id"] == product_id
     assert result["products"][0]["price_from_uzs"] == "151000"
+    assert result["products"][0]["requires_confirmation"] is False
 
 
 async def test_basket_quote_and_order_details(test_session: AsyncSession) -> None:
@@ -122,13 +123,14 @@ async def test_catalogue_only_product_has_no_invented_price(test_session: AsyncS
     await test_session.execute(delete(ShopProduct))
     product = await test_session.get(CanonicalProduct, product_id)
     assert product is not None
-    product.attributes = {**product.attributes, "price_on_request": True, "stock_unverified": True}
+    product.attributes = {}
     await test_session.flush()
     result = await DbAgentTools(test_session, user).run(
         "search_products", {"query": "fanera"}, AgentCart()
     )
     card = next(card for card in result["products"] if card["id"] == product_id)
     assert card["price_from_uzs"] is None
+    assert card["requires_confirmation"] is True
     assert card["price_on_request"] and card["stock_unverified"]
     assert card["reference"] == f"/product/{product_id}"
     assert card["unit_code"] == "dona"
@@ -150,14 +152,40 @@ async def test_knowledge_returns_actual_support_and_delivery(
 
     user, _ = await _seed(test_session)
     shop = await test_session.scalar(select(Shop))
+    assert shop is not None
     monkeypatch.setattr(settings, "house_shop_name", shop.name)
     monkeypatch.setattr(settings, "support_phones", ["+998901234567"])
+    outside = District(region="Samarqand", name_uz="Samarqand", name_ru="Самарканд")
+    test_session.add(outside)
+    await test_session.flush()
+    test_session.add(
+        ShopDeliveryRule(
+            shop_id=shop.id,
+            district_id=user.district_id,
+            fee=Decimal("12345"),
+            free_above=Decimal("5000000"),
+            min_order=Decimal("20000"),
+            eta_hours=48,
+            is_pickup_only=False,
+        )
+    )
+    test_session.add(
+        ShopDeliveryRule(
+            shop_id=shop.id,
+            district_id=outside.id,
+            fee=Decimal("23456"),
+            min_order=Decimal("20000"),
+            eta_hours=48,
+            is_pickup_only=False,
+        )
+    )
     test_session.add(
         ShopDeliveryRule(
             shop_id=shop.id,
             district_id=None,
-            fee=Decimal("12345"),
-            min_order=Decimal("20000"),
+            fee=Decimal("34567"),
+            free_above=Decimal("5000000"),
+            min_order=Decimal("0"),
             eta_hours=48,
             is_pickup_only=False,
         )
@@ -165,7 +193,40 @@ async def test_knowledge_returns_actual_support_and_delivery(
     await test_session.flush()
     result = await DbAgentTools(test_session, user).run("get_knowledge", {}, AgentCart())
     assert result["support_phones"] == ["+998901234567"]
-    assert Decimal(result["delivery_rules"][0]["fee_uzs"]) == Decimal("12345")
+    assert result["tashkent_city_delivery"]["fee_uzs"] == "50000"
+    assert result["tashkent_city_delivery"]["free_delivery"] is False
+    assert result["tashkent_city_delivery"]["minimum_order_uzs"] == "0"
+    assert result["tashkent_city_delivery"]["applies_regardless_of_subtotal"] is True
+    assert "free_above_uzs" not in result["tashkent_city_delivery"]
+    assert (
+        "No delivery time is promised" in result["tashkent_city_delivery"]["delivery_time_policy"]
+    )
+    outside_rule = next(
+        rule for rule in result["regional_delivery_rules"] if rule["scope"] == "district"
+    )
+    default_rule = next(
+        rule
+        for rule in result["regional_delivery_rules"]
+        if rule["scope"] == "default_outside_tashkent"
+    )
+    assert Decimal(outside_rule["fee_uzs"]) == Decimal("23456")
+    assert Decimal(default_rule["fee_uzs"]) == Decimal("34567")
+    assert Decimal(default_rule["free_above_uzs"]) == Decimal("5000000")
+    assert default_rule["district_id"] is None
+    assert all("eta_hours" not in rule for rule in result["regional_delivery_rules"])
+    assert all(rule["fee_uzs"] != "12345.00" for rule in result["regional_delivery_rules"])
+    assert "eta" not in str(result).casefold()
+
+
+async def test_knowledge_returns_tashkent_fee_without_database_rules(
+    test_session: AsyncSession,
+) -> None:
+    user, _ = await _seed(test_session)
+    result = await DbAgentTools(test_session, user).run("get_knowledge", {}, AgentCart())
+
+    assert result["tashkent_city_delivery"]["fee_uzs"] == "50000"
+    assert result["tashkent_city_delivery"]["applies_regardless_of_subtotal"] is True
+    assert result["regional_delivery_rules"] == []
 
 
 async def test_agent_picks_a_district_before_quoting(test_session: AsyncSession) -> None:

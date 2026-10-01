@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.customer import (
+    _serialize_variant,
     callback_calculate_quotes,
     callback_confirm_order,
     callback_select_quote,
@@ -18,8 +19,13 @@ from app.bot.handlers.customer import (
     handle_basket_text,
 )
 from app.core.config import settings
+from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.order import Order
+from app.db.models.shop import District, Shop, ShopProduct
 from app.db.models.user import User
+from app.domain.optimizer.models import BasketItemQuery, DeliveryTier, ShopOffer
+from app.domain.optimizer.solver import BasketOptimizer
+from app.services.cart_service import CartService
 from scripts.seed import seed_database
 
 
@@ -199,6 +205,140 @@ async def test_bot_full_customer_flow(test_session: AsyncSession) -> None:
     assert created_order.comment == "Ertaga 10:00 da yetkazib bering"
     assert created_order.grand_total_quoted > Decimal("0")
     assert len(created_order.shop_parts) >= 1
+
+
+@pytest.mark.asyncio
+async def test_bot_reconfirms_legacy_free_quote_at_fixed_tashkent_fee(
+    test_session: AsyncSession,
+) -> None:
+    category = Category(slug="delivery-test", name_uz="Test", name_ru="Тест")
+    district = District(region="Toshkent", name_uz="Chilonzor", name_ru="Чиланзар")
+    unit = Unit(code="dona", name_uz="Dona", name_ru="Шт", dimension="count")
+    test_session.add_all([category, district, unit])
+    await test_session.flush()
+    product = CanonicalProduct(
+        slug="delivery-test-product",
+        name_uz="Taxta",
+        name_uz_cyrl="Тахта",
+        name_ru="Доска",
+        category_id=category.id,
+        base_unit_code="dona",
+        search_doc="taxta",
+    )
+    shop = Shop(
+        name=settings.house_shop_name,
+        phone=settings.house_shop_phone,
+        district_id=district.id,
+        address="Chilonzor",
+        is_active=True,
+    )
+    user = User(tg_id=987654329, full_name="Test Customer", district_id=district.id)
+    test_session.add_all([product, shop, user])
+    await test_session.flush()
+    offer = ShopProduct(
+        shop_id=shop.id,
+        canonical_id=product.id,
+        raw_name="Taxta",
+        raw_unit="dona",
+        pack_size=Decimal("1"),
+        pack_unit_code="dona",
+        price_per_pack=Decimal("6000000"),
+        price_per_base_unit=Decimal("6000000"),
+        stock_status="in_stock",
+        staleness_state="fresh",
+    )
+    test_session.add(offer)
+    await test_session.flush()
+
+    item = BasketItemQuery(
+        line_no=1,
+        canonical_id=product.id,
+        name_uz=product.name_uz,
+        needed_qty=Decimal("1"),
+        unit_code="dona",
+    )
+    stale_quote = (
+        BasketOptimizer(
+            [item],
+            [
+                ShopOffer(
+                    offer_id=offer.id,
+                    shop_id=shop.id,
+                    shop_name=shop.name,
+                    canonical_id=product.id,
+                    price_uzs=Decimal("6000000"),
+                    pack_size=Decimal("1"),
+                    pack_unit="dona",
+                    in_stock=True,
+                    stock_status="in_stock",
+                    staleness_state="fresh",
+                    tier="standard",
+                    brand_name=None,
+                    trust_score=1.0,
+                    eta_hours=24,
+                    is_active=True,
+                )
+            ],
+            {
+                shop.id: DeliveryTier(
+                    shop_id=shop.id,
+                    district_id=district.id,
+                    base_fee_uzs=Decimal("50000"),
+                    free_above_uzs=Decimal("5000000"),
+                    min_order_uzs=Decimal("0"),
+                    eta_hours=24,
+                )
+            },
+        )
+        .solve()
+        .deduplicated_variants[0]
+    )
+    assert stale_quote.grand_total_uzs == Decimal("6000000")
+
+    snapshot = await CartService(test_session).set_item(
+        user.id,
+        product.id,
+        "1",
+        expected_revision=0,
+        unit_code="dona",
+    )
+    await test_session.commit()
+
+    state = FSMContext(
+        storage=MemoryStorage(),
+        key=StorageKey(bot_id=1, chat_id=124, user_id=user.tg_id),
+    )
+    await state.update_data(
+        delivery_address="Chilonzor 7",
+        contact_phone="+998901234567",
+        quotes=[_serialize_variant(stale_quote)],
+        selected_quote_idx=0,
+        quote_cart_revision=snapshot.revision,
+        cart_revision=snapshot.revision,
+        delivery_district_id=district.id,
+        checkout_key="stale-free-delivery",
+    )
+    message = AsyncMock(spec=Message)
+    message.answer = AsyncMock()
+    callback = AsyncMock(spec=CallbackQuery)
+    callback.message = message
+    callback.answer = AsyncMock()
+
+    await callback_confirm_order(
+        callback=callback,
+        state=state,
+        user=user,
+        session=test_session,
+        bot=AsyncMock(),
+        lang="uz_latn",
+    )
+
+    assert await test_session.scalar(select(Order.id)) is None
+    updated = await state.get_data()
+    assert Decimal(updated["quotes"][0]["delivery_total_uzs"]) == Decimal("50000")
+    assert Decimal(updated["quotes"][0]["grand_total_uzs"]) == Decimal("6050000")
+    assert "50 000" in message.answer.await_args.args[0]
+    callback.answer.assert_awaited_once()
 
 
 @pytest.mark.asyncio

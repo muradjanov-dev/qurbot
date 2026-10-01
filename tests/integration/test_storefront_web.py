@@ -62,11 +62,14 @@ def client(test_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> Itera
 class Fixtures:
     """Ids of the seeded rows, so tests read as behaviour rather than setup."""
 
-    def __init__(self, category_id: int, product_id: int, shop_id: int, user_id: int) -> None:
+    def __init__(
+        self, category_id: int, product_id: int, shop_id: int, user_id: int, district_id: int
+    ) -> None:
         self.category_id = category_id
         self.product_id = product_id
         self.shop_id = shop_id
         self.user_id = user_id
+        self.district_id = district_id
 
 
 CUSTOMER_TG_ID = 5550001
@@ -130,7 +133,7 @@ async def _seed(session: AsyncSession) -> Fixtures:
                 shop_id=shop.id,
                 district_id=district.id,
                 fee=Decimal("40000.00"),
-                free_above=Decimal("1000000.00"),
+                free_above=Decimal("500000.00"),
                 min_order=Decimal("0.00"),
                 eta_hours=24,
             ),
@@ -150,7 +153,7 @@ async def _seed(session: AsyncSession) -> Fixtures:
     await CartService(session).set_item(user.id, product.id, "10", expected_revision=0)
     await session.commit()
 
-    return Fixtures(category.id, product.id, shop.id, user.id)
+    return Fixtures(category.id, product.id, shop.id, user.id, district.id)
 
 
 def _sign_in(client: TestClient, user_id: int, tg_id: int = CUSTOMER_TG_ID) -> None:
@@ -162,7 +165,7 @@ def _sign_in(client: TestClient, user_id: int, tg_id: int = CUSTOMER_TG_ID) -> N
     client.headers["X-CSRF-Token"] = csrf_token(request)
 
 
-def _checkout_fields(expected_total: str = "620000") -> dict[str, object]:
+def _checkout_fields(expected_total: str = "630000") -> dict[str, object]:
     return {
         "cart_revision": 1,
         "idempotency_key": "storefront-fixture",
@@ -172,6 +175,16 @@ def _checkout_fields(expected_total: str = "620000") -> dict[str, object]:
 
 def _basket_line(product_id: int, qty: str = "10") -> dict[str, object]:
     return {"line_no": 1, "canonical_id": product_id, "qty": qty, "unit_code": "dona"}
+
+
+def _checkout_preview_fields(data: Fixtures, idempotency_key: str) -> dict[str, object]:
+    return {
+        "district_id": data.district_id,
+        "cart_revision": 1,
+        "idempotency_key": idempotency_key,
+        "phone": "+998901234567",
+        "address_text": "Chilonzor 7",
+    }
 
 
 # ── pages ───────────────────────────────────────────────────────────────
@@ -347,7 +360,7 @@ async def test_parse_matches_an_approved_alias(
     assert response.status_code == 200
 
     body = response.json()
-    assert body["ok"] is True
+    assert body.get("ok") is True, body
     line = body["lines"][0]
     assert line["status"] == "ok"
     assert line["canonical_id"] == data.product_id
@@ -371,8 +384,95 @@ async def test_quote_prices_the_basket(client: TestClient, test_session: AsyncSe
     assert body["ok"] is True
     variant = body["variants"][0]
     assert variant["items"][0]["name"] == "Gipsokarton 12.5mm"
-    # 10 × 58 000 = 580 000 items, plus the district's 40 000 delivery fee.
-    assert Decimal(variant["grand_total_raw"]) == Decimal("620000")
+    # The legacy city rule has a 40 000 fee and a free-above threshold, but
+    # Tashkent city delivery remains 50 000 for this 580 000 basket.
+    assert Decimal(variant["grand_total_raw"]) == Decimal("630000")
+
+
+@pytest.mark.asyncio
+async def test_tashkent_checkout_ignores_legacy_minimum(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    rule = await test_session.scalar(
+        select(ShopDeliveryRule).where(
+            ShopDeliveryRule.shop_id == data.shop_id,
+            ShopDeliveryRule.district_id == data.district_id,
+        )
+    )
+    assert rule is not None
+    rule.fee = Decimal("0")
+    rule.free_above = Decimal("500000")
+    rule.min_order = Decimal("1000000")
+    await test_session.commit()
+    _sign_in(client, data.user_id)
+
+    body = {
+        **_checkout_preview_fields(data, "tashkent-fixed-fee-minimum"),
+        "lines": [_basket_line(data.product_id)],
+    }
+    preview = client.post("/api/checkout/preview", json=body).json()
+
+    assert preview["ok"] is True
+    assert preview.get("requires_confirmation") is not True
+    assert Decimal(preview["variant"]["grand_total_raw"]) == Decimal("630000")
+
+
+@pytest.mark.asyncio
+async def test_known_tashkent_city_checkout_needs_no_saved_delivery_rule(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    rule = await test_session.scalar(select(ShopDeliveryRule))
+    assert rule is not None
+    await test_session.delete(rule)
+    await test_session.commit()
+    _sign_in(client, data.user_id)
+
+    body = {
+        **_checkout_preview_fields(data, "tashkent-no-rule"),
+        "lines": [_basket_line(data.product_id)],
+    }
+    preview = client.post("/api/checkout/preview", json=body).json()
+
+    assert preview["ok"] is True
+    assert preview.get("requires_confirmation") is not True
+    assert Decimal(preview["variant"]["grand_total_raw"]) == Decimal("630000")
+
+
+@pytest.mark.asyncio
+async def test_tashkent_province_keeps_custom_delivery_fee(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    district = await test_session.get(District, data.district_id)
+    rule = await test_session.scalar(select(ShopDeliveryRule))
+    assert district is not None and rule is not None
+    district.region = "Toshkent viloyati"
+    rule.fee = Decimal("25000")
+    rule.free_above = None
+    await test_session.commit()
+    _sign_in(client, data.user_id)
+
+    body = {
+        **_checkout_preview_fields(data, "tashkent-province-custom-fee"),
+        "lines": [_basket_line(data.product_id)],
+    }
+    preview = client.post("/api/checkout/preview", json=body).json()
+
+    assert preview["ok"] is True
+    assert Decimal(preview["variant"]["grand_total_raw"]) == Decimal("605000")
+
+    rule.min_order = Decimal("600000")
+    await test_session.commit()
+    confirmation = client.post(
+        "/api/checkout/preview",
+        json={
+            **_checkout_preview_fields(data, "tashkent-province-minimum"),
+            "lines": [_basket_line(data.product_id)],
+        },
+    ).json()
+    assert confirmation.get("requires_confirmation") is True
 
 
 @pytest.mark.asyncio
@@ -460,21 +560,19 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
         Decimal("11820.48"), admin_id=999, expected_revision=0
     )
 
-    body = client.post(
-        "/api/order",
-        json={
-            "lines": [_basket_line(data.product_id)],
-            "phone": "90 123 45 67",
-            **_checkout_fields(),
-            "address_text": "Chilonzor 7-kvartal, 12-uy",
-            "comment": "2-qavat",
-        },
-    ).json()
+    order_request = {
+        "lines": [_basket_line(data.product_id)],
+        "phone": "90 123 45 67",
+        **_checkout_fields(),
+        "address_text": "Chilonzor 7-kvartal, 12-uy",
+        "comment": "2-qavat",
+    }
+    body = client.post("/api/order", json=order_request).json()
     assert body["ok"] is True, body
 
     order = (await test_session.execute(select(Order))).scalars().one()
     assert order.id == body["order_id"]
-    assert order.grand_total_quoted == Decimal("620000")
+    assert order.grand_total_quoted == Decimal("630000")
     # The typed number is stored in one canonical form, as the shop will dial it.
     assert order.contact_phone == "+998901234567"
     assert order.comment == "2-qavat"
@@ -491,7 +589,7 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
 
     # The quote snapshot is kept, so the order can always be read back at the
     # price it was placed at.
-    assert Decimal(order.quote.payload["grand_total_uzs"]) == Decimal("620000")
+    assert Decimal(order.quote.payload["grand_total_uzs"]) == Decimal("630000")
     assert order.quote.payload["shop_groups"][0]["shop_id"] == data.shop_id
     fx_snapshot = order.quote.payload["fx_snapshot"]
     assert fx_snapshot["rate"] == "11820.480000"
@@ -503,6 +601,11 @@ async def test_order_creates_the_full_row_set_and_awards_pebbles(
         Decimal("12000"), admin_id=1000, expected_revision=1
     )
     assert order.quote.payload["fx_snapshot"] == frozen_snapshot
+
+    replay = client.post("/api/order", json=order_request).json()
+    assert replay["replayed"] is True
+    assert replay["order_id"] == order.id
+    assert order.grand_total_quoted == Decimal("630000")
     # Typed with no pin: there is no location to send the admins.
     assert order.delivery_lat is None and order.delivery_lng is None
 
@@ -563,8 +666,32 @@ async def test_order_refuses_a_total_the_client_made_up(
 
     assert body["ok"] is False
     assert body["price_changed"] is True
-    assert Decimal(body["variant"]["grand_total_raw"]) == Decimal("620000")
+    assert Decimal(body["variant"]["grand_total_raw"]) == Decimal("630000")
     assert (await test_session.execute(select(Order))).scalars().first() is None
+
+
+@pytest.mark.asyncio
+async def test_order_reconfirms_a_legacy_free_delivery_total(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    _sign_in(client, data.user_id)
+
+    response = client.post(
+        "/api/order",
+        json={
+            **_checkout_fields("580000"),
+            "district_id": data.district_id,
+            "lines": [_basket_line(data.product_id)],
+            "phone": "+998901234567",
+            "address_text": "Chilonzor 7",
+        },
+    ).json()
+
+    assert response["ok"] is False
+    assert response["price_changed"] is True
+    assert Decimal(response["variant"]["grand_total_raw"]) == Decimal("630000")
+    assert await test_session.scalar(select(Order.id)) is None
 
 
 @pytest.mark.asyncio
@@ -713,6 +840,43 @@ async def test_admin_can_save_a_delivery_rule(
 
 
 @pytest.mark.asyncio
+async def test_admin_cannot_save_legacy_fee_or_threshold_for_tashkent_city(
+    client: TestClient, test_session: AsyncSession
+) -> None:
+    data = await _seed(test_session)
+    await _sign_in_admin(client, test_session)
+
+    response = client.post(
+        f"/shop/{data.shop_id}/delivery",
+        data={
+            "district_id": str(data.district_id),
+            "fee": "0",
+            "free_above": "1",
+            "min_order": "1000000",
+            "eta_hours": "48",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    saved = await test_session.scalar(
+        select(ShopDeliveryRule).where(
+            ShopDeliveryRule.shop_id == data.shop_id,
+            ShopDeliveryRule.district_id == data.district_id,
+        )
+    )
+    assert saved is not None
+    assert saved.fee == Decimal("50000")
+    assert saved.free_above is None
+    assert saved.min_order == Decimal("0")
+
+    page = client.get(f"/shop/{data.shop_id}/delivery").text
+    assert 'name="eta_hours"' not in page
+    assert 'data-region="Toshkent"' in page
+    assert "Toshkent shahrida yetkazish har qanday buyurtma uchun 50 000 so'm." in page
+
+
+@pytest.mark.asyncio
 async def test_admin_answers_an_order_and_the_customer_sees_it(
     client: TestClient, test_session: AsyncSession
 ) -> None:
@@ -835,23 +999,33 @@ async def test_customer_can_save_and_default_an_address(
 async def test_quote_does_not_promise_free_delivery_before_an_address(
     client: TestClient, test_session: AsyncSession
 ) -> None:
-    """A visitor with no district must not be shown delivery as 0.
+    """An unknown address uses the provisional fee without displaying it as confirmed.
 
-    Delivery is priced per district, so without one the optimiser finds no rule
-    and the fee comes out zero. Printed as a number that reads as free delivery
-    and then jumps at checkout, which is the one thing a price aggregator
-    cannot afford to look like.
+    A legacy all-district free-delivery row must not turn the provisional house
+    quote into a free delivery offer before the visitor has chosen a district.
     """
     data = await _seed(test_session)
+    test_session.add(
+        ShopDeliveryRule(
+            shop_id=data.shop_id,
+            district_id=None,
+            fee=Decimal("0"),
+            free_above=Decimal("500000"),
+            min_order=Decimal("0"),
+            eta_hours=24,
+        )
+    )
+    await test_session.commit()
     body = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
 
-    assert body["ok"] is True
+    assert body.get("ok") is True, body
     variant = body["variants"][0]
     assert variant["delivery_total"] == t("web_quote_delivery_unknown", lang=DEFAULT_LANG)
     assert variant["delivery_note"]
+    assert Decimal(variant["grand_total_raw"]) == Decimal("630000")
 
-    # ...and a customer whose district is known sees the real fee.
+    # ...and a customer in Tashkent city sees the public fixed fee.
     _sign_in(client, data.user_id)
     known = client.post("/api/quote", json={"lines": [_basket_line(data.product_id)]}).json()
     assert known["variants"][0]["delivery_note"] is None
-    assert "40 000" in known["variants"][0]["delivery_total"]
+    assert "50 000" in known["variants"][0]["delivery_total"]

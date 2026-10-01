@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.fx import FxRateSetting
-from app.db.models.shop import PriceHistory, ShopProduct
+from app.db.models.shop import District, PriceHistory, ShopProduct
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
@@ -441,16 +441,23 @@ async def test_supplier_quick_price_with_history(test_session: AsyncSession) -> 
 
 
 @pytest.mark.asyncio
-async def test_supplier_delivery_rule_upsert(test_session: AsyncSession) -> None:
-    """Delivery rule upsert creates and updates correctly."""
+async def test_supplier_delivery_rule_upsert_preserves_province_customization(
+    test_session: AsyncSession,
+) -> None:
+    """A regional house rule keeps its custom fee, threshold and minimum."""
     await seed_database(test_session)
 
     shop_repo = ShopRepository(test_session)
+    province = District(
+        region="Toshkent viloyati", name_uz="Test viloyati", name_ru="Тестовая область"
+    )
+    test_session.add(province)
+    await test_session.flush()
 
     # Create new rule
     rule = await shop_repo.upsert_delivery_rule(
         shop_id=1,
-        district_id=1,
+        district_id=province.id,
         fee=Decimal("35000"),
         free_above=Decimal("500000"),
         min_order=Decimal("100000"),
@@ -458,11 +465,13 @@ async def test_supplier_delivery_rule_upsert(test_session: AsyncSession) -> None
     )
     await test_session.flush()
     assert rule.fee == Decimal("35000")
+    assert rule.free_above == Decimal("500000")
+    assert rule.min_order == Decimal("100000")
 
     # Update the same rule
     updated_rule = await shop_repo.upsert_delivery_rule(
         shop_id=1,
-        district_id=1,
+        district_id=province.id,
         fee=Decimal("40000"),
         free_above=Decimal("600000"),
         min_order=Decimal("150000"),
@@ -471,4 +480,6 @@ async def test_supplier_delivery_rule_upsert(test_session: AsyncSession) -> None
     await test_session.flush()
     assert updated_rule.id == rule.id
     assert updated_rule.fee == Decimal("40000")
+    assert updated_rule.free_above == Decimal("600000")
+    assert updated_rule.min_order == Decimal("150000")
     assert updated_rule.eta_hours == 8

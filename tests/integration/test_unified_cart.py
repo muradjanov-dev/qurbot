@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.db.models.cart import CheckoutAttempt
 from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.ops import Event, PebbleAward
-from app.db.models.order import Order
+from app.db.models.order import Order, OrderShopPart
 from app.db.models.order_workflow import OrderEvent, OrderNotification
 from app.db.models.shop import District, Shop, ShopDeliveryRule, ShopProduct
 from app.db.models.user import User
@@ -228,7 +228,7 @@ async def _checkout_body(client: AsyncClient, product: CanonicalProduct) -> dict
     return {
         "cart_revision": result.json()["revision"],
         "idempotency_key": "checkout-test",
-        "expected_total": "20000",
+        "expected_total": "70000",
         "phone": "+998901234567",
         "address_text": "Test delivery",
     }
@@ -256,6 +256,12 @@ async def test_checkout_retry_one_order_reward_and_atomic_clear(
     assert len(acks) == 1 and acks[0].recipient_tg_id == user.tg_id
     assert await test_session.scalar(select(func.count()).select_from(CheckoutAttempt)) == 1
     assert await test_session.scalar(select(func.count(PebbleAward.id))) == 1
+    order = await test_session.scalar(select(Order))
+    assert order is not None and order.grand_total_quoted == Decimal("70000")
+    part = await test_session.scalar(
+        select(OrderShopPart).where(OrderShopPart.order_id == order.id)
+    )
+    assert part is not None and part.delivery_fee == Decimal("50000")
     confirmations = (
         await test_session.scalars(select(Event).where(Event.name == "checkout_confirmed"))
     ).all()
@@ -278,10 +284,10 @@ async def test_checkout_reprice_stock_and_revision_refuse_order(
     await test_session.commit()
     repriced = await client.post("/api/order", json=body)
     assert repriced.json()["price_changed"]
-    assert Decimal(repriced.json()["variant"]["grand_total_raw"]) == Decimal("24000")
+    assert Decimal(repriced.json()["variant"]["grand_total_raw"]) == Decimal("74000")
     offer.stock_status = "out"
     await test_session.commit()
-    assert not (await client.post("/api/order", json={**body, "expected_total": "24000"})).json()[
+    assert not (await client.post("/api/order", json={**body, "expected_total": "74000"})).json()[
         "ok"
     ]
     await CartService(test_session).set_item(

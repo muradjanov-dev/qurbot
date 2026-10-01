@@ -79,8 +79,6 @@ async def callback_set_lang(
             t(
                 "welcome_done",
                 lang=new_lang,
-                eta_min=settings.delivery_eta_min_hours,
-                eta_max=settings.delivery_eta_max_hours,
             ),
             reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )
@@ -340,8 +338,6 @@ async def _finish_registration(message: Message, user: User, lang: str) -> None:
         t(
             "welcome_done",
             lang=lang,
-            eta_min=settings.delivery_eta_min_hours,
-            eta_max=settings.delivery_eta_max_hours,
         ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
@@ -387,8 +383,6 @@ async def msg_contact(
         t(
             "welcome_done",
             lang=lang,
-            eta_min=settings.delivery_eta_min_hours,
-            eta_max=settings.delivery_eta_max_hours,
         ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
@@ -409,8 +403,6 @@ async def msg_skip_phone(
         t(
             "welcome_done",
             lang=lang,
-            eta_min=settings.delivery_eta_min_hours,
-            eta_max=settings.delivery_eta_max_hours,
         ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
@@ -451,8 +443,6 @@ async def menu_back_to_main(message: Message, user: User, state: FSMContext, lan
         t(
             "welcome_done",
             lang=lang,
-            eta_min=settings.delivery_eta_min_hours,
-            eta_max=settings.delivery_eta_max_hours,
         ),
         reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
     )
@@ -625,8 +615,6 @@ async def callback_change_language(
             t(
                 "welcome_done",
                 lang=new_lang,
-                eta_min=settings.delivery_eta_min_hours,
-                eta_max=settings.delivery_eta_max_hours,
             ),
             reply_markup=get_main_menu_keyboard(lang=new_lang, is_admin=is_admin),
         )

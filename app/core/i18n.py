@@ -82,7 +82,6 @@ MESSAGES: dict[str, dict[str, str]] = {
             "«<b>10 dona fanera 12mm, 5 dona osb 9mm, 20 dona dvp 3.2</b>»\n"
             "\n"
             "🧱 Taxta, fanera, plita · 🔧 mix, shurup, mahkamlagich\n"
-            "🚚 Yetkazib berish {eta_min}–{eta_max} soat ichida\n"
             "\n"
             "Ro'yxatingizni yuboring — qolganini bizga qo'yib bering 😊"
         ),
@@ -94,7 +93,6 @@ MESSAGES: dict[str, dict[str, str]] = {
             "«<b>10 дона фанера 12мм, 5 дона осб 9мм, 20 дона двп 3.2</b>»\n"
             "\n"
             "🧱 Тахта, фанера, плита · 🔧 мих, шуруп, маҳкамлагич\n"
-            "🚚 Етказиб бериш {eta_min}–{eta_max} соат ичида\n"
             "\n"
             "Рўйхатингизни юборинг — қолганини бизга қўйиб беринг 😊"
         ),
@@ -106,7 +104,6 @@ MESSAGES: dict[str, dict[str, str]] = {
             "«<b>10 шт фанера 12мм, 5 шт осб 9мм, 20 шт двп 3.2</b>»\n"
             "\n"
             "🧱 Доска, фанера, плита · 🔧 гвозди, саморезы, крепёж\n"
-            "🚚 Доставка за {eta_min}–{eta_max} часов\n"
             "\n"
             "Отправьте список — остальное за нами 😊"
         ),
@@ -295,24 +292,23 @@ MESSAGES: dict[str, dict[str, str]] = {
             "📏 Единица: {unit}"
         ),
     },
-    # "Not available" on its own is where the customer leaves. The apology and
-    # a number to call turn a dead end into a phone order -- which is how this
-    # trade already works, and how an older customer prefers to be served.
+    # No current offer is not proof that the product is sold out. The customer
+    # can keep it in the basket, while the missing price is confirmed first.
     "product_card_no_offers": {
         "uz_latn": (
             "<b>{name}</b>\n\n"
-            "Kechirasiz, bu mahsulot hozircha tugagan 😔\n"
-            "Iltimos, qo'ng'iroq qilib so'rang: <b>{phone}</b>"
+            "💬 Buyurtmadan oldin narx va mavjudligini operator bilan tasdiqlaymiz.\n"
+            "Qo'ng'iroq qiling: <b>{phone}</b>"
         ),
         "uz_cyrl": (
             "<b>{name}</b>\n\n"
-            "Кечирасиз, бу маҳсулот ҳозирча тугаган 😔\n"
-            "Илтимос, қўнғироқ қилиб сўранг: <b>{phone}</b>"
+            "💬 Буюртмадан олдин нарх ва мавжудлигини оператор билан тасдиқлаймиз.\n"
+            "Қўнғироқ қилинг: <b>{phone}</b>"
         ),
         "ru": (
             "<b>{name}</b>\n\n"
-            "Извините, этого товара сейчас нет 😔\n"
-            "Пожалуйста, позвоните и уточните: <b>{phone}</b>"
+            "💬 Перед заказом оператор уточнит цену и наличие.\n"
+            "Позвоните: <b>{phone}</b>"
         ),
     },
     "price_browse_choose_category": {
@@ -770,11 +766,6 @@ MESSAGES: dict[str, dict[str, str]] = {
         "uz_cyrl": "📦 Қамров: {covered}/{total} маҳсулот",
         "ru": "📦 Найдено: {covered}/{total} товаров",
     },
-    "quote_delivery_eta": {
-        "uz_latn": "🚚 Yetkazish: {eta_min}-{eta_max} soat ichida",
-        "uz_cyrl": "🚚 Етказиш: {eta_min}-{eta_max} соат ичида",
-        "ru": "🚚 Доставка: в течение {eta_min}-{eta_max} ч.",
-    },
     "prompt_checkout_address": {
         "uz_latn": "Iltimos, aniq yetkazib berish manzilini (ko'cha, uy/mo'ljal) yozing:",
         "uz_cyrl": "Илтимос, аниқ етказиб бериш манзилини (кўча, уй/мўлжал) ёзинг:",
@@ -1068,18 +1059,21 @@ MESSAGES: dict[str, dict[str, str]] = {
     "delivery_rules_title": {
         "uz_latn": (
             "🚚 <b>Yetkazish sozlamalari:</b>\n\n"
-            "Yangilash uchun quyidagi formatda yozing:\n"
-            "<code>dostavka [tuman] [narx] free:[summa] min:[summa]</code>"
+            "Toshkent bo‘ylab yetkazib berish — 50 000 so‘m, buyurtma summasidan qat’i nazar.\n"
+            "Boshqa hudud sozlamalarini yangilash:\n"
+            "<code>dostavka [tuman] [narx]</code>"
         ),
         "uz_cyrl": (
             "🚚 <b>Етказиш созламалари:</b>\n\n"
-            "Янгилаш учун қуйидаги форматда ёзинг:\n"
-            "<code>dostavka [туман] [нарх] free:[сумма] min:[сумма]</code>"
+            "Тошкент бўйлаб етказиб бериш — 50 000 сўм, буюртма суммасидан қатъи назар.\n"
+            "Бошқа ҳудуд созламаларини янгилаш:\n"
+            "<code>dostavka [туман] [нарх]</code>"
         ),
         "ru": (
             "🚚 <b>Настройки доставки:</b>\n\n"
-            "Для обновления напишите в формате:\n"
-            "<code>доставка [район] [стоимость] free:[сумма] min:[сумма]</code>"
+            "Доставка по Ташкенту — 50 000 сум независимо от суммы заказа.\n"
+            "Обновить настройки для другого региона:\n"
+            "<code>доставка [район] [стоимость]</code>"
         ),
     },
     "delivery_rule_updated": {

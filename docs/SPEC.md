@@ -23,6 +23,18 @@ quick price, Excel upload) or the web panel at `/shop`. The optimizer keeps its
 multi-shop strategies (§8); with one shop they collapse to a single variant after
 de-duplication.
 
+**Current public delivery policy:** Tashkent-city orders pay 50,000 UZS at every
+order value, with no free-above threshold or city minimum. Before the address is
+known, the public fallback is also 50,000 UZS; existing outside-city confirmation
+and explicitly configured regional fees stay separate. Customers are not given
+a fixed delivery-time promise. Stored internal ETA fields remain compatible with
+optimizer ranking and historical snapshots. New calculations re-confirm changed
+totals; placed orders and receipts retain their accepted amounts.
+
+Stock quantity `NULL` means unbounded/untracked stock. A catalog product without
+a current priced offer is an operator price/availability-confirmation request,
+not proof of sold-out inventory. Explicit unavailable/archive guards still apply.
+
 **Primary market:** Uzbekistan. Users write in Uzbek Latin, Uzbek Cyrillic, and Russian —
 often mixed in the same message. The system must handle all three.
 
@@ -382,8 +394,10 @@ total(assignment) = Σ_lines line_cost(line, assigned_offer)          # with pac
                   + Σ_shops_used delivery_fee(shop, subtotal, district)
 ```
 
-where `delivery_fee` is 0 if `subtotal >= free_above`, else the rule's `fee`; and a
-shop is only usable if `subtotal >= min_order`.
+For the public Tashkent-city house shop, `delivery_fee` is always 50,000 UZS;
+`free_above` and `min_order` cannot change that policy. A missing rule uses the same
+non-free fallback. Explicitly configured outside-city rules retain their own
+eligibility and fee behavior.
 
 This is a **capacitated facility-location / set-cover hybrid** — the fixed delivery fee
 per shop is exactly what makes naive per-item minimization wrong. Splitting a basket

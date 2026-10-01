@@ -742,7 +742,7 @@
 
     if (variant.savings) card.appendChild(el("p", "notice ok", variant.savings));
     var meta = el("p", "muted tiny");
-    meta.textContent = variant.coverage + " · " + variant.eta;
+    meta.textContent = variant.coverage;
     card.appendChild(meta);
 
     if (variant.missing && variant.missing.length) {
@@ -1062,7 +1062,6 @@
     host.appendChild(totalRow(T.delivery, variant.delivery_total));
     host.appendChild(totalRow(T.grandTotal, variant.grand_total, true));
     if (variant.delivery_note) host.appendChild(el("p", "muted tiny", variant.delivery_note));
-    host.appendChild(el("p", "muted tiny", variant.eta));
   }
 
   function initGeolocation() {

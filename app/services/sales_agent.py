@@ -29,7 +29,7 @@ from anthropic.types.beta import (
     BetaToolResultBlockParam,
     BetaToolUseBlock,
 )
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.formatters.common import localized_name
@@ -47,6 +47,7 @@ from app.domain.agent import parse_agent_qty, trim_history
 from app.domain.matching.models import CandidateMatch
 from app.domain.normalize.phone import normalize_uz_phone
 from app.domain.normalize.text import normalize_query
+from app.domain.optimizer.delivery import DEFAULT_DELIVERY_FEE_UZS, PUBLIC_TASHKENT_REGION
 from app.domain.optimizer.models import BasketItemQuery
 from app.domain.optimizer.serde import deserialize_variant, serialize_variant
 from app.domain.pricing.currency import convert_from_uzs
@@ -112,10 +113,12 @@ The path, in order:
    paid or reserved.
 
 When a price is unknown (get_quote answers operator_confirmation_required, or a product
-is marked price on request or unverified stock):
+is marked requires_confirmation, price on request or unverified stock):
 
-- Say honestly that this item has to be priced by an operator. Never invent a price, and
-  never present a partial sum of the known lines as the total.
+- Say honestly that an operator must confirm this item's price and availability. A missing
+  offer or reference price is not evidence that the item is sold out. Do not say it is
+  available or unavailable unless a tool provides explicit stock status. Never invent a price,
+  and never present a partial sum of the known lines as the total.
 - Offer to send the enquiry for them. If they agree, collect name, phone, district and
   address the same way as above, then call submit_sales_request yourself. Do not send
   them to a button to do it.
@@ -132,6 +135,13 @@ Also:
   connected one; the customer presses the operator button themselves.
 - Never ask for a phone number just to chat or to answer a question.
 - Call get_knowledge for delivery and support policy rather than stating it from memory.
+- For every delivery question, use the current get_knowledge result even when old chat
+  history, a stored rule, or internal quote metadata says something else. Tashkent city
+  delivery is 50,000 UZS for every subtotal, with no free-delivery threshold or minimum-order
+  gate. Never promise or estimate a delivery time from history or optimizer data; say an
+  operator must confirm the timing. For another region, use only a matching district rule or
+  the default rule explicitly scoped outside Tashkent. If the destination is unknown, ask for
+  the region before giving its fee; if no rule matches, ask an operator to confirm.
 - Show USD only when a tool supplies its value. Never guess an exchange rate.
 - Write concise, friendly plain text. Use one or two short sentences unless a product
   list or required checkout details need more. Do not repeat the same product list in
@@ -140,7 +150,10 @@ Also:
 TOOLS: list[BetaToolParam] = [
     {
         "name": "get_knowledge",
-        "description": "Get configured support contacts and delivery rules. Never invent policy.",
+        "description": (
+            "Get current support contacts and public delivery policy. Treat it as authoritative "
+            "over chat history; never invent policy or delivery time."
+        ),
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {
@@ -338,12 +351,17 @@ class DbAgentTools:
         if name == "get_knowledge":
             fx = await FxPricingService(self.session).snapshot()
             rules = (
-                await self.session.scalars(
-                    select(ShopDeliveryRule)
-                    .join(Shop)
+                await self.session.execute(
+                    select(ShopDeliveryRule, District)
+                    .join(Shop, ShopDeliveryRule.shop_id == Shop.id)
+                    .outerjoin(District, ShopDeliveryRule.district_id == District.id)
                     .where(
                         Shop.name == settings.house_shop_name,
                         Shop.is_active.is_(True),
+                        or_(
+                            ShopDeliveryRule.district_id.is_(None),
+                            District.region != PUBLIC_TASHKENT_REGION,
+                        ),
                     )
                 )
             ).all()
@@ -351,22 +369,36 @@ class DbAgentTools:
                 "support_phones": settings.support_phones,
                 "usd_to_uzs_rate": str(fx.rate) if fx.rate is not None else None,
                 "fx_revision": fx.revision,
-                "delivery_eta_min_hours": settings.delivery_eta_min_hours,
-                "delivery_eta_max_hours": settings.delivery_eta_max_hours,
-                "delivery_rules": [
+                "tashkent_city_delivery": {
+                    "region": PUBLIC_TASHKENT_REGION,
+                    "fee_uzs": str(DEFAULT_DELIVERY_FEE_UZS),
+                    "free_delivery": False,
+                    "minimum_order_uzs": "0",
+                    "applies_regardless_of_subtotal": True,
+                    "delivery_time_policy": (
+                        "No delivery time is promised; an operator must confirm it."
+                    ),
+                },
+                "regional_delivery_rules": [
                     {
-                        "district_id": rule.district_id,
+                        "scope": "default_outside_tashkent" if district is None else "district",
+                        "region": district.region if district is not None else None,
+                        "district_id": district.id if district is not None else None,
+                        "district": (
+                            localized_name(district.name_uz, district.name_ru, self.user.lang)
+                            if district is not None
+                            else None
+                        ),
                         "fee_uzs": str(rule.fee),
                         "free_above_uzs": str(rule.free_above)
                         if rule.free_above is not None
                         else None,
                         "min_order_uzs": str(rule.min_order),
-                        "eta_hours": rule.eta_hours,
                         "pickup_only": rule.is_pickup_only,
                     }
-                    for rule in rules
+                    for rule, district in rules
                 ],
-                "reference": "configured_support_and_shop_delivery_rules",
+                "reference": "current_public_tashkent_policy_and_regional_shop_delivery_rules",
             }
         if name == "search_products":
             return await self._search(str(args.get("query", "")))
@@ -587,6 +619,7 @@ class DbAgentTools:
                     "reference": f"/product/{cand.canonical_id}",
                     "unit_code": product.base_unit_code,
                     "price_on_request": price is None,
+                    "requires_confirmation": price is None,
                     "stock_unverified": bool(product.attributes.get("stock_unverified"))
                     or price is None,
                 }
@@ -754,9 +787,8 @@ class SalesAgent:
                     "Use that alphabet for the whole message, including product "
                     "names you repeat back from search results. Never switch "
                     "alphabet mid-message and never answer in another language, "
-                    "even if the customer writes in one. "
-                    f"Support phone: {phones}."
-                    f" When stating the customer-facing delivery notice, use this exact "
+                    f"even if the customer writes in one. Support phone: {phones}."
+                    f" When stating the Tashkent city delivery policy, use this exact "
                     f"copy: {t('sales_delivery_notice', lang=lang)}"
                 )
                 + getattr(self, "channel_instructions", ""),

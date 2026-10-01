@@ -3,7 +3,7 @@ from decimal import Decimal
 from app.domain.optimizer.models import DeliveryTier
 
 DEFAULT_DELIVERY_FEE_UZS = Decimal("50000")
-DEFAULT_FREE_DELIVERY_ABOVE_UZS = Decimal("5000000")
+PUBLIC_TASHKENT_REGION = "Toshkent"
 
 
 def calculate_shop_delivery_fee(
@@ -19,11 +19,8 @@ def calculate_shop_delivery_fee(
         - is_eligible: True if subtotal meets the shop's min_order requirement.
     """
     if rule is None:
-        # QurBot's public fallback policy. A missing shop-specific row must not
-        # silently turn delivery into 0 so'm (which is what customers saw in
-        # production before this fallback was defined).
-        is_free = subtotal > DEFAULT_FREE_DELIVERY_ABOVE_UZS
-        return (Decimal("0") if is_free else DEFAULT_DELIVERY_FEE_UZS), is_free, True
+        # Missing rules use the public default fee regardless of basket size.
+        return DEFAULT_DELIVERY_FEE_UZS, False, True
 
     # Check minimum order requirement
     is_eligible = subtotal >= rule.min_order_uzs

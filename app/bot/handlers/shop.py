@@ -44,6 +44,7 @@ from app.db.models.user import User
 from app.db.repositories.catalog_repo import CatalogRepository
 from app.db.repositories.ops_repo import OpsRepository
 from app.db.repositories.shop_repo import ShopRepository
+from app.domain.optimizer.delivery import DEFAULT_DELIVERY_FEE_UZS, PUBLIC_TASHKENT_REGION
 from app.domain.parsing.excel_template import TEMPLATE_FILENAME, build_price_template
 from app.services.catalog_service import CatalogService
 from app.services.house_shop import is_admin, is_house_shop, shop_for_admin
@@ -941,12 +942,17 @@ async def cmd_delivery_rules(
     if rules:
         for r in rules:
             district_name = r.district.name_uz if r.district else "Barcha tumanlar"
-            free_info = f", bepul {format_uzs(r.free_above)}+ dan" if r.free_above else ""
-            min_info = f", min {format_uzs(r.min_order)}" if r.min_order > 0 else ""
-            text += (
-                f"📍 <b>{district_name}</b>: {format_uzs(r.fee)} so'm{free_info}{min_info} "
-                f"({r.eta_hours}h)\n"
+            is_public_tashkent_rule = (
+                shop.name == settings.house_shop_name
+                and r.district is not None
+                and r.district.region == PUBLIC_TASHKENT_REGION
             )
+            fee = DEFAULT_DELIVERY_FEE_UZS if is_public_tashkent_rule else r.fee
+            free_above = None if is_public_tashkent_rule else r.free_above
+            min_order = Decimal("0") if is_public_tashkent_rule else r.min_order
+            free_info = f", bepul {format_uzs(free_above)}+ dan" if free_above else ""
+            min_info = f", min {format_uzs(min_order)}" if min_order > 0 else ""
+            text += f"📍 <b>{district_name}</b>: {format_uzs(fee)} so'm{free_info}{min_info}\n"
     else:
         text += "Hali sozlamalar mavjud emas.\n"
 
@@ -1013,7 +1019,8 @@ async def handle_delivery_rule_update(
     await state.clear()
 
     dist_display = target_district.name_uz if target_district else district_name
-    await message.answer(t("delivery_rule_updated", lang=lang, district=dist_display))
+    feedback = t("delivery_rule_updated", lang=lang, district=dist_display)
+    await message.answer(feedback)
 
 
 # ---------------------------------------------------------------------------

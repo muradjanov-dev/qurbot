@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, patch
@@ -21,12 +22,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.dispatcher import create_bot, dispatcher
 from app.bot.middlewares.user_context import UserContextMiddleware
 from app.bot.states import RegistrationStates
-from app.core.config import settings
 from app.core.i18n import DEFAULT_LANG, t
 from app.db.models.cart import Cart, CartItem
 from app.db.models.catalog import CanonicalProduct, Category, Unit
 from app.db.models.order import Basket, Order, Quote
 from app.db.models.user import User, UserAddress
+
+_DELIVERY_TIME = re.compile(
+    r"(?:\b\d+\s*(?:[-–]\s*\d+\s*)?(?:soat|соат|час(?:а|ов)?|ч\.?|"
+    r"kun|кун|день|дня|дней)\b|\b(?:ertaga|эртага|завтра|tomorrow|"
+    r"bugun|бугун|сегодня|today)\b)",
+    re.IGNORECASE,
+)
+
+
+def _assert_welcome_has_no_delivery_time(text: str, lang: str) -> None:
+    assert text == t("welcome_done", lang=lang)
+    assert "{eta_min}" not in text and "{eta_max}" not in text
+    assert not _DELIVERY_TIME.search(text)
 
 
 def _telegram_message(tg_id: int, text: str = "/start") -> Message:
@@ -80,12 +93,7 @@ async def test_start_shows_saved_language_menu_without_a_district(
 
     assert len(sent) == 1
     response = sent[0]
-    assert response.text == t(
-        "welcome_done",
-        lang=lang,
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
-    )
+    _assert_welcome_has_no_delivery_time(response.text, lang)
     assert isinstance(response.reply_markup, ReplyKeyboardMarkup)
     button_texts = {button.text for row in response.reply_markup.keyboard for button in row}
     assert t("menu_send_list", lang=lang) in button_texts
@@ -112,12 +120,7 @@ async def test_start_creates_new_user_and_returns_default_language_menu(
     assert user.role == "customer"
     assert len(sent) == 1
     response = sent[0]
-    assert response.text == t(
-        "welcome_done",
-        lang=DEFAULT_LANG,
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
-    )
+    _assert_welcome_has_no_delivery_time(response.text, DEFAULT_LANG)
     assert isinstance(response.reply_markup, ReplyKeyboardMarkup)
 
 
@@ -133,12 +136,7 @@ async def test_start_aliases_return_the_main_menu(test_session: AsyncSession) ->
         await bot.session.close()
 
     assert len(sent) == 1
-    assert sent[0].text == t(
-        "welcome_done",
-        lang="uz_latn",
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
-    )
+    _assert_welcome_has_no_delivery_time(sent[0].text, "uz_latn")
     assert isinstance(sent[0].reply_markup, ReplyKeyboardMarkup)
 
 
@@ -239,12 +237,7 @@ async def test_start_clears_fsm_but_preserves_account_and_customer_records(
     assert await state.get_state() is None
     assert await state.get_data() == {}
     assert len(sent) == 1
-    assert sent[0].text == t(
-        "welcome_done",
-        lang="ru",
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
-    )
+    _assert_welcome_has_no_delivery_time(sent[0].text, "ru")
     assert isinstance(sent[0].reply_markup, ReplyKeyboardMarkup)
     buttons = {button.text for row in sent[0].reply_markup.keyboard for button in row}
     assert t("menu_admin_panel", lang="ru") in buttons

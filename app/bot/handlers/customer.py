@@ -1384,8 +1384,6 @@ async def callback_confirm_order(
             t(
                 "welcome_done",
                 lang=lang,
-                eta_min=settings.delivery_eta_min_hours,
-                eta_max=settings.delivery_eta_max_hours,
             ),
             reply_markup=get_main_menu_keyboard(lang=lang, is_admin=is_admin),
         )
@@ -1573,21 +1571,20 @@ def _format_quote_card(variant: QuoteVariant, lang: str) -> str:
     coverage_str = t(
         "quote_coverage", lang=lang, covered=variant.covered_count, total=variant.total_count
     )
-    eta_str = t(
-        "quote_delivery_eta",
-        lang=lang,
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
-    )
-
-    summary = (
-        f"{divider}\n"
-        f"{t('quote_items_total', lang=lang)}      {format_uzs(variant.items_total_uzs)} so'm\n"
-        f"{t('quote_delivery_total', lang=lang)}   {format_uzs(variant.delivery_total_uzs)} so'm\n"
-        f"<b>{t('quote_grand_total', lang=lang)}   {format_uzs(variant.grand_total_uzs)} so'm</b>\n"
-        f"{savings_str}\n"
-        f"{coverage_str}\n"
-        f"{eta_str}"
+    summary = "\n".join(
+        line
+        for line in (
+            divider,
+            f"{t('quote_items_total', lang=lang)}      "
+            f"{format_uzs(variant.items_total_uzs)} so'm",
+            f"{t('quote_delivery_total', lang=lang)}   "
+            f"{format_uzs(variant.delivery_total_uzs)} so'm",
+            f"<b>{t('quote_grand_total', lang=lang)}   "
+            f"{format_uzs(variant.grand_total_uzs)} so'm</b>",
+            savings_str,
+            coverage_str,
+        )
+        if line
     )
 
     # Partial coverage names what is missing. "Qamrov: 1/2" tells the customer

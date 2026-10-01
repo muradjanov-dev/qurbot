@@ -139,6 +139,46 @@ def test_optimizer_avoids_unnecessary_delivery_split() -> None:
     assert cheapest_var.grand_total_uzs == Decimal("1200000")
 
 
+def test_default_delivery_is_added_to_a_six_million_subtotal() -> None:
+    basket = [
+        BasketItemQuery(
+            line_no=1,
+            canonical_id=1,
+            name_uz="Taxta",
+            needed_qty=Decimal("1"),
+            unit_code="dona",
+        )
+    ]
+    offers = [
+        ShopOffer(
+            offer_id=1,
+            shop_id=25,
+            shop_name="QurBot",
+            canonical_id=1,
+            price_uzs=Decimal("6000000"),
+            pack_size=Decimal("1"),
+            pack_unit="dona",
+            in_stock=True,
+            stock_status="in_stock",
+            staleness_state="fresh",
+            tier="standard",
+            brand_name=None,
+            trust_score=1.0,
+            eta_hours=24,
+            is_active=True,
+        )
+    ]
+
+    result = BasketOptimizer(basket, offers, {}).solve()
+    cheapest = next(
+        v for v in result.variants if OptimizationStrategy.CHEAPEST_TOTAL in v.strategy_labels
+    )
+
+    assert cheapest.items_total_uzs == Decimal("6000000")
+    assert cheapest.delivery_total_uzs == Decimal("50000")
+    assert cheapest.grand_total_uzs == Decimal("6050000")
+
+
 def test_optimizer_determinism() -> None:
     basket = [
         BasketItemQuery(

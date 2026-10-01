@@ -92,10 +92,27 @@ async def test_dispatcher_reaches_start_handler_via_real_update(
     # not restart onboarding at the language picker.
     mock_call.assert_called_once()
     sent_method = mock_call.call_args.args[0]
-    assert sent_method.text == t(
-        "welcome_done",
-        lang=DEFAULT_LANG,
-        eta_min=settings.delivery_eta_min_hours,
-        eta_max=settings.delivery_eta_max_hours,
+    assert sent_method.text == t("welcome_done", lang=DEFAULT_LANG)
+    assert "{eta_min}" not in sent_method.text and "{eta_max}" not in sent_method.text
+    assert not any(
+        time_unit in sent_method.text.casefold()
+        for time_unit in (
+            "soat",
+            "соат",
+            "час",
+            "kun",
+            "кун",
+            "день",
+            "дня",
+            "дней",
+            "ertaga",
+            "эртага",
+            "завтра",
+            "tomorrow",
+            "bugun",
+            "бугун",
+            "сегодня",
+            "today",
+        )
     )
     assert isinstance(sent_method.reply_markup, ReplyKeyboardMarkup)

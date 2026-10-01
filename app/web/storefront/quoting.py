@@ -348,12 +348,6 @@ def variant_payload(
             covered=variant.covered_count,
             total=variant.total_count,
         ),
-        "eta": t(
-            "quote_delivery_eta",
-            lang=lang,
-            eta_min=settings.delivery_eta_min_hours,
-            eta_max=settings.delivery_eta_max_hours,
-        ),
         "missing": [item.name_uz for item in variant.missing_lines],
     }
 

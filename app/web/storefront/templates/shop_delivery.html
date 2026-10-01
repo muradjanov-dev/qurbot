@@ -17,17 +17,21 @@
             <th>{{ t('web_shop_rule_fee', lang=lang) }}</th>
             <th>{{ t('web_shop_rule_free_above', lang=lang) }}</th>
             <th>{{ t('web_shop_rule_min_order', lang=lang) }}</th>
-            <th>{{ t('web_shop_rule_eta', lang=lang) }}</th>
           </tr>
         </thead>
         <tbody>
           {% for rule in rules %}
             <tr>
               <td>{{ rule.district.name_uz if rule.district else t('web_shop_rule_all_districts', lang=lang) }}</td>
-              <td class="price">{{ format_uzs(rule.fee) }}</td>
-              <td class="price">{{ format_uzs(rule.free_above) if rule.free_above else '—' }}</td>
-              <td class="price">{{ format_uzs(rule.min_order) }}</td>
-              <td>{{ rule.eta_hours }}</td>
+              {% if public_tashkent_policy and rule.district and rule.district.region == public_tashkent_region %}
+                <td class="price">{{ format_uzs(public_tashkent_fee_uzs) }}</td>
+                <td class="price">—</td>
+                <td class="price">{{ format_uzs(public_tashkent_min_order_uzs) }}</td>
+              {% else %}
+                <td class="price">{{ format_uzs(rule.fee) }}</td>
+                <td class="price">{{ format_uzs(rule.free_above) if rule.free_above else '—' }}</td>
+                <td class="price">{{ format_uzs(rule.min_order) }}</td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>
@@ -38,31 +42,30 @@
   {% endif %}
 
   <form class="card" method="post" action="/shop/{{ shop.id }}/delivery">
+    {% if public_tashkent_policy %}
+      <p class="muted tiny">Toshkent shahrida yetkazish har qanday buyurtma uchun 50 000 so'm. Bepul yetkazish va minimal buyurtma qo'llanmaydi. Quyidagi qoidalar boshqa hududlar uchun ishlaydi.</p>
+    {% endif %}
     <div class="field-row">
       <label class="field">
         <span>{{ t('web_shop_rule_district', lang=lang) }}</span>
-        <select name="district_id">
-          <option value="">{{ t('web_shop_rule_all_districts', lang=lang) }}</option>
+        <select name="district_id" {% if public_tashkent_policy %}id="delivery-district"{% endif %}>
+          <option value="" data-region="">{{ t('web_shop_rule_all_districts', lang=lang) }}</option>
           {% for district in districts %}
-            <option value="{{ district.id }}">{{ district.name_ru if lang == 'ru' else district.name_uz }}</option>
+            <option value="{{ district.id }}" data-region="{{ district.region }}">{{ district.name_ru if lang == 'ru' else district.name_uz }}</option>
           {% endfor %}
         </select>
       </label>
       <label class="field">
         <span>{{ t('web_shop_rule_fee', lang=lang) }}</span>
-        <input type="text" name="fee" inputmode="numeric" value="0">
+        <input type="text" name="fee" inputmode="numeric" value="{{ '50000' if public_tashkent_policy else '0' }}" {% if public_tashkent_policy %}id="delivery-fee"{% endif %}>
       </label>
-      <label class="field">
+      <label class="field" {% if public_tashkent_policy %}id="delivery-free-field"{% endif %}>
         <span>{{ t('web_shop_rule_free_above', lang=lang) }}</span>
-        <input type="text" name="free_above" inputmode="numeric" placeholder="—">
+        <input type="text" name="free_above" inputmode="numeric" placeholder="—" {% if public_tashkent_policy %}id="delivery-free-above"{% endif %}>
       </label>
-      <label class="field">
+      <label class="field" {% if public_tashkent_policy %}id="delivery-min-field"{% endif %}>
         <span>{{ t('web_shop_rule_min_order', lang=lang) }}</span>
-        <input type="text" name="min_order" inputmode="numeric" value="0">
-      </label>
-      <label class="field" style="max-width:120px;">
-        <span>{{ t('web_shop_rule_eta', lang=lang) }}</span>
-        <input type="number" name="eta_hours" min="1" value="24">
+        <input type="text" name="min_order" inputmode="numeric" value="0" {% if public_tashkent_policy %}id="delivery-min-order"{% endif %}>
       </label>
     </div>
     <button class="btn btn-primary btn-sm" type="submit" style="margin-top:12px;">
@@ -70,4 +73,48 @@
     </button>
   </form>
 </section>
+{% if public_tashkent_policy %}
+<script>
+(() => {
+  const district = document.getElementById("delivery-district");
+  const fee = document.getElementById("delivery-fee");
+  const freeAbove = document.getElementById("delivery-free-above");
+  const minOrder = document.getElementById("delivery-min-order");
+  const freeField = document.getElementById("delivery-free-field");
+  const minField = document.getElementById("delivery-min-field");
+  if (!district || !fee || !freeAbove || !minOrder || !freeField || !minField) return;
+  const publicTashkentRegion = "{{ public_tashkent_region }}";
+
+  const updatePublicPolicyFields = () => {
+    const isTashkentCity = district.selectedOptions[0]?.dataset.region === publicTashkentRegion;
+    if (isTashkentCity) {
+      if (!fee.readOnly) fee.dataset.regionalValue = fee.value;
+      if (!freeAbove.disabled) freeAbove.dataset.regionalValue = freeAbove.value;
+      if (!minOrder.disabled) minOrder.dataset.regionalValue = minOrder.value;
+      fee.value = "50000";
+      fee.readOnly = true;
+      freeAbove.value = "";
+      freeAbove.disabled = true;
+      minOrder.value = "0";
+      minOrder.disabled = true;
+      freeField.hidden = true;
+      minField.hidden = true;
+      return;
+    }
+
+    if (fee.readOnly) fee.value = fee.dataset.regionalValue ?? "50000";
+    if (freeAbove.disabled) freeAbove.value = freeAbove.dataset.regionalValue ?? "";
+    if (minOrder.disabled) minOrder.value = minOrder.dataset.regionalValue ?? "0";
+    fee.readOnly = false;
+    freeAbove.disabled = false;
+    minOrder.disabled = false;
+    freeField.hidden = false;
+    minField.hidden = false;
+  };
+
+  district.addEventListener("change", updatePublicPolicyFields);
+  updatePublicPolicyFields();
+})();
+</script>
+{% endif %}
 {% endblock %}
